@@ -9,12 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Stack;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -32,11 +27,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 /** Single in-match HUD layer. Gameplay mutation stays in GameScreen. */
 public final class MatchHud extends Table implements Disposable {
     private static final float CARD_W = 100f;
     private static final float CARD_H = 60f;
 
+    private final Button shovelButton;
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
     private final Table loadoutRow = new Table();
@@ -47,7 +45,6 @@ public final class MatchHud extends Table implements Disposable {
     private final Label waveLabel;
     private final Label objectiveLabel;
     private final TextButton pauseButton;
-    private final TextButton shovelButton;
     private final TextButton foodButton;
     private final TextButton startButton;
 
@@ -97,7 +94,8 @@ public final class MatchHud extends Table implements Disposable {
         objectiveLabel.setWrap(true);
 
         pauseButton = new TextButton("II", skin);
-        shovelButton = new TextButton("Shovel", skin);
+        Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/egypt_gameplay/shovel_button.png");
+        shovelButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(shovelBtnTex)));
         foodButton = new TextButton("Food", skin);
         startButton = new TextButton("START", skin);
 
@@ -129,7 +127,7 @@ public final class MatchHud extends Table implements Disposable {
         conveyorBox.setVisible(false);
 
         Table tools = new Table();
-        tools.add(shovelButton).size(100, 40).padRight(5);
+        tools.add(shovelButton).size(60, 60).padRight(5);
         tools.add(foodButton).size(100, 40);
 
         add(topRow).growX().row();

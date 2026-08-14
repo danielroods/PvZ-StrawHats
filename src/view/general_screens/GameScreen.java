@@ -100,6 +100,9 @@ public class GameScreen extends UiScreen {
     private float boardTileHeight = TILE_HEIGHT;
     private float bgX, bgY, bgW, bgH;
 
+    private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/egypt_gameplay/shovel_icon.png";
+    private Texture shovelIconTexture;
+
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<GroundItem, Float> itemAnimTimes = new IdentityHashMap<>();
@@ -149,6 +152,13 @@ public class GameScreen extends UiScreen {
     public void initParticles() {
         // Gameplay effects are rendered by the board layers below.
     }
+    private void initShovelTexture() {
+        String path = resolveExistingAssetPath(SHOVEL_ICON_PATH);
+        if (path != null && Gdx.files.internal(path).exists()) {
+            shovelIconTexture = new Texture(Gdx.files.internal(path));
+            shovelIconTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
+    }
 
     @Override
     public void show() {
@@ -161,6 +171,7 @@ public class GameScreen extends UiScreen {
         createHud();
         createBoardInput();
         initParticles();
+        initShovelTexture();
     }
 
     private void initPam() {
@@ -509,9 +520,22 @@ public class GameScreen extends UiScreen {
      * or deselected.
      */
     private void drawDragPreview(float delta) {
-        if (activeTool != Tool.NONE || selectedPlant == null) return;
         Vector2 mouse = mouseWorld();
         if (mouse == null) return;
+
+        // رندر کردن عکس بیل همراه با موس وقتی شاول فعال است
+        if (activeTool == Tool.SHOVEL) {
+            if (shovelIconTexture != null) {
+                float size = boardTileWidth * 0.7f;
+                float drawX = mouse.x - size * 0.5f;
+                float drawY = mouse.y - size * 0.5f;
+                batch.setColor(Color.WHITE);
+                batch.draw(shovelIconTexture, drawX, drawY, size, size);
+            }
+            return;
+        }
+
+        if (activeTool != Tool.NONE || selectedPlant == null) return;
 
         dragPreviewTime += delta;
         float size = boardTileWidth * 0.8f;
@@ -948,6 +972,7 @@ public class GameScreen extends UiScreen {
         if (whitePixel != null) whitePixel.getTexture().dispose();
         if (boardTexture != null) boardTexture.dispose();
         if (graveTexture != null) graveTexture.dispose();
+        if (shovelIconTexture != null) shovelIconTexture.dispose();
         super.dispose();
     }
 
