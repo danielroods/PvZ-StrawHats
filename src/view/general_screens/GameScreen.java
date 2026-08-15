@@ -601,6 +601,7 @@ public class GameScreen extends UiScreen {
         float bh = boardHeight();
         drawBackground(bw, bh);
         drawTiles(bw, bh);
+        drawSeasonGameplayEffects(delta, bw, bh);
         drawSpecialEffects(bw, bh);
         drawGroundItems(delta, bw, bh);
         drawPlants(delta, bw, bh);
@@ -670,7 +671,8 @@ public class GameScreen extends UiScreen {
             for (int c = 0; c < session.getCols(); c++) {
                 Cell cell = session.getEnvironment().getCell(r, c);
                 if (cell == null) continue;
-                if (cell.getTile() != null && cell.getTile().type().name().equalsIgnoreCase("WATER")) {
+                if (cell.getTile() != null && cell.getTile().type().name().equalsIgnoreCase("WATER")
+                        && !isBeach()) {
                     batch.setColor(0.22f, 0.52f, 0.72f, 0.45f);
                     batch.draw(whitePixel, BOARD_X + c * boardTileWidth, cellY(r), boardTileWidth, boardTileHeight);
                     batch.setColor(Color.WHITE);
@@ -684,6 +686,24 @@ public class GameScreen extends UiScreen {
             batch.setColor(Color.WHITE);
         }
     }
+
+    protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
+        // Default seasons have no extra gameplay overlay.
+    }
+
+    protected boolean isBeach() {
+        return session != null && session.getLevel() != null
+                && session.getLevel().getSeason() != null
+                && "Big Wave Beach".equalsIgnoreCase(session.getLevel().getSeason().getName());
+    }
+
+    protected float getBoardTileWidth() { return boardTileWidth; }
+    protected float getBoardTileHeight() { return boardTileHeight; }
+    protected float getBoardCenterX() { return BOARD_X + boardWidth() * 0.5f; }
+    protected float getBoardCenterY() { return BOARD_Y + boardHeight() * 0.5f; }
+    protected float getBoardRight() { return BOARD_X + boardWidth(); }
+    protected float getBoardBottom() { return BOARD_Y; }
+    protected float getCellCenterY(int row) { return cellY(row) + boardTileHeight * 0.5f; }
 
     private void drawSpecialEffects(float bw, float bh) {
         var level = session.getLevel();
@@ -1032,13 +1052,17 @@ public class GameScreen extends UiScreen {
         batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
 
-    private boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
+    protected boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
         if (pamPlayer == null || path == null) return false;
         try {
-            String clipName = AnimationFactory.resolveClipNameForPath(path, preferred);
+            String pamPath = path;
+            if (pamPath.startsWith("assets/pvz-assets/")) {
+                pamPath = pamPath.substring("assets/pvz-assets/".length());
+            }
+            String clipName = AnimationFactory.resolveClipNameForPath(pamPath, preferred);
             if (clipName == null) clipName = preferred;
             if (clipName == null || clipName.isBlank()) return false;
-            ClipRef clip = pamPlayer.getClip(path, clipName);
+            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
             if (clip == null) {
                 if (GameSettings.get().isDebugMode()) {
                     Gdx.app.log("DRAWPAM_NULLCLIP", "getClip returned null for path=" + path + " clip=" + clipName);
