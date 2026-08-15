@@ -14,7 +14,7 @@ public class SeedPacketCard extends Stack {
     private static final float PLANT_SCALE_W = 0.83f;
     private static final float PLANT_SCALE_H = 0.83f;
     private static final float OFFSET_X = -40f;
-    private static final float OFFSET_Y = 7f;
+    private static final float OFFSET_Y = 13f;
 
     private static final float CLIP_INSET = 1f;
 
