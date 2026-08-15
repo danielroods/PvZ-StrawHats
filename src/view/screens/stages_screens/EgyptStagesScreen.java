@@ -36,6 +36,7 @@ import pvz.libpvz.textures.TextureBank;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.general_screens.UiScreen;
+import view.screens.ComicIntroScreen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -345,7 +346,18 @@ public class EgyptStagesScreen extends StagesScreen {
         selectionLabel = new Label("", skin, "main");
         selectionLabel.setWrap(true);
 
-        playButton = primaryButton("Play", () -> runCommand("start game"));
+        playButton = primaryButton("Play", () -> {
+            Level selected = MatchMenu.selectedLevel;
+
+            // اگر اولین مرحله فصل مصر انتخاب شده باشد
+            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
+                controller.ScreenManager.setScreen(new ComicIntroScreen(() -> {
+                    runCommand("start game");
+                }));
+            } else {
+                runCommand("start game");
+            }
+        });
 
         bar.add(selectionLabel).width(760).left().expandX();
         bar.add(playButton).width(180).height(56).padLeft(SPACE_LG);
