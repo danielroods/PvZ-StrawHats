@@ -23,9 +23,6 @@ public class EgyptGameScreen extends GameScreen {
         AudioManager.get().playMusic(AudioEnum.EGYPT_MUSIC, true);
         GameSession session = GameSession.peekInstance();
         if (session != null && session.getLevel() != null) {
-            // The four current Egypt stages are represented by the normal
-            // gameplay renderer plus their model-defined special behaviour.
-            // No separate zombie-pool HUD is added here.
         }
     }
 }
