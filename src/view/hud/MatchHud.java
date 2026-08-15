@@ -4,7 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -19,6 +21,7 @@ import model.collections.plant.PlantJsonParser;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.utils.GameSession;
+import pvz.libpvz.pam.PamPlayer;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
 
@@ -66,6 +69,7 @@ public final class MatchHud extends Table implements Disposable {
     private final List<SlotView> slotViews = new ArrayList<>();
     private boolean shovelActive;
     private boolean foodActive;
+    private PamPlayer pamPlayer;
 
     private static final class SlotView {
         final String name;
@@ -136,6 +140,11 @@ public final class MatchHud extends Table implements Disposable {
         Table waveLabelOverlay = new Table();
         waveLabelOverlay.add(waveLabel).center().expand();
         waveBarStack.add(waveLabelOverlay);
+
+        Table difficultyOverlay = new Table();
+        difficultyOverlay.right();
+        difficultyOverlay.add(new DifficultyMeterActor()).size(26f, 26f).padRight(-5f);
+        waveBarStack.add(difficultyOverlay);
 
         Table centerColumn = new Table();
         centerColumn.add(waveBarStack).growX().height(26f).row();
@@ -431,6 +440,74 @@ public final class MatchHud extends Table implements Disposable {
             conveyorBox.add(new Label("Waiting for next plant...", skin, "main"));
         }
     }
+    public void setPamPlayer(PamPlayer pamPlayer) {
+        this.pamPlayer = pamPlayer;
+    }
 
+    private final class DifficultyMeterActor extends Actor {
+        private float stateTime = 0f;
+
+        public DifficultyMeterActor() {
+            setTouchable(Touchable.disabled);
+        }
+
+        @Override
+        public void act(float delta) {
+            super.act(delta);
+            stateTime += delta;
+        }
+
+        @Override
+        public void draw(Batch batch, float parentAlpha) {
+            super.draw(batch, parentAlpha);
+            if (pamPlayer == null) return;
+
+            int diff = 3;
+            if (model.user_data.User.currentUser != null && model.user_data.User.currentUser.userState != null) {
+                diff = model.user_data.User.currentUser.userState.difficultyLevel;
+            }
+
+            String clipName = switch (diff) {
+                case 1 -> "animation";
+                case 2 -> "animation2";
+                case 3 -> "animation3";
+                case 4 -> "animation4";
+                case 5 -> "animation5";
+                default -> "animation";
+            };
+
+            String pamPath = "768/DEV/UI/QUESTS/DIFFICULTY_METER/DIFFICULTY_METER.PAM";
+            pvz.libpvz.pam.ClipRef clip = pamPlayer.getClip(pamPath, clipName);
+            if (clip == null) return;
+
+            float duration = 0f;
+            duration = switch (diff) {
+                case 1 -> 0.50f;
+                case 2 -> 3.33f;
+                case 3 -> 3.33f;
+                case 4 -> 3.33f;
+                case 5 -> 3.33f;
+                default -> 3.33f;
+            };
+
+            float animTime = (duration > 0f) ? (stateTime % duration) : stateTime;
+
+            float offsetY = 50f;
+            float x = getX() + getWidth() / 2f;
+            float y = getY() + getHeight() / 2f - offsetY;
+
+            float scale = 0.35f;
+
+            batch.flush();
+            com.badlogic.gdx.math.Matrix4 old = batch.getTransformMatrix().cpy();
+            batch.getTransformMatrix().translate(x, y, 0f).scale(scale, scale, 1f);
+            batch.setTransformMatrix(batch.getTransformMatrix());
+
+            pamPlayer.draw(batch, clip, animTime, 0f, 0f, true);
+
+            batch.flush();
+            batch.setTransformMatrix(old);
+        }
+    }
     @Override public void dispose() { cardFactory.dispose(); }
 }

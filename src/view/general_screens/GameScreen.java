@@ -300,6 +300,7 @@ public class GameScreen extends UiScreen {
 
     private void createHud() {
         hud = new MatchHud(skin);
+        hud.setPamPlayer(pamPlayer);
         hud.setPlantSelection(this::selectPlant);
         hud.setPlantDragRelease(this::handlePlantDragRelease);
         hud.setShovelAction(() -> armTool(Tool.SHOVEL));
