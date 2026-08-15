@@ -72,7 +72,7 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
     private static final float LAYOUT_SCALE_X = PATH_WIDTH / 1080f;
     private static final float LAYOUT_SCALE_Y = PATH_HEIGHT / 380f;
 
-    
+
 
     private static final DecorTuning LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.34f, 27f, 44f);
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.53f, 45f, 25f);
@@ -251,6 +251,36 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         }
     }
 
+    /**
+     * The danger node is a hidden, unlisted level of this chapter: it reuses the
+     * chapter's own season (so it plays through the exact same gameplay screen as
+     * every other stage here) plus the first stage's basic settings as a starting
+     * point. No special gameplay logic yet.
+     */
+    private Level buildDangerLevel() {
+        model.match.main.levels.normal_levels.NormalLevel level = new model.match.main.levels.normal_levels.NormalLevel();
+        Level base = chapterLevels.isEmpty() ? null : chapterLevels.get(0);
+        level.setId(base != null ? -(1_000_000 + base.getId()) : -1_000_000);
+        level.setName(CHAPTER_NAME + " Lottery");
+        level.setGameMode("Lottery");
+        if (base != null) {
+            level.setSeason(base.getSeason());
+            level.setRows(base.getRows());
+            level.setCols(base.getCols());
+            level.setInitialSun(base.getInitialSun());
+            level.setAvailablePlants(base.getAvailablePlants());
+            level.setForcedPlants(base.getForcedPlants());
+            level.setZombiePool(base.getZombiePool());
+            level.setWaves(base.getWaves());
+        }
+        return level;
+    }
+
+    private void playDangerNode() {
+        MatchMenu.selectedLevel = buildDangerLevel();
+        runCommand("start game");
+    }
+
     private void build() {
         rootTable.clear();
 
@@ -292,11 +322,11 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         return topBar;
     }
 
-    
 
-    
 
-    
+
+
+
 
     private Table buildPathContainer() {
         Table wrap = new Table();
@@ -539,7 +569,18 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
             String zombossState = "idle";
             addActor(createAnchoredAnimation(MapObjectType.BIG_BOSS_DECOR_ISLAND, ZOMBOSS_TUNING, zombossState, zombossNodeX - 60f, zombossNodeY - 160f));
 
-            addActor(createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(), dangerNodeAnchorX, dangerNodeAnchorY));
+            Group dangerNode = createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(), dangerNodeAnchorX, dangerNodeAnchorY);
+            if (dState != DangerNodeState.LOCKED_IDLE) {
+                dangerNode.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        playDangerNode();
+                    }
+                });
+            } else {
+                dangerNode.setTouchable(Touchable.disabled);
+            }
+            addActor(dangerNode);
 
             if (chapterLevels.size() > 0) {
                 addActor(createAnchoredAnimation(MapObjectType.SNOW_DUST_ANIM, SNOW_DUST_TUNING, "loop", centerX[0] + 35f, centerY[0] - 30f));
@@ -692,7 +733,7 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
                 batch.draw(pixel, x1, y1 - thickness / 2f, 0f, thickness / 2f,
                         length, thickness, 1f, 1f, angle);
             }
-            
+
         }
     }
 
@@ -750,5 +791,5 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         }
     }
 
-    
+
 }
