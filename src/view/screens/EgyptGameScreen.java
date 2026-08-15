@@ -12,6 +12,8 @@ import model.match.main.levels.Level;
 import model.utils.GameSession;
 import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.textures.TextureBank;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 import view.general_screens.GameScreen;
 
 public class EgyptGameScreen extends GameScreen {
@@ -26,6 +28,7 @@ public class EgyptGameScreen extends GameScreen {
     @Override
     public void show() {
         super.show();
+        AudioManager.get().playMusic(AudioEnum.EGYPT_MUSIC, true);
         initPam();
         sidePanelBuilt = false;
         buildEgyptSidePanel();
