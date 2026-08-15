@@ -11,6 +11,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import controller.menus.match.AfterMenu;
 import controller.menus.match.MatchMenu;
 import model.App;
+import model.match.main.levels.Level;
+import model.utils.GameSession;
 import view.general_screens.UiScreen;
 
 /**
@@ -63,7 +65,7 @@ public class AfterMatchScreen extends UiScreen {
             buttons.add(retry).width(190).height(54).pad(6);
         }
 
-        TextButton exit = new TextButton("Back to Egypt Map", skin);
+        TextButton exit = new TextButton("Back to " + currentChapterMapLabel(), skin);
         exit.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 App.currentMenu = new MatchMenu();
@@ -74,6 +76,15 @@ public class AfterMatchScreen extends UiScreen {
 
         panel.add(buttons);
         rootTable.add(panel).center();
+    }
+
+
+    private String currentChapterMapLabel() {
+        GameSession session = GameSession.peekInstance();
+        Level level = session == null ? null : session.getLevel();
+        String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
+        if (seasonName == null) return "Map";
+        return seasonName + " Map";
     }
 
     @Override public void render(float delta) {
