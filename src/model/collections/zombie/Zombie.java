@@ -55,6 +55,7 @@ public class Zombie extends Item implements Attack {
     private boolean deathHandled = false;
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
+    private boolean fromNecromancy;
 
     public Zombie(String name, Position position, int HP, boolean isFacingRight, Armour armour, int speed) {
         super(position, HP);
@@ -348,6 +349,13 @@ public class Zombie extends Item implements Attack {
         this.status = status;
         this.statusTimer = Math.max(0, duration);
         this.statusDamageAccumulator = 0;
+    }
+    public boolean isFromNecromancy() {
+        return fromNecromancy;
+    }
+
+    public void setFromNecromancy(boolean fromNecromancy) {
+        this.fromNecromancy = fromNecromancy;
     }
     public boolean isFacingRight() { return isFacingRight; }
     public void setFacingRight(boolean facingRight) { isFacingRight = facingRight; }

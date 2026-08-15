@@ -117,6 +117,10 @@ public class GameScreen extends UiScreen {
     private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/gameplay/shovel_icon.png";
     private Texture shovelIconTexture;
 
+    private static final String ZOMBIE_SPAWN_EFFECT_PAM = "768/INITIAL/EFFECTS/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT.PAM";
+    private static final float ZOMBIE_SPAWN_EFFECT_DURATION = 1.33f;
+    private final Map<Zombie, Float> zombieSpawnEffects = new IdentityHashMap<>();
+
 
     private static final float DEATH_ANIM_DURATION = 1.0f;
 
@@ -1001,6 +1005,29 @@ public class GameScreen extends UiScreen {
             float y = cellY(p.y());
             float zombieOffsetY = y + 40f;
 
+            if (zombie.isFromNecromancy()) {
+                zombieSpawnEffects.put(zombie, 0f);
+                zombie.setFromNecromancy(false);
+            }
+
+            if (zombieSpawnEffects.containsKey(zombie)) {
+                float effectTime = zombieSpawnEffects.get(zombie) + delta;
+                if (effectTime < ZOMBIE_SPAWN_EFFECT_DURATION) {
+                    zombieSpawnEffects.put(zombie, effectTime);
+                    drawPam(
+                            ZOMBIE_SPAWN_EFFECT_PAM,
+                            "animation",
+                            effectTime,
+                            x - 10f,
+                            zombieOffsetY,
+                            0.52f,
+                            zombie.isFacingRight()
+                    );
+                } else {
+                    zombieSpawnEffects.remove(zombie);
+                }
+            }
+
             String preferred = switch (zombie.getZombieState()) {
                 case EATING -> "eat";
                 case DEAD -> "die";
@@ -1027,8 +1054,10 @@ public class GameScreen extends UiScreen {
                             boardTileWidth, boardTileHeight, (float) stormTime, System.identityHashCode(zombie), true, zombie.isFacingRight());
                 }
             }
+
         }
         zombieAnimTimes.keySet().removeIf(z -> !session.getZombies().contains(z));
+        zombieSpawnEffects.keySet().removeIf(z -> !session.getZombies().contains(z));
     }
     private void drawDyingZombies(float delta) {
         if (dyingZombies.isEmpty()) return;

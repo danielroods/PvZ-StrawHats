@@ -129,6 +129,7 @@ public class DarkAge extends Season {
 
             Zombie risen = ZombieFactory.create("ZombieDefault", row, col);
             risen.setPosition(new Position(col, row));
+            risen.setFromNecromancy(true);
             session.spawnZombieForCurrentWave(risen);
             raised++;
             view.GeneralPrinter.print("Dark Ages necromancy spawned " + risen.getName()
