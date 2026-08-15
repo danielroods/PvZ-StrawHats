@@ -116,6 +116,26 @@ public class GameScreen extends UiScreen {
     private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/gameplay/shovel_icon.png";
     private Texture shovelIconTexture;
 
+
+    private static final float DEATH_ANIM_DURATION = 1.0f;
+
+    private static final class DyingZombie {
+        final String alias;
+        final Position position;
+        final boolean facingRight;
+        final float duration;
+        float time;
+
+        DyingZombie(String alias, Position position, boolean facingRight, float duration) {
+            this.alias = alias;
+            this.position = position;
+            this.facingRight = facingRight;
+            this.duration = duration;
+        }
+    }
+
+    private final List<DyingZombie> dyingZombies = new ArrayList<>();
+
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<GroundItem, Float> itemAnimTimes = new IdentityHashMap<>();
@@ -345,6 +365,7 @@ public class GameScreen extends UiScreen {
         }
 
         if (!paused && !matchFinished) {
+            List<Zombie> aliveBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getZombies());
             tickAccumulator += delta * GameSettings.get().getGameSpeed();
             while (tickAccumulator >= GameClock.SECONDS_PER_TICK) {
                 session.tick();
@@ -352,6 +373,7 @@ public class GameScreen extends UiScreen {
                 checkMatchEnd();
                 if (matchFinished) break;
             }
+            if (session != null) trackZombieDeaths(aliveBeforeTick);
         }
 
         if (matchFinished) return;
@@ -561,6 +583,7 @@ public class GameScreen extends UiScreen {
         drawGroundItems(delta, bw, bh);
         drawPlants(delta, bw, bh);
         drawZombies(delta, bw, bh);
+        drawDyingZombies(delta);
         drawProjectiles(bw, bh);
         drawMowers(bw, bh);
         drawHover(bw, bh);
@@ -775,6 +798,28 @@ public class GameScreen extends UiScreen {
         }
         plantAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
     }
+    /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
+    private float resolveClipDuration(String alias, String preferredState) {
+        AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(alias);
+        if (config == null || config.clips == null) return -1f;
+        String clipName = AnimationFactory.resolveClipName(config, preferredState);
+        if (clipName == null) return -1f;
+        Double duration = config.clips.get(clipName);
+        return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
+    private void trackZombieDeaths(List<Zombie> aliveBeforeTick) {
+        List<Zombie> stillAlive = session.getZombies();
+        for (Zombie zombie : aliveBeforeTick) {
+            if (stillAlive.contains(zombie)) continue;
+            if (zombie.getPosition() == null) continue;
+            if (zombie.getZombieState() != ZombieState.DEAD) continue;
+            float dieDuration = resolveClipDuration(zombie.getAlias(), "die");
+            if (dieDuration <= 0f) dieDuration = DEATH_ANIM_DURATION;
+            dyingZombies.add(new DyingZombie(zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(), dieDuration));
+            zombieAnimTimes.remove(zombie);
+        }
+    }
 
     private void drawZombies(float delta, float bw, float bh) {
         List<Zombie> zombies = new ArrayList<>(session.getZombies());
@@ -795,14 +840,10 @@ public class GameScreen extends UiScreen {
             };
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias());
             float animationTime = t;
-            if ("walk".equals(preferred) && path != null) {
-                AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(zombie.getAlias());
-                if (config != null) {
-                    String clipName = AnimationFactory.resolveClipName(config, "walk");
-                    Double duration = clipName == null || config.clips == null ? null : config.clips.get(clipName);
-                    if (duration != null && duration > 0.0) {
-                        animationTime = (float) (t % duration);
-                    }
+            if (("walk".equals(preferred) || "eat".equals(preferred)) && path != null) {
+                float duration = resolveClipDuration(zombie.getAlias(), preferred);
+                if (duration > 0f) {
+                    animationTime = t % duration;
                 }
             }
             if (!drawPam(path, preferred, animationTime, x - 10f, zombieOffsetY, 0.52f, zombie.isFacingRight())) {
@@ -812,6 +853,31 @@ public class GameScreen extends UiScreen {
         }
         zombieAnimTimes.keySet().removeIf(z -> !session.getZombies().contains(z));
     }
+    private void drawDyingZombies(float delta) {
+        if (dyingZombies.isEmpty()) return;
+        for (DyingZombie dz : dyingZombies) {
+            dz.time += delta;
+            float x = BOARD_X + (float) dz.position.x() * boardTileWidth;
+            float y = cellY((int) dz.position.y());
+            float zombieOffsetY = y + 40f;
+
+            String path = ZombieAnimationRegistry.pathFor(dz.alias);
+
+            // Particles (head + hand) drop off and settle onto the row's ground
+            // over roughly the first half of the death animation.
+            float fallProgress = Math.min(1f, dz.time / (dz.duration * 0.5f));
+            float fallEase = 1f - (1f - fallProgress) * (1f - fallProgress);
+            float particleDrop = 24f * fallEase;
+
+            drawPam(path, "particles", dz.time, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
+            // Clamp to the clip's own last frame instead of letting time run past
+            // it, so the death animation holds on its final pose instead of
+            // looping/glitching once dz.time exceeds the clip's real length.
+            drawPam(path, "die", Math.min(dz.time, dz.duration), x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+        }
+        dyingZombies.removeIf(dz -> dz.time > dz.duration);
+    }
+
 
     private boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
         if (pamPlayer == null || path == null) return false;
