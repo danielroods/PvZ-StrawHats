@@ -16,14 +16,15 @@ import static view.general_screens.BaseScreen.SCREEN_WIDTH;
 
 public class ParticleCreator {
 
-    private static final float MIN_ALPHA = 0.4f, MAX_ALPHA = 0.95f;
+    // ۱. مقدار آلفا روی ۱ ثابت شد
+    private static final float FIXED_ALPHA = 1.0f;
     private final int particleCount;
     private final float minSpeed, maxSpeed, fastness, minSize, maxSize;
     private final boolean isRotating;
     private final boolean enabled;
 
     private static class Particle {
-        float x, y, speedX, speedY, size, alpha, alphaSpeed, rotation, rotationSpeed;
+        float x, y, speedX, speedY, size, alpha, rotation, rotationSpeed;
         TextureRegion region;
     }
 
@@ -98,8 +99,10 @@ public class ParticleCreator {
         p.speedX = MathUtils.random(-30f, 30f);
         p.speedY = MathUtils.random(minSpeed, maxSpeed);
         p.size = MathUtils.random(minSize, maxSize);
-        p.alpha = MathUtils.random(MIN_ALPHA, MAX_ALPHA);
-        p.alphaSpeed = MathUtils.random(0.05f, 0.15f) * (MathUtils.randomBoolean() ? 1 : -1);
+
+        // ۲. شفافیت یکسان و کاملاً کامل برای همه پارتیکل‌ها
+        p.alpha = FIXED_ALPHA;
+
         p.rotation = MathUtils.random(0f, 360f);
         p.rotationSpeed = isRotating ? fastness * MathUtils.random(20f, 80f) * (MathUtils.randomBoolean() ? 1 : -1) : 0;
     }
@@ -112,11 +115,9 @@ public class ParticleCreator {
         for (Particle p : particles) {
             p.y += p.speedY * delta;
             p.x += p.speedX * delta;
-            p.alpha += p.alphaSpeed * delta;
             p.rotation += p.rotationSpeed * delta;
 
-            if (p.alpha > MAX_ALPHA) { p.alpha = MAX_ALPHA; p.alphaSpeed *= -1; }
-            if (p.alpha < MIN_ALPHA) { p.alpha = MIN_ALPHA; p.alphaSpeed *= -1; }
+            // ۳. بخش تغییر مقادیر آلفا حذف شد تا همیشه ثابت بماند
 
             if (p.y < minY - 20 || p.x < minX - 30 || p.x > maxX + 30) {
                 spawn(p, false);

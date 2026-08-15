@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -13,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import controller.ScreenManager;
+import view.general_screens.ParticleCreator;
 import view.general_screens.UiScreen;
 
 import java.util.ArrayList;
@@ -34,6 +36,18 @@ public class ComicIntroScreen extends UiScreen {
 
     public ComicIntroScreen(Runnable onCompleteAction) {
         this.onCompleteAction = onCompleteAction;
+    }
+
+    @Override
+    public void initParticles() {
+        if (particles != null) {
+            particles.dispose();
+        }
+        particlePaths = new String[]{"assets/images/chapters/egypt/strawburst_plantfood_projectile_8x9.png"};
+        particles = new ParticleCreator(particlePaths, 30, 20f, 20f, 1.2f, true);
+        Actor particleActor = particles.createActor();
+        particleActor.setTouchable(Touchable.disabled);
+        rootStack.addActorAt(1, particleActor);
     }
 
     @Override
