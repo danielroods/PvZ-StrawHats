@@ -46,6 +46,9 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton pauseButton;
     private final TextButton foodButton;
     private final TextButton startButton;
+    private final TextButton debugAddSunButton;
+    private final TextButton debugAddFoodButton;
+    private final Table debugRow = new Table();
 
     private Consumer<String> plantSelection;
     private Consumer<Vector2> plantDragRelease;
@@ -53,6 +56,8 @@ public final class MatchHud extends Table implements Disposable {
     private Runnable foodAction;
     private Runnable pauseAction;
     private Runnable startWavesAction;
+    private Runnable debugAddSunAction;
+    private Runnable debugAddFoodAction;
     private String selectedPlant;
     private String lastLoadoutKey = "";
     private String lastConveyorPlant = null;
@@ -97,11 +102,15 @@ public final class MatchHud extends Table implements Disposable {
         shovelButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(shovelBtnTex)));
         foodButton = new TextButton("Food", skin);
         startButton = new TextButton("START", skin);
+        debugAddSunButton = new TextButton("+25 Sun", skin);
+        debugAddFoodButton = new TextButton("+1 Food", skin);
 
         pauseButton.addListener(click(() -> { if (pauseAction != null) pauseAction.run(); }));
         shovelButton.addListener(click(() -> { if (shovelAction != null) shovelAction.run(); }));
         foodButton.addListener(click(() -> { if (foodAction != null) foodAction.run(); }));
         startButton.addListener(click(() -> { if (startWavesAction != null) startWavesAction.run(); }));
+        debugAddSunButton.addListener(click(() -> { if (debugAddSunAction != null) debugAddSunAction.run(); }));
+        debugAddFoodButton.addListener(click(() -> { if (debugAddFoodAction != null) debugAddFoodAction.run(); }));
 
         Table resources = new Table();
         resources.add(resource(sunLabel, "images/chapters/egypt/gameplay/sun.png")).size(92, 40).padRight(3);
@@ -129,10 +138,16 @@ public final class MatchHud extends Table implements Disposable {
         tools.add(shovelButton).size(60, 60).padRight(5);
         tools.add(foodButton).size(100, 40);
 
+        debugRow.left();
+        debugRow.add(debugAddSunButton).size(100, 36).padRight(5);
+        debugRow.add(debugAddFoodButton).size(100, 36);
+        debugRow.setVisible(false);
+
         add(topRow).growX().row();
         add(bankFrame).growX().padTop(4).row();
         add(conveyorBox).left().padTop(3).row();
-        add(tools).left().padTop(4);
+        add(tools).left().padTop(4).row();
+        add(debugRow).left().padTop(4);
     }
 
     private ClickListener click(Runnable action) {
@@ -187,6 +202,8 @@ public final class MatchHud extends Table implements Disposable {
     public void setFoodAction(Runnable action) { foodAction = action; }
     public void setPauseAction(Runnable action) { pauseAction = action; }
     public void setStartWavesAction(Runnable action) { startWavesAction = action; }
+    public void setDebugAddSunAction(Runnable action) { debugAddSunAction = action; }
+    public void setDebugAddFoodAction(Runnable action) { debugAddFoodAction = action; }
     public void setSelectedPlant(String name) { selectedPlant = name; }
     public void setTools(boolean shovel, boolean food) { shovelActive = shovel; foodActive = food; }
 
@@ -205,6 +222,7 @@ public final class MatchHud extends Table implements Disposable {
         shovelButton.setChecked(shovelActive);
         foodButton.setChecked(foodActive);
         foodButton.setDisabled(session.getPlantFoodCount() <= 0);
+        debugRow.setVisible(model.utils.GameSettings.get().isDebugMode());
         updateLoadout(session, selectedPlants);
         updateConveyor(session);
     }

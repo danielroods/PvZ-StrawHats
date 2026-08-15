@@ -38,7 +38,10 @@ public class TimedProjectileBurst implements PlantFoodEffect {
 
     @Override
     public double getDurationSeconds() {
-        return Math.max(0.0, (burstCount - 1) * FIRE_INTERVAL + 0.1);
+        // +2.5s beyond the last shot so the boosted state (and "plantfood" animation)
+        // stays visible for a moment after the burst finishes firing, not just for the
+        // exact span of the shots themselves.
+        return Math.max(0.0, (burstCount - 1) * FIRE_INTERVAL + 0.1) + 2.5;
     }
 
     @Override

@@ -145,6 +145,10 @@ public class GameScreen extends UiScreen {
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackWindow = new IdentityHashMap<>();
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
+    // Tracks whether the fire event currently playing out in plantAttackAnimTimes was
+    // triggered while the plant was plant-food-boosted, so it plays "plantfood" instead
+    // of the normal "attack" clip - see drawPlants.
+    private final Map<Plant, Boolean> plantAttackIsBoosted = new IdentityHashMap<>();
     private final Map<String, Float> clipTimes = new java.util.HashMap<>();
     private static final Map<String, String[]> SEASON_LAWN_MOWER_PAM_PATHS = new java.util.HashMap<>();
     static {
@@ -300,6 +304,8 @@ public class GameScreen extends UiScreen {
         hud.setFoodAction(() -> armTool(Tool.FOOD));
         hud.setPauseAction(this::togglePause);
         hud.setStartWavesAction(() -> runCommand("start zombie waves"));
+        hud.setDebugAddSunAction(() -> runCommand("cheat add -n 25 suns"));
+        hud.setDebugAddFoodAction(() -> runCommand("cheat add-plant-food"));
         addBeforeModal(hud);
     }
 
@@ -842,10 +848,13 @@ public class GameScreen extends UiScreen {
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
             if (lastCooldown != null && cooldown > lastCooldown + 0.05) {
-                float attackDuration = resolvePlantClipDuration(plant.getName(), "attack");
+                boolean boosted = plant.isPlantFoodActive();
+                String durationState = boosted ? "plantfood" : "attack";
+                float attackDuration = resolvePlantClipDuration(plant.getName(), durationState);
                 if (attackDuration <= 0f) attackDuration = DEFAULT_PLANT_ATTACK_DURATION;
                 plantAttackAnimTimes.put(plant, 0f);
                 plantAttackWindow.put(plant, attackDuration);
+                plantAttackIsBoosted.put(plant, boosted);
             }
 
             Float attackTime = plantAttackAnimTimes.get(plant);
@@ -855,13 +864,15 @@ public class GameScreen extends UiScreen {
                 if (attackTime >= window) {
                     plantAttackAnimTimes.remove(plant);
                     plantAttackWindow.remove(plant);
+                    plantAttackIsBoosted.remove(plant);
                 } else {
                     plantAttackAnimTimes.put(plant, attackTime);
                 }
             }
 
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
-            String preferredState = attacking ? "attack" : "idle";
+            boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
+            String preferredState = attacking ? (attackIsBoosted ? "plantfood" : "attack") : "idle";
             float animTime = attacking ? plantAttackAnimTimes.get(plant) : t;
 
             if (!drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, false)) {
@@ -873,6 +884,7 @@ public class GameScreen extends UiScreen {
         plantLastCooldown.keySet().removeIf(p -> !session.getPlants().contains(p));
         plantAttackAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
         plantAttackWindow.keySet().removeIf(p -> !session.getPlants().contains(p));
+        plantAttackIsBoosted.keySet().removeIf(p -> !session.getPlants().contains(p));
     }
     /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
     private float resolveClipDuration(String alias, String preferredState) {
