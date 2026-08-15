@@ -78,6 +78,33 @@ public class GameSession {
 
     private double skySunTimer = 0;
 
+    private double sandStormTimer = 0.0;
+    private boolean sandStormActive = false;
+    private int sandStormWaveIndex = -1;
+    private final Map<Zombie, SandStormEntry> sandStormEntries = new IdentityHashMap<>();
+
+    private static final double NORMAL_ENTRY_EXTRA_COLUMNS = 4.5;
+
+    private static final class SandStormEntry {
+        final int startRow;
+        final int targetRow;
+        final int targetColumn;
+        final double startX;
+        final double duration;
+        final double startDelay;
+        double elapsed;
+        double animationElapsed;
+
+        SandStormEntry(int startRow, int targetRow, int targetColumn, double startX, double duration, double startDelay) {
+            this.startRow = startRow;
+            this.targetRow = targetRow;
+            this.targetColumn = targetColumn;
+            this.startX = startX;
+            this.duration = duration;
+            this.startDelay = startDelay;
+        }
+    }
+
     public GameSession() {
         this(5, 9);
     }
@@ -94,7 +121,7 @@ public class GameSession {
         return instance;
     }
 
-    
+
     public static GameSession peekInstance() {
         return instance;
     }
@@ -124,13 +151,17 @@ public class GameSession {
             }
         }
 
+        updateSandStorm(deltaTimeSeconds);
+
         for (int i = plants.size() - 1; i >= 0; i--) {
             Plant plant = plants.get(i);
             if (plant.isAlive()) plant.tick(deltaTimeSeconds, this);
         }
         for (int i = zombies.size() - 1; i >= 0; i--) {
             Zombie zombie = zombies.get(i);
-            if (zombie.isAlive()) zombie.tick(deltaTimeSeconds, this);
+            if (zombie.isAlive() && !sandStormEntries.containsKey(zombie)) {
+                zombie.tick(deltaTimeSeconds, this);
+            }
         }
         for (int i = projectiles.size() - 1; i >= 0; i--) {
             Projectile projectile = projectiles.get(i);
@@ -173,6 +204,7 @@ public class GameSession {
             }
         }
 
+        sandStormEntries.entrySet().removeIf(entry -> !entry.getKey().isAlive() || !zombies.contains(entry.getKey()));
         clearDeadPlantsFromGrid();
         clearDeadStructuresFromGrid();
         refreshZombieOccupancy();
@@ -335,23 +367,26 @@ public class GameSession {
         currentWaveZombies = new ArrayList<>();
         int totalHp = 0;
 
-        boolean isSandstormWave = wave.isFinalWave() && level != null && level.getSeason() instanceof Egypt;
-        int sandstormOffset = isSandstormWave ? SandStorm.sandstorm() : 0;
+        boolean isEgyptLevel = level != null && level.getSeason() instanceof Egypt;
+        boolean isSandstormWave = isEgyptLevel && SandStorm.shouldTrigger(wave, nextWaveIndex);
         if (isSandstormWave) {
-            GeneralPrinter.print("Sandstorm!");
+            beginSandStorm(nextWaveIndex);
+            GeneralPrinter.print("Sandstorm incoming! Zombies are being carried onto the lawn.");
         }
 
         for (Zombie template : wave.getWaveZombies()) {
             try {
-                int lane = ITEM_RANDOM.nextInt(getRows());
-                double spawnX = getCols() + 0.75 - sandstormOffset;
+                int lane;
+                double spawnX;
+                if (isSandstormWave) {
+                    lane = SandStorm.randomRow(getRows());
+                } else {
+                    lane = ITEM_RANDOM.nextInt(getRows());
+                }
+                spawnX = getCols() - 1 + NORMAL_ENTRY_EXTRA_COLUMNS;
+
                 Zombie zombie = ZombieFactory.create(template.getAlias(), lane, Math.max(0, getCols() - 1));
                 zombie.setPosition(new Position(spawnX, lane));
-
-                Position speed = zombie.getSpeed();
-                if (speed != null) {
-                    zombie.setSpeed(new Position(-Math.abs(speed.x()), 0));
-                }
 
                 int cost = ZombieFactory.getZombieCost(zombie.getAlias());
                 GeneralPrinter.print("Zombie " + zombie.getName() + " spawned at wave " + waveNumber
@@ -360,6 +395,19 @@ public class GameSession {
                 spawnZombie(zombie);
                 currentWaveZombies.add(zombie);
                 totalHp += zombie.getHp();
+
+                if (isSandstormWave) {
+                    int targetRow = SandStorm.randomRow(getRows());
+                    int targetColumn = SandStorm.randomLandingColumn(getCols());
+                    if (Math.random() < 0.65) targetRow = lane;
+                    sandStormEntries.put(zombie, new SandStormEntry(
+                            lane,
+                            targetRow,
+                            targetColumn,
+                            spawnX,
+                            SandStorm.arrivalDurationSeconds(),
+                            SandStorm.entryDelaySeconds()));
+                }
             } catch (Exception e) {
                 com.badlogic.gdx.Gdx.app.error("GameSession",
                         "Failed to spawn zombie \"" + template.getAlias() + "\" for wave " + waveNumber, e);
@@ -367,6 +415,89 @@ public class GameSession {
         }
 
         currentWaveStartingHp = totalHp;
+    }
+
+    private void beginSandStorm(int waveIndex) {
+        sandStormActive = true;
+        sandStormTimer = SandStorm.EVENT_DURATION_SECONDS;
+        sandStormWaveIndex = waveIndex;
+    }
+
+    private void updateSandStorm(double deltaTimeSeconds) {
+        if (sandStormTimer > 0) {
+            sandStormTimer = Math.max(0, sandStormTimer - deltaTimeSeconds);
+        }
+
+        if (!sandStormEntries.isEmpty()) {
+            var iterator = sandStormEntries.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Zombie, SandStormEntry> entry = iterator.next();
+                Zombie zombie = entry.getKey();
+                SandStormEntry stormEntry = entry.getValue();
+
+                if (zombie == null || !zombie.isAlive()) {
+                    iterator.remove();
+                    continue;
+                }
+
+                stormEntry.elapsed += deltaTimeSeconds;
+                stormEntry.animationElapsed += deltaTimeSeconds;
+                if (stormEntry.elapsed < stormEntry.startDelay) {
+                    zombie.setPosition(new Position(stormEntry.startX, stormEntry.startRow));
+                    continue;
+                }
+
+                double travelElapsed = stormEntry.elapsed - stormEntry.startDelay;
+                double progress = Math.min(1.0, travelElapsed / stormEntry.duration);
+                double smooth = progress * progress * (3.0 - 2.0 * progress);
+                double eased = 1.0 - Math.pow(1.0 - smooth, 2.2);
+                double targetX = stormEntry.targetColumn + 0.15;
+                double x = stormEntry.startX + (targetX - stormEntry.startX) * eased;
+                double y = stormEntry.startRow + (stormEntry.targetRow - stormEntry.startRow) * eased;
+                zombie.setPosition(new Position(x, y));
+
+                if (progress >= 1.0) {
+                    zombie.setPosition(new Position(targetX, stormEntry.targetRow));
+                    Position speed = zombie.getSpeed();
+                    if (speed != null) zombie.setSpeed(new Position(-Math.abs(speed.x()), 0));
+
+                    if (stormEntry.animationElapsed >= SandStorm.EVENT_DURATION_SECONDS) {
+                        iterator.remove();
+                    }
+                }
+            }
+        }
+
+        if (sandStormActive && sandStormTimer <= 0 && sandStormEntries.isEmpty()) {
+            sandStormActive = false;
+            sandStormWaveIndex = -1;
+        }
+    }
+
+    public boolean isSandStormActive() {
+        return sandStormActive;
+    }
+
+    public double getSandStormRemainingSeconds() {
+        return sandStormTimer;
+    }
+
+    public double getSandStormProgress() {
+        if (!sandStormActive) return 0.0;
+        return 1.0 - Math.max(0.0, Math.min(1.0, sandStormTimer / SandStorm.EVENT_DURATION_SECONDS));
+    }
+
+    public int getSandStormWaveIndex() {
+        return sandStormWaveIndex;
+    }
+
+    public boolean isZombieInSandStorm(Zombie zombie) {
+        return zombie != null && sandStormEntries.containsKey(zombie);
+    }
+
+    public double getSandStormAnimationTime(Zombie zombie) {
+        SandStormEntry entry = zombie == null ? null : sandStormEntries.get(zombie);
+        return entry == null ? -1.0 : entry.animationElapsed;
     }
 
     public boolean allWavesSpawned() {

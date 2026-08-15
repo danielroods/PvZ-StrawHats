@@ -44,6 +44,7 @@ import model.match.main.levels.special_levels.NightOpsLevel;
 import model.match.main.levels.special_levels.PlantWhatYouGetLevel;
 import model.match.main.levels.special_levels.SaveOurSeedsLevel;
 import model.match.main.levels.special_levels.TimedWarLevel;
+import model.match.main.season.travellog.egypt.SandStorm;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.user_data.User;
@@ -178,6 +179,7 @@ public class GameScreen extends UiScreen {
     private Tool activeTool = Tool.NONE;
     private Actor boardInput;
     private float dragPreviewTime;
+    private float sandStormAnimTime;
 
     private enum Tool { NONE, SHOVEL, FOOD }
 
@@ -697,6 +699,18 @@ public class GameScreen extends UiScreen {
             batch.setColor(Color.WHITE);
         }
         if (isEgypt()) drawEgyptGraves();
+        drawSandStorm(bw, bh);
+    }
+
+    private void drawSandStorm(float bw, float bh) {
+        if (session == null || !session.isSandStormActive()) return;
+
+        float progress = (float) session.getSandStormProgress();
+        float strength = 0.045f + 0.065f * (float) Math.sin(progress * Math.PI);
+
+        batch.setColor(0.78f, 0.61f, 0.34f, strength);
+        batch.draw(whitePixel, BOARD_X, BOARD_Y, bw, bh);
+        batch.setColor(Color.WHITE);
     }
 
     private boolean isEgypt() {
@@ -830,7 +844,7 @@ public class GameScreen extends UiScreen {
             zombieAnimTimes.put(zombie, t);
             Position p = zombie.getPosition();
             float x = BOARD_X + (float) p.x() * boardTileWidth;
-            float y = cellY((int) p.y());
+            float y = cellY(p.y());
             float zombieOffsetY = y + 40f;
 
             String preferred = switch (zombie.getZombieState()) {
@@ -849,6 +863,15 @@ public class GameScreen extends UiScreen {
             if (!drawPam(path, preferred, animationTime, x - 10f, zombieOffsetY, 0.52f, zombie.isFacingRight())) {
                 TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
                 drawEntity(region, x, zombieOffsetY, boardTileWidth, boardTileHeight, new Color(0.55f, 0.5f, 0.45f, 1f), initials(zombie.getAlias()));
+            }
+            if (session.isZombieInSandStorm(zombie)) {
+                double stormTime = session.getSandStormAnimationTime(zombie);
+                if (stormTime >= 0.0) {
+                    float stormX = x + boardTileWidth * 0.5f - 60f;
+                    float stormY = zombieOffsetY + boardTileHeight * 0.78f - 40f;
+                    drawZombieSandStorm(stormX, stormY,
+                            boardTileWidth, boardTileHeight, (float) stormTime, System.identityHashCode(zombie), true, zombie.isFacingRight());
+                }
             }
         }
         zombieAnimTimes.keySet().removeIf(z -> !session.getZombies().contains(z));
@@ -878,6 +901,54 @@ public class GameScreen extends UiScreen {
         dyingZombies.removeIf(dz -> dz.time > dz.duration);
     }
 
+
+    private void drawZombieSandStorm(float centerX, float centerY, float tileW, float tileH,
+                                     float time, int seed, boolean renderPam, boolean flip) {
+        boolean pamDrawn = false;
+        if (renderPam) {
+            String pamPath = SandStorm.PAM_PATH_PLACEHOLDER;
+            float elapsed = time;
+            String phase;
+            float phaseTime;
+            float intro = (float) SandStorm.INTRO_DURATION_SECONDS;
+            float outroStart = (float) (SandStorm.EVENT_DURATION_SECONDS - SandStorm.OUTRO_DURATION_SECONDS);
+            if (elapsed < intro) {
+                phase = "intro";
+                phaseTime = Math.max(0f, elapsed);
+            } else if (elapsed < outroStart) {
+                phase = "loop";
+                phaseTime = (elapsed - intro) % (float) SandStorm.LOOP_DURATION_SECONDS;
+            } else {
+                phase = "outro";
+                phaseTime = Math.max(0f, elapsed - outroStart);
+            }
+
+            float stormScale = tileW / 118f;
+            pamDrawn = drawPam(pamPath, phase, phaseTime, centerX, centerY, stormScale, flip);
+        }
+
+        if (pamDrawn) return;
+
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+        int particleCount = 16;
+        float baseRadius = tileW * 0.72f;
+        for (int i = 0; i < particleCount; i++) {
+            float particleSeed = (seed % 360) + i * 137.5f;
+            float angularSpeed = 52f + (i % 3) * 18f;
+            float angle = (particleSeed + time * angularSpeed) % 360f;
+            float rad = (float) Math.toRadians(angle);
+            float orbit = baseRadius * (0.35f + 0.65f * ((i % 5) / 4f));
+            float px = centerX + (float) Math.cos(rad) * orbit;
+            float py = centerY + (float) Math.sin(rad) * orbit * 0.46f;
+            float size = tileW * (0.095f + 0.045f * (i % 4));
+            float alpha = 0.22f + 0.18f * (float) Math.sin(time * 4.0f + i * 1.31f);
+            batch.setColor(0.97f, 0.82f, 0.54f, Math.max(0.10f, alpha));
+            batch.draw(whitePixel, px - size * 0.5f, py - size * 0.15f, size * 0.5f, size * 0.15f,
+                    size, size * 0.3f, 1f, 1f, angle * 1.5f);
+        }
+        batch.setColor(Color.WHITE);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
 
     private boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
         if (pamPlayer == null || path == null) return false;
@@ -1029,7 +1100,7 @@ public class GameScreen extends UiScreen {
         batch.setColor(Color.WHITE);
     }
 
-    private float cellY(int row) { return BOARD_Y + (session.getRows() - 1 - row) * boardTileHeight; }
+    private float cellY(double row) { return (float) (BOARD_Y + (session.getRows() - 1 - row) * boardTileHeight); }
 
     private void drawCellBorder(int row, int col, Color color, float thickness) {
         if (row < 0 || col < 0 || row >= session.getRows() || col >= session.getCols()) return;
