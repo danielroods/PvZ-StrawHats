@@ -356,6 +356,10 @@ public class GameSession {
         }
         GeneralPrinter.print("Wave difficulty: " + wave.getWaveCost() + ".");
 
+        currentWaveZombies = new ArrayList<>();
+        int totalHp = 0;
+        currentWaveStartingHp = 0;
+
         if (level != null && level.getSeason() != null) {
             try {
                 level.getSeason().onWaveStart(this, nextWaveIndex);
@@ -363,9 +367,7 @@ public class GameSession {
                 com.badlogic.gdx.Gdx.app.error("GameSession", "Season.onWaveStart() failed for wave " + waveNumber, e);
             }
         }
-
-        currentWaveZombies = new ArrayList<>();
-        int totalHp = 0;
+        totalHp += currentWaveStartingHp;
 
         boolean isEgyptLevel = level != null && level.getSeason() instanceof Egypt;
         boolean isSandstormWave = isEgyptLevel && SandStorm.shouldTrigger(wave, nextWaveIndex);
@@ -563,6 +565,13 @@ public class GameSession {
         zombies.add(zombie);
     }
 
+    public void spawnZombieForCurrentWave(Zombie zombie) {
+        if (zombie == null) return;
+        zombies.add(zombie);
+        currentWaveZombies.add(zombie);
+        currentWaveStartingHp += zombie.getHp();
+    }
+
     public void onZombieReachedEnd() {
         gameOver = true;
     }
@@ -750,9 +759,16 @@ public class GameSession {
         if (flooded && !plant.getTags().contains(PlantTag.WATER) && !lilySupport) return false;
 
         if (lilySupport) plant.setBottom(existing);
+
+        boolean destroysGrave = plant.getName().equalsIgnoreCase("Grave Buster")
+                && cell.getObstacle() instanceof Grave grave;
         cell.setPlant(plant);
         plant.setPosition(new Position(col, row));
         plants.add(plant);
+
+        if (destroysGrave) {
+            destroyGrave(row, col, (Grave) cell.getObstacle());
+        }
 
         plantedAnyPlantThisMatch = true;
         boolean nightPlant = false;

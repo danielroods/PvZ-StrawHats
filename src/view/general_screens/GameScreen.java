@@ -260,7 +260,12 @@ public class GameScreen extends UiScreen {
     protected String getGameplayBackgroundPath() { return getSeasonGameplayFolder() + "map.png"; }
     protected String getSideTextureLeftPath() { return getSeasonGameplayFolder() + "texture_left.png"; }
     protected String getSideTextureRightPath() { return getSeasonGameplayFolder() + "texture_right.png"; }
-    protected String getGraveIconPath() { return getSeasonGameplayFolder() + "grave.png"; }
+
+    protected static final String GRAVE_IMAGE_PATH_PLACEHOLDER = "images/chapters/darkage/gameplay/grave.png";
+
+    protected String getGraveIconPath() {
+        return GRAVE_IMAGE_PATH_PLACEHOLDER;
+    }
 
     private void initGraveTexture() {
         String path = resolveExistingAssetPath(getGraveIconPath());
@@ -709,7 +714,7 @@ public class GameScreen extends UiScreen {
             batch.draw(whitePixel, BOARD_X, BOARD_Y, bw, bh);
             batch.setColor(Color.WHITE);
         }
-        if (isEgypt()) drawEgyptGraves();
+        if (isEgypt() || isDarkAge()) drawEgyptGraves();
         drawSandStorm(bw, bh);
     }
 
@@ -727,6 +732,11 @@ public class GameScreen extends UiScreen {
     private boolean isEgypt() {
         return session.getLevel() != null && session.getLevel().getSeason() != null
                 && "Egypt".equalsIgnoreCase(session.getLevel().getSeason().getName());
+    }
+
+    private boolean isDarkAge() {
+        return session.getLevel() != null && session.getLevel().getSeason() != null
+                && "Dark Ages".equalsIgnoreCase(session.getLevel().getSeason().getName());
     }
 
     private void drawEgyptGraves() {
