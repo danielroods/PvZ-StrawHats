@@ -80,7 +80,7 @@ public class DarkAgesStagesScreen extends StagesScreen {
 
     private static final Color TRAIL_COLOR = new Color(0.55f, 0.32f, 0.85f, 0.85f);
 
-    
+
 
     private static final DecorTuning LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.34f, 27f, 34f);
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.45f, -14f, 70f);
@@ -247,6 +247,36 @@ public class DarkAgesStagesScreen extends StagesScreen {
         }
     }
 
+    /**
+     * The danger node is a hidden, unlisted level of this chapter: it reuses the
+     * chapter's own season (so it plays through the exact same gameplay screen as
+     * every other stage here) plus the first stage's basic settings as a starting
+     * point. No special gameplay logic yet.
+     */
+    private Level buildDangerLevel() {
+        model.match.main.levels.normal_levels.NormalLevel level = new model.match.main.levels.normal_levels.NormalLevel();
+        Level base = chapterLevels.isEmpty() ? null : chapterLevels.get(0);
+        level.setId(base != null ? -(1_000_000 + base.getId()) : -1_000_000);
+        level.setName(CHAPTER_NAME + " Lottery");
+        level.setGameMode("Lottery");
+        if (base != null) {
+            level.setSeason(base.getSeason());
+            level.setRows(base.getRows());
+            level.setCols(base.getCols());
+            level.setInitialSun(base.getInitialSun());
+            level.setAvailablePlants(base.getAvailablePlants());
+            level.setForcedPlants(base.getForcedPlants());
+            level.setZombiePool(base.getZombiePool());
+            level.setWaves(base.getWaves());
+        }
+        return level;
+    }
+
+    private void playDangerNode() {
+        MatchMenu.selectedLevel = buildDangerLevel();
+        runCommand("start game");
+    }
+
     private void build() {
         rootTable.clear();
 
@@ -289,13 +319,13 @@ public class DarkAgesStagesScreen extends StagesScreen {
         return topBar;
     }
 
-    
 
-    
 
-    
 
-    
+
+
+
+
 
     private Table buildPathContainer() {
         Table wrap = new Table();
@@ -532,8 +562,19 @@ public class DarkAgesStagesScreen extends StagesScreen {
 
         private void addForegroundEffects() {
             DangerNodeState dState = calculateDangerNodeState();
-            addActor(createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(),
-                    dangerNodeAnchorX, dangerNodeAnchorY));
+            Group dangerNode = createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(),
+                    dangerNodeAnchorX, dangerNodeAnchorY);
+            if (dState != DangerNodeState.LOCKED_IDLE) {
+                dangerNode.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        playDangerNode();
+                    }
+                });
+            } else {
+                dangerNode.setTouchable(Touchable.disabled);
+            }
+            addActor(dangerNode);
 
             addActor(createAnchoredAnimation(MapObjectType.LIGHTNING_ANIM, LIGHTNING_TUNING, "idle",
                     dangerNodeAnchorX + 60f * LAYOUT_SCALE_X, dangerNodeAnchorY + 40f * LAYOUT_SCALE_Y));
@@ -831,5 +872,5 @@ public class DarkAgesStagesScreen extends StagesScreen {
         }
     }
 
-    
+
 }

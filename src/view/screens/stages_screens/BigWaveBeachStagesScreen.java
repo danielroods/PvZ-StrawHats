@@ -259,6 +259,36 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
         }
     }
 
+    /**
+     * The danger node is a hidden, unlisted level of this chapter: it reuses the
+     * chapter's own season (so it plays through the exact same gameplay screen as
+     * every other stage here) plus the first stage's basic settings as a starting
+     * point. No special gameplay logic yet.
+     */
+    private Level buildDangerLevel() {
+        model.match.main.levels.normal_levels.NormalLevel level = new model.match.main.levels.normal_levels.NormalLevel();
+        Level base = chapterLevels.isEmpty() ? null : chapterLevels.get(0);
+        level.setId(base != null ? -(1_000_000 + base.getId()) : -1_000_000);
+        level.setName(CHAPTER_NAME + " Lottery");
+        level.setGameMode("Lottery");
+        if (base != null) {
+            level.setSeason(base.getSeason());
+            level.setRows(base.getRows());
+            level.setCols(base.getCols());
+            level.setInitialSun(base.getInitialSun());
+            level.setAvailablePlants(base.getAvailablePlants());
+            level.setForcedPlants(base.getForcedPlants());
+            level.setZombiePool(base.getZombiePool());
+            level.setWaves(base.getWaves());
+        }
+        return level;
+    }
+
+    private void playDangerNode() {
+        MatchMenu.selectedLevel = buildDangerLevel();
+        runCommand("start game");
+    }
+
     private void build() {
         rootTable.clear();
 
@@ -300,13 +330,13 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
         return topBar;
     }
 
-    
 
-    
 
-    
 
-    
+
+
+
+
 
     private Table buildPathContainer() {
         Table wrap = new Table();
@@ -608,7 +638,18 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
             DangerNodeState dState = calculateDangerNodeState();
             String zombossState = (dState == DangerNodeState.UNLOCKED_IDLE) ? "defeated" : "idle";
             addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_NODE, ZOMBOSS_TUNING, zombossState, zombossNodeX, zombossNodeY));
-            addActor(createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(), dangerNodeAnchorX, dangerNodeAnchorY));
+            Group dangerNode = createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(), dangerNodeAnchorX, dangerNodeAnchorY);
+            if (dState != DangerNodeState.LOCKED_IDLE) {
+                dangerNode.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        playDangerNode();
+                    }
+                });
+            } else {
+                dangerNode.setTouchable(Touchable.disabled);
+            }
+            addActor(dangerNode);
 
             if (chapterLevels.size() > 0) {
                 addActor(createAnchoredAnimation(MapObjectType.SPLASH_EFFECT_ANIM, SPLASH_TUNING, "idle", houseX + 45f, houseY + 20f));
@@ -819,5 +860,5 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
         }
     }
 
-    
+
 }
