@@ -302,6 +302,8 @@ public class GameScreen extends UiScreen {
             }
         }
 
+        if (matchFinished) return;
+
         refreshHud(delta);
         drawBoard(delta);
         stage.act(delta);
@@ -476,11 +478,11 @@ public class GameScreen extends UiScreen {
         if (session.isGameOver()) {
             matchFinished = true;
             runCommand("end game -r lose");
-            new EndMatchModal(false).show();
+            controller.ScreenManager.syncWithCurrentMenu();
         } else if (session.isGameWon()) {
             matchFinished = true;
             runCommand("end game -r win");
-            new EndMatchModal(true).show();
+            controller.ScreenManager.syncWithCurrentMenu();
         }
     }
 
@@ -1009,7 +1011,7 @@ public class GameScreen extends UiScreen {
 
     /** Tiny font helper keeps fallback rendering out of the gameplay logic. */
     private static final class BitmapFontAccess {
-        static void draw(Batch batch, com.badlogic.gdx.scenes.scene2d.ui.Skin skin, String text, float x, float y) {
+        static void draw(Batch batch, Skin skin, String text, float x, float y) {
             if (skin != null && skin.has("default-font", com.badlogic.gdx.graphics.g2d.BitmapFont.class)) {
                 skin.getFont("default-font").draw(batch, text, x, y);
             }
