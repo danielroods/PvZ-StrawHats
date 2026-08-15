@@ -128,6 +128,15 @@ public abstract class BaseScreen implements Screen {
         }
     }
 
+    protected void addBeforeModal(Actor actor) {
+        int index = rootStack.getChildren().indexOf(modalStack, true);
+        if (index >= 0) {
+            rootStack.addActorAt(index, actor);
+        } else {
+            rootStack.add(actor);
+        }
+    }
+
     protected void setBackground(String path) {
         if (path == null || path.isEmpty() || !Gdx.files.internal(path).exists()) {
             return;

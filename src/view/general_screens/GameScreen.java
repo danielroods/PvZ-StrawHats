@@ -288,7 +288,7 @@ public class GameScreen extends UiScreen {
         hud.setFoodAction(() -> armTool(Tool.FOOD));
         hud.setPauseAction(this::togglePause);
         hud.setStartWavesAction(() -> runCommand("start zombie waves"));
-        rootStack.add(hud);
+        addBeforeModal(hud);
     }
 
     private void createBoardInput() {
@@ -1103,11 +1103,10 @@ public class GameScreen extends UiScreen {
 
     private class PauseModal extends Modal {
         PauseModal() {
-            pad(24);
-            add(new Label("PAUSED", skin, "title")).padBottom(15).row();
+            content.add(new Label("PAUSED", skin, "title")).colspan(2).padBottom(15).row();
             TextButton resume = new TextButton("Resume", skin);
             resume.addListener(new ClickListener() { @Override public void clicked(InputEvent e, float x, float y) { paused = false; hide(); } });
-            add(resume).size(220, 50).pad(5).row();
+            content.add(resume).size(220, 50).pad(5).row();
             TextButton restart = new TextButton("Restart", skin);
             restart.addListener(new ClickListener() {
                 @Override public void clicked(InputEvent e, float x, float y) {
@@ -1120,7 +1119,7 @@ public class GameScreen extends UiScreen {
                     }
                 }
             });
-            add(restart).size(220, 50).pad(5).row();
+            content.add(restart).size(220, 50).pad(5).row();
             TextButton exit = new TextButton("Save & Exit", skin);
             exit.addListener(new ClickListener() {
                 @Override public void clicked(InputEvent e, float x, float y) {
@@ -1129,10 +1128,9 @@ public class GameScreen extends UiScreen {
                     controller.ScreenManager.syncWithCurrentMenu();
                 }
             });
-            add(exit).size(220, 50).pad(5);
+            content.add(exit).size(220, 50).pad(5);
         }
     }
-
     private class EndMatchModal extends Modal {
         EndMatchModal(boolean won) {
             pad(24);
