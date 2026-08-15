@@ -831,7 +831,7 @@ public class GameScreen extends UiScreen {
             // for plantAttackAnimTimes/plantAttackWindow to ride out.
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
-            if (lastCooldown != null && lastCooldown <= 0.0 && cooldown > 0.0) {
+            if (lastCooldown != null && cooldown > lastCooldown + 0.05) {
                 float attackDuration = resolvePlantClipDuration(plant.getName(), "attack");
                 if (attackDuration <= 0f) attackDuration = DEFAULT_PLANT_ATTACK_DURATION;
                 plantAttackAnimTimes.put(plant, 0f);

@@ -82,15 +82,15 @@ public class AnimationFactory {
         if (preferredState != null && config.clips.containsKey(preferredState)) {
             return preferredState;
         }
+        if (preferredState != null && !preferredState.isEmpty()) {
+            String byState = firstClipContaining(config, preferredState);
+            if (byState != null) return byState;
+        }
         if (config.clips.containsKey("idle")) {
             return "idle";
         }
         if (config.clips.containsKey("default")) {
             return "default";
-        }
-        if (preferredState != null && !preferredState.isEmpty()) {
-            String byState = firstClipContaining(config, preferredState);
-            if (byState != null) return byState;
         }
         String byIdle = firstClipContaining(config, "idle");
         if (byIdle != null) return byIdle;
