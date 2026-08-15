@@ -787,6 +787,18 @@ public class GameScreen extends UiScreen {
             }
         }
     }
+    private Texture potTexture;
+
+    private Texture getPotTexture() {
+        if (potTexture == null) {
+            String path = resolveExistingAssetPath("assets/images/ui/Stack_1.png");
+            if (path != null && Gdx.files.internal(path).exists()) {
+                potTexture = new Texture(Gdx.files.internal(path));
+                potTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            }
+        }
+        return potTexture;
+    }
 
     private static final float SUN_PAM_SCALE_MULTIPLIER = 1.35f;
     private static final float SUN_PAM_LOOP_SECONDS = 1.0f;
@@ -795,8 +807,10 @@ public class GameScreen extends UiScreen {
         for (model.collections.Item raw : session.getItems()) {
             if (!(raw instanceof GroundItem item)) continue;
             if (item == null || !item.isAlive() || item.isCollected() || item.getPosition() == null) continue;
+
             float age = itemAnimTimes.getOrDefault(item, 0f) + delta;
             itemAnimTimes.put(item, age);
+
             Position p = item.getPosition();
             float x = BOARD_X + (float) p.x() * boardTileWidth + boardTileWidth * 0.28f;
             float y = cellY((int) p.y()) + boardTileHeight * 0.25f;
@@ -805,14 +819,19 @@ public class GameScreen extends UiScreen {
                 float progress = sun.getFallProgress();
                 y = BOARD_Y + bh + 35f + (y - (BOARD_Y + bh + 35f)) * progress;
             }
+
             float pulse = 1f;
             if (item instanceof GroundSun) {
                 pulse = 0.92f + 0.08f * (float) Math.sin(age * 5.5f);
                 y += (float) Math.sin(age * 3.0f) * 3f;
             }
+
             float size = boardTileWidth * 0.45f * pulse;
             float drawX = x + (boardTileWidth * 0.45f - size) * 0.5f;
             float drawY = y + (boardTileHeight * 0.45f - size) * 0.5f;
+
+            String typeName = item.getItemType() != null ? item.getItemType().name().toUpperCase() : "";
+
             if (item instanceof GroundSun sun) {
                 String pamPath = GroundSun.getPamAnimationPath(sun.getDropType());
                 String clipName = GroundSun.getPamAnimationClip(sun.getDropType());
@@ -820,11 +839,43 @@ public class GameScreen extends UiScreen {
                 float pamScale = (size / 100f) * SUN_PAM_SCALE_MULTIPLIER;
 
                 if (!drawPam(pamPath, clipName, loopingPamTime,
-                        drawX + size * 0.5f,
-                        drawY + size * 0.5f,
-                        pamScale,
-                        false)) {
+                        drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
                     drawFallback(drawX, drawY, size, size, itemColor("SUN"));
+                }
+            } else if (typeName.contains("PLANT_FOOD") || typeName.contains("PLANTFOOD")) {
+                String pamPath = "768/INITIAL/EFFECTS/PLANTFOOD_PICKUP/PLANTFOOD_PICKUP.PAM";
+                float pamScale = (size / 100f) * 1.2f;
+                if (!drawPam(pamPath, "idle", age, drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
+                    drawFallback(drawX, drawY, size, size, itemColor("PLANT_FOOD"));
+                }
+            } else if (typeName.contains("DIAMOND")) {
+                String pamPath = "768/INITIAL/EFFECTS/COIN_DIAMOND/COIN_DIAMOND.PAM";
+                float pamScale = (size / 100f) * 0.6f;
+                if (!drawPam(pamPath, "idle", age, drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
+                    drawFallback(drawX, drawY, size, size, itemColor("DIAMOND"));
+                }
+            } else if (typeName.contains("SILVER")) {
+                String pamPath = "768/INITIAL/EFFECTS/COIN_SILVER/COIN_SILVER.PAM";
+                float pamScale = (size / 100f) * 1.2f;
+                if (!drawPam(pamPath, "animation", age, drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
+                    drawFallback(drawX, drawY, size, size, itemColor("COIN"));
+                }
+            } else if (typeName.contains("COIN") || typeName.contains("GOLD")) {
+                String pamPath = "768/INITIAL/EFFECTS/COIN_GOLD/COIN_GOLD.PAM";
+                float pamScale = (size / 100f) * 1.2f;
+                if (!drawPam(pamPath, "animation", age, drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
+                    drawFallback(drawX, drawY, size, size, itemColor("COIN"));
+                }
+            } else if (typeName.contains("POT") || typeName.contains("STACK")) {
+                Texture pTex = getPotTexture();
+                if (pTex != null) {
+                    float potPulse = 1f + 0.07f * (float) Math.sin(age * 3.5f);
+                    float pSize = size * potPulse;
+                    float pDrawX = x + (boardTileWidth * 0.45f - pSize) * 0.5f;
+                    float pDrawY = y + (boardTileHeight * 0.45f - pSize) * 0.5f;
+                    batch.draw(pTex, pDrawX, pDrawY, pSize, pSize);
+                } else {
+                    drawFallback(drawX, drawY, size, size, Color.BROWN);
                 }
             } else {
                 TextureRegion region = GameAssetManager.get().getItemRegion(item.getItemType().name());
@@ -1284,6 +1335,7 @@ public class GameScreen extends UiScreen {
         if (sideTextureRight != null) sideTextureRight.dispose();
         if (graveTexture != null) graveTexture.dispose();
         if (shovelIconTexture != null) shovelIconTexture.dispose();
+        if (potTexture != null) potTexture.dispose();
         super.dispose();
     }
 
