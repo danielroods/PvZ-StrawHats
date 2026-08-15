@@ -265,10 +265,8 @@ public class GameScreen extends UiScreen {
     protected String getSideTextureLeftPath() { return getSeasonGameplayFolder() + "texture_left.png"; }
     protected String getSideTextureRightPath() { return getSeasonGameplayFolder() + "texture_right.png"; }
 
-    protected static final String GRAVE_IMAGE_PATH_PLACEHOLDER = "images/chapters/darkage/gameplay/grave.png";
-
     protected String getGraveIconPath() {
-        return GRAVE_IMAGE_PATH_PLACEHOLDER;
+        return getSeasonGameplayFolder() + "grave.png";
     }
 
     private void initGraveTexture() {
@@ -752,9 +750,9 @@ public class GameScreen extends UiScreen {
                 if (cell == null || cell.getObstacle() == null) continue;
                 if (!"Grave".equalsIgnoreCase(cell.getObstacle().getName())) continue;
 
-                TextureRegion grave = GameAssetManager.get().getUiRegion("grave");
+                TextureRegion grave = graveRegion;
                 if (grave == null) {
-                    grave = graveRegion;
+                    grave = GameAssetManager.get().getUiRegion("grave");
                 }
 
                 float drawX = BOARD_X + c * boardTileWidth + (boardTileWidth - 60f) / 2f;

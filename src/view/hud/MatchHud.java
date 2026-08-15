@@ -30,10 +30,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 /** Single in-match HUD layer. Gameplay mutation stays in GameScreen. */
 public final class MatchHud extends Table implements Disposable {
-    private static final float CARD_W = 100f;
-    private static final float CARD_H = 60f;
+    private static final float CARD_W = 95f;
+
+    private static final float CARD_H = 60;
 
     private final Button shovelButton;
+    private final Button foodButton;
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
     private final Table loadoutRow = new Table();
@@ -44,11 +46,11 @@ public final class MatchHud extends Table implements Disposable {
     private final Label waveLabel;
     private final Label objectiveLabel;
     private final TextButton pauseButton;
-    private final TextButton foodButton;
     private final TextButton startButton;
     private final TextButton debugAddSunButton;
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
+    private final ProgressBar waveProgressBar;
 
     private Consumer<String> plantSelection;
     private Consumer<Vector2> plantDragRelease;
@@ -87,7 +89,7 @@ public final class MatchHud extends Table implements Disposable {
         setFillParent(true);
         setTouchable(Touchable.childrenOnly);
         top().left();
-        pad(8f);
+        pad(10f);
 
         sunLabel = new Label("0", skin, "title");
         foodLabel = new Label("0", skin, "title");
@@ -98,10 +100,17 @@ public final class MatchHud extends Table implements Disposable {
         objectiveLabel.setWrap(true);
 
         pauseButton = new TextButton("II", skin);
+        startButton = new TextButton("START", skin);
+
         Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/gameplay/shovel_button.png");
         shovelButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(shovelBtnTex)));
-        foodButton = new TextButton("Food", skin);
-        startButton = new TextButton("START", skin);
+        Texture foodBtnTex = loadTexture("images/chapters/egypt/gameplay/plantfood.png");
+        ImageButton.ImageButtonStyle foodStyle = new ImageButton.ImageButtonStyle();
+        foodStyle.imageUp = new TextureRegionDrawable(new TextureRegion(foodBtnTex));
+        foodStyle.imageDown = foodStyle.imageUp;
+        foodStyle.imageChecked = foodStyle.imageUp;
+        foodButton = new ImageButton(foodStyle);
+
         debugAddSunButton = new TextButton("+25 Sun", skin);
         debugAddFoodButton = new TextButton("+1 Food", skin);
 
@@ -112,42 +121,74 @@ public final class MatchHud extends Table implements Disposable {
         debugAddSunButton.addListener(click(() -> { if (debugAddSunAction != null) debugAddSunAction.run(); }));
         debugAddFoodButton.addListener(click(() -> { if (debugAddFoodAction != null) debugAddFoodAction.run(); }));
 
-        Table resources = new Table();
-        resources.add(resource(sunLabel, "images/chapters/egypt/gameplay/sun.png")).size(92, 40).padRight(3);
-        resources.add(resource(foodLabel, "images/chapters/egypt/gameplay/plantfood.png")).size(92, 40).padRight(3);
-        resources.add(resource(coinLabel, "assets/images/ui/buttons_coin_buy_normal.png")).size(92, 40).padRight(6);
+        Table sunWidget = resource(sunLabel, "images/chapters/egypt/gameplay/sun.png");
 
-        Table topRow = new Table();
-        topRow.add(resources).left().padRight(6);
-        topRow.add(waveLabel).width(120).center().padRight(6);
-        topRow.add(objectiveLabel).width(210).center().expandX().fillX().padRight(6);
-        topRow.add(startButton).size(100, 42).padRight(5);
-        topRow.add(pauseButton).size(54, 42);
+        ProgressBar.ProgressBarStyle waveStyle = new ProgressBar.ProgressBarStyle();
+        waveStyle.background = new TextureRegionDrawable(new TextureRegion(solid(new Color(0f, 0f, 0f, 0.35f))));
+        waveStyle.background.setMinHeight(26f);
+        waveStyle.knobBefore = new TextureRegionDrawable(new TextureRegion(solid(new Color(0.30f, 0.80f, 0.25f, 1f))));
+        waveStyle.knobBefore.setMinHeight(26f);
+        waveProgressBar = new ProgressBar(0f, 1f, 0.001f, false, waveStyle);
+        waveProgressBar.setAnimateDuration(0.25f);
+
+        Stack waveBarStack = new Stack();
+        waveBarStack.add(waveProgressBar);
+        Table waveLabelOverlay = new Table();
+        waveLabelOverlay.add(waveLabel).center().expand();
+        waveBarStack.add(waveLabelOverlay);
+
+        Table centerColumn = new Table();
+        centerColumn.add(waveBarStack).growX().height(26f).row();
+        centerColumn.add(objectiveLabel).growX().padTop(3f).row();
+        centerColumn.add(startButton).size(130, 38).padTop(5f);
+
+
+        Table coinGroup = new Table();
+        coinGroup.add(resource(coinLabel, "assets/images/ui/buttons_coin_buy_normal.png")).size(96, 44).padRight(4);
+        coinGroup.add(pauseButton).size(50, 42);
+
+        add(sunWidget).top().left();
+        add(centerColumn).expandX().fillX().top().padLeft(10).padRight(10);
+        add(coinGroup).top().right();
+        row();
 
         Table bankFrame = new Table();
         bankFrame.setBackground(skin.getDrawable("card-background"));
         bankFrame.pad(5f);
-        loadoutRow.left();
-        bankFrame.add(loadoutRow).left().expandX().fillX();
+        loadoutRow.top();
+        bankFrame.add(loadoutRow).top();
+
+        Stack foodStack = new Stack();
+        foodStack.add(foodButton);
+        Table foodBadge = new Table();
+        foodBadge.bottom().right();
+        foodBadge.add(foodLabel).pad(2f);
+        foodBadge.setTouchable(Touchable.disabled);
+        foodStack.add(foodBadge);
 
         conveyorBox.setBackground(skin.getDrawable("card-background"));
         conveyorBox.pad(4f);
         conveyorBox.setVisible(false);
 
-        Table tools = new Table();
-        tools.add(shovelButton).size(60, 60).padRight(5);
-        tools.add(foodButton).size(100, 40);
+        Table leftColumn = new Table();
+        leftColumn.top();
+        leftColumn.add(bankFrame).top().row();
+        leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
+        leftColumn.add(conveyorBox).top().padTop(8f);
 
         debugRow.left();
         debugRow.add(debugAddSunButton).size(100, 36).padRight(5);
         debugRow.add(debugAddFoodButton).size(100, 36);
         debugRow.setVisible(false);
+        leftColumn.row();
+        leftColumn.add(debugRow).left().padTop(8f);
 
-        add(topRow).growX().row();
-        add(bankFrame).growX().padTop(4).row();
-        add(conveyorBox).left().padTop(3).row();
-        add(tools).left().padTop(4).row();
-        add(debugRow).left().padTop(4);
+        Table rightArea = new Table();
+        rightArea.add().expand().fill().row();
+        rightArea.add(shovelButton).size(64, 64).bottom().right().pad(10f);
+
+        add(leftColumn).top().left().expandY().fillY();
+        add(rightArea).colspan(2).expand().fill();
     }
 
     private ClickListener click(Runnable action) {
@@ -216,7 +257,10 @@ public final class MatchHud extends Table implements Disposable {
             coins = model.user_data.User.currentUser.userState.coins;
         }
         coinLabel.setText(String.valueOf(coins));
-        waveLabel.setText("WAVES " + session.getWavesSpawnedCount() + "/" + Math.max(1, session.getTotalWaveCount()));
+        int spawned = session.getWavesSpawnedCount();
+        int total = Math.max(1, session.getTotalWaveCount());
+        waveLabel.setText("WAVES " + spawned + "/" + total);
+        waveProgressBar.setValue(Math.min(1f, spawned / (float) total));
         objectiveLabel.setText(objectiveFor(session.getLevel()));
         startButton.setVisible(!session.isWavesStarted() && !(session.getLevel() instanceof ConveyorBeltLevel));
         shovelButton.setChecked(shovelActive);
@@ -269,12 +313,12 @@ public final class MatchHud extends Table implements Disposable {
         for (String name : selectedPlants) {
             SlotView slot = createPlantSlot(session, name);
             slotViews.add(slot);
-            loadoutRow.add(slot.stack).size(CARD_W, CARD_H).pad(2f);
+            loadoutRow.add(slot.stack).size(CARD_W, CARD_H).pad(2f).row();
         }
         for (int i = selectedPlants.size(); i < 8; i++) {
             Table empty = new Table();
             empty.setBackground(skin.getDrawable("card-background"));
-            loadoutRow.add(empty).size(CARD_W, CARD_H).pad(2f);
+            loadoutRow.add(empty).size(CARD_W, CARD_H).pad(2f).row();
         }
     }
 
