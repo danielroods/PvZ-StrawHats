@@ -140,6 +140,11 @@ public class GameScreen extends UiScreen {
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<GroundItem, Float> itemAnimTimes = new IdentityHashMap<>();
+    // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
+    private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
+    private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> plantAttackWindow = new IdentityHashMap<>();
+    private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
     private final Map<String, Float> clipTimes = new java.util.HashMap<>();
     private static final Map<String, String[]> SEASON_LAWN_MOWER_PAM_PATHS = new java.util.HashMap<>();
     static {
@@ -363,7 +368,13 @@ public class GameScreen extends UiScreen {
     @Override
     public void render(float delta) {
         if (textureBank != null) {
-            try { textureBank.update(); } catch (Throwable ignored) {}
+            try {
+                textureBank.update();
+            } catch (Throwable t) {
+                if (GameSettings.get().isDebugMode()) {
+                    Gdx.app.error("TEXTUREBANK_UPDATE_FAIL", "textureBank.update() threw", t);
+                }
+            }
         }
 
         if (!paused && !matchFinished) {
@@ -796,6 +807,13 @@ public class GameScreen extends UiScreen {
         for (Plant plant : new ArrayList<>(session.getPlants())) {
             if (plant == null || plant.getPosition() == null) continue;
             float t = plantAnimTimes.getOrDefault(plant, 0f) + delta;
+            // Idle time otherwise grows unbounded for the whole match; PamPlayer/ClipRef
+            // eventually chokes on a stateTime far past the clip's own length (this is
+            // why animations "work at first then stop" - it only shows up once a plant
+            // has been sitting idle long enough). Wrap it the same way the zombie
+            // walk/eat path already does below via resolveClipDuration.
+            float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
+            if (idleDuration > 0f) t %= idleDuration;
             plantAnimTimes.put(plant, t);
             Position p = plant.getPosition();
             float x = BOARD_X + (float) p.x() * boardTileWidth;
@@ -805,16 +823,60 @@ public class GameScreen extends UiScreen {
             float plantOffsetY = y + 40f;
 
             String path = AnimationFactory.pathForDisplayName(plant.getName());
-            if (!drawPam(path, "idle", t, plantOffsetX , plantOffsetY, 0.55f, false)) {
+
+            // The model has no "attacking" state - ActStrategy.act() fires a shot the
+            // instant internalTimer hits 0 and immediately resets it to actionInterval.
+            // So a fire event is detected here by watching that reset happen (cooldown
+            // was <= 0 last frame, is > 0 now), and a short "attack" window is opened
+            // for plantAttackAnimTimes/plantAttackWindow to ride out.
+            double cooldown = plant.getIntervalTimer();
+            Double lastCooldown = plantLastCooldown.put(plant, cooldown);
+            if (lastCooldown != null && lastCooldown <= 0.0 && cooldown > 0.0) {
+                float attackDuration = resolvePlantClipDuration(plant.getName(), "attack");
+                if (attackDuration <= 0f) attackDuration = DEFAULT_PLANT_ATTACK_DURATION;
+                plantAttackAnimTimes.put(plant, 0f);
+                plantAttackWindow.put(plant, attackDuration);
+            }
+
+            Float attackTime = plantAttackAnimTimes.get(plant);
+            if (attackTime != null) {
+                attackTime += delta;
+                float window = plantAttackWindow.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (attackTime >= window) {
+                    plantAttackAnimTimes.remove(plant);
+                    plantAttackWindow.remove(plant);
+                } else {
+                    plantAttackAnimTimes.put(plant, attackTime);
+                }
+            }
+
+            boolean attacking = plantAttackAnimTimes.containsKey(plant);
+            String preferredState = attacking ? "attack" : "idle";
+            float animTime = attacking ? plantAttackAnimTimes.get(plant) : t;
+
+            if (!drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, false)) {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight, new Color(0.2f, 0.65f, 0.22f, 1f), initials(plant.getName()));
             }
         }
         plantAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
+        plantLastCooldown.keySet().removeIf(p -> !session.getPlants().contains(p));
+        plantAttackAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
+        plantAttackWindow.keySet().removeIf(p -> !session.getPlants().contains(p));
     }
     /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
     private float resolveClipDuration(String alias, String preferredState) {
         AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(alias);
+        if (config == null || config.clips == null) return -1f;
+        String clipName = AnimationFactory.resolveClipName(config, preferredState);
+        if (clipName == null) return -1f;
+        Double duration = config.clips.get(clipName);
+        return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
+    /** Same as {@link #resolveClipDuration} but for a plant display name, e.g. "Peashooter". Returns -1 if unknown. */
+    private float resolvePlantClipDuration(String displayName, String preferredState) {
+        AnimationJsonParser.AnimationConfig config = AnimationFactory.resolveByDisplayName(displayName);
         if (config == null || config.clips == null) return -1f;
         String clipName = AnimationFactory.resolveClipName(config, preferredState);
         if (clipName == null) return -1f;
@@ -957,7 +1019,12 @@ public class GameScreen extends UiScreen {
             if (clipName == null) clipName = preferred;
             if (clipName == null || clipName.isBlank()) return false;
             ClipRef clip = pamPlayer.getClip(path, clipName);
-            if (clip == null) return false;
+            if (clip == null) {
+                if (GameSettings.get().isDebugMode()) {
+                    Gdx.app.log("DRAWPAM_NULLCLIP", "getClip returned null for path=" + path + " clip=" + clipName);
+                }
+                return false;
+            }
 
             batch.flush();
             com.badlogic.gdx.math.Matrix4 old = batch.getTransformMatrix().cpy();
@@ -970,7 +1037,10 @@ public class GameScreen extends UiScreen {
             batch.flush();
             batch.setTransformMatrix(old);
             return true;
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            if (GameSettings.get().isDebugMode()) {
+                Gdx.app.error("DRAWPAM_FAIL", "drawPam threw for path=" + path + " preferred=" + preferred, t);
+            }
             return false;
         }
     }
