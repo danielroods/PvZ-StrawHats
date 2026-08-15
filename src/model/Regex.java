@@ -138,6 +138,9 @@ public enum Regex {
     BOOST_PLANT(
             "^\\s*boost\\s+plant\\s+-t\\s+(?<type>.+?)\\s*$"
     ),
+    UPGRADE_PLANT(
+            "^\\s*upgrade\\s+plant\\s+-t\\s+(?<type>.+?)\\s*$"
+    ),
     START_GAME(
             "^\\s*start\\s+game\\s*$"
     ),

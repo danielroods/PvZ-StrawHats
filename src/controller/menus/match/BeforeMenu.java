@@ -49,6 +49,10 @@ public class BeforeMenu extends Menu {
             Matcher matcher = Regex.BOOST_PLANT.getMatcherRaw(text);
             matcher.matches();
             boostPlant(matcher.group("type"));
+        } else if (Regex.UPGRADE_PLANT.getMatcherRaw(text).matches()) {
+            Matcher matcher = Regex.UPGRADE_PLANT.getMatcherRaw(text);
+            matcher.matches();
+            upgradePlant(matcher.group("type"));
         } else if (Regex.START_GAME.getMatcherRaw(text).matches()) {
             startMatch();
         } else if (Regex.MENU_ENTER.getMatcherRaw(text).matches()) {
@@ -145,6 +149,31 @@ public class BeforeMenu extends Menu {
         }
     }
 
+    private void upgradePlant(String plantName) {
+        UserState state = User.currentUser.userState;
+        PlantJsonParser.PlantConfig config = manager.findPlant(plantName);
+        if (config == null) {
+            throw new GameException("no such plant.");
+        } else if (!state.isPlantUnlocked(config.id)) {
+            throw new GameException("plant is locked.");
+        }
+
+        int currentLevel = state.getPlantLevel(config.id);
+        int coinCost = currentLevel * 500;
+        int packetsNeeded = currentLevel;
+        int packetsOwned = state.seedPacketInventory.getOrDefault(config.id, 0);
+
+        if (state.coins < coinCost) {
+            throw new GameException("not enough coins (" + state.coins + "/" + coinCost + ").");
+        } else if (packetsOwned < packetsNeeded) {
+            throw new GameException("not enough " + config.name + " seed packets (" + packetsOwned + "/" + packetsNeeded + "). Buy some from the store.");
+        } else if (!manager.upgradePlant(state, config)) {
+            throw new GameException("upgrade failed.");
+        } else {
+            GeneralPrinter.print("Plant upgraded: " + config.name + " -> level " + state.getPlantLevel(config.id));
+        }
+    }
+
     private void startMatch() {
         Level level = currentLevel();
         if (level == null) {
@@ -201,6 +230,7 @@ public class BeforeMenu extends Menu {
                 + "  add plant -t <type>\n"
                 + "  remove plant -t <type>\n"
                 + "  boost plant -t <type>\n"
+                + "  upgrade plant -t <type>\n"
                 + "  start game\n"
                 + "  menu exit | menu show current";
     }

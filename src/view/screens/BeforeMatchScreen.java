@@ -319,7 +319,7 @@ public class BeforeMatchScreen extends UiScreen {
             if (canUpgrade) {
                 upgBtn.addListener(new ClickListener() {
                     @Override public void clicked(InputEvent event, float x, float y) {
-                        runCommand("menu collection upgrade-plant -p " + plantName);
+                        runCommand("upgrade plant -t " + plantName);
                         build();
                     }
                 });

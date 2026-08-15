@@ -111,18 +111,15 @@ public class GameScreen extends UiScreen {
     static {
         String[] egypt = {
                 "768/INITIAL/MOWERS/MOWER_EGYPT/MOWER_EGYPT.PAM",
-                "768/FULL/MOWERS/MOWER_EGYPT/MOWER_EGYPT.PAM"
+
         };
         String[] cave = {
-                "768/FULL/MOWERS/MOWER_ICEAGE/MOWER_ICEAGE.PAM",
                 "768/INITIAL/MOWERS/MOWER_ICEAGE/MOWER_ICEAGE.PAM"
         };
         String[] beach = {
-                "768/FULL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM",
                 "768/INITIAL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM"
         };
         String[] dark = {
-                "768/FULL/MOWERS/MOWER_DARK/MOWER_DARK.PAM",
                 "768/INITIAL/MOWERS/MOWER_DARK/MOWER_DARK.PAM"
         };
 
