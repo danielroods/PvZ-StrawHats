@@ -11,23 +11,31 @@ import model.pitches.Tile;
 import model.pitches.TileType;
 import model.utils.GameSession;
 
-public class Flood {
+/** Authoritative Big Wave Beach tide/grid rules. */
+public final class Flood {
+    private Flood() {}
+
     public static void initialize(Level level, GameSession session) {
         if (level == null || session == null) return;
-        if (level.getCurrentTideColumn() <= 0) level.setCurrentTideColumn(level.getMaxTideColumn());
+        level.setMaxTideColumn(Math.min(Beach.DEFAULT_MAX_TIDE_COLUMNS, Math.max(0, level.getCols() - 1)));
+        if (level.getCurrentTideColumn() <= 0) {
+            level.setCurrentTideColumn(level.getMaxTideColumn());
+        }
         apply(level, session);
     }
 
     public static void riselevel(Level level, GameSession session) {
         if (level == null) return;
-        level.setCurrentTideColumn(Math.min(level.getCurrentTideColumn() + 1, level.getMaxTideColumn()));
-        apply(level, session);
+        int old = level.getCurrentTideColumn();
+        level.setCurrentTideColumn(Math.min(old + 1, level.getMaxTideColumn()));
+        if (session != null) apply(level, session);
     }
 
     public static void falllevel(Level level, GameSession session) {
         if (level == null) return;
-        level.setCurrentTideColumn(Math.max(level.getCurrentTideColumn() - 1, 0));
-        apply(level, session);
+        int old = level.getCurrentTideColumn();
+        level.setCurrentTideColumn(Math.max(old - 1, 0));
+        if (session != null) apply(level, session);
     }
 
     public static void riselevel(Level level) { riselevel(level, GameSession.peekInstance()); }
@@ -35,21 +43,30 @@ public class Flood {
 
     public static void apply(Level level, GameSession session) {
         if (level == null || session == null || session.getEnvironment() == null) return;
-        int waterStart = session.getCols() - level.getCurrentTideColumn();
+
+        int waterStart = Math.max(0, session.getCols() - level.getCurrentTideColumn());
 
         for (int row = 0; row < session.getRows(); row++) {
             for (int col = 0; col < session.getCols(); col++) {
                 Cell cell = session.getEnvironment().getCell(row, col);
                 if (cell == null) continue;
+
                 boolean flooded = col >= waterStart;
+                Tile tile = cell.getTile();
+                boolean wasWater = tile != null && tile.type() == TileType.Water;
+
                 if (flooded) {
-                    if (cell.getTile() == null || cell.getTile().type() != TileType.Slippery) {
+                    if (!wasWater) {
                         cell.setTile(new Tile(TileType.Water));
+                        washLandPlants(cell);
                     }
-                    Plant top = cell.getPlant();
-                    if (top != null && top.isAlive() && !isWaterSafe(top)) top.setAlive(false);
-                } else if (cell.getTile() != null && cell.getTile().type() == TileType.Water) {
-                    cell.setTile(new Tile(TileType.Normal));
+                } else {
+                    if (wasWater) {
+                        cell.setTile(new Tile(TileType.Normal));
+                        // Aquatic traps need water. They are removed when the
+                        // tide goes back out; Lily Pad-supported land plants stay.
+                        removeAquaticPlant(cell);
+                    }
                 }
             }
         }
@@ -66,9 +83,57 @@ public class Flood {
         }
     }
 
-    private static boolean isWaterSafe(Plant plant) {
-        if (plant.getTags().contains(PlantTag.WATER)) return true;
-        Plant bottom = plant.getBottom();
-        return bottom != null && bottom.isAlive() && bottom.getTags().contains(PlantTag.WATER);
+    /**
+     * A rising tide washes away ordinary plants that are exposed to water.
+     * A Lily Pad is the intended protection for land plants in real BWB logic,
+     * so a plant stacked on a live Lily Pad remains in place.
+     */
+    private static void washLandPlants(Cell cell) {
+        Plant top = cell.getPlant();
+        if (top == null || !top.isAlive()) return;
+
+        Plant bottom = top.getBottom();
+        if (bottom != null && bottom.isAlive() && bottom.getTags().contains(PlantTag.WATER)) {
+            // The land plant is supported by a Lily Pad.
+            return;
+        }
+
+        if (!top.getTags().contains(PlantTag.WATER)) {
+            top.setAlive(false);
+            cell.setPlant(null);
+        }
     }
+
+    private static void removeAquaticPlant(Cell cell) {
+        Plant top = cell.getPlant();
+        if (top == null || !top.isAlive()) return;
+
+        if (top.getTags().contains(PlantTag.WATER)) {
+            // Lily Pad is also WATER, but it is a platform rather than an
+            // aquatic trap; it remains when the tide recedes.
+            if (top.getTags().contains(PlantTag.STACK)) return;
+            top.setAlive(false);
+            cell.setPlant(null);
+            return;
+        }
+
+        Plant bottom = top.getBottom();
+        if (bottom != null && bottom.getTags().contains(PlantTag.WATER)) {
+            // Keep the land plant and its Lily Pad; only a water-dependent top
+            // plant is removed by the receding tide.
+            if (top.isAlive()) return;
+        }
+    }
+    /** Applies the physical wipe caused by the large crashing wave. */
+    public static void applyBigWaveWash(Level level, GameSession session) {
+        if (level == null || session == null || session.getEnvironment() == null) return;
+        int waterStart = Math.max(0, session.getCols() - level.getCurrentTideColumn());
+        for (int row = 0; row < session.getRows(); row++) {
+            for (int col = waterStart; col < session.getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell != null) washLandPlants(cell);
+            }
+        }
+    }
+
 }

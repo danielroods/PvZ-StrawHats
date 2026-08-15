@@ -610,6 +610,7 @@ public class GameScreen extends UiScreen {
         drawProjectiles(bw, bh);
         drawMowers(bw, bh);
         drawHover(bw, bh);
+        drawSeasonForegroundEffects(delta, bw, bh);
         drawDragPreview(delta);
 
         batch.end();
@@ -1338,5 +1339,8 @@ public class GameScreen extends UiScreen {
                 skin.getFont("default-font").draw(batch, text, x, y);
             }
         }
+    }
+    protected void drawSeasonForegroundEffects(float delta, float bw, float bh) {
+        // Default seasons have no extra foreground overlay.
     }
 }

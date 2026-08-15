@@ -11,6 +11,7 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match.main.levels.Level;
+import model.match.main.season.travellog.beach.Beach;
 import model.match.main.season.travellog.beach.Flood;
 import model.match.main.season.travellog.egypt.Egypt;
 import model.match.main.season.travellog.egypt.SandStorm;
@@ -83,7 +84,28 @@ public class GameSession {
     private int sandStormWaveIndex = -1;
     private final Map<Zombie, SandStormEntry> sandStormEntries = new IdentityHashMap<>();
 
+    private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 1.35;
+    private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 1.05;
+    private static final double BEACH_BIG_WAVE_ENTRY_TARGET_OFFSET = 0.20;
+    private boolean beachBigWaveActive = false;
+    private double beachBigWaveTimer = 0.0;
+    private int beachBigWaveIndex = -1;
+    private final Map<Zombie, BeachBigWaveEntry> beachBigWaveEntries = new IdentityHashMap<>();
+
     private static final double NORMAL_ENTRY_EXTRA_COLUMNS = 4.5;
+
+    private static final class BeachBigWaveEntry {
+        final int row;
+        final double startX;
+        final double targetX;
+        double elapsed;
+
+        BeachBigWaveEntry(int row, double startX, double targetX) {
+            this.row = row;
+            this.startX = startX;
+            this.targetX = targetX;
+        }
+    }
 
     private static final class SandStormEntry {
         final int startRow;
@@ -152,6 +174,7 @@ public class GameSession {
         }
 
         updateSandStorm(deltaTimeSeconds);
+        updateBeachBigWave(deltaTimeSeconds);
 
         for (int i = plants.size() - 1; i >= 0; i--) {
             Plant plant = plants.get(i);
@@ -159,7 +182,7 @@ public class GameSession {
         }
         for (int i = zombies.size() - 1; i >= 0; i--) {
             Zombie zombie = zombies.get(i);
-            if (zombie.isAlive() && !sandStormEntries.containsKey(zombie)) {
+            if (zombie.isAlive() && !sandStormEntries.containsKey(zombie) && !beachBigWaveEntries.containsKey(zombie)) {
                 zombie.tick(deltaTimeSeconds, this);
             }
         }
@@ -370,7 +393,14 @@ public class GameSession {
         totalHp += currentWaveStartingHp;
 
         boolean isEgyptLevel = level != null && level.getSeason() instanceof Egypt;
+        boolean isBeachLevel = level != null && level.getSeason() instanceof Beach;
         boolean isSandstormWave = isEgyptLevel && SandStorm.shouldTrigger(wave, nextWaveIndex);
+        boolean isBeachBigWave = isBeachLevel && ((Beach) level.getSeason()).isBigWave(wave);
+        if (isBeachBigWave) {
+            beginBeachBigWave(nextWaveIndex);
+            Flood.applyBigWaveWash(level, this);
+            GeneralPrinter.print("A huge wave is rushing across the beach!");
+        }
         if (isSandstormWave) {
             beginSandStorm(nextWaveIndex);
             GeneralPrinter.print("Sandstorm incoming! Zombies are being carried onto the lawn.");
@@ -397,6 +427,12 @@ public class GameSession {
                 spawnZombie(zombie);
                 currentWaveZombies.add(zombie);
                 totalHp += zombie.getHp();
+
+                if (isBeachBigWave) {
+                    int targetColumn = Math.max(0, getCols() - level.getCurrentTideColumn());
+                    double targetX = Math.max(0.0, targetColumn - BEACH_BIG_WAVE_ENTRY_TARGET_OFFSET);
+                    beachBigWaveEntries.put(zombie, new BeachBigWaveEntry(lane, spawnX, targetX));
+                }
 
                 if (isSandstormWave) {
                     int targetRow = SandStorm.randomRow(getRows());
@@ -500,6 +536,77 @@ public class GameSession {
     public double getSandStormAnimationTime(Zombie zombie) {
         SandStormEntry entry = zombie == null ? null : sandStormEntries.get(zombie);
         return entry == null ? -1.0 : entry.animationElapsed;
+    }
+
+    private void beginBeachBigWave(int waveIndex) {
+        beachBigWaveActive = true;
+        beachBigWaveTimer = BEACH_BIG_WAVE_DURATION_SECONDS;
+        beachBigWaveIndex = waveIndex;
+    }
+
+    private void updateBeachBigWave(double deltaTimeSeconds) {
+        if (beachBigWaveTimer > 0) {
+            beachBigWaveTimer = Math.max(0.0, beachBigWaveTimer - deltaTimeSeconds);
+        }
+
+        if (!beachBigWaveEntries.isEmpty()) {
+            var iterator = beachBigWaveEntries.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Zombie, BeachBigWaveEntry> entry = iterator.next();
+                Zombie zombie = entry.getKey();
+                BeachBigWaveEntry waveEntry = entry.getValue();
+
+                if (zombie == null || !zombie.isAlive()) {
+                    iterator.remove();
+                    continue;
+                }
+
+                waveEntry.elapsed += deltaTimeSeconds;
+                double progress = Math.min(1.0, waveEntry.elapsed / BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS);
+                double smooth = progress * progress * (3.0 - 2.0 * progress);
+                double x = waveEntry.startX + (waveEntry.targetX - waveEntry.startX) * smooth;
+                zombie.setPosition(new Position(x, waveEntry.row));
+
+                if (progress >= 1.0) {
+                    zombie.setPosition(new Position(waveEntry.targetX, waveEntry.row));
+                    Position speed = zombie.getSpeed();
+                    if (speed != null) zombie.setSpeed(new Position(-Math.abs(speed.x()), 0));
+                    iterator.remove();
+                }
+            }
+        }
+
+        if (beachBigWaveActive && beachBigWaveTimer <= 0 && beachBigWaveEntries.isEmpty()) {
+            beachBigWaveActive = false;
+            beachBigWaveIndex = -1;
+        }
+    }
+
+    public boolean isBeachBigWaveActive() {
+        return beachBigWaveActive;
+    }
+
+    public double getBeachBigWaveProgress() {
+        if (!beachBigWaveActive) return 0.0;
+        return 1.0 - Math.max(0.0, Math.min(1.0, beachBigWaveTimer / BEACH_BIG_WAVE_DURATION_SECONDS));
+    }
+
+    public boolean isBeachBigWaveCrash() {
+        return beachBigWaveActive && getBeachBigWaveProgress() >= 0.72;
+    }
+
+    public int getBeachBigWaveIndex() {
+        return beachBigWaveIndex;
+    }
+
+    public boolean isZombieInBeachBigWave(Zombie zombie) {
+        return zombie != null && beachBigWaveEntries.containsKey(zombie);
+    }
+
+    public double getBeachBigWaveEntryProgress(Zombie zombie) {
+        BeachBigWaveEntry entry = zombie == null ? null : beachBigWaveEntries.get(zombie);
+        if (entry == null) return -1.0;
+        return Math.min(1.0, entry.elapsed / BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS);
     }
 
     public boolean allWavesSpawned() {
@@ -1035,6 +1142,10 @@ public class GameSession {
             zombieProjectiles.clear();
             plantCooldowns.clear();
             matchBoostedPlantIds.clear();
+            beachBigWaveEntries.clear();
+            beachBigWaveActive = false;
+            beachBigWaveTimer = 0.0;
+            beachBigWaveIndex = -1;
             clock.reset();
             gameOver = false;
             gameWon = false;
