@@ -96,23 +96,19 @@ public final class ScreenManager {
         if (menu instanceof MeanwhileMenu) {
             Level level = model.utils.GameSession.peekInstance() == null
                     ? null : model.utils.GameSession.peekInstance().getLevel();
-            if (level != null && level.getSeason() != null
-                    && "Egypt".equalsIgnoreCase(level.getSeason().getName())) {
+            String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
+            if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
                 return new EgyptGameScreen();
             }
-            if (level != null && level.getSeason() != null
-                    && "Frostbite Caves".equalsIgnoreCase(level.getSeason().getName())) {
-                return new FrostbiteCavesGameScreen();
-            }
-            if (level != null && level.getSeason() != null
-                    && "Big Wave Beach".equalsIgnoreCase(level.getSeason().getName())) {
-                return new BigWaveBeachGameScreen();
-            }
-            if (level != null && level.getSeason() != null
-                    && "Dark Ages".equalsIgnoreCase(level.getSeason().getName())) {
+            if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
                 return new DarkAgesGameScreen();
             }
-
+            if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
+                return new BigWaveBeachGameScreen();
+            }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
+                return new FrostbiteCavesGameScreen();
+            }
             return new GameScreen();
         }
         if (menu instanceof AfterMenu) {

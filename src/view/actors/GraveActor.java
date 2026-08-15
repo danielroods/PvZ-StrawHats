@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 
 public class GraveActor extends Actor {
-    private static final String GRAVE_IMAGE_PATH = "images/chapters/egypt/egypt_gameplay/grave.png";
+    private static final String GRAVE_IMAGE_PATH = "images/chapters/egypt/gameplay/grave.png";
 
     private Texture graveTexture;
 

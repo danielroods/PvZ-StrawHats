@@ -76,8 +76,16 @@ public class GameScreen extends UiScreen {
     protected static float BOARD_X = 190f;
     protected static float BOARD_Y = 170f;
 
-    private static final String EGYPT_MAP = "assets/images/chapters/egypt/egypt_gameplay/map.png";
-    private static final String GRAVE_ITEM_ICON = "assets/images/chapters/egypt/egypt_gameplay/grave.png";
+    private static final String ASSET_ROOT = "assets/images/chapters/";
+
+    /**
+     * Season folder key, e.g. "egypt", "frostbite_caves", "big_wave_beach", "dark_ages".
+     * Every season's gameplay art lives at the same relative layout -
+     * chapters/<seasonFolder>/gameplay/{map,texture_left,texture_right}.png -
+     * so a subclass only needs to set this field (in its constructor) instead of
+     * overriding three separate path-getter methods with full paths each.
+     */
+    protected String seasonFolder = "egypt";
 
     private static final float BOARD_INSET_LEFT_FRAC = 260f / 1024f;
     private static final float BOARD_INSET_RIGHT_FRAC = (1024f - 993f) / 1024f;
@@ -90,6 +98,11 @@ public class GameScreen extends UiScreen {
     protected Texture boardTexture;
     protected TextureRegion whitePixel;
 
+    private Texture sideTextureLeft;
+    private Texture sideTextureRight;
+    private float sideLeftX, sideLeftW, sideLeftH;
+    private float sideRightX, sideRightW, sideRightH;
+
     private Texture graveTexture;
     private TextureRegion graveRegion;
 
@@ -100,7 +113,7 @@ public class GameScreen extends UiScreen {
     private float boardTileHeight = TILE_HEIGHT;
     private float bgX, bgY, bgW, bgH;
 
-    private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/egypt_gameplay/shovel_icon.png";
+    private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/gameplay/shovel_icon.png";
     private Texture shovelIconTexture;
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
@@ -114,12 +127,15 @@ public class GameScreen extends UiScreen {
 
         };
         String[] cave = {
-                "768/INITIAL/MOWERS/MOWER_ICEAGE/MOWER_ICEAGE.PAM"
+                "768/FULL/MOWERS/MOWER_ICEAGE/MOWER_ICEAGE.PAM",
+
         };
         String[] beach = {
+                "768/FULL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM",
                 "768/INITIAL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM"
         };
         String[] dark = {
+                "768/FULL/MOWERS/MOWER_DARK/MOWER_DARK.PAM",
                 "768/INITIAL/MOWERS/MOWER_DARK/MOWER_DARK.PAM"
         };
 
@@ -190,12 +206,37 @@ public class GameScreen extends UiScreen {
             boardTexture = new Texture(Gdx.files.internal(path));
             boardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         }
+        initSideTextures();
     }
 
-    protected String getGameplayBackgroundPath() { return EGYPT_MAP; }
+    private void initSideTextures() {
+        String leftPath = resolveExistingAssetPath(getSideTextureLeftPath());
+        if (leftPath != null && !leftPath.isEmpty() && Gdx.files.internal(leftPath).exists()) {
+            sideTextureLeft = new Texture(Gdx.files.internal(leftPath));
+            sideTextureLeft.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
+        String rightPath = resolveExistingAssetPath(getSideTextureRightPath());
+        if (rightPath != null && !rightPath.isEmpty() && Gdx.files.internal(rightPath).exists()) {
+            sideTextureRight = new Texture(Gdx.files.internal(rightPath));
+            sideTextureRight.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
+    }
+
+    /**
+     * Base folder for this season's gameplay art: chapters/<seasonFolder>/gameplay/.
+     * Subclasses set {@link #seasonFolder} instead of overriding this.
+     */
+    protected String getSeasonGameplayFolder() {
+        return ASSET_ROOT + seasonFolder + "/gameplay/";
+    }
+
+    protected String getGameplayBackgroundPath() { return getSeasonGameplayFolder() + "map.png"; }
+    protected String getSideTextureLeftPath() { return getSeasonGameplayFolder() + "texture_left.png"; }
+    protected String getSideTextureRightPath() { return getSeasonGameplayFolder() + "texture_right.png"; }
+    protected String getGraveIconPath() { return getSeasonGameplayFolder() + "grave.png"; }
 
     private void initGraveTexture() {
-        String path = resolveExistingAssetPath(GRAVE_ITEM_ICON);
+        String path = resolveExistingAssetPath(getGraveIconPath());
         if (path != null && !path.isEmpty() && Gdx.files.internal(path).exists()) {
             graveTexture = new Texture(Gdx.files.internal(path));
             graveTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -269,6 +310,20 @@ public class GameScreen extends UiScreen {
             int rows = session == null ? 5 : session.getRows();
             boardTileWidth = boardPixelW / cols;
             boardTileHeight = boardPixelH / rows;
+
+            // Side filler art shares the map's fit scale and height so its top/bottom
+            // edges line up with the map exactly; each panel grows outward from the
+            // map's left/right edge to cover the FitViewport letterbox gutter.
+            if (sideTextureLeft != null) {
+                sideLeftW = sideTextureLeft.getWidth() * fitScale;
+                sideLeftH = sideTextureLeft.getHeight() * fitScale;
+                sideLeftX = bgX - sideLeftW;
+            }
+            if (sideTextureRight != null) {
+                sideRightW = sideTextureRight.getWidth() * fitScale;
+                sideRightH = sideTextureRight.getHeight() * fitScale;
+                sideRightX = bgX + bgW;
+            }
         } else {
             bgX = BOARD_X;
             bgY = BOARD_Y;
@@ -304,6 +359,7 @@ public class GameScreen extends UiScreen {
         refreshHud(delta);
         drawBoard(delta);
         stage.act(delta);
+        if (controller.ScreenManager.getScreen() != this) return;
         stage.draw();
     }
 
@@ -554,6 +610,8 @@ public class GameScreen extends UiScreen {
     private void drawBackground(float bw, float bh) {
         if (boardTexture != null) {
             batch.setColor(Color.WHITE);
+            if (sideTextureLeft != null) batch.draw(sideTextureLeft, sideLeftX, bgY, sideLeftW, sideLeftH);
+            if (sideTextureRight != null) batch.draw(sideTextureRight, sideRightX, bgY, sideRightW, sideRightH);
             batch.draw(boardTexture, bgX, bgY, bgW, bgH);
         } else {
             batch.setColor(new Color(0.46f, 0.35f, 0.18f, 1f));
@@ -970,6 +1028,8 @@ public class GameScreen extends UiScreen {
         }
         if (whitePixel != null) whitePixel.getTexture().dispose();
         if (boardTexture != null) boardTexture.dispose();
+        if (sideTextureLeft != null) sideTextureLeft.dispose();
+        if (sideTextureRight != null) sideTextureRight.dispose();
         if (graveTexture != null) graveTexture.dispose();
         if (shovelIconTexture != null) shovelIconTexture.dispose();
         super.dispose();
@@ -983,10 +1043,26 @@ public class GameScreen extends UiScreen {
             resume.addListener(new ClickListener() { @Override public void clicked(InputEvent e, float x, float y) { paused = false; hide(); } });
             add(resume).size(220, 50).pad(5).row();
             TextButton restart = new TextButton("Restart", skin);
-            restart.addListener(new ClickListener() { @Override public void clicked(InputEvent e, float x, float y) { if (runCommand("restart")) { paused = false; matchFinished = false; hide(); } } });
+            restart.addListener(new ClickListener() {
+                @Override public void clicked(InputEvent e, float x, float y) {
+                    if (runCommand("restart")) {
+                        session = GameSession.getInstance();
+                        tickAccumulator = 0;
+                        paused = false;
+                        matchFinished = false;
+                        hide();
+                    }
+                }
+            });
             add(restart).size(220, 50).pad(5).row();
             TextButton exit = new TextButton("Save & Exit", skin);
-            exit.addListener(new ClickListener() { @Override public void clicked(InputEvent e, float x, float y) { runCommand("menu exit"); hide(); } });
+            exit.addListener(new ClickListener() {
+                @Override public void clicked(InputEvent e, float x, float y) {
+                    runCommand("menu exit");
+                    hide();
+                    controller.ScreenManager.syncWithCurrentMenu();
+                }
+            });
             add(exit).size(220, 50).pad(5);
         }
     }

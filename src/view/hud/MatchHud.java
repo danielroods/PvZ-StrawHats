@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -94,7 +93,7 @@ public final class MatchHud extends Table implements Disposable {
         objectiveLabel.setWrap(true);
 
         pauseButton = new TextButton("II", skin);
-        Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/egypt_gameplay/shovel_button.png");
+        Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/gameplay/shovel_button.png");
         shovelButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(shovelBtnTex)));
         foodButton = new TextButton("Food", skin);
         startButton = new TextButton("START", skin);
@@ -105,8 +104,8 @@ public final class MatchHud extends Table implements Disposable {
         startButton.addListener(click(() -> { if (startWavesAction != null) startWavesAction.run(); }));
 
         Table resources = new Table();
-        resources.add(resource(sunLabel, "images/chapters/egypt/egypt_gameplay/sun.png")).size(92, 40).padRight(3);
-        resources.add(resource(foodLabel, "images/chapters/egypt/egypt_gameplay/plantfood.png")).size(92, 40).padRight(3);
+        resources.add(resource(sunLabel, "images/chapters/egypt/gameplay/sun.png")).size(92, 40).padRight(3);
+        resources.add(resource(foodLabel, "images/chapters/egypt/gameplay/plantfood.png")).size(92, 40).padRight(3);
         resources.add(resource(coinLabel, "assets/images/ui/buttons_coin_buy_normal.png")).size(92, 40).padRight(6);
 
         Table topRow = new Table();

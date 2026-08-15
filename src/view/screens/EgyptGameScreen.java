@@ -8,14 +8,13 @@ import view.general_screens.GameScreen;
 /**
  * Ancient Egypt gameplay entry point.  The actual gameplay machinery lives in
  * GameScreen so the model/input/rendering path is identical to the other
- * seasons; this class only selects the Egypt map/visual context.
+ * seasons; this class only selects the Egypt map/visual context by setting
+ * seasonFolder - GameScreen derives map.png/texture_left.png/texture_right.png/
+ * grave.png from "chapters/<seasonFolder>/gameplay/" itself.
  */
 public class EgyptGameScreen extends GameScreen {
-    private static final String EGYPT_BACKGROUND = "images/chapters/egypt/egypt_gameplay/map.png";
-
-    @Override
-    protected String getGameplayBackgroundPath() {
-        return "assets/images/chapters/egypt/egypt_gameplay/map.png";
+    public EgyptGameScreen() {
+        seasonFolder = "egypt";
     }
 
     @Override
