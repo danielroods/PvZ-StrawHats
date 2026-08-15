@@ -914,7 +914,7 @@ public class GameScreen extends UiScreen {
                 case DEAD -> "die";
                 default -> "walk";
             };
-            String path = ZombieAnimationRegistry.pathFor(zombie.getAlias());
+            String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), seasonFolder);
             float animationTime = t;
             if (("walk".equals(preferred) || "eat".equals(preferred)) && path != null) {
                 float duration = resolveClipDuration(zombie.getAlias(), preferred);
@@ -946,7 +946,7 @@ public class GameScreen extends UiScreen {
             float y = cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
 
-            String path = ZombieAnimationRegistry.pathFor(dz.alias);
+            String path = ZombieAnimationRegistry.pathFor(dz.alias, seasonFolder);
 
             // Particles (head + hand) drop off and settle onto the row's ground
             // over roughly the first half of the death animation.

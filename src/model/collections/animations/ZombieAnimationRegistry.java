@@ -2,21 +2,8 @@ package model.collections.animations;
 
 import java.util.Map;
 
-/**
- * Maps a zombie's Zombie.json alias (the key {@link model.collections.zombie.ZombieFactory}
- * creates zombies from, e.g. "ZombieDefault") to its animation name in animations.json
- * (e.g. "ZOMBIE_TUTORIAL"). Zombies can't be resolved by normalizing a display name the way
- * plants can - Zombie.json only has internal aliases, no display names, and several worlds
- * reuse/rename basic zombies in non-obvious ways - so this is a hand-verified table instead.
- * <p>
- * Verified against all 31 aliases currently in Zombie.json using each alias's
- * ZombieArmorProps/Size fields plus the clip lists in animations.json (e.g. ZOMBIE_TUTORIAL's
- * clip set - idle/walk/eat/die/particles - matches every other "basic zombie" entry, confirming
- * it's the base Zombie).
- */
 public class ZombieAnimationRegistry {
 
-    /** High confidence: alias identity or ZombieArmorProps/Size directly confirms the mapping. */
     private static final Map<String, String> VERIFIED = Map.ofEntries(
             Map.entry("ZombieDefault", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieImp", "ZOMBIE_TUTORIAL_IMP"),
@@ -40,37 +27,20 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombiePiano", "ZOMBIE_PIANO"),
             Map.entry("ZombieArcade", "ZOMBIE_80S_ARCADE"),
 
-            // Zombotany-style disguised zombies reuse the plant's own PAM - same asset, zombie AI.
             Map.entry("ZombiePeashooter", "PEASHOOTER"),
             Map.entry("ZombieWallnut", "WALLNUT"),
             Map.entry("ZombieJalapeno", "JALAPENO"),
             Map.entry("ZombieSquash", "SQUASH"),
 
-            // ZombieArmor1/2/4 carry Cone/Bucket/Brick via ZombieArmorProps, but there's no
-            // separate "wearing a cone" full-body animation in this pack - only ZOMBIE_TUTORIAL.
-            // The armor itself isn't PAM data here; render it as a separate icon/overlay using
-            // ArmorTypeData.json, same as the HP-only data ZombieFactory already reads from it.
             Map.entry("ZombieArmor1", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieArmor2", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieArmor4", "ZOMBIE_TUTORIAL")
     );
 
-    /**
-     * Medium confidence: best available match by theme/world, but not confirmed the way
-     * {@link #VERIFIED} entries are (multiple similarly-named candidates exist, e.g. Dark Ages
-     * Wizard vs. Easter Wizard vs. Sportzball Wizard). Worth a visual check before shipping.
-     */
     private static final Map<String, String> BEST_GUESS = Map.of(
             "ZombieWizard", "ZOMBIE_DARK_WIZARD"
     );
 
-    /**
-     * No matching entry anywhere in animations.json - checked exhaustively, not just missed
-     * by a naming mismatch. You'll need art from elsewhere for these:
-     * - ZombieDarkArmor3 (shoulder armor + crown - closest engine concept is
-     *   {@code ZombieFactory.createKnightArmor()}, but no "knight" PAM exists in this pack)
-     * - ZombieDarkJuggler (no "juggler" entry at all)
-     */
     private static final java.util.Set<String> NOT_FOUND = java.util.Set.of(
             "ZombieDarkArmor3", "ZombieDarkJuggler"
     );
@@ -90,7 +60,45 @@ public class ZombieAnimationRegistry {
         return config == null ? null : config.path;
     }
 
-    /** True only for entries hand-verified against ZombieArmorProps/Size/clip data. */
+    public static String pathFor(String zombieAlias, String season) {
+        if (zombieAlias == null) return null;
+
+        if (season != null && !season.isBlank()) {
+            String s = season.toLowerCase().trim().replace("-", "_").replace(" ", "_");
+
+            boolean isEgypt = s.contains("egypt");
+            boolean isBeach = s.contains("beach");
+            boolean isIce = s.contains("ice") || s.contains("cave") || s.contains("frostbite");
+            boolean isDark = s.contains("dark");
+
+            if ("ZombieGargantuar".equalsIgnoreCase(zombieAlias)) {
+                if (isEgypt) return "768/INITIAL/ZOMBIE/EGYPT_GARGANTUAR/EGYPT_GARGANTUAR.PAM";
+                if (isBeach) return "768/FULL/ZOMBIE/BEACH_GARGANTUAR/BEACH_GARGANTUAR.PAM";
+                if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_GARGANTUAR/ZOMBIE_ICEAGE_GARGANTUAR.PAM";
+                if (isDark)  return "768/FULL/ZOMBIE/DARK_GARGANTUAR/DARK_GARGANTUAR.PAM";
+            }
+
+            if ("ZombieDefault".equalsIgnoreCase(zombieAlias)
+                    || "ZombieArmor1".equalsIgnoreCase(zombieAlias)
+                    || "ZombieArmor2".equalsIgnoreCase(zombieAlias)
+                    || "ZombieArmor4".equalsIgnoreCase(zombieAlias)) {
+                if (isEgypt) return "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_BASIC/ZOMBIE_EGYPT_BASIC.PAM";
+                if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_BASIC/ZOMBIE_BEACH_BASIC.PAM";
+                if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_BASIC/ZOMBIE_ICEAGE_BASIC.PAM";
+                if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_BASIC/ZOMBIE_DARK_BASIC.PAM";
+            }
+
+            if ("ZombieImp".equalsIgnoreCase(zombieAlias)) {
+                if (isEgypt) return "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_IMP/ZOMBIE_EGYPT_IMP.PAM";
+                if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_IMP_MERMAID/ZOMBIE_BEACH_IMP_MERMAID.PAM";
+                if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
+                if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_IMP_MONK/ZOMBIE_DARK_IMP_MONK.PAM";
+            }
+        }
+
+        return pathFor(zombieAlias);
+    }
+
     public static boolean isVerified(String zombieAlias) {
         return VERIFIED.containsKey(zombieAlias);
     }
