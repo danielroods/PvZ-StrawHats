@@ -4,6 +4,8 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.pitches.Cell;
+import model.pitches.obstacles.Grave;
 import model.projectile.Projectile;
 import model.projectile.StraightMove;
 import model.projectile.hit.*;
@@ -21,14 +23,18 @@ public class ShootStrategy implements ActStrategy {
         if (vectors == null || vectors.isEmpty()) return;
 
         boolean anyTarget = vectors.stream()
-                .anyMatch(v -> findTargetAlongVector(user, v, session) != null);
+                .anyMatch(v -> findTargetAlongVector(user, v, session) != null
+                        || findGraveAlongVector(user, v, session) != null);
         if (!anyTarget) return;
 
         HitEffectStrategy hitEffect = buildHitEffect(user);
 
         for (Position direction : vectors) {
             Zombie target = findTargetAlongVector(user, direction, session);
-            if (target == null) continue;
+            if (target == null) {
+                Cell grave = findGraveAlongVector(user, direction, session);
+                if (grave == null) continue;
+            }
 
             Position velocity = direction.normalize().scale(20.0);
 
@@ -75,6 +81,32 @@ public class ShootStrategy implements ActStrategy {
             if (dist < bestDist) {
                 bestDist = dist;
                 nearest = zombie;
+            }
+        }
+        return nearest;
+    }
+
+    private Cell findGraveAlongVector(Plant user, Position direction, GameSession session) {
+        Position origin = user.getPosition();
+        double dx = direction.x();
+        double dy = direction.y();
+        Cell nearest = null;
+        double bestDist = Double.MAX_VALUE;
+
+        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
+
+                double relX = col - origin.x();
+                double relY = row - origin.y();
+                if (!isInCone(relX, relY, dx, dy)) continue;
+
+                double dist = Math.sqrt(relX * relX + relY * relY);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    nearest = cell;
+                }
             }
         }
         return nearest;

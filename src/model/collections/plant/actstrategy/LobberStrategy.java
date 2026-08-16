@@ -4,6 +4,8 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.pitches.Cell;
+import model.pitches.obstacles.Grave;
 import model.projectile.ArcMove;
 import model.projectile.Projectile;
 import model.projectile.hit.*;
@@ -19,10 +21,13 @@ public class LobberStrategy implements ActStrategy {
         if (user.getIntervalTimer() > 0) return;
 
         Zombie target = findNearestInLane(user, session);
-        if (target == null) return;
+        Cell grave = target == null ? findNearestGraveInLane(user, session) : null;
+        if (target == null && grave == null) return;
 
         Position startPos = user.getPosition();
-        Position targetPos = target.getPosition();
+        Position targetPos = target != null
+                ? target.getPosition()
+                : new Position(grave.getCol(), grave.getRow());
         if (targetPos == null) return;
 
         double distanceX = targetPos.x() - startPos.x();
@@ -55,6 +60,25 @@ public class LobberStrategy implements ActStrategy {
         if (user.getName().equalsIgnoreCase("Kernel-pult") && Math.random() < 0.25) return new ButterHit(areaLength);
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         return new NormalHit(areaLength);
+    }
+
+    private Cell findNearestGraveInLane(Plant user, GameSession session) {
+        double plantRow = user.getPosition().y();
+        double plantCol = user.getPosition().x();
+        Cell nearest = null;
+        double minX = Double.MAX_VALUE;
+
+        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
+                if (Math.abs(row - plantRow) < 0.5 && col > plantCol && col < minX) {
+                    minX = col;
+                    nearest = cell;
+                }
+            }
+        }
+        return nearest;
     }
 
     private Zombie findNearestInLane(Plant user, GameSession session) {

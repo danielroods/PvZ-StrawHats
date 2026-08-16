@@ -265,6 +265,15 @@ public class GameSession {
             }
         }
     }
+    public void damageGrave(Cell cell, int damage) {
+        if (cell == null || !(cell.getObstacle() instanceof Grave grave)) return;
+        if (!grave.takeDamage(damage)) return;
+
+        int row = cell.getRow();
+        int col = cell.getCol();
+        destroyGrave(row, col, grave);
+    }
+
     private void destroyGrave(int row, int col, Grave grave) {
         Cell cell = environment.getCell(row, col);
         if (cell == null || cell.getObstacle() != grave) return;

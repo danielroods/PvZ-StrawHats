@@ -7,6 +7,7 @@ import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.IceBlock;
+import model.pitches.obstacles.Grave;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.projectile.hit.HitEffectStrategy;
 import model.utils.GameSession;
@@ -73,6 +74,13 @@ public class Projectile extends Item {
         GameSession session = GameSession.peekInstance();
         if (session == null || session.getEnvironment() == null) {
             hitOriginalTarget(previousPosition);
+            return;
+        }
+
+        GraveCollision graveCollision = findFirstGraveCollision(session, previousPosition, currentPosition);
+        if (graveCollision != null) {
+            session.damageGrave(graveCollision.cell(), getEffectiveDamage());
+            setAlive(false);
             return;
         }
 
@@ -177,6 +185,25 @@ public class Projectile extends Item {
 
     private boolean isValidTarget(Zombie zombie) {
         return zombie != null && zombie.isAlive() && !zombie.isHypnotized() && zombie.getPosition() != null;
+    }
+
+    private record GraveCollision(Cell cell, double projection) {}
+
+    private GraveCollision findFirstGraveCollision(GameSession session, Position start, Position end) {
+        GraveCollision best = null;
+        double bestProjection = Double.MAX_VALUE;
+        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
+                double projection = collisionProjection(new Position(col, row), start, end);
+                if (projection >= 0 && projection < bestProjection) {
+                    bestProjection = projection;
+                    best = new GraveCollision(cell, projection);
+                }
+            }
+        }
+        return best;
     }
 
     private record IceCollision(Cell cell, double projection) {}
