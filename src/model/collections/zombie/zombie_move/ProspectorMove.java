@@ -47,6 +47,7 @@ public class ProspectorMove implements MoveBehavior {
                         pos.x() + speed.x() * deltaTime,
                         pos.y() + speed.y() * deltaTime
                 );
+                nextPos = applySliderRedirect(zombie, pos, nextPos, session);
                 zombie.setPosition(nextPos);
 
                 dynamiteTimer -= deltaTime;
@@ -81,6 +82,7 @@ public class ProspectorMove implements MoveBehavior {
                         pos.x() + speed.x() * deltaTime,
                         pos.y() + speed.y() * deltaTime
                 );
+                nextPos = applySliderRedirect(zombie, pos, nextPos, session);
                 zombie.setPosition(nextPos);
             }
         }

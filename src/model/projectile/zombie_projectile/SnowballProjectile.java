@@ -1,9 +1,9 @@
 package model.projectile.zombie_projectile;
 
 import model.collections.plant.Plant;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
-import model.pitches.obstacles.IceBlock;
 import model.utils.GameSession;
 
 public class SnowballProjectile extends ZombieProjectile {
@@ -16,30 +16,20 @@ public class SnowballProjectile extends ZombieProjectile {
     protected void updateFlightPath(double progress) {
         double currentX = startPosition.x() + (targetPosition.x() - startPosition.x()) * progress;
         double currentY = startPosition.y() + (targetPosition.y() - startPosition.y()) * progress;
-
         this.setPosition(new Position(currentX, currentY));
     }
 
     @Override
     protected void onDestinationReached(GameSession session) {
         if (session == null || session.getEnvironment() == null) return;
-
-        int targetRow = (int) targetPosition.y();
-        int targetCol = (int) targetPosition.x();
-
+        int targetRow = (int) Math.round(targetPosition.y());
+        int targetCol = (int) Math.round(targetPosition.x());
         Cell targetCell = session.getEnvironment().getCell(targetRow, targetCol);
-        if (targetCell != null && targetCell.getPlant() != null && targetCell.getPlant().isAlive()) {
-            Plant targetPlant = targetCell.getPlant();
+        if (targetCell == null) return;
 
-            if (!isPlantIncapacitated(targetPlant)) {
-                int currentChill = getChillLevel(targetPlant);
-                setChillLevel(targetPlant, currentChill + 1);
-
-                if (getChillLevel(targetPlant) >= 3) {
-                    targetCell.setObstacle(new IceBlock(targetPlant, 500));
-                    targetPlant.setState(Plant.PlantState.INCAPACITATED);
-                }
-            }
+        Plant targetPlant = targetCell.getPlant();
+        if (targetPlant != null && targetPlant.isAlive()) {
+            FrostbiteFreezing.addChillLevel(session, targetPlant);
         }
     }
 }

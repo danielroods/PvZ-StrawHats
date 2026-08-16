@@ -10,7 +10,7 @@ public final class ObstacleFactory {
             case OCTOPUS_WRAP -> throw new UnsupportedOperationException(
                     "OctopusWrap needs a Plant and hp - construct it directly: new OctopusWrap(plant, hp).");
             case ICE_BLOCK -> throw new UnsupportedOperationException(
-                    "IceBlock needs a Plant and hp - construct it directly: new IceBlock(plant, hp).");
+                    "IceBlock needs a frozen Plant/Zombie and hp - construct it directly.");
         };
     }
 }

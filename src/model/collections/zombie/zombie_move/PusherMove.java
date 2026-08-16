@@ -54,6 +54,8 @@ public class PusherMove implements MoveBehavior {
             session.registerStructure(structure);
         }
 
-        zombie.setPosition(new Position(targetZombieX, pos.y()));
+        Position nextZombiePosition = new Position(targetZombieX, pos.y());
+        nextZombiePosition = applySliderRedirect(zombie, pos, nextZombiePosition, session);
+        zombie.setPosition(nextZombiePosition);
     }
 }

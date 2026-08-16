@@ -4,6 +4,7 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
@@ -34,6 +35,10 @@ public class ExplodeStrategy implements ActStrategy {
             applyGrapeBounces(user, session, targets);
         }
         damageStructures(user,session);
+        if (user.getTags().contains(PlantTag.FIRE)) {
+            int mode = (int) user.getAbilityValue();
+            FrostbiteFreezing.damageAdjacentIceBlocks(session, user.getPosition(), mode, user.getDamage(), true);
+        }
         user.setAlive(false);
     }
     private void damageStructures(Plant user, GameSession session) {

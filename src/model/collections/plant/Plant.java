@@ -7,6 +7,7 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.Attack;
 import model.match_mechanisms.Pluck;
 import model.match_mechanisms.vector.Position;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.utils.GameSession;
 import service.GameClock;
 import view.GeneralPrinter;
@@ -97,6 +98,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public void takeDamage(int damageAmount, Zombie dealer) {
         if (!isAlive() || damageAmount <= 0) return;
+        GameSession frostSession = GameSession.peekInstance();
+        if (frostSession != null && FrostbiteFreezing.isFrozenInIce(frostSession, this)) {
+            FrostbiteFreezing.damageFrozenPlantIfInIce(frostSession, this, damageAmount, false);
+            return;
+        }
         if (dealer != null && name.equalsIgnoreCase("Endurian") && getDamage() > 0) {
             dealer.takeDamage(getDamage(), this);
         }

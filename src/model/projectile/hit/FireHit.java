@@ -20,4 +20,7 @@ public class FireHit implements HitEffectStrategy {
 
     @Override
     public double getDamageMultiplier() { return 2.0; }
+
+    @Override
+    public boolean isFireDamage() { return true; }
 }

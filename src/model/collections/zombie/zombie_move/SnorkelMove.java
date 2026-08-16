@@ -14,8 +14,10 @@ public class SnorkelMove implements MoveBehavior {
         if (pos == null || zombie.getSpeed() == null) return;
 
         double deltaX = zombie.getSpeed().x() * deltaTime;
-        double nextX = pos.x() + deltaX;
-        zombie.setPosition(new Position(nextX, pos.y()));
+        Position nextPos = new Position(pos.x() + deltaX, pos.y());
+        nextPos = applySliderRedirect(zombie, pos, nextPos, session);
+        zombie.setPosition(nextPos);
+        double nextX = nextPos.x();
 
         var level = session.getLevel();
         boolean inWaterSection = level != null

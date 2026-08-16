@@ -6,6 +6,8 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.obstacles.IceBlock;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.projectile.hit.HitEffectStrategy;
 import model.utils.GameSession;
 
@@ -71,6 +73,16 @@ public class Projectile extends Item {
         GameSession session = GameSession.peekInstance();
         if (session == null || session.getEnvironment() == null) {
             hitOriginalTarget(previousPosition);
+            return;
+        }
+
+        IceCollision iceCollision = findFirstIceBlockCollision(session, previousPosition, currentPosition);
+        if (iceCollision != null) {
+            boolean fireDamage = (hitEffectStrategy != null && hitEffectStrategy.isFireDamage())
+                    || (sourcePlant != null && sourcePlant.getTags() != null
+                    && sourcePlant.getTags().contains(model.collections.plant.PlantTag.FIRE));
+            FrostbiteFreezing.damageIce(iceCollision.cell(), getEffectiveDamage(), fireDamage);
+            setAlive(false);
             return;
         }
 
@@ -165,6 +177,25 @@ public class Projectile extends Item {
 
     private boolean isValidTarget(Zombie zombie) {
         return zombie != null && zombie.isAlive() && !zombie.isHypnotized() && zombie.getPosition() != null;
+    }
+
+    private record IceCollision(Cell cell, double projection) {}
+
+    private IceCollision findFirstIceBlockCollision(GameSession session, Position start, Position end) {
+        IceCollision best = null;
+        double bestProjection = Double.MAX_VALUE;
+        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof IceBlock)) continue;
+                double projection = collisionProjection(new Position(col, row), start, end);
+                if (projection >= 0 && projection < bestProjection) {
+                    bestProjection = projection;
+                    best = new IceCollision(cell, projection);
+                }
+            }
+        }
+        return best;
     }
 
     private PushableStructure findFirstStructureCollision(GameSession session, Position start, Position end) {

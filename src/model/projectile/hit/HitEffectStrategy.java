@@ -10,4 +10,5 @@ public interface HitEffectStrategy {
     default double getKnockbackDistance() { return 0; }
     default double getDamageMultiplier() { return 1.0; }
     default boolean bypassesArmor() { return false; }
+    default boolean isFireDamage() { return false; }
 }
