@@ -158,19 +158,28 @@ public class GameScreen extends UiScreen {
     static {
         String[] egypt = {
                 "768/INITIAL/MOWERS/MOWER_EGYPT/MOWER_EGYPT.PAM",
-
         };
         String[] cave = {
                 "768/FULL/MOWERS/MOWER_ICEAGE/MOWER_ICEAGE.PAM",
-
         };
         String[] beach = {
                 "768/FULL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM",
-                "768/INITIAL/MOWERS/MOWER_BEACH/MOWER_BEACH.PAM"
+
         };
         String[] dark = {
                 "768/FULL/MOWERS/MOWER_DARK/MOWER_DARK.PAM",
-                "768/INITIAL/MOWERS/MOWER_DARK/MOWER_DARK.PAM"
+        };
+        String[] carnival = {
+                "768/FULL/MOWERS/MOWER_CARNIVAL/MOWER_CARNIVAL.PAM",
+        };
+        String[] future = {
+                "768/FULL/MOWERS/MOWER_FUTURE/MOWER_FUTURE.PAM",
+        };
+        String[] pirate = {
+                "768/FULL/MOWERS/MOWER_PIRATE/MOWER_PIRATE.PAM",
+        };
+        String[] tutorial = {
+                "768/INITIAL/MOWERS/MOWER_TUTORIAL/MOWER_TUTORIAL.PAM",
         };
 
         SEASON_LAWN_MOWER_PAM_PATHS.put("egypt", egypt);
@@ -183,6 +192,16 @@ public class GameScreen extends UiScreen {
         SEASON_LAWN_MOWER_PAM_PATHS.put("darkage", dark);
         SEASON_LAWN_MOWER_PAM_PATHS.put("dark ages", dark);
         SEASON_LAWN_MOWER_PAM_PATHS.put("dark_ages", dark);
+
+        SEASON_LAWN_MOWER_PAM_PATHS.put("beghouled", carnival);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("wallnutbowlling", future);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("wallnut bowling", future);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("wallnut_bowling", future);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("zombotany", pirate);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("vase breaker", tutorial);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("vasebreaker", tutorial);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("izombie", tutorial);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("i zombie", tutorial);
     };
 
     private double tickAccumulator;

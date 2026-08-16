@@ -22,6 +22,8 @@ import view.screens.BeforeMatchScreen;
 import view.screens.AfterMatchScreen;
 import view.general_screens.GameScreen;
 import view.screens.EgyptGameScreen;
+import controller.mini_games.*;
+import view.screens.mini_games.*;
 
 public final class ScreenManager {
 
@@ -113,6 +115,23 @@ public final class ScreenManager {
         }
         if (menu instanceof AfterMenu) {
             return new AfterMatchScreen();
+        }
+
+        if (menu instanceof VasebreakerController) {
+
+            return new VasebreakerGameScreen();
+        }
+        if (menu instanceof WallnutBowlingController) {
+            return new WallnutBowlingGameScreen();
+        }
+        if (menu instanceof ImZombieController) {
+            return new IZombieGameScreen();
+        }
+        if (menu instanceof BeghouledController) {
+            return new BeghouledGameScreen();
+        }
+        if (menu instanceof ZombotanyController) {
+            return new ZombotanyGameScreen();
         }
 
         if (menu instanceof MatchMenu) {

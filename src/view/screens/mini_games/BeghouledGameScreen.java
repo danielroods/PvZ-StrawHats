@@ -6,15 +6,21 @@ import view.general_screens.GameScreen;
 
 /**
  * BeghouledGameScreen mini-game gameplay entry point. The actual gameplay machinery
- * lives in GameScreen, exactly like the regular chapter stages; this class
- * only points it at the mini-game's own background. No mini-game-specific
- * rules are wired in yet.
+ * lives in GameScreen, exactly like the regular chapter stages; this class only
+ * points it at the mini-game's own art folder (background, left/right border
+ * textures, and grave icon all come from the same folder - see
+ * GameScreen.getSeasonGameplayFolder()). No mini-game-specific rules are wired in yet.
  */
 public class BeghouledGameScreen extends GameScreen {
 
     @Override
+    protected String getSeasonGameplayFolder() {
+        return "assets/images/backg/mini_games/begh/";
+    }
+
+    @Override
     protected String getGameplayBackgroundPath() {
-        return "assets/images/backg/mini_games/begh/texture.png";
+        return getSeasonGameplayFolder() + "texture.png";
     }
 
     @Override
