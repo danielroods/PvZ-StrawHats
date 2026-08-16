@@ -15,6 +15,8 @@ import model.match.main.season.travellog.beach.Beach;
 import model.match.main.season.travellog.beach.Flood;
 import model.match.main.season.travellog.egypt.Egypt;
 import model.match.main.season.travellog.egypt.SandStorm;
+import model.match.main.season.travellog.cave.IceWind;
+import model.pitches.obstacles.IceBlock;
 import model.match_mechanisms.ZombieWave;
 import model.match_mechanisms.vector.Position;
 import model.pitches.*;
@@ -174,6 +176,7 @@ public class GameSession {
         }
 
         updateSandStorm(deltaTimeSeconds);
+        IceWind.tick(this, deltaTimeSeconds);
         updateBeachBigWave(deltaTimeSeconds);
 
         for (int i = plants.size() - 1; i >= 0; i--) {
@@ -182,7 +185,9 @@ public class GameSession {
         }
         for (int i = zombies.size() - 1; i >= 0; i--) {
             Zombie zombie = zombies.get(i);
-            if (zombie.isAlive() && !sandStormEntries.containsKey(zombie) && !beachBigWaveEntries.containsKey(zombie)) {
+            if (zombie.isAlive() && !sandStormEntries.containsKey(zombie)
+                    && !beachBigWaveEntries.containsKey(zombie)
+                    && !isFrozenInIceBlock(zombie)) {
                 zombie.tick(deltaTimeSeconds, this);
             }
         }
@@ -407,6 +412,11 @@ public class GameSession {
         }
 
         for (Zombie template : wave.getWaveZombies()) {
+            if (isFrostbiteCaves() && ZombieFactory.shouldSpawnFrosted(template.getAlias())) {
+                // Frosted zombies are pre-placed, already trapped in ice, on the map at match
+                // start (see Cave.placeSeasonObstacles) - they no longer ride in with a wave.
+                continue;
+            }
             try {
                 int lane;
                 double spawnX;
@@ -667,6 +677,11 @@ public class GameSession {
         return result;
     }
 
+    private boolean isFrostbiteCaves() {
+        return level != null && level.getSeason() != null
+                && "Frostbite Caves".equalsIgnoreCase(level.getSeason().getName());
+    }
+
     public void spawnZombie(Zombie zombie) {
         if (zombie == null) return;
         zombies.add(zombie);
@@ -769,6 +784,19 @@ public class GameSession {
         return wavesStarted && allWavesSpawned() && zombies.isEmpty();
     }
 
+    public boolean freezeZombieInIceBlock(Zombie zombie, int row, int col) {
+        return model.match.main.season.travellog.cave.FrostbiteFreezing.freezeZombieInIce(this, zombie, row, col);
+    }
+
+    public boolean isFrozenInIceBlock(Zombie zombie) {
+        if (zombie == null || environment == null || zombie.getPosition() == null) return false;
+        int row = (int) Math.round(zombie.getPosition().y());
+        int col = (int) Math.round(zombie.getPosition().x());
+        Cell cell = environment.getCell(row, col);
+        return cell != null && cell.getObstacle() instanceof IceBlock iceBlock
+                && iceBlock.getFrozenZombie() == zombie;
+    }
+
     public int getSunCount() {
         return sunCount;
     }
@@ -851,11 +879,14 @@ public class GameSession {
         Cell cell = environment.getCell(row, col);
         if (cell == null || plant == null) return false;
 
-        boolean handlesObstacle = (plant.getName().equalsIgnoreCase("Hot Potato")
-                && cell.getObstacle() instanceof model.pitches.obstacles.IceBlock)
-                || (plant.getName().equalsIgnoreCase("Grave Buster")
-                && cell.getObstacle() instanceof model.pitches.obstacles.Grave);
+        boolean handlesIceBlock = plant.getName().equalsIgnoreCase("Hot Potato")
+                && cell.getObstacle() instanceof IceBlock;
+        boolean handlesGrave = plant.getName().equalsIgnoreCase("Grave Buster")
+                && cell.getObstacle() instanceof Grave;
+        boolean handlesObstacle = handlesIceBlock || handlesGrave;
         if (cell.getObstacle() != null && !handlesObstacle) return false;
+
+        if (cell.getTile() != null && cell.getTile().type() == TileType.Slippery) return false;
 
         boolean flooded = cell.getTile() != null && cell.getTile().type() == TileType.Water;
         Plant existing = cell.hasPlant() ? cell.getPlant() : null;
@@ -872,6 +903,10 @@ public class GameSession {
         cell.setPlant(plant);
         plant.setPosition(new Position(col, row));
         plants.add(plant);
+
+        if (handlesIceBlock) {
+            model.match.main.season.travellog.cave.FrostbiteFreezing.damageIce(cell, IceBlock.BASE_HP, true);
+        }
 
         if (destroysGrave) {
             destroyGrave(row, col, (Grave) cell.getObstacle());
@@ -1142,6 +1177,7 @@ public class GameSession {
             zombieProjectiles.clear();
             plantCooldowns.clear();
             matchBoostedPlantIds.clear();
+            IceWind.reset(this);
             beachBigWaveEntries.clear();
             beachBigWaveActive = false;
             beachBigWaveTimer = 0.0;

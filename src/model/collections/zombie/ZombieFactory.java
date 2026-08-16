@@ -77,6 +77,16 @@ public class ZombieFactory {
         }
     }
 
+    public static boolean shouldSpawnFrosted(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        if (data == null) return false;
+        Object value = data.get("Frosted");
+        if (value == null) value = data.get("StartsFrozenInIce");
+        if (value == null) value = data.get("SpawnInIceBlock");
+        return Boolean.TRUE.equals(value);
+    }
+
     public static int getZombieCost(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);

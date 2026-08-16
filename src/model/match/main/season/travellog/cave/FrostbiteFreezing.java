@@ -2,6 +2,8 @@ package model.match.main.season.travellog.cave;
 
 import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
+import model.projectile.Projectile;
+import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.Environment;
@@ -15,25 +17,60 @@ public final class FrostbiteFreezing {
 
     private FrostbiteFreezing() { }
 
+
+    public static boolean isFrozenInIce(GameSession session, Plant plant) {
+        if (session == null || session.getEnvironment() == null || plant == null || plant.getPosition() == null) return false;
+        Cell cell = findPlantCell(session.getEnvironment(), plant);
+        return cell != null && cell.getObstacle() instanceof IceBlock ice && ice.getFrozenPlant() == plant;
+    }
+
+    public static boolean isFrozenInIce(GameSession session, Zombie zombie) {
+        if (session == null || session.getEnvironment() == null || zombie == null || zombie.getPosition() == null) return false;
+        int row = (int) Math.round(zombie.getPosition().y());
+        int col = (int) Math.round(zombie.getPosition().x());
+        Cell cell = session.getEnvironment().getCell(row, col);
+        return cell != null && cell.getObstacle() instanceof IceBlock ice && ice.getFrozenZombie() == zombie;
+    }
+
+    public static boolean damageFrozenPlantIfInIce(GameSession session, Plant plant, int damage, boolean fireDamage) {
+        if (!isFrozenInIce(session, plant)) return false;
+        Cell cell = findPlantCell(session.getEnvironment(), plant);
+        return damageIce(cell, damage, fireDamage);
+    }
+
+    public static boolean damageFrozenZombieIfInIce(GameSession session, Zombie zombie, int damage, boolean fireDamage) {
+        if (!isFrozenInIce(session, zombie)) return false;
+        int row = (int) Math.round(zombie.getPosition().y());
+        int col = (int) Math.round(zombie.getPosition().x());
+        return damageIce(session.getEnvironment().getCell(row, col), damage, fireDamage);
+    }
+
+    public static boolean isFireDamageSource(Object source) {
+        if (source instanceof Plant plant) return plant.getTags().contains(PlantTag.FIRE);
+        if (source instanceof Projectile projectile) {
+            Plant plant = projectile.getSourcePlant();
+            return plant != null && plant.getTags().contains(PlantTag.FIRE);
+        }
+        return false;
+    }
+
     public static boolean canAddChill(Plant plant) {
         return plant != null
                 && plant.isAlive()
                 && !plant.getTags().contains(PlantTag.FIRE)
-                && plant.getChillLevel() < MAX_CHILL_LEVEL;
+                && plant.getChillLevel() < MAX_CHILL_LEVEL
+                && plant.getPlantState() != Plant.PlantState.DYING;
     }
 
     public static boolean addChillLevel(GameSession session, Plant plant) {
         if (session == null || session.getEnvironment() == null || !canAddChill(plant)) return false;
-
         Cell cell = findPlantCell(session.getEnvironment(), plant);
         if (cell == null) return false;
 
         int newLevel = Math.min(MAX_CHILL_LEVEL, plant.getChillLevel() + 1);
         plant.setChillLevel(newLevel);
-
-        if (newLevel == MAX_CHILL_LEVEL) {
-            if (!(cell.getObstacle() instanceof IceBlock iceBlock)
-                    || iceBlock.getFrozenPlant() != plant) {
+        if (newLevel >= MAX_CHILL_LEVEL) {
+            if (!(cell.getObstacle() instanceof IceBlock iceBlock) || iceBlock.getFrozenPlant() != plant) {
                 cell.setObstacle(new IceBlock(plant, ICE_BLOCK_HP));
             }
             plant.setState(Plant.PlantState.INCAPACITATED);
@@ -41,14 +78,44 @@ public final class FrostbiteFreezing {
         return true;
     }
 
+    public static boolean freezeZombieInIce(GameSession session, Zombie zombie, int row, int col) {
+        if (session == null || session.getEnvironment() == null || zombie == null || !zombie.isAlive()) return false;
+        Cell cell = session.getEnvironment().getCell(row, col);
+        if (cell == null || cell.getObstacle() != null || cell.getPlant() != null) return false;
+        zombie.setPosition(new Position(col, row));
+        zombie.setStatus(Zombie.Status.FREEZE);
+        cell.setObstacle(new IceBlock(zombie, ICE_BLOCK_HP));
+        return true;
+    }
+
     public static boolean damageIce(Cell cell, int damage, boolean fireDamage) {
         if (cell == null || !(cell.getObstacle() instanceof IceBlock iceBlock)) return false;
-
         boolean destroyed = fireDamage
-                ? iceBlock.takeDamage(Integer.MAX_VALUE)
+                ? iceBlock.takeDamage(IceBlock.BASE_HP)
                 : iceBlock.takeDamage(Math.max(0, damage));
         if (destroyed) cell.setObstacle(null);
         return destroyed;
+    }
+
+    public static void damageAdjacentIceBlocks(GameSession session, Position center, int mode, int damage, boolean fireDamage) {
+        if (session == null || session.getEnvironment() == null || center == null) return;
+        Environment env = session.getEnvironment();
+        int row = (int) Math.round(center.y());
+        int col = (int) Math.round(center.x());
+        for (int r = 0; r < env.getRows(); r++) {
+            for (int c = 0; c < env.getCols(); c++) {
+                Cell cell = env.getCell(r, c);
+                if (!(cell.getObstacle() instanceof IceBlock)) continue;
+                boolean inRange = switch (mode) {
+                    case 1 -> r == row && c == col;
+                    case 2 -> Math.abs(r - row) <= 1 && Math.abs(c - col) <= 1;
+                    case 3 -> r == row;
+                    case 4 -> true;
+                    default -> false;
+                };
+                if (inRange) damageIce(cell, damage, fireDamage);
+            }
+        }
     }
 
     public static void meltFromAdjacentFirePlants(GameSession session, double deltaSeconds) {
@@ -61,8 +128,11 @@ public final class FrostbiteFreezing {
                 Cell cell = environment.getCell(row, col);
                 if (!(cell.getObstacle() instanceof IceBlock iceBlock)) continue;
 
-                Plant frozenPlant = iceBlock.getFrozenPlant();
-                if (frozenPlant == null || !frozenPlant.isAlive()) {
+                if (iceBlock.getFrozenPlant() != null && !iceBlock.getFrozenPlant().isAlive()) {
+                    cell.setObstacle(null);
+                    continue;
+                }
+                if (iceBlock.getFrozenZombie() != null && !iceBlock.getFrozenZombie().isAlive()) {
                     cell.setObstacle(null);
                     continue;
                 }
@@ -80,9 +150,7 @@ public final class FrostbiteFreezing {
                 if (rowOffset == 0 && colOffset == 0) continue;
                 Cell neighbour = environment.getCell(row + rowOffset, col + colOffset);
                 Plant plant = neighbour == null ? null : neighbour.getPlant();
-                if (plant != null && plant.isAlive() && plant.getTags().contains(PlantTag.FIRE)) {
-                    return true;
-                }
+                if (plant != null && plant.isAlive() && plant.getTags().contains(PlantTag.FIRE)) return true;
             }
         }
         return false;
@@ -91,7 +159,9 @@ public final class FrostbiteFreezing {
     private static Cell findPlantCell(Environment environment, Plant plant) {
         Position position = plant.getLocation();
         if (position == null) return null;
-        Cell cell = environment.getCell((int) Math.round(position.y()), (int) Math.round(position.x()));
+        int row = (int) Math.round(position.y());
+        int col = (int) Math.round(position.x());
+        Cell cell = environment.getCell(row, col);
         return cell != null && cell.getPlant() == plant ? cell : null;
     }
 }

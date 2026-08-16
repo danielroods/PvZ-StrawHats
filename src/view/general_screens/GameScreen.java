@@ -14,14 +14,10 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 
 import controller.assets.GameAssetManager;
-import controller.menus.match.AfterMenu;
+import controller.assets.AssetPaths;
 import controller.menus.match.BeforeMenu;
-import controller.menus.match.MatchMenu;
-import controller.menus.match.MeanwhileMenu;
 import model.App;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.AnimationJsonParser;
@@ -29,8 +25,6 @@ import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
-import model.collections.plant.PlantFactory;
-import model.collections.plant.PlantJsonParser;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.game_exceptions.GameException;
@@ -38,17 +32,16 @@ import model.match.main.levels.special_levels.BossLevel;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match.main.levels.special_levels.DeadLineLevel;
 import model.match.main.levels.special_levels.IntroductionLevel;
-import model.match.main.levels.special_levels.LockedPlantsLevel;
-import model.match.main.levels.special_levels.LoveYourPlantsLevel;
 import model.match.main.levels.special_levels.NightOpsLevel;
 import model.match.main.levels.special_levels.PlantWhatYouGetLevel;
 import model.match.main.levels.special_levels.SaveOurSeedsLevel;
-import model.match.main.levels.special_levels.TimedWarLevel;
 import model.match.main.season.travellog.egypt.SandStorm;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
+import model.match.main.season.travellog.cave.IceWind;
+import model.pitches.TileType;
+import model.pitches.obstacles.IceBlock;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
-import model.user_data.User;
-import model.user_data.UserState;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import model.utils.GameSession;
@@ -57,7 +50,6 @@ import pvz.libpvz.pam.ClipRef;
 import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.textures.TextureBank;
 import service.GameClock;
-import service.resource_manager.AudioManager;
 import view.hud.MatchHud;
 
 import java.util.ArrayList;
@@ -106,6 +98,24 @@ public class GameScreen extends UiScreen {
 
     private Texture graveTexture;
     private TextureRegion graveRegion;
+
+    private static final String SLIDER_TILE_UP_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_UP;
+    private static final String SLIDER_TILE_DOWN_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_DOWN;
+    private static final String SLIDER_TILE_BACKGROUND_UP_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_BACKGROUND_UP;
+    private static final String SLIDER_TILE_BACKGROUND_DOWN_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_BACKGROUND_DOWN;
+    private static final float SLIDER_TILE_ART_SCALE = 0.43f;
+    private static final String PLANT_ICE_BLOCK_IMAGE_PATH = AssetPaths.FROSTBITE_PLANT_ICE_BLOCK;
+    private static final String ZOMBIE_ICE_BLOCK_IMAGE_PATH = AssetPaths.FROSTBITE_ZOMBIE_ICE_BLOCK;
+    private static final float ICE_BLOCK_ART_SCALE = 1.8f;
+    private static final float ICE_BLOCK_OFFSET_X = -50f;
+    private static final float ICE_BLOCK_OFFSET_Y = 30f;
+    private Texture sliderUpTexture;
+    private Texture sliderDownTexture;
+    private Texture sliderBackgroundTexture;
+    private Texture sliderUpBackgroundTexture;
+    private Texture sliderDownBackgroundTexture;
+    private Texture plantIceBlockTexture;
+    private Texture zombieIceBlockTexture;
 
     protected TextureBank textureBank;
     protected PamPlayer pamPlayer;
@@ -220,6 +230,7 @@ public class GameScreen extends UiScreen {
         createBoardInput();
         initParticles();
         initShovelTexture();
+        initFrostbiteTextures();
     }
 
     private void initPam() {
@@ -298,6 +309,23 @@ public class GameScreen extends UiScreen {
         return path;
     }
 
+    private void initFrostbiteTextures() {
+        sliderUpTexture = loadOptionalTexture(SLIDER_TILE_UP_IMAGE_PATH);
+        sliderDownTexture = loadOptionalTexture(SLIDER_TILE_DOWN_IMAGE_PATH);
+        sliderUpBackgroundTexture = loadOptionalTexture(SLIDER_TILE_BACKGROUND_UP_IMAGE_PATH);
+        sliderDownBackgroundTexture = loadOptionalTexture(SLIDER_TILE_BACKGROUND_DOWN_IMAGE_PATH);
+        plantIceBlockTexture = loadOptionalTexture(PLANT_ICE_BLOCK_IMAGE_PATH);
+        zombieIceBlockTexture = loadOptionalTexture(ZOMBIE_ICE_BLOCK_IMAGE_PATH);
+    }
+
+    private Texture loadOptionalTexture(String path) {
+        String resolved = resolveExistingAssetPath(path);
+        if (resolved == null || resolved.isBlank() || !Gdx.files.internal(resolved).exists()) return null;
+        Texture texture = new Texture(Gdx.files.internal(resolved));
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        return texture;
+    }
+
     private void createHud() {
         hud = new MatchHud(skin);
         hud.setPamPlayer(pamPlayer);
@@ -352,9 +380,6 @@ public class GameScreen extends UiScreen {
             boardTileWidth = boardPixelW / cols;
             boardTileHeight = boardPixelH / rows;
 
-            // Side filler art shares the map's fit scale and height so its top/bottom
-            // edges line up with the map exactly; each panel grows outward from the
-            // map's left/right edge to cover the FitViewport letterbox gutter.
             if (sideTextureLeft != null) {
                 sideLeftW = sideTextureLeft.getWidth() * fitScale;
                 sideLeftH = sideTextureLeft.getHeight() * fitScale;
@@ -606,6 +631,7 @@ public class GameScreen extends UiScreen {
         float bh = boardHeight();
         drawBackground(bw, bh);
         drawTiles(bw, bh);
+        drawFrostbiteTileArt();
         drawSeasonGameplayEffects(delta, bw, bh);
         drawSpecialEffects(bw, bh);
         drawGroundItems(delta, bw, bh);
@@ -614,6 +640,7 @@ public class GameScreen extends UiScreen {
         drawDyingZombies(delta);
         drawProjectiles(bw, bh);
         drawMowers(bw, bh);
+        drawFrostbiteIceBlocks(delta);
         drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         drawDragPreview(delta);
@@ -670,6 +697,87 @@ public class GameScreen extends UiScreen {
             batch.draw(whitePixel, BOARD_X, BOARD_Y, bw, bh);
         }
         batch.setColor(Color.WHITE);
+    }
+
+    private boolean isFrostbite() {
+        return session != null && session.getLevel() != null && session.getLevel().getSeason() != null
+                && "Frostbite Caves".equalsIgnoreCase(session.getLevel().getSeason().getName());
+    }
+
+    private void drawFrostbiteTileArt() {
+        if (!isFrostbite()) return;
+        for (int r = 0; r < session.getRows(); r++) {
+            for (int c = 0; c < session.getCols(); c++) {
+                Cell cell = session.getEnvironment().getCell(r, c);
+                if (cell == null || cell.getTile() == null || cell.getTile().type() != TileType.Slippery) continue;
+                float x = BOARD_X + c * boardTileWidth;
+                float y = cellY(r);
+                boolean up = cell.getTile().slipperyDirection() == model.pitches.obstacles.SlipperyDirection.UP;
+
+                Texture background = up ? sliderUpBackgroundTexture : sliderDownBackgroundTexture;
+                if (background == null) background = sliderBackgroundTexture;
+
+                if (background != null) {
+                    batch.setColor(Color.WHITE);
+                    batch.draw(background, x, y, boardTileWidth, boardTileHeight);
+                } else {
+                    batch.setColor(0.72f, 0.86f, 0.96f, 0.20f);
+                    batch.draw(whitePixel, x, y, boardTileWidth, boardTileHeight);
+                }
+
+                Texture arrow = up ? sliderUpTexture : sliderDownTexture;
+                if (arrow != null) {
+                    batch.setColor(Color.WHITE);
+                    float drawW = boardTileWidth * SLIDER_TILE_ART_SCALE - 10;
+                    float drawH = boardTileHeight * SLIDER_TILE_ART_SCALE + 10;
+                    float drawX = x + (boardTileWidth - drawW) * 0.5f;
+                    float drawY = y + (boardTileHeight - drawH) * 0.5f;
+                    batch.draw(arrow, drawX, drawY, drawW, drawH);
+                } else {
+                    drawSlipperyArrowFallback(x, y, up);
+                }
+            }
+        }
+    }
+
+    private void drawSlipperyArrowFallback(float x, float y, boolean up) {
+        batch.setColor(0.76f, 0.90f, 1f, 0.85f);
+        float centerX = x + boardTileWidth * 0.5f;
+        float centerY = y + boardTileHeight * 0.5f;
+        float arrow = boardTileWidth * 0.22f;
+        batch.draw(whitePixel, centerX - 3f, centerY - arrow, 6f, arrow * 2f);
+        batch.draw(whitePixel, centerX - 12f, centerY + (up ? arrow : -arrow), 24f, 6f);
+        batch.setColor(Color.WHITE);
+    }
+
+    private void drawFrostbiteIceBlocks(float delta) {
+        if (!isFrostbite()) return;
+        float pulse = 0.94f + 0.03f * (float) Math.sin((getRenderTime() + delta) * 2.0f);
+        for (int r = 0; r < session.getRows(); r++) {
+            for (int c = 0; c < session.getCols(); c++) {
+                Cell cell = session.getEnvironment().getCell(r, c);
+                if (cell == null || !(cell.getObstacle() instanceof IceBlock iceBlock)) continue;
+                float x = BOARD_X + c * boardTileWidth;
+                float y = cellY(r);
+                Texture iceBlockTexture = iceBlock.getFrozenZombie() != null ? zombieIceBlockTexture : plantIceBlockTexture;
+                if (iceBlockTexture != null) {
+                    float drawW = boardTileWidth * ICE_BLOCK_ART_SCALE;
+                    float drawH = boardTileHeight * ICE_BLOCK_ART_SCALE;
+                    float drawX = x + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X;
+                    float drawY = y + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y;
+                    batch.setColor(1f, 1f, 1f, pulse);
+                    batch.draw(iceBlockTexture, drawX, drawY, drawW, drawH);
+                    batch.setColor(Color.WHITE);
+                } else {
+                    batch.setColor(0.70f, 0.90f, 1f, 0.34f);
+                    batch.draw(whitePixel, x + 4f, y + 4f, boardTileWidth - 8f, boardTileHeight - 8f);
+                    batch.setColor(0.88f, 0.98f, 1f, 0.34f);
+                    batch.draw(whitePixel, x + boardTileWidth * 0.16f, y + boardTileHeight * 0.16f, 5f, boardTileHeight * 0.65f);
+                    batch.draw(whitePixel, x + boardTileWidth * 0.58f, y + boardTileHeight * 0.25f, 4f, boardTileHeight * 0.48f);
+                    batch.setColor(Color.WHITE);
+                }
+            }
+        }
     }
 
     private void drawTiles(float bw, float bh) {
@@ -897,15 +1005,14 @@ public class GameScreen extends UiScreen {
     private void drawPlants(float delta, float bw, float bh) {
         for (Plant plant : new ArrayList<>(session.getPlants())) {
             if (plant == null || plant.getPosition() == null) continue;
-            float t = plantAnimTimes.getOrDefault(plant, 0f) + delta;
-            // Idle time otherwise grows unbounded for the whole match; PamPlayer/ClipRef
-            // eventually chokes on a stateTime far past the clip's own length (this is
-            // why animations "work at first then stop" - it only shows up once a plant
-            // has been sitting idle long enough). Wrap it the same way the zombie
-            // walk/eat path already does below via resolveClipDuration.
-            float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
-            if (idleDuration > 0f) t %= idleDuration;
-            plantAnimTimes.put(plant, t);
+            boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(session, plant);
+            float t = plantAnimTimes.getOrDefault(plant, 0f);
+            if (!frozenInIce) {
+                t += delta;
+                float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
+                if (idleDuration > 0f) t %= idleDuration;
+                plantAnimTimes.put(plant, t);
+            }
             Position p = plant.getPosition();
             float x = BOARD_X + (float) p.x() * boardTileWidth;
             float y = cellY((int) p.y());
@@ -922,7 +1029,7 @@ public class GameScreen extends UiScreen {
             // for plantAttackAnimTimes/plantAttackWindow to ride out.
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
-            if (lastCooldown != null && cooldown > lastCooldown + 0.05) {
+            if (!frozenInIce && lastCooldown != null && cooldown > lastCooldown + 0.05) {
                 boolean boosted = plant.isPlantFoodActive();
                 String durationState = boosted ? "plantfood" : "attack";
                 float attackDuration = resolvePlantClipDuration(plant.getName(), durationState);
@@ -933,7 +1040,7 @@ public class GameScreen extends UiScreen {
             }
 
             Float attackTime = plantAttackAnimTimes.get(plant);
-            if (attackTime != null) {
+            if (attackTime != null && !frozenInIce) {
                 attackTime += delta;
                 float window = plantAttackWindow.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
                 if (attackTime >= window) {
@@ -953,6 +1060,13 @@ public class GameScreen extends UiScreen {
             if (!drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, false)) {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight, new Color(0.2f, 0.65f, 0.22f, 1f), initials(plant.getName()));
+            }
+            int chill = plant.getChillLevel();
+            if (chill > 0 && chill < 3) {
+                float alpha = chill == 1 ? 0.15f : 0.28f;
+                batch.setColor(0.82f, 0.95f, 1f, alpha);
+                batch.draw(whitePixel, x + 9f, y + 7f, boardTileWidth - 18f, boardTileHeight - 12f);
+                batch.setColor(Color.WHITE);
             }
         }
         plantAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
@@ -999,8 +1113,12 @@ public class GameScreen extends UiScreen {
         zombies.sort(Comparator.comparingDouble(z -> z.getPosition() == null ? 0 : z.getPosition().y()));
         for (Zombie zombie : zombies) {
             if (zombie == null || zombie.getPosition() == null) continue;
-            float t = zombieAnimTimes.getOrDefault(zombie, 0f) + delta;
-            zombieAnimTimes.put(zombie, t);
+            boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(session, zombie);
+            float t = zombieAnimTimes.getOrDefault(zombie, 0f);
+            if (!frozenInIce) {
+                t += delta;
+                zombieAnimTimes.put(zombie, t);
+            }
             Position p = zombie.getPosition();
             float x = BOARD_X + (float) p.x() * boardTileWidth;
             float y = cellY(p.y());
@@ -1366,6 +1484,13 @@ public class GameScreen extends UiScreen {
         if (graveTexture != null) graveTexture.dispose();
         if (shovelIconTexture != null) shovelIconTexture.dispose();
         if (potTexture != null) potTexture.dispose();
+        if (sliderUpTexture != null) sliderUpTexture.dispose();
+        if (sliderDownTexture != null) sliderDownTexture.dispose();
+        if (sliderBackgroundTexture != null) sliderBackgroundTexture.dispose();
+        if (sliderUpBackgroundTexture != null) sliderUpBackgroundTexture.dispose();
+        if (sliderDownBackgroundTexture != null) sliderDownBackgroundTexture.dispose();
+        if (plantIceBlockTexture != null) plantIceBlockTexture.dispose();
+        if (zombieIceBlockTexture != null) zombieIceBlockTexture.dispose();
         super.dispose();
     }
 
@@ -1423,6 +1548,38 @@ public class GameScreen extends UiScreen {
         }
     }
     protected void drawSeasonForegroundEffects(float delta, float bw, float bh) {
-        // Default seasons have no extra foreground overlay.
+        if (!isFrostbite() || !IceWind.isActive(session)) return;
+        drawIceWindOverlay((float) IceWind.animationTime(session));
     }
+
+    private void drawIceWindOverlay(float elapsed) {
+        if (elapsed < 0) return;
+
+        for (Integer row : IceWind.activeRows(session)) {
+            if (row == null || row < 0 || row >= session.getRows()) continue;
+
+            float y = cellY(row);
+            float x = BOARD_X;
+            float width = boardWidth();
+            float centerX = x + width * 0.5f - boardTileWidth * 0.35f;
+            float centerY = y + boardTileHeight * 0.5f;
+            float scale = Math.max(0.45f, boardTileWidth / 118f) * 0.78f;
+
+            if (!drawPam(IceWind.PAM_PATH_PLACEHOLDER, IceWind.PAM_CLIP,
+                    (float)(elapsed % IceWind.EVENT_DURATION_SECONDS),
+                    centerX, centerY, scale, false)) {
+                float strength = 0.18f + 0.10f * (float)Math.sin(elapsed * 2.0f);
+                batch.setColor(0.78f, 0.92f, 1f, strength);
+                batch.draw(whitePixel, BOARD_X, y, boardWidth(), boardTileHeight);
+                for (int streak = 0; streak < 16; streak++) {
+                    float travel = ((float)(elapsed * 0.55f + streak * 0.137f) % 1.0f) * boardWidth();
+                    float streakY = y + boardTileHeight * (0.12f + (streak % 6) * 0.15f);
+                    batch.setColor(0.90f, 0.98f, 1f, 0.12f + 0.018f * (streak % 4));
+                    batch.draw(whitePixel, BOARD_X + travel, streakY, boardTileWidth * 0.9f, 3f);
+                }
+                batch.setColor(Color.WHITE);
+            }
+        }
+    }
+
 }

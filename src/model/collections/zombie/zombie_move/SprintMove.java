@@ -34,7 +34,7 @@ public class SprintMove implements MoveBehavior {
         int oldCol = (int) pos.x();
         int newCol = (int) nextPos.x();
         if (newCol != oldCol) {
-            nextPos = applySlipperyShift(nextPos, session);
+            nextPos = applySliderRedirect(zombie, pos, nextPos, session);
         }
 
         zombie.setPosition(nextPos);

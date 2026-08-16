@@ -12,6 +12,7 @@ import model.collections.zombie.zombie_effect.ZombieEffectStatus;
 import model.collections.zombie.zombie_move.HypnotizedMoveBehavior;
 import model.collections.zombie.zombie_move.MoveBehavior;
 import model.collections.zombie.zombie_move.ProspectorMove;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.Attack;
 import model.match_mechanisms.vector.Position;
@@ -120,6 +121,13 @@ public class Zombie extends Item implements Attack {
     public void takeDamage(int damage, Object damageSource) {
         if (!isAlive() || this.vulnerabilityState == VulnerabilityType.INVULNERABLE) return;
 
+        GameSession frostSession = GameSession.peekInstance();
+        if (frostSession != null && FrostbiteFreezing.isFrozenInIce(frostSession, this)) {
+            FrostbiteFreezing.damageFrozenZombieIfInIce(
+                    frostSession, this, Math.max(0, damage), FrostbiteFreezing.isFireDamageSource(damageSource));
+            return;
+        }
+
         if (this.vulnerabilityState == VulnerabilityType.SUBMERGED) {
             boolean allowDamage = false;
 
@@ -212,6 +220,8 @@ public class Zombie extends Item implements Attack {
             handleDeath(session, "Unknown");
             return;
         }
+
+        if (GameSession.peekInstance() != null && FrostbiteFreezing.isFrozenInIce(GameSession.peekInstance(), this)) return;
 
         updateStatus(deltaTimeSeconds);
         if (!isAlive()) {

@@ -1010,6 +1010,7 @@
         "mX": 15,
         "mY": 0
       },
+      "Frosted": true,
       "CanSpawnPlantFood": true,
       "ChillInsteadOfFreeze": true,
       "Cost": 150,

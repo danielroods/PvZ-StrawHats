@@ -13,6 +13,13 @@ public final class AssetPaths {
     public static final String TILE_IMAGES = IMAGES + "tiles/";
     public static final String UI_IMAGES = IMAGES + "ui/";
 
+    public static final String FROSTBITE_SLIDER_TILE_UP = "images/chapters/frostbite_cave/gameplay/up.png";
+    public static final String FROSTBITE_SLIDER_TILE_DOWN = "images/chapters/frostbite_cave/gameplay/down.png";
+    public static final String FROSTBITE_SLIDER_TILE_BACKGROUND_UP = "images/chapters/frostbite_cave/gameplay/up_bg.png";
+    public static final String FROSTBITE_SLIDER_TILE_BACKGROUND_DOWN = "images/chapters/frostbite_cave/gameplay/down_bg.png";
+    public static final String FROSTBITE_PLANT_ICE_BLOCK = "images/chapters/frostbite_cave/gameplay/plant_ice_block.png";
+    public static final String FROSTBITE_ZOMBIE_ICE_BLOCK = "images/chapters/frostbite_cave/gameplay/zombie_ice_block.png";
+
     public static final String ATLASES = ROOT + "atlases/";
     public static final String PLANTS_ATLAS = ATLASES + "plants.atlas";
     public static final String ZOMBIES_ATLAS = ATLASES + "zombies.atlas";
