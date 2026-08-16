@@ -15,7 +15,7 @@ import java.util.Random;
 public final class IceWind {
     public static final String PAM_PATH_PLACEHOLDER = "768/FULL/EFFECTS/FROSTBITE_CHILL_WIND/FROSTBITE_CHILL_WIND.PAM";
     public static final String PAM_CLIP = "animation";
-    public static final double EVENT_DURATION_SECONDS = 6.5;
+    public static final double EVENT_DURATION_SECONDS = 3.5;
 
     private static final Random RANDOM = new Random();
     private static final Map<GameSession, State> STATES = new IdentityHashMap<>();

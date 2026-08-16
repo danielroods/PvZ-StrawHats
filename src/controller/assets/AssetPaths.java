@@ -17,7 +17,9 @@ public final class AssetPaths {
     public static final String FROSTBITE_SLIDER_TILE_DOWN = "images/chapters/frostbite_cave/gameplay/down.png";
     public static final String FROSTBITE_SLIDER_TILE_BACKGROUND_UP = "images/chapters/frostbite_cave/gameplay/up_bg.png";
     public static final String FROSTBITE_SLIDER_TILE_BACKGROUND_DOWN = "images/chapters/frostbite_cave/gameplay/down_bg.png";
-    public static final String FROSTBITE_PLANT_ICE_BLOCK = "images/chapters/frostbite_cave/gameplay/plant_ice_block.png";
+    public static final String FROSTBITE_PLANT_ICE_BLOCK_1 = "images/chapters/frostbite_cave/gameplay/plant_ice_block_1.png";
+    public static final String FROSTBITE_PLANT_ICE_BLOCK_2 = "images/chapters/frostbite_cave/gameplay/plant_ice_block_2.png";
+    public static final String FROSTBITE_PLANT_ICE_BLOCK_3 = "images/chapters/frostbite_cave/gameplay/plant_ice_block_3.png";
     public static final String FROSTBITE_ZOMBIE_ICE_BLOCK = "images/chapters/frostbite_cave/gameplay/zombie_ice_block.png";
 
     public static final String ATLASES = ROOT + "atlases/";

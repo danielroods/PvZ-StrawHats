@@ -104,17 +104,33 @@ public class GameScreen extends UiScreen {
     private static final String SLIDER_TILE_BACKGROUND_UP_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_BACKGROUND_UP;
     private static final String SLIDER_TILE_BACKGROUND_DOWN_IMAGE_PATH = AssetPaths.FROSTBITE_SLIDER_TILE_BACKGROUND_DOWN;
     private static final float SLIDER_TILE_ART_SCALE = 0.43f;
-    private static final String PLANT_ICE_BLOCK_IMAGE_PATH = AssetPaths.FROSTBITE_PLANT_ICE_BLOCK;
+    private static final String PLANT_ICE_BLOCK_IMAGE_PATH_1 = AssetPaths.FROSTBITE_PLANT_ICE_BLOCK_1;
+    private static final String PLANT_ICE_BLOCK_IMAGE_PATH_2 = AssetPaths.FROSTBITE_PLANT_ICE_BLOCK_2;
+    private static final String PLANT_ICE_BLOCK_IMAGE_PATH_3 = AssetPaths.FROSTBITE_PLANT_ICE_BLOCK_3;
     private static final String ZOMBIE_ICE_BLOCK_IMAGE_PATH = AssetPaths.FROSTBITE_ZOMBIE_ICE_BLOCK;
     private static final float ICE_BLOCK_ART_SCALE = 1.8f;
     private static final float ICE_BLOCK_OFFSET_X = -50f;
     private static final float ICE_BLOCK_OFFSET_Y = 30f;
+
+    private static final float PLANT_ICE_SCALE_1 = 0.85f;
+    private static final float PLANT_ICE_OFFSET_X_1 = -6f;
+    private static final float PLANT_ICE_OFFSET_Y_1 = -22f;
+    private static final float PLANT_ICE_SCALE_2 = 0.76f;
+    private static final float PLANT_ICE_OFFSET_X_2 = -5f;
+    private static final float PLANT_ICE_OFFSET_Y_2 = -7f;
+    private static final float PLANT_ICE_SCALE_3 = 0.67f;
+    private static final float PLANT_ICE_OFFSET_X_3 = -3f;
+    private static final float PLANT_ICE_OFFSET_Y_3 = 5f;
+    private static final float PLANT_ICE_ALPHA_1 = 0.6f;
+    private static final float PLANT_ICE_ALPHA_2 = 0.55f;
     private Texture sliderUpTexture;
     private Texture sliderDownTexture;
     private Texture sliderBackgroundTexture;
     private Texture sliderUpBackgroundTexture;
     private Texture sliderDownBackgroundTexture;
-    private Texture plantIceBlockTexture;
+    private Texture plantIceBlockTexture1;
+    private Texture plantIceBlockTexture2;
+    private Texture plantIceBlockTexture3;
     private Texture zombieIceBlockTexture;
 
     protected TextureBank textureBank;
@@ -123,6 +139,7 @@ public class GameScreen extends UiScreen {
     private float boardTileWidth = TILE_WIDTH;
     private float boardTileHeight = TILE_HEIGHT;
     private float bgX, bgY, bgW, bgH;
+    private float boardFitScale = 1f;
 
     private static final String SHOVEL_ICON_PATH = "assets/images/chapters/egypt/gameplay/shovel_icon.png";
     private Texture shovelIconTexture;
@@ -333,8 +350,30 @@ public class GameScreen extends UiScreen {
         sliderDownTexture = loadOptionalTexture(SLIDER_TILE_DOWN_IMAGE_PATH);
         sliderUpBackgroundTexture = loadOptionalTexture(SLIDER_TILE_BACKGROUND_UP_IMAGE_PATH);
         sliderDownBackgroundTexture = loadOptionalTexture(SLIDER_TILE_BACKGROUND_DOWN_IMAGE_PATH);
-        plantIceBlockTexture = loadOptionalTexture(PLANT_ICE_BLOCK_IMAGE_PATH);
+        plantIceBlockTexture1 = loadOptionalTexture(PLANT_ICE_BLOCK_IMAGE_PATH_1);
+        plantIceBlockTexture2 = loadOptionalTexture(PLANT_ICE_BLOCK_IMAGE_PATH_2);
+        plantIceBlockTexture3 = loadOptionalTexture(PLANT_ICE_BLOCK_IMAGE_PATH_3);
         zombieIceBlockTexture = loadOptionalTexture(ZOMBIE_ICE_BLOCK_IMAGE_PATH);
+        logIceBlockTextureDiagnostics();
+    }
+
+    private void logIceBlockTextureDiagnostics() {
+        logTextureLoadResult("plant ice block state 1", PLANT_ICE_BLOCK_IMAGE_PATH_1, plantIceBlockTexture1);
+        logTextureLoadResult("plant ice block state 2", PLANT_ICE_BLOCK_IMAGE_PATH_2, plantIceBlockTexture2);
+        logTextureLoadResult("plant ice block state 3", PLANT_ICE_BLOCK_IMAGE_PATH_3, plantIceBlockTexture3);
+        logTextureLoadResult("zombie ice block", ZOMBIE_ICE_BLOCK_IMAGE_PATH, zombieIceBlockTexture);
+    }
+
+    private void logTextureLoadResult(String label, String requestedPath, Texture loaded) {
+        if (loaded != null) {
+            Gdx.app.log("ICE_BLOCK_DIAG", label + " loaded OK (" + loaded.getWidth() + "x" + loaded.getHeight() + ")");
+            return;
+        }
+        String resolved = resolveExistingAssetPath(requestedPath);
+        String absolute = Gdx.files.internal(resolved).file().getAbsolutePath();
+        Gdx.app.error("ICE_BLOCK_DIAG", label + " FAILED to load. requested='" + requestedPath
+                + "' resolved='" + resolved + "' checked absolute path='" + absolute
+                + "' exists=" + Gdx.files.internal(resolved).exists());
     }
 
     private Texture loadOptionalTexture(String path) {
@@ -385,6 +424,7 @@ public class GameScreen extends UiScreen {
             float texW = boardTexture.getWidth();
             float texH = boardTexture.getHeight();
             float fitScale = Math.min(viewW / texW, viewH / texH);
+            boardFitScale = fitScale;
             bgW = texW * fitScale;
             bgH = texH * fitScale;
             bgX = (viewW - bgW) / 2f;
@@ -416,6 +456,7 @@ public class GameScreen extends UiScreen {
             bgH = boardHeight();
             boardTileWidth = TILE_WIDTH;
             boardTileHeight = TILE_HEIGHT;
+            boardFitScale = 1f;
         }
 
         if (boardInput != null) {
@@ -778,12 +819,18 @@ public class GameScreen extends UiScreen {
                 if (cell == null || !(cell.getObstacle() instanceof IceBlock iceBlock)) continue;
                 float x = BOARD_X + c * boardTileWidth;
                 float y = cellY(r);
-                Texture iceBlockTexture = iceBlock.getFrozenZombie() != null ? zombieIceBlockTexture : plantIceBlockTexture;
+                boolean isZombie = iceBlock.getFrozenZombie() != null;
+                Texture iceBlockTexture = isZombie ? zombieIceBlockTexture : plantIceBlockTextureFor(iceBlock);
+                int plantLevel = isZombie ? 3 : plantIceLevelFor(iceBlock);
                 if (iceBlockTexture != null) {
-                    float drawW = boardTileWidth * ICE_BLOCK_ART_SCALE;
-                    float drawH = boardTileHeight * ICE_BLOCK_ART_SCALE;
-                    float drawX = x + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X;
-                    float drawY = y + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y;
+                    float drawW = isZombie ? boardTileWidth * ICE_BLOCK_ART_SCALE
+                            : iceBlockTexture.getWidth() * boardFitScale * plantIceScaleFor(plantLevel);
+                    float drawH = isZombie ? boardTileHeight * ICE_BLOCK_ART_SCALE
+                            : iceBlockTexture.getHeight() * boardFitScale * plantIceScaleFor(plantLevel);
+                    float drawX = isZombie ? x + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X
+                            : x + (boardTileWidth - drawW) * 0.5f + plantIceOffsetXFor(plantLevel);
+                    float drawY = isZombie ? y + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y
+                            : y + (boardTileHeight - drawH) * 0.5f + plantIceOffsetYFor(plantLevel);
                     batch.setColor(1f, 1f, 1f, pulse);
                     batch.draw(iceBlockTexture, drawX, drawY, drawW, drawH);
                     batch.setColor(Color.WHITE);
@@ -797,6 +844,53 @@ public class GameScreen extends UiScreen {
                 }
             }
         }
+    }
+
+    private Texture plantIceBlockTextureFor(IceBlock iceBlock) {
+        double fraction = IceBlock.BASE_HP > 0 ? iceBlock.getHp() / (double) IceBlock.BASE_HP : 1.0;
+        Texture preferred;
+        if (fraction > 2.0 / 3.0) {
+            preferred = plantIceBlockTexture3;
+        } else if (fraction > 1.0 / 3.0) {
+            preferred = plantIceBlockTexture2;
+        } else {
+            preferred = plantIceBlockTexture1;
+        }
+        if (preferred != null) return preferred;
+        if (plantIceBlockTexture3 != null) return plantIceBlockTexture3;
+        if (plantIceBlockTexture2 != null) return plantIceBlockTexture2;
+        return plantIceBlockTexture1;
+    }
+
+    private int plantIceLevelFor(IceBlock iceBlock) {
+        double fraction = IceBlock.BASE_HP > 0 ? iceBlock.getHp() / (double) IceBlock.BASE_HP : 1.0;
+        if (fraction > 2.0 / 3.0) return 3;
+        if (fraction > 1.0 / 3.0) return 2;
+        return 1;
+    }
+
+    private float plantIceScaleFor(int level) {
+        return switch (level) {
+            case 1 -> PLANT_ICE_SCALE_1;
+            case 2 -> PLANT_ICE_SCALE_2;
+            default -> PLANT_ICE_SCALE_3;
+        };
+    }
+
+    private float plantIceOffsetXFor(int level) {
+        return switch (level) {
+            case 1 -> PLANT_ICE_OFFSET_X_1;
+            case 2 -> PLANT_ICE_OFFSET_X_2;
+            default -> PLANT_ICE_OFFSET_X_3;
+        };
+    }
+
+    private float plantIceOffsetYFor(int level) {
+        return switch (level) {
+            case 1 -> PLANT_ICE_OFFSET_Y_1;
+            case 2 -> PLANT_ICE_OFFSET_Y_2;
+            default -> PLANT_ICE_OFFSET_Y_3;
+        };
     }
 
     private void drawTiles(float bw, float bh) {
@@ -1082,10 +1176,30 @@ public class GameScreen extends UiScreen {
             }
             int chill = plant.getChillLevel();
             if (chill > 0 && chill < 3) {
-                float alpha = chill == 1 ? 0.15f : 0.28f;
-                batch.setColor(0.82f, 0.95f, 1f, alpha);
-                batch.draw(whitePixel, x + 9f, y + 7f, boardTileWidth - 18f, boardTileHeight - 12f);
-                batch.setColor(Color.WHITE);
+                Texture chillTexture = chill == 1 ? plantIceBlockTexture1 : plantIceBlockTexture2;
+                if (chillTexture == null) {
+                    chillTexture = plantIceBlockTexture1 != null ? plantIceBlockTexture1 : plantIceBlockTexture2;
+                }
+                if (chillTexture == null) chillTexture = plantIceBlockTexture3;
+
+                if (chillTexture != null) {
+                    float alpha = chill == 1 ? PLANT_ICE_ALPHA_1 : PLANT_ICE_ALPHA_2;
+                    float levelScale = plantIceScaleFor(chill);
+                    float offsetX = plantIceOffsetXFor(chill);
+                    float offsetY = plantIceOffsetYFor(chill);
+                    float drawW = chillTexture.getWidth() * boardFitScale * levelScale;
+                    float drawH = chillTexture.getHeight() * boardFitScale * levelScale;
+                    float drawX = x + (boardTileWidth - drawW) * 0.5f + offsetX;
+                    float drawY = y + (boardTileHeight - drawH) * 0.5f + offsetY;
+                    batch.setColor(1f, 1f, 1f, alpha);
+                    batch.draw(chillTexture, drawX, drawY, drawW, drawH);
+                    batch.setColor(Color.WHITE);
+                } else {
+                    float alpha = chill == 1 ? 0.35f : 0.55f;
+                    batch.setColor(0.75f, 0.93f, 1f, alpha);
+                    batch.draw(whitePixel, x + 9f, y + 7f, boardTileWidth - 18f, boardTileHeight - 12f);
+                    batch.setColor(Color.WHITE);
+                }
             }
         }
         plantAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
@@ -1508,7 +1622,9 @@ public class GameScreen extends UiScreen {
         if (sliderBackgroundTexture != null) sliderBackgroundTexture.dispose();
         if (sliderUpBackgroundTexture != null) sliderUpBackgroundTexture.dispose();
         if (sliderDownBackgroundTexture != null) sliderDownBackgroundTexture.dispose();
-        if (plantIceBlockTexture != null) plantIceBlockTexture.dispose();
+        if (plantIceBlockTexture1 != null) plantIceBlockTexture1.dispose();
+        if (plantIceBlockTexture2 != null) plantIceBlockTexture2.dispose();
+        if (plantIceBlockTexture3 != null) plantIceBlockTexture3.dispose();
         if (zombieIceBlockTexture != null) zombieIceBlockTexture.dispose();
         super.dispose();
     }
@@ -1580,9 +1696,9 @@ public class GameScreen extends UiScreen {
             float y = cellY(row);
             float x = BOARD_X;
             float width = boardWidth();
-            float centerX = x + width * 0.5f - boardTileWidth * 0.35f;
-            float centerY = y + boardTileHeight * 0.5f;
-            float scale = Math.max(0.45f, boardTileWidth / 118f) * 0.78f;
+            float centerX = x + width * 0.5f - boardTileWidth * 0.35f - 130f;
+            float centerY = y + boardTileHeight * 0.5f + 10f;
+            float scale = Math.max(0.45f, boardTileWidth / 118f) * 0.55f;
 
             if (!drawPam(IceWind.PAM_PATH_PLACEHOLDER, IceWind.PAM_CLIP,
                     (float)(elapsed % IceWind.EVENT_DURATION_SECONDS),
