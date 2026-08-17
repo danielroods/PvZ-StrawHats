@@ -13,6 +13,12 @@ import view.general_screens.GameScreen;
  */
 public class WallnutBowlingGameScreen extends GameScreen {
 
+    {
+        // Mini-games have no Level/Season, so this doubles as the lawn mower art
+        // key - see GameScreen.getLawnMowerSeasonKey() and SEASON_LAWN_MOWER_PAM_PATHS.
+        seasonFolder = "wallnutbowlling";
+    }
+
     @Override
     protected String getSeasonGameplayFolder() {
         return "assets/images/backg/mini_games/wallnut/";
