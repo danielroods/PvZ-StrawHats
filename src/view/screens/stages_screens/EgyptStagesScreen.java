@@ -351,6 +351,7 @@ public class EgyptStagesScreen extends StagesScreen {
 
             // اگر اولین مرحله فصل مصر انتخاب شده باشد
             if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
+                ComicIntroScreen.COMIC_SHEET_PATH = "assets/images/chapters/egypt/introcomic.jpg";
                 controller.ScreenManager.setScreen(new ComicIntroScreen(() -> {
                     runCommand("start game");
                 }));

@@ -26,8 +26,8 @@ public class ComicIntroScreen extends UiScreen {
     private static final int COLS = 3;
     private static final int TOTAL_PANELS = ROWS * COLS;
 
-    private static final String COMIC_SHEET_PATH = "assets/images/chapters/egypt/introcomic.jpg";
-
+    public static String COMIC_SHEET_PATH;
+    protected static String[] particlePaths = new String[]{"assets/images/chapters/egypt/strawburst_plantfood_projectile_8x9.png"};
     private final List<Image> panelImages = new ArrayList<>();
     private Texture comicTexture;
     private int currentRevealedIndex = 0;
@@ -43,7 +43,7 @@ public class ComicIntroScreen extends UiScreen {
         if (particles != null) {
             particles.dispose();
         }
-        particlePaths = new String[]{"assets/images/chapters/egypt/strawburst_plantfood_projectile_8x9.png"};
+
         particles = new ParticleCreator(particlePaths, 30, 20f, 20f, 1.2f, true);
         Actor particleActor = particles.createActor();
         particleActor.setTouchable(Touchable.disabled);

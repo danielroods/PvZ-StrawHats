@@ -38,9 +38,9 @@ public abstract class UiScreen extends BaseScreen {
     protected static final float LABEL_WIDTH = 120f;
     protected static final float FIELD_WIDTH = 212f;
     protected static final float BUTTON_WIDTH = 270f;
-
     protected static final float CARD_MAX_HEIGHT = SCREEN_HEIGHT - 64f;
 
+    protected static String[] particlePaths = new String[]{"assets/images/ui/hocus_crocus_49x28.png"};
     private final Consumer<String> printerListener = this::onMessage;
 
     protected static TextureRegion whitePixelRegion() {
@@ -274,7 +274,7 @@ public abstract class UiScreen extends BaseScreen {
         if (particles != null) {
             particles.dispose();
         }
-        particlePaths = new String[]{"assets/images/ui/hocus_crocus_49x28.png"};
+
         particles = new ParticleCreator(particlePaths, 15, 20f, 32f, 1.2f, true);
         Actor particleActor = particles.createActor();
         particleActor.setTouchable(Touchable.disabled);

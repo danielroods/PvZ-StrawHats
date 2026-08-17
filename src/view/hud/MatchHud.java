@@ -156,7 +156,17 @@ public final class MatchHud extends Table implements Disposable {
         coinGroup.add(resource(coinLabel, "assets/images/ui/buttons_coin_buy_normal.png")).size(96, 44).padRight(4);
         coinGroup.add(pauseButton).size(50, 42);
 
-        add(sunWidget).top().left();
+        Table sunArea = new Table();
+        sunArea.top().left();
+        sunArea.add(sunWidget).row();
+
+        debugRow.left();
+        debugRow.add(debugAddSunButton).size(100, 36).padRight(5);
+        debugRow.add(debugAddFoodButton).size(100, 36);
+        debugRow.setVisible(false);
+        sunArea.add(debugRow).left().padTop(4f);
+
+        add(sunArea).top().left();
         add(centerColumn).expandX().fillX().top().padLeft(10).padRight(10);
         add(coinGroup).top().right();
         row();
@@ -165,7 +175,11 @@ public final class MatchHud extends Table implements Disposable {
         bankFrame.setBackground(skin.getDrawable("card-background"));
         bankFrame.pad(5f);
         loadoutRow.top();
-        bankFrame.add(loadoutRow).top();
+        ScrollPane loadoutScroll = new ScrollPane(loadoutRow);
+        loadoutScroll.setScrollingDisabled(true, false);
+        loadoutScroll.setFadeScrollBars(false);
+        loadoutScroll.setOverscroll(false, false);
+        bankFrame.add(loadoutScroll).top().grow();
 
         Stack foodStack = new Stack();
         foodStack.add(foodButton);
@@ -181,16 +195,9 @@ public final class MatchHud extends Table implements Disposable {
 
         Table leftColumn = new Table();
         leftColumn.top();
-        leftColumn.add(bankFrame).top().row();
+        leftColumn.add(bankFrame).top().expand().fill().row();
         leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
         leftColumn.add(conveyorBox).top().padTop(8f);
-
-        debugRow.left();
-        debugRow.add(debugAddSunButton).size(100, 36).padRight(5);
-        debugRow.add(debugAddFoodButton).size(100, 36);
-        debugRow.setVisible(false);
-        leftColumn.row();
-        leftColumn.add(debugRow).left().padTop(8f);
 
         Table rightArea = new Table();
         rightArea.add().expand().fill().row();

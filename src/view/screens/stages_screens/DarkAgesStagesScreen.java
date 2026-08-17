@@ -37,6 +37,7 @@ import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.general_screens.ParticleCreator;
 import view.general_screens.UiScreen;
+import view.screens.ComicIntroScreen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +53,7 @@ public class DarkAgesStagesScreen extends StagesScreen {
     private static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
     private static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
 
-    private static final String CHAPTER_BACKGROUND = "assets/images/backg/ChatGPT Image Aug 9, 2026, 08_38_07 AM.png";
+    private static final String CHAPTER_BACKGROUND = "assets/images/backg/darkage.png";
 
     private static final String[] STAGE_ISLAND_TEXTURES = {
             "assets/images/chapters/darkage/island7.png",
@@ -353,8 +354,18 @@ public class DarkAgesStagesScreen extends StagesScreen {
         selectionLabel = new Label("", skin, "main");
         selectionLabel.setWrap(true);
 
-        playButton = primaryButton("Play", () -> runCommand("start game"));
+        playButton = primaryButton("Play", () -> {
+            Level selected = MatchMenu.selectedLevel;
 
+            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
+                ComicIntroScreen.COMIC_SHEET_PATH = "assets/images/chapters/darkage/introcomic.png";
+                controller.ScreenManager.setScreen(new ComicIntroScreen(() -> {
+                    runCommand("start game");
+                }));
+            } else {
+                runCommand("start game");
+            }
+        });
         bar.add(selectionLabel).width(760).left().expandX();
         bar.add(playButton).width(180).height(56).padLeft(SPACE_LG);
 

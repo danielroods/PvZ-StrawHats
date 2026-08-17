@@ -1500,11 +1500,16 @@ public class GameScreen extends UiScreen {
         return "idle";
     }
 
-    private String getLawnMowerSeasonKey() {
-        if (session == null || session.getLevel() == null || session.getLevel().getSeason() == null) return "";
-        String name = session.getLevel().getSeason().getName();
-        if (name == null) return "";
-        return name.trim().toLowerCase().replace('-', ' ');
+    protected String getLawnMowerSeasonKey() {
+        if (session != null && session.getLevel() != null && session.getLevel().getSeason() != null) {
+            String name = session.getLevel().getSeason().getName();
+            if (name != null && !name.isBlank()) return name.trim().toLowerCase().replace('-', ' ');
+        }
+        // Mini-games have no Level/Season on their session, so fall back to seasonFolder,
+        // which mini-game screens set to their own SEASON_LAWN_MOWER_PAM_PATHS key
+        // (see BeghouledGameScreen, VasebreakerGameScreen, WallnutBowlingGameScreen,
+        // IZombieGameScreen, ZombotanyGameScreen).
+        return seasonFolder == null ? "" : seasonFolder.trim().toLowerCase().replace('-', ' ');
     }
 
     private float getRenderTime() {
