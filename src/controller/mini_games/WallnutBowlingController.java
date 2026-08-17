@@ -25,6 +25,8 @@ public class WallnutBowlingController extends Menu {
         this.game = game;
     }
 
+    public WallnutBowling getGame() { return game; }
+
     @Override
     public String getName() {
         return "Wallnut Bowling Menu";

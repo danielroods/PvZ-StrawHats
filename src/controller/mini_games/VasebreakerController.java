@@ -27,6 +27,8 @@ public class VasebreakerController extends Menu {
         this.game = game;
     }
 
+    public Vasebreaker getGame() { return game; }
+
     @Override
     public String getName() {
         return "Vasebreaker Menu";

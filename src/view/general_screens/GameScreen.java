@@ -545,7 +545,7 @@ public class GameScreen extends UiScreen {
         plantAtCell(row, col);
     }
 
-    private void selectPlant(String plantName) {
+    protected void selectPlant(String plantName) {
         if (paused || matchFinished) return;
         if (session.getLevel() instanceof ConveyorBeltLevel conveyor) {
             if (conveyor.getCurrentPlant() != null) selectedPlant = conveyor.getCurrentPlant().getName();
@@ -569,6 +569,17 @@ public class GameScreen extends UiScreen {
         int col = (int) ((x - BOARD_X) / boardTileWidth);
         int row = session.getRows() - 1 - (int) ((y - BOARD_Y) / boardTileHeight);
         if (row < 0 || row >= session.getRows() || col < 0 || col >= session.getCols()) return;
+        onCellClicked(row, col);
+    }
+
+    /**
+     * What happens when a board cell is tapped/clicked. Default is the normal
+     * plant/shovel/food flow below. Mini-games with a different interaction model
+     * (Vasebreaker's break-vase-then-plant, Wallnut Bowling's launch-a-nut,
+     * I Zombie's place-a-zombie, Beghouled's swap-two-gems) override this instead
+     * of touching handleBoardClick/handlePlantDragRelease directly.
+     */
+    protected void onCellClicked(int row, int col) {
         plantAtCell(row, col);
     }
 
@@ -944,6 +955,8 @@ public class GameScreen extends UiScreen {
     protected float getBoardRight() { return BOARD_X + boardWidth(); }
     protected float getBoardBottom() { return BOARD_Y; }
     protected float getCellCenterY(int row) { return cellY(row) + boardTileHeight * 0.5f; }
+    protected float getCellX(int col) { return BOARD_X + col * boardTileWidth; }
+    protected float getCellY(int row) { return cellY(row); }
 
     private void drawSpecialEffects(float bw, float bh) {
         var level = session.getLevel();
@@ -1617,7 +1630,7 @@ public class GameScreen extends UiScreen {
         batch.setColor(Color.WHITE);
     }
 
-    private void drawEntity(TextureRegion region, float x, float y, float w, float h, Color fallback, String label) {
+    protected void drawEntity(TextureRegion region, float x, float y, float w, float h, Color fallback, String label) {
         if (region != null) batch.draw(region, x, y, w, h);
         else {
             drawFallback(x, y, w, h, fallback);
@@ -1627,7 +1640,7 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    private void drawFallback(float x, float y, float w, float h, Color color) {
+    protected void drawFallback(float x, float y, float w, float h, Color color) {
         batch.setColor(color);
         batch.draw(whitePixel, x, y, w, h);
         batch.setColor(Color.WHITE);

@@ -31,6 +31,8 @@ public class ImZombieController extends Menu {
         this.game = game;
     }
 
+    public IZombie getGame() { return game; }
+
     @Override
     public String getName() {
         return "I, Zombie Menu";
