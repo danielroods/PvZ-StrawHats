@@ -19,6 +19,13 @@ public class Beghouled extends MiniGameMode {
     private static final Random RAND = new Random();
     private static final int SUN_PER_UNIT = 50;
 
+    public enum ResolveStage { IDLE, INVALID_SWAP_BOUNCE, MATCH_PAUSE, GRAVITY_FALL }
+
+    public static final double SWAP_INVALID_BOUNCE_SECONDS = 0.22;
+    public static final double MATCH_PAUSE_SECONDS = 0.30;
+    public static final double GRAVITY_SETTLE_SECONDS = 0.5;
+    private static final int CASCADE_SAFETY_LIMIT = 50;
+
     private final GameSession session;
     private final int[] boardPlantIds; // the five plant types seeded on this level's board
     private final Map<String, UpgradePath> upgradePaths;
@@ -30,6 +37,15 @@ public class Beghouled extends MiniGameMode {
     private int matchesMade = 0;
     private double timeSinceLastWave = 0;
     private final List<String> eventLog = new ArrayList<>();
+
+    private ResolveStage resolveStage = ResolveStage.IDLE;
+    private double stageElapsed = 0;
+    private double stageDuration = 0;
+    private int[] pendingRevert;
+    private List<List<int[]>> pendingMatchedGroups;
+    private boolean pendingCascade;
+    private int cascadeSafety;
+    private final Set<Position> matchHighlight = new LinkedHashSet<>();
 
     public Beghouled(int difficulty) {
         setDifficulty(difficulty);
@@ -86,7 +102,7 @@ public class Beghouled extends MiniGameMode {
     }
 
     public boolean trySwap(int row1, int col1, int row2, int col2) {
-        if (isWon() || isLost()) return false;
+        if (isWon() || isLost() || resolveStage != ResolveStage.IDLE) return false;
         if (!inBounds(row1, col1) || !inBounds(row2, col2)) return false;
         if (!areAdjacent(row1, col1, row2, col2)) return false;
         if (isCrater(row1, col1) || isCrater(row2, col2)) return false;
@@ -94,14 +110,91 @@ public class Beghouled extends MiniGameMode {
         swapCells(row1, col1, row2, col2);
 
         if (!hasMatchThrough(row1, col1) && !hasMatchThrough(row2, col2)) {
-            swapCells(row1, col1, row2, col2); // no match created, revert
+            pendingRevert = new int[] { row1, col1, row2, col2 };
+            resolveStage = ResolveStage.INVALID_SWAP_BOUNCE;
+            stageElapsed = 0;
+            stageDuration = SWAP_INVALID_BOUNCE_SECONDS;
             return false;
         }
 
         log("Swapped (" + (col1 + 1) + ", " + (row1 + 1) + ") and ("
                 + (col2 + 1) + ", " + (row2 + 1) + ").");
-        resolveMatches(false);
+        cascadeSafety = 0;
+        beginMatchPause(false);
         return true;
+    }
+
+    public boolean isResolving() {
+        return resolveStage != ResolveStage.IDLE;
+    }
+
+    public Set<Position> getMatchHighlightPositions() {
+        return Set.copyOf(matchHighlight);
+    }
+
+    private void advanceResolution(double deltaSeconds) {
+        if (resolveStage == ResolveStage.IDLE) return;
+        stageElapsed += deltaSeconds;
+        if (stageElapsed < stageDuration) return;
+
+        switch (resolveStage) {
+            case INVALID_SWAP_BOUNCE -> {
+                int[] r = pendingRevert;
+                pendingRevert = null;
+                resolveStage = ResolveStage.IDLE;
+                if (r != null) swapCells(r[0], r[1], r[2], r[3]);
+            }
+            case MATCH_PAUSE -> {
+                int bonusUnits = pendingCascade ? 1 : 0;
+                for (List<int[]> group : pendingMatchedGroups) {
+                    awardSun(group.size(), bonusUnits);
+                    matchesMade++;
+                    log((pendingCascade ? "Cascade" : "Match") + " of " + group.size()
+                            + " plants cleared. Progress: " + matchesMade + "/" + matchesNeeded + ".");
+                    for (int[] cell : group) {
+                        session.removePlantAt(cell[0], cell[1]);
+                    }
+                }
+                pendingMatchedGroups = null;
+                matchHighlight.clear();
+                applyGravityAndRefill();
+                resolveStage = ResolveStage.GRAVITY_FALL;
+                stageElapsed = 0;
+                stageDuration = GRAVITY_SETTLE_SECONDS;
+            }
+            case GRAVITY_FALL -> {
+                resolveStage = ResolveStage.IDLE;
+                if (cascadeSafety++ < CASCADE_SAFETY_LIMIT) {
+                    beginMatchPause(true);
+                } else {
+                    log("Match resolution reached its safety limit; the board was reset.");
+                    resetBoard();
+                    finishResolution();
+                }
+            }
+            default -> resolveStage = ResolveStage.IDLE;
+        }
+    }
+
+    private void beginMatchPause(boolean cascade) {
+        List<List<int[]>> groups = findMatchedGroups();
+        if (groups.isEmpty()) {
+            resolveStage = ResolveStage.IDLE;
+            finishResolution();
+            return;
+        }
+
+        pendingMatchedGroups = groups;
+        pendingCascade = cascade;
+        matchHighlight.clear();
+        for (List<int[]> group : groups) {
+            for (int[] cell : group) {
+                matchHighlight.add(new Position(cell[1], cell[0]));
+            }
+        }
+        resolveStage = ResolveStage.MATCH_PAUSE;
+        stageElapsed = 0;
+        stageDuration = MATCH_PAUSE_SECONDS;
     }
 
     private boolean inBounds(int row, int col) {
@@ -151,35 +244,6 @@ public class Beghouled extends MiniGameMode {
         return cell.getPlant().getId();
     }
 
-
-    private void resolveMatches(boolean isCascadePass) {
-        boolean cascade = isCascadePass;
-        int safety = 0;
-        while (safety++ < 50) {
-            List<List<int[]>> groups = findMatchedGroups();
-            if (groups.isEmpty()) {
-                finishResolution();
-                return;
-            }
-
-            int bonusUnits = cascade ? 1 : 0;
-            for (List<int[]> group : groups) {
-                awardSun(group.size(), bonusUnits);
-                matchesMade++;
-                log((cascade ? "Cascade" : "Match") + " of " + group.size()
-                        + " plants cleared. Progress: " + matchesMade + "/" + matchesNeeded + ".");
-                for (int[] cell : group) {
-                    session.removePlantAt(cell[0], cell[1]);
-                }
-            }
-
-            applyGravityAndRefill();
-            cascade = true;
-        }
-        log("Match resolution reached its safety limit; the board was reset.");
-        resetBoard();
-        finishResolution();
-    }
 
     private void finishResolution() {
         if (!anyMoveWouldMatch()) {
@@ -380,11 +444,12 @@ public class Beghouled extends MiniGameMode {
 
     private String normaliseName(String value) {
         return value == null ? "" : value.toLowerCase()
-                .replace("-", "").replace("_", "").replace(" ", "").trim();
+                                    .replace("-", "").replace("_", "").replace(" ", "").trim();
     }
 
     public void tick(double deltaSeconds) {
         if (isWon() || isLost()) return;
+        advanceResolution(Math.max(0, deltaSeconds));
         Set<Long> occupiedBeforeTick = occupiedPlantCells();
         int zombiesBefore = session.getZombies().size();
         session.tick();
@@ -452,9 +517,22 @@ public class Beghouled extends MiniGameMode {
         return java.util.Arrays.stream(boardPlantIds).boxed().toList();
     }
 
-    /** Names of every plant that has an upgrade defined, in table order - for building upgrade buttons. */
+    /**
+     * Names of every plant that's directly seeded on this level's own board (boardPlantIds)
+     * and has an upgrade defined - nothing else. A level only offers upgrades for the plants
+     * that actually exist on it, full stop - no other level's plants included.
+     */
     public List<String> getUpgradeablePlantNames() {
-        return new ArrayList<>(upgradePaths.keySet());
+        Set<Integer> onThisBoard = new HashSet<>();
+        for (int id : boardPlantIds) onThisBoard.add(id);
+
+        List<String> names = new ArrayList<>();
+        for (Map.Entry<String, UpgradePath> entry : upgradePaths.entrySet()) {
+            if (onThisBoard.contains(entry.getValue().fromId)) {
+                names.add(entry.getKey());
+            }
+        }
+        return names;
     }
 
     /** Sun cost of the given plant's upgrade, or -1 if it has none. */
@@ -510,7 +588,7 @@ public class Beghouled extends MiniGameMode {
                 .append(" | Zombie pool: ").append(zombiePool)
                 .append("\nPlants:\n  ").append(renderPlantsInfo().replace("\n", "\n  "))
                 .append(groundItems.isBlank() ? "" : "\nGround items:\n  "
-                        + groundItems.replace("\n", "\n  "))
+                                                     + groundItems.replace("\n", "\n  "))
                 .append("\nRecent events:\n  ")
                 .append(eventLog.isEmpty() ? "none" : String.join("\n  ", eventLog))
                 .toString();

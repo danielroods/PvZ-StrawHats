@@ -604,7 +604,7 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    private boolean collectUnderMouse(Vector2 click) {
+    protected boolean collectUnderMouse(Vector2 click) {
         if (paused || matchFinished || click == null) return false;
 
         Vector2 world = click;
@@ -707,10 +707,10 @@ public class GameScreen extends UiScreen {
         drawFrostbiteTileArt();
         drawSeasonGameplayEffects(delta, bw, bh);
         drawSpecialEffects(bw, bh);
-        drawGroundItems(delta, bw, bh);
         drawPlants(delta, bw, bh);
         drawZombies(delta, bw, bh);
         drawDyingZombies(delta);
+        drawGroundItems(delta, bw, bh);
         drawProjectiles(delta, bw, bh);
         drawMowers(bw, bh);
         drawFrostbiteIceBlocks(delta);
@@ -1128,6 +1128,10 @@ public class GameScreen extends UiScreen {
         itemAnimTimes.keySet().removeIf(i -> !session.getItems().contains(i));
     }
 
+    protected Position visualPositionFor(Plant plant) {
+        return plant.getPosition();
+    }
+
     private void drawPlants(float delta, float bw, float bh) {
         for (Plant plant : new ArrayList<>(session.getPlants())) {
             if (plant == null || plant.getPosition() == null) continue;
@@ -1139,7 +1143,7 @@ public class GameScreen extends UiScreen {
                 if (idleDuration > 0f) t %= idleDuration;
                 plantAnimTimes.put(plant, t);
             }
-            Position p = plant.getPosition();
+            Position p = visualPositionFor(plant);
             float x = BOARD_X + (float) p.x() * boardTileWidth;
             float y = cellY((int) p.y());
 
