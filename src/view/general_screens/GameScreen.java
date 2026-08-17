@@ -235,7 +235,7 @@ public class GameScreen extends UiScreen {
 
     private double tickAccumulator;
     private boolean paused;
-    private boolean matchFinished;
+    protected boolean matchFinished;
     private String selectedPlant;
     private Tool activeTool = Tool.NONE;
     private Actor boardInput;
@@ -386,7 +386,7 @@ public class GameScreen extends UiScreen {
         return texture;
     }
 
-    private void createHud() {
+    protected void createHud() {
         hud = new MatchHud(skin);
         hud.setPamPlayer(pamPlayer);
         hud.setPlantSelection(this::selectPlant);
@@ -400,7 +400,7 @@ public class GameScreen extends UiScreen {
         addBeforeModal(hud);
     }
 
-    private void createBoardInput() {
+    protected void createBoardInput() {
         boardInput = new Actor();
         boardInput.setTouchable(Touchable.enabled);
         boardInput.setBounds(BOARD_X, BOARD_Y, boardWidth(), boardHeight() + FALLING_SUN_CLICK_HEIGHT);
@@ -482,7 +482,7 @@ public class GameScreen extends UiScreen {
             List<Zombie> aliveBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getZombies());
             tickAccumulator += delta * GameSettings.get().getGameSpeed();
             while (tickAccumulator >= GameClock.SECONDS_PER_TICK) {
-                session.tick();
+                tickSession();
                 tickAccumulator -= GameClock.SECONDS_PER_TICK;
                 checkMatchEnd();
                 if (matchFinished) break;
@@ -499,7 +499,18 @@ public class GameScreen extends UiScreen {
         stage.draw();
     }
 
-    private void refreshHud(float delta) {
+    /**
+     * Advances the simulation by one fixed tick (see GameClock.SECONDS_PER_TICK).
+     * Default: ticks the shared GameSession directly, exactly as before. A screen
+     * whose model wraps the session in something with its own extra bookkeeping
+     * (e.g. a minigame with its own win/loss condition and its own scheduler) can
+     * override this instead of duplicating render()'s whole tick loop.
+     */
+    protected void tickSession() {
+        session.tick();
+    }
+
+    protected void refreshHud(float delta) {
         if (hud == null || session == null) return;
         if (selectedPlant != null && !BeforeMenu.selectedPlants.contains(selectedPlant)
                 && !(session.getLevel() instanceof ConveyorBeltLevel)) {
@@ -662,7 +673,7 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    private void checkMatchEnd() {
+    protected void checkMatchEnd() {
         if (matchFinished) return;
         if (session.isGameOver()) {
             matchFinished = true;

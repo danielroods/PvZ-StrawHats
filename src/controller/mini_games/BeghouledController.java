@@ -28,6 +28,22 @@ public class BeghouledController extends Menu {
         this.game = game;
     }
 
+    /** The underlying model, for the graphical screen to read board/sun/upgrade state from. */
+    public Beghouled getGame() {
+        return game;
+    }
+
+    /**
+     * Advances the simulation by deltaSeconds and runs the same win/loss check every
+     * text command already goes through (see reportOutcome()). Called once per fixed
+     * tick by BeghouledGameScreen instead of ticking the raw GameSession directly, so
+     * this stays the single place that decides when the match is over.
+     */
+    public void tick(double deltaSeconds) {
+        game.tick(deltaSeconds);
+        reportOutcome();
+    }
+
     @Override
     public String getName() {
         return "Beghouled Menu";

@@ -251,7 +251,7 @@ public class Beghouled extends MiniGameMode {
     }
 
     private void scanLineForMatches(java.util.Set<Long> matched, int startRow, int startCol,
-                                     int rowStep, int colStep, int length) {
+                                    int rowStep, int colStep, int length) {
         int runStart = 0;
         for (int i = 1; i <= length; i++) {
             Integer prevId = i - 1 < length ? plantIdAt(startRow + rowStep * (i - 1), startCol + colStep * (i - 1)) : null;
@@ -450,6 +450,17 @@ public class Beghouled extends MiniGameMode {
     public List<String> getZombiePool() { return List.copyOf(zombiePool); }
     public List<Integer> getBoardPlantIds() {
         return java.util.Arrays.stream(boardPlantIds).boxed().toList();
+    }
+
+    /** Names of every plant that has an upgrade defined, in table order - for building upgrade buttons. */
+    public List<String> getUpgradeablePlantNames() {
+        return new ArrayList<>(upgradePaths.keySet());
+    }
+
+    /** Sun cost of the given plant's upgrade, or -1 if it has none. */
+    public int getUpgradeCost(String plantName) {
+        UpgradePath path = upgradePaths.get(plantName);
+        return path == null ? -1 : path.cost;
     }
 
     public List<GroundItem> collectItemsAt(int x, int y) {
