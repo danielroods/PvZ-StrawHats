@@ -36,6 +36,7 @@ import pvz.libpvz.textures.TextureBank;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.general_screens.UiScreen;
+import view.screens.ComicIntroScreen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -351,7 +352,18 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         selectionLabel = new Label("", skin, "main");
         selectionLabel.setWrap(true);
 
-        playButton = primaryButton("Play", () -> runCommand("start game"));
+        playButton = primaryButton("Play", () -> {
+            Level selected = MatchMenu.selectedLevel;
+
+            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
+                ComicIntroScreen.COMIC_SHEET_PATH = "assets/images/chapters/frostbite_cave/introcomic.png";
+                controller.ScreenManager.setScreen(new ComicIntroScreen(() -> {
+                    runCommand("start game");
+                }));
+            } else {
+                runCommand("start game");
+            }
+        });
 
         bar.add(selectionLabel).width(760).left().expandX();
         bar.add(playButton).width(180).height(56).padLeft(SPACE_LG);
