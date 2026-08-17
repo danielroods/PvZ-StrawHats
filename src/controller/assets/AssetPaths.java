@@ -22,6 +22,8 @@ public final class AssetPaths {
     public static final String FROSTBITE_PLANT_ICE_BLOCK_3 = "images/chapters/frostbite_cave/gameplay/plant_ice_block_3.png";
     public static final String FROSTBITE_ZOMBIE_ICE_BLOCK = "images/chapters/frostbite_cave/gameplay/zombie_ice_block.png";
 
+    public static final String PVZ_ASSETS = ROOT + "pvz-assets/IMAGES/";
+
     public static final String ATLASES = ROOT + "atlases/";
     public static final String PLANTS_ATLAS = ATLASES + "plants.atlas";
     public static final String ZOMBIES_ATLAS = ATLASES + "zombies.atlas";

@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import controller.assets.GameAssetManager;
 import controller.assets.AssetPaths;
+import controller.assets.ProjectileEffectAssets;
 import controller.menus.match.BeforeMenu;
 import model.App;
 import model.collections.animations.AnimationFactory;
@@ -171,6 +172,7 @@ public class GameScreen extends UiScreen {
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<GroundItem, Float> itemAnimTimes = new IdentityHashMap<>();
+    private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
     private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
@@ -698,7 +700,7 @@ public class GameScreen extends UiScreen {
         drawPlants(delta, bw, bh);
         drawZombies(delta, bw, bh);
         drawDyingZombies(delta);
-        drawProjectiles(bw, bh);
+        drawProjectiles(delta, bw, bh);
         drawMowers(bw, bh);
         drawFrostbiteIceBlocks(delta);
         drawHover(bw, bh);
@@ -1422,9 +1424,43 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    private void drawProjectiles(float bw, float bh) {
-        for (Projectile projectile : session.getProjectiles()) drawSmallDot(projectile.getPosition(), new Color(0.95f, 0.9f, 0.18f, 1f));
+    private static final float PROJECTILE_PAM_SCALE = 0.35f;
+
+    private void drawProjectiles(float delta, float bw, float bh) {
+        for (Projectile projectile : session.getProjectiles()) {
+            float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
+            projectileAnimTimes.put(projectile, age);
+            if (!drawProjectilePam(projectile, age)) {
+                drawSmallDot(projectile.getPosition(), new Color(0.95f, 0.9f, 0.18f, 1f));
+            }
+        }
         for (ZombieProjectile projectile : session.getZombieProjectiles()) drawSmallDot(projectile.getPosition(), new Color(0.8f, 0.18f, 0.18f, 1f));
+        projectileAnimTimes.keySet().removeIf(p -> !session.getProjectiles().contains(p));
+    }
+
+    private boolean drawProjectilePam(Projectile projectile, float age) {
+        Position position = projectile.getPosition();
+        Plant source = projectile.getSourcePlant();
+        if (position == null || source == null || source.getName() == null) return false;
+
+        ProjectileEffectAssets.Variant variant = source.isPlantFoodActive()
+                ? ProjectileEffectAssets.Variant.PLANT_FOOD
+                : ProjectileEffectAssets.Variant.NORMAL;
+        List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
+                source.getName(), ProjectileEffectAssets.Kind.PROJECTILE, variant);
+        if (entries.isEmpty() && variant == ProjectileEffectAssets.Variant.PLANT_FOOD) {
+            entries = ProjectileEffectAssets.get(source.getName(),
+                    ProjectileEffectAssets.Kind.PROJECTILE, ProjectileEffectAssets.Variant.NORMAL);
+        }
+        if (entries.isEmpty()) return false;
+
+        ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+        boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
+
+        float x = BOARD_X + (float) position.x() * boardTileWidth + boardTileWidth * 0.41f;
+        float y = cellY((int) position.y()) + boardTileHeight * 0.42f;
+
+        return drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE, loop);
     }
 
     private void drawSmallDot(Position p, Color color) {
