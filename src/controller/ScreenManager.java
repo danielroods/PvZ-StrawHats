@@ -14,14 +14,10 @@ import model.match.main.levels.Level;
 import view.general_screens.BaseScreen;
 import view.screens.*;
 import view.screens.stages_screens.BigWaveBeachStagesScreen;
-import view.screens.CollectionScreen;
 import view.screens.stages_screens.DarkAgesStagesScreen;
 import view.screens.stages_screens.EgyptStagesScreen;
 import view.screens.stages_screens.FrostbiteCavesStagesScreen;
-import view.screens.BeforeMatchScreen;
-import view.screens.AfterMatchScreen;
 import view.general_screens.GameScreen;
-import view.screens.EgyptGameScreen;
 import controller.mini_games.*;
 import view.screens.mini_games.*;
 
@@ -98,6 +94,11 @@ public final class ScreenManager {
         if (menu instanceof MeanwhileMenu) {
             Level level = model.utils.GameSession.peekInstance() == null
                     ? null : model.utils.GameSession.peekInstance().getLevel();
+
+            if (isDangerOrLotteryLevel(level)) {
+                return new LotteryGameScreen(model.utils.GameSession.peekInstance());
+            }
+
             String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
             if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
                 return new EgyptGameScreen();
@@ -118,7 +119,6 @@ public final class ScreenManager {
         }
 
         if (menu instanceof VasebreakerController) {
-
             return new VasebreakerGameScreen();
         }
         if (menu instanceof WallnutBowlingController) {
@@ -151,6 +151,43 @@ public final class ScreenManager {
             }
         }
         return new PlaceholderScreen(menu);
+    }
+
+    private static boolean isDangerOrLotteryLevel(Level level) {
+        if (level == null) {
+            Level selected = MatchMenu.selectedLevel;
+            if (selected != null) {
+                return isDangerOrLotteryLevel(selected);
+            }
+            return false;
+        }
+
+        String className = level.getClass().getSimpleName().toLowerCase();
+        if (className.contains("danger") || className.contains("lottery") || className.contains("pipe")) {
+            return true;
+        }
+
+        try {
+            if (level.getName() != null) {
+                String name = level.getName().toLowerCase();
+                if (name.contains("danger") || name.contains("lottery") || name.contains("pipe") || name.contains("لوله")) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        String[] checkMethods = {"isDangerNode", "isDanger", "isLottery", "isLotteryLevel"};
+        for (String methodName : checkMethods) {
+            try {
+                java.lang.reflect.Method m = level.getClass().getMethod(methodName);
+                Object val = m.invoke(level);
+                if (Boolean.TRUE.equals(val)) {
+                    return true;
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        return false;
     }
 
     public static BaseScreen getScreen() {
