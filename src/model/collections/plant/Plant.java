@@ -62,6 +62,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public double getIntervalTimer() { return this.internalTimer; }
     public void setInternalTimer(double internalTimer) { this.internalTimer = internalTimer; }
+    public int getMaxHp() { return (int) hpStat.getValue(); }
 
     public Position getPosition() {
         return new Position(getLocation().x(), getLocation().y());
@@ -104,7 +105,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
             return;
         }
         if (dealer != null && name.equalsIgnoreCase("Endurian") && getDamage() > 0) {
-            dealer.takeDamage(getDamage(), this);
+            int reflectDamage = isPlantFoodActive() ? getDamage() * 2 : getDamage();
+            dealer.takeDamage(reflectDamage, this);
+        }
+        if (name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
+            GameSession sunSession = GameSession.peekInstance();
+            if (sunSession != null) sunSession.addSun((int) abilityValue);
         }
         int remainingDamage = damageAmount;
 
@@ -126,10 +132,6 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 setHP(0);
                 this.state = PlantState.DYING;
                 if (name.equalsIgnoreCase("Explode-o-nut")) executeArmorExplosion();
-                if (name.equalsIgnoreCase("Sun Bean")) {
-                    GameSession session = GameSession.peekInstance();
-                    if (session != null) session.addSun(Math.max(25, (int) abilityValue * 25));
-                }
                 Position position = getLocation();
                 if (position != null) {
                     GeneralPrinter.print("Plant " + name + " at (" + ((int) position.x() + 1)

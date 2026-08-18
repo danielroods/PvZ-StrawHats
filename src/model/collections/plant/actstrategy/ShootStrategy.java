@@ -11,9 +11,12 @@ import model.projectile.StraightMove;
 import model.projectile.hit.*;
 import model.utils.GameSession;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ShootStrategy implements ActStrategy {
+    private static final double VOLLEY_SPAWN_STAGGER = 0.18;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -28,6 +31,7 @@ public class ShootStrategy implements ActStrategy {
         if (!anyTarget) return;
 
         HitEffectStrategy hitEffect = buildHitEffect(user);
+        Map<String, Integer> directionCounts = new HashMap<>();
 
         for (Position direction : vectors) {
             Zombie target = findTargetAlongVector(user, direction, session);
@@ -36,10 +40,18 @@ public class ShootStrategy implements ActStrategy {
                 if (grave == null) continue;
             }
 
-            Position velocity = direction.normalize().scale(20.0);
+            Position normalizedDirection = direction.normalize();
+            Position velocity = normalizedDirection.scale(20.0);
+
+            String directionKey = normalizedDirection.x() + "," + normalizedDirection.y();
+            int repeatIndex = directionCounts.merge(directionKey, 1, Integer::sum) - 1;
+            double stagger = VOLLEY_SPAWN_STAGGER * repeatIndex;
+            Position startPosition = repeatIndex == 0
+                    ? user.getPosition()
+                    : user.getPosition().sub(normalizedDirection.scale(stagger));
 
             session.getProjectiles().add(new Projectile(user,
-                    user.getPosition(),
+                    startPosition,
                     velocity,
                     target,
                     user.getDamage(),

@@ -100,7 +100,8 @@ public class ModifyStrategy implements ActStrategy {
 
     private void modifyTargets(Plant user, ArrayList<Projectile> targets) {
         if (user.getTags().contains(PlantTag.FIRE)) {
-            for (Projectile projectile : targets) if (!(projectile.getHitEffectStrategy() instanceof FireHit)) projectile.setHitEffectStrategy(new FireHit(1));
+            double multiplier = user.isPlantFoodActive() ? 3.0 : 2.0;
+            for (Projectile projectile : targets) if (!(projectile.getHitEffectStrategy() instanceof FireHit)) projectile.setHitEffectStrategy(new FireHit(1, multiplier));
         } else if (user.getTags().contains(PlantTag.ICE)) {
             for (Projectile projectile : targets) if (!(projectile.getHitEffectStrategy() instanceof IceHit)) projectile.setHitEffectStrategy(new IceHit(1));
         } else if (user.getTags().contains(PlantTag.POISON)) {

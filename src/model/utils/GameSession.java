@@ -2,6 +2,9 @@ package model.utils;
 
 import controller.QuestManager;
 import model.collections.Item;
+import model.collections.armour.ArmourFactory;
+import model.collections.armour.ArmourType;
+import model.collections.armour.PlantArmour;
 import model.collections.item.*;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
@@ -745,7 +748,7 @@ public class GameSession {
         if (User.currentUser == null || target == null) return collectedItems;
 
         UserState state = User.currentUser.userState;
-        for (Item item : items) {
+        for (Item item : new ArrayList<>(items)) {
             if (item instanceof GroundItem groundItem
                     && groundItem.isAlive()
                     && !groundItem.isCollected()
@@ -901,6 +904,25 @@ public class GameSession {
         Plant existing = cell.hasPlant() ? cell.getPlant() : null;
         boolean lilySupport = existing != null && existing.getTags().contains(PlantTag.WATER)
                 && existing.getTags().contains(PlantTag.STACK);
+        boolean incomingIsShell = plant.getName().equalsIgnoreCase("Pumpkin");
+        boolean existingIsShell = existing != null && !lilySupport
+                && existing.getName().equalsIgnoreCase("Pumpkin");
+
+        if (existing != null && !lilySupport && incomingIsShell && !existingIsShell
+                && existing.getArmor() == null) {
+            existing.setArmor((PlantArmour) ArmourFactory.createArmour(
+                    ArmourType.PLANT_SHIELD, plant.getMaxHp(), 0, false));
+            plantedAnyPlantThisMatch = true;
+            return true;
+        }
+
+        Integer inheritedShellHp = null;
+        if (existingIsShell && !incomingIsShell) {
+            inheritedShellHp = Math.max(1, existing.getHP());
+            plants.remove(existing);
+            cell.setPlant(null);
+            existing = null;
+        }
 
         if (existing != null && !lilySupport) return false;
         if (flooded && !plant.getTags().contains(PlantTag.WATER) && !lilySupport) return false;
@@ -912,6 +934,10 @@ public class GameSession {
         cell.setPlant(plant);
         plant.setPosition(new Position(col, row));
         plants.add(plant);
+        if (inheritedShellHp != null) {
+            plant.setArmor((PlantArmour) ArmourFactory.createArmour(
+                    ArmourType.PLANT_SHIELD, inheritedShellHp, 0, false));
+        }
 
         if (handlesIceBlock) {
             model.match.main.season.travellog.cave.FrostbiteFreezing.damageIce(cell, IceBlock.BASE_HP, true);

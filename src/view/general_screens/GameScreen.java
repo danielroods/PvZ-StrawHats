@@ -26,6 +26,7 @@ import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
+import model.collections.plant.PlantType;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.game_exceptions.GameException;
@@ -168,6 +169,25 @@ public class GameScreen extends UiScreen {
     }
 
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
+
+    private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
+
+    private static final class ExplodingPlantEffect {
+        final String path;
+        final String state;
+        final boolean loop;
+        final Position position;
+        float time;
+
+        ExplodingPlantEffect(String path, String state, boolean loop, Position position) {
+            this.path = path;
+            this.state = state;
+            this.loop = loop;
+            this.position = position;
+        }
+    }
+
+    private final List<ExplodingPlantEffect> explodingPlantEffects = new ArrayList<>();
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
@@ -480,6 +500,7 @@ public class GameScreen extends UiScreen {
 
         if (!paused && !matchFinished) {
             List<Zombie> aliveBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getZombies());
+            List<Plant> alivePlantsBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getPlants());
             tickAccumulator += delta * GameSettings.get().getGameSpeed();
             while (tickAccumulator >= GameClock.SECONDS_PER_TICK) {
                 tickSession();
@@ -487,7 +508,10 @@ public class GameScreen extends UiScreen {
                 checkMatchEnd();
                 if (matchFinished) break;
             }
-            if (session != null) trackZombieDeaths(aliveBeforeTick);
+            if (session != null) {
+                trackZombieDeaths(aliveBeforeTick);
+                trackExplodedPlants(alivePlantsBeforeTick);
+            }
         }
 
         if (matchFinished) return;
@@ -719,6 +743,7 @@ public class GameScreen extends UiScreen {
         drawSeasonGameplayEffects(delta, bw, bh);
         drawSpecialEffects(bw, bh);
         drawPlants(delta, bw, bh);
+        drawExplodingPlantEffects(delta);
         drawZombies(delta, bw, bh);
         drawDyingZombies(delta);
         drawGroundItems(delta, bw, bh);
@@ -1271,6 +1296,49 @@ public class GameScreen extends UiScreen {
         }
     }
 
+    private void trackExplodedPlants(List<Plant> alivePlantsBeforeTick) {
+        List<Plant> stillAlive = session.getPlants();
+        for (Plant plant : alivePlantsBeforeTick) {
+            if (stillAlive.contains(plant)) continue;
+            if (plant.getPosition() == null || plant.getHP() <= 0) continue;
+            if (plant.getType() != PlantType.EXPLOSIVE) continue;
+
+            ProjectileEffectAssets.AssetEntry entry = resolveExplosionEntry(plant.getName());
+            if (entry == null) continue;
+
+            boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
+            Position position = plant.getPosition();
+            explodingPlantEffects.add(
+                    new ExplodingPlantEffect(entry.path(), entry.state(), loop, position));
+            plantAnimTimes.remove(plant);
+            plantAttackAnimTimes.remove(plant);
+        }
+    }
+
+    private ProjectileEffectAssets.AssetEntry resolveExplosionEntry(String plantName) {
+        ProjectileEffectAssets.Variant normal = ProjectileEffectAssets.Variant.NORMAL;
+        List<ProjectileEffectAssets.AssetEntry> hitEntries =
+                ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.HIT, normal);
+        if (!hitEntries.isEmpty()) return hitEntries.get(0);
+
+        List<ProjectileEffectAssets.AssetEntry> effectEntries =
+                ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.EFFECT, normal);
+        return effectEntries.isEmpty() ? null : effectEntries.get(0);
+    }
+
+    private void drawExplodingPlantEffects(float delta) {
+        if (explodingPlantEffects.isEmpty()) return;
+        for (ExplodingPlantEffect effect : explodingPlantEffects) {
+            effect.time += delta;
+            float x = BOARD_X + (float) effect.position.x() * boardTileWidth
+                    + boardTileWidth * 0.3f;
+            float y = cellY((int) effect.position.y()) + boardTileHeight * 0.3f;
+            drawPam(effect.path, effect.state, effect.time,
+                    x, y, PROJECTILE_PAM_SCALE, effect.loop);
+        }
+        explodingPlantEffects.removeIf(e -> e.time > EXPLODING_PLANT_EFFECT_DURATION);
+    }
+
     private void drawZombies(float delta, float bw, float bh) {
         List<Zombie> zombies = new ArrayList<>(session.getZombies());
         zombies.sort(Comparator.comparingDouble(z -> z.getPosition() == null ? 0 : z.getPosition().y()));
@@ -1453,10 +1521,20 @@ public class GameScreen extends UiScreen {
     }
 
     private static final float PROJECTILE_PAM_SCALE = 0.35f;
+    private static final float PROJECTILE_VOLLEY_STAGGER_SECONDS = 0.05f;
 
     private void drawProjectiles(float delta, float bw, float bh) {
+        Map<Plant, Integer> volleyIndex = new IdentityHashMap<>();
         for (Projectile projectile : session.getProjectiles()) {
+            boolean isNew = !projectileAnimTimes.containsKey(projectile);
             float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
+            if (isNew) {
+                Plant source = projectile.getSourcePlant();
+                if (source != null) {
+                    int index = volleyIndex.merge(source, 1, Integer::sum) - 1;
+                    age += index * PROJECTILE_VOLLEY_STAGGER_SECONDS;
+                }
+            }
             projectileAnimTimes.put(projectile, age);
             if (!drawProjectilePam(projectile, age)) {
                 drawSmallDot(projectile.getPosition(), new Color(0.95f, 0.9f, 0.18f, 1f));

@@ -5,6 +5,9 @@ import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
+import model.pitches.Cell;
+import model.pitches.TileType;
+import model.pitches.obstacles.Crater;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
@@ -21,7 +24,7 @@ public class ExplodeStrategy implements ActStrategy {
         ArrayList<Zombie> targets;
         switch ((int) user.getAbilityValue()) {
             case 1 -> {
-                if (!isZombieTouch(user, session)) return;
+                if (!actsWithoutTouch(user) && !isZombieTouch(user, session)) return;
                 targets = touchDetect(user, session);
             }
             case 2 -> targets = areaDetect(user, session);
@@ -39,8 +42,25 @@ public class ExplodeStrategy implements ActStrategy {
             int mode = (int) user.getAbilityValue();
             FrostbiteFreezing.damageAdjacentIceBlocks(session, user.getPosition(), mode, user.getDamage(), true);
         }
+        if (user.getName().equalsIgnoreCase("Doom-shroom")) {
+            leaveCrater(user, session);
+        }
         user.setAlive(false);
     }
+
+    private void leaveCrater(Plant user, GameSession session) {
+        Position pos = user.getPosition();
+        if (pos == null || session.getEnvironment() == null) return;
+        int row = (int) Math.round(pos.y());
+        int col = (int) Math.round(pos.x());
+        Cell cell = session.getEnvironment().getCell(row, col);
+        if (cell != null) cell.setObstacle(new Crater());
+    }
+    private boolean actsWithoutTouch(Plant user) {
+        return user.getName().equalsIgnoreCase("Hot Potato")
+                || user.getName().equalsIgnoreCase("Grave Buster");
+    }
+
     private void damageStructures(Plant user, GameSession session) {
         Position center = user.getPosition();
         if (center == null) return;
@@ -60,19 +80,25 @@ public class ExplodeStrategy implements ActStrategy {
     }
 
     private boolean isZombieTouch(Plant user, GameSession session) {
+        boolean requireWater = user.getName().equalsIgnoreCase("Tangle Kelp");
         for (Zombie zombie : session.getZombies()) {
-            if (zombie != null && zombie.isAlive() && zombie.getPosition() != null
-                    && zombie.getPosition().distanceTo(user.getPosition()) < TRAP_ACTIVATION_RADIUS) return true;
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            double distance = zombie.getPosition().distanceTo(user.getPosition());
+            if (distance >= TRAP_ACTIVATION_RADIUS) continue;
+            if (requireWater && !isOnWaterTile(zombie.getPosition(), session)) continue;
+            return true;
         }
         return false;
     }
 
     private ArrayList<Zombie> touchDetect(Plant user, GameSession session) {
         ArrayList<Zombie> targets = new ArrayList<>();
+        boolean requireWater = user.getName().equalsIgnoreCase("Tangle Kelp");
         Zombie firstTouch = null;
         double shortest = Double.MAX_VALUE;
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (requireWater && !isOnWaterTile(zombie.getPosition(), session)) continue;
             double distance = zombie.getPosition().distanceTo(user.getPosition());
             if (distance < shortest) {
                 shortest = distance;
@@ -81,6 +107,14 @@ public class ExplodeStrategy implements ActStrategy {
         }
         if (firstTouch != null) targets.add(firstTouch);
         return targets;
+    }
+
+    private boolean isOnWaterTile(Position position, GameSession session) {
+        if (position == null || session.getEnvironment() == null) return false;
+        int row = (int) Math.round(position.y());
+        int col = (int) Math.round(position.x());
+        Cell cell = session.getEnvironment().getCell(row, col);
+        return cell != null && cell.getTile() != null && cell.getTile().type() == TileType.Water;
     }
 
     private ArrayList<Zombie> areaDetect(Plant user, GameSession session) {

@@ -142,6 +142,10 @@ public class PlantFactory {
             case MAP_WIDE_FREEZE -> new MapWideFreeze();
             case INSTANT_KILL -> new InstantKill();
             case LOBBER_BARRAGE -> new LobberBarrage(projectileBurstCount(config));
+            case RANDOM_INSTANT_KILL -> new RandomInstantKill(Math.max(1, value));
+            case DISARM_BLAST -> new DisarmBlast(Math.max(1, value));
+            case LANE_REDIRECT -> new LaneRedirectBlast();
+            case PULL_AND_HEAL -> new PullAndHeal(config.plantFoodValue);
         };
     }
 
@@ -158,7 +162,8 @@ public class PlantFactory {
                     new Position(1, 0), new Position(-1, 0),
                     new Position(0, 1), new Position(0, -1),
                     new Position(0.7, 0.7)
-            )
+            ),
+            "Bowling Bulb", List.of(new Position(1, -1), new Position(1, 0), new Position(1, 1))
     );
 
     private static List<Position> buildShootingVectors(PlantJsonParser.PlantConfig config) {

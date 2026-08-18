@@ -23,7 +23,8 @@ public class HomingStrategy implements ActStrategy {
         if (zombies.isEmpty()) return;
 
         boolean isMagic = user.getTags().contains(PlantTag.MAGIC);
-        Zombie target = isMagic ? randomTarget(zombies) : nearestTarget(user, zombies);
+        boolean randomTargeting = isMagic || user.getName().equalsIgnoreCase("Electric Blueberry");
+        Zombie target = randomTargeting ? randomTarget(zombies) : nearestTarget(user, zombies);
         if (target == null) return;
 
         session.getProjectiles().add(buildProjectile(user, target, isMagic));

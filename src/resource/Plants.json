@@ -542,7 +542,7 @@
     "recharge": 15.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
-    "plantFoodType": "RANDOM_HYPNOTIZE",
+    "plantFoodType": "RANDOM_INSTANT_KILL",
     "plantFoodValue": 3.0,
     "upgrades": [
       {
@@ -1204,7 +1204,7 @@
     "recharge": 20.0,
     "abilityType": "DELAYED_EXPLOSIVE",
     "abilityValue": 1.0,
-    "plantFoodType": "LOCAL_AOE_ATTACK",
+    "plantFoodType": "RANDOM_INSTANT_KILL",
     "plantFoodValue": 2.0,
     "upgrades": [
       {
@@ -1462,7 +1462,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 2.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 9.0,
+    "plantFoodValue": 60.0,
     "upgrades": [
       {
         "level": 2,
@@ -1572,7 +1572,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 2.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 25.0,
+    "plantFoodValue": 90.0,
     "wramp-up": [
       {
         "stage": 2,
@@ -1725,7 +1725,7 @@
     "recharge": 20.0,
     "abilityType": "PASSIVE_SHIELD",
     "abilityValue": 0.0,
-    "plantFoodType": "KNOCKBACK_BLAST",
+    "plantFoodType": "LANE_REDIRECT",
     "plantFoodValue": 0.0,
     "upgrades": [
       {
@@ -1762,8 +1762,8 @@
     "recharge": 20.0,
     "abilityType": "PASSIVE_SHIELD",
     "abilityValue": 0.0,
-    "plantFoodType": "GRANT_PERMANENT_ARMOR",
-    "plantFoodValue": 3000.0,
+    "plantFoodType": "PULL_AND_HEAL",
+    "plantFoodValue": 5.0,
     "upgrades": [
       {
         "level": 2,
@@ -1948,8 +1948,8 @@
     "recharge": 15.0,
     "abilityType": "MODIFIER_UTILITY",
     "abilityValue": 1.0,
-    "plantFoodType": "KNOCKBACK_BLAST",
-    "plantFoodValue": 5.0,
+    "plantFoodType": "DISARM_BLAST",
+    "plantFoodValue": 3.0,
     "upgrades": [
       {
         "level": 2,

@@ -4,9 +4,15 @@ import model.collections.zombie.Zombie;
 
 public class FireHit implements HitEffectStrategy {
     private final int areaLength;
+    private final double damageMultiplier;
 
     public FireHit(int areaLength) {
+        this(areaLength, 2.0);
+    }
+
+    public FireHit(int areaLength, double damageMultiplier) {
         this.areaLength = Math.max(1, areaLength);
+        this.damageMultiplier = damageMultiplier;
     }
 
     @Override
@@ -19,7 +25,7 @@ public class FireHit implements HitEffectStrategy {
     public int getAreaLength() { return areaLength; }
 
     @Override
-    public double getDamageMultiplier() { return 2.0; }
+    public double getDamageMultiplier() { return damageMultiplier; }
 
     @Override
     public boolean isFireDamage() { return true; }
