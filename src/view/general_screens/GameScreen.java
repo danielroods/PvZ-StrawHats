@@ -298,6 +298,34 @@ public class GameScreen extends UiScreen {
     private float dragPreviewTime;
     private float sandStormAnimTime;
 
+    /**
+     * Sequence played once the match outcome is decided, before actually leaving this screen:
+     * the board keeps rendering as-is for {@link #MATCH_END_HOLD_DURATION}s, then the board
+     * shades into dark over {@link #MATCH_END_FADE_DURATION}s, then the "YOU WON"/"YOU LOST"
+     * title PAM plays (intro clip, then loop) for {@link #MATCH_END_TITLE_DURATION}s, and only
+     * then does the real "end game" command fire and the screen hand off to the after-match menu.
+     */
+    private enum MatchEndPhase { NONE, HOLD, FADE, TITLE }
+    private MatchEndPhase matchEndPhase = MatchEndPhase.NONE;
+    private float matchEndPhaseTimer;
+    private boolean matchEndWon;
+    private static final float MATCH_END_HOLD_DURATION = 3f;
+    private static final float MATCH_END_FADE_DURATION = 1f;
+    private static final float MATCH_END_TITLE_DURATION = 5f;
+    private static final float MATCH_END_SHADE_ALPHA = 0.55f;
+    private static final String MATCH_WON_TITLE_PAM = "768/FULL/UI/JOUST/MATCH_RESULTS/YOU_WON_TEXT/YOU_WON_TEXT.PAM";
+    private static final String MATCH_LOST_TITLE_PAM = "768/FULL/UI/JOUST/MATCH_RESULTS/YOU_LOST_TEXT/YOU_LOST_TEXT.PAM";
+    // Only this single named image inside each title PAM should ever be drawn - see drawPam's
+    // elementVisibility mask (same mechanism basicZombieArmorVisibility uses).
+    private static final String MATCH_WON_TITLE_IMAGE = "you_won_text_1950x442|IMAGE_UI_JOUST_MATCH_RESULTS_YOU_WON_TEXT_YOU_WON_TEXT_1950X442";
+    private static final String MATCH_LOST_TITLE_IMAGE = "you_lost_text_699x208|IMAGE_UI_JOUST_MATCH_RESULTS_YOU_LOST_TEXT_YOU_LOST_TEXT_699X208";
+    private static final Map<String, Boolean> MATCH_WON_TITLE_VISIBILITY =
+            java.util.Collections.singletonMap(MATCH_WON_TITLE_IMAGE, true);
+    private static final Map<String, Boolean> MATCH_LOST_TITLE_VISIBILITY =
+            java.util.Collections.singletonMap(MATCH_LOST_TITLE_IMAGE, true);
+    private static final float MATCH_END_TITLE_SCALE = 1f;
+    private float matchEndTitleAnimTime;
+
     private enum Tool { NONE, SHOVEL, FOOD }
 
     @Override
@@ -534,7 +562,7 @@ public class GameScreen extends UiScreen {
             }
         }
 
-        if (!paused && !matchFinished) {
+        if (!paused && !matchFinished && matchEndPhase == MatchEndPhase.NONE) {
             List<Zombie> aliveBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getZombies());
             List<Plant> alivePlantsBeforeTick = session == null ? java.util.Collections.emptyList() : new ArrayList<>(session.getPlants());
             tickAccumulator += delta * GameSettings.get().getGameSpeed();
@@ -542,12 +570,14 @@ public class GameScreen extends UiScreen {
                 tickSession();
                 tickAccumulator -= GameClock.SECONDS_PER_TICK;
                 checkMatchEnd();
-                if (matchFinished) break;
+                if (matchFinished || matchEndPhase != MatchEndPhase.NONE) break;
             }
             if (session != null) {
                 trackZombieDeaths(aliveBeforeTick);
                 trackExplodedPlants(alivePlantsBeforeTick);
             }
+        } else if (!paused && matchEndPhase != MatchEndPhase.NONE) {
+            advanceMatchEndSequence(delta);
         }
 
         if (matchFinished) return;
@@ -745,16 +775,89 @@ public class GameScreen extends UiScreen {
     }
 
     protected void checkMatchEnd() {
-        if (matchFinished) return;
+        if (matchFinished || matchEndPhase != MatchEndPhase.NONE) return;
         if (session.isGameOver()) {
-            matchFinished = true;
-            runCommand("end game -r lose");
-            controller.ScreenManager.syncWithCurrentMenu();
+            startMatchEndSequence(false);
         } else if (session.isGameWon()) {
-            matchFinished = true;
-            runCommand("end game -r win");
-            controller.ScreenManager.syncWithCurrentMenu();
+            startMatchEndSequence(true);
         }
+    }
+
+    /**
+     * Starts the win/lose sequence instead of ending the match immediately: the board keeps
+     * rendering for a few seconds, then shades dark, then shows the outcome title, and only
+     * once that has all played out does {@link #finishMatchEndSequence()} actually run the
+     * "end game" command and hand off to the after-match menu.
+     */
+    private void startMatchEndSequence(boolean won) {
+        matchEndWon = won;
+        matchEndPhase = MatchEndPhase.HOLD;
+        matchEndPhaseTimer = 0f;
+        matchEndTitleAnimTime = 0f;
+    }
+
+    private void advanceMatchEndSequence(float delta) {
+        if (matchEndPhase == MatchEndPhase.NONE) return;
+        matchEndPhaseTimer += delta;
+        switch (matchEndPhase) {
+            case HOLD:
+                if (matchEndPhaseTimer >= MATCH_END_HOLD_DURATION) {
+                    matchEndPhase = MatchEndPhase.FADE;
+                    matchEndPhaseTimer = 0f;
+                }
+                break;
+            case FADE:
+                if (matchEndPhaseTimer >= MATCH_END_FADE_DURATION) {
+                    matchEndPhase = MatchEndPhase.TITLE;
+                    matchEndPhaseTimer = 0f;
+                }
+                break;
+            case TITLE:
+                matchEndTitleAnimTime += delta;
+                if (matchEndPhaseTimer >= MATCH_END_TITLE_DURATION) {
+                    finishMatchEndSequence();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void finishMatchEndSequence() {
+        matchEndPhase = MatchEndPhase.NONE;
+        matchFinished = true;
+        runCommand(matchEndWon ? "end game -r win" : "end game -r lose");
+        controller.ScreenManager.syncWithCurrentMenu();
+    }
+
+    /**
+     * Darkens the board a little once the outcome is decided (FADE/TITLE phases), then draws
+     * the "YOU WON"/"YOU LOST" title PAM on top during TITLE - "intro" for the clip's own
+     * intro length, then "loop" for the rest of the title window. Only the single named title
+     * image is shown, via the same elementVisibility mask drawPam uses for zombie armor.
+     */
+    private void drawMatchEndOverlay() {
+        if (matchEndPhase != MatchEndPhase.FADE && matchEndPhase != MatchEndPhase.TITLE) return;
+
+        float shadeProgress = matchEndPhase == MatchEndPhase.FADE
+                ? Math.min(1f, matchEndPhaseTimer / MATCH_END_FADE_DURATION)
+                : 1f;
+        float viewW = stage.getViewport().getWorldWidth();
+        float viewH = stage.getViewport().getWorldHeight();
+        batch.setColor(0f, 0f, 0f, MATCH_END_SHADE_ALPHA * shadeProgress);
+        batch.draw(whitePixel, 0f, 0f, viewW, viewH);
+        batch.setColor(Color.WHITE);
+
+        if (matchEndPhase != MatchEndPhase.TITLE) return;
+
+        String path = matchEndWon ? MATCH_WON_TITLE_PAM : MATCH_LOST_TITLE_PAM;
+        Map<String, Boolean> visibility = matchEndWon ? MATCH_WON_TITLE_VISIBILITY : MATCH_LOST_TITLE_VISIBILITY;
+        float introDuration = AnimationFactory.clipDurationForPath(path, "intro");
+        boolean introDone = introDuration > 0f && matchEndTitleAnimTime >= introDuration;
+        String state = introDone ? "loop" : "intro";
+        float clipTime = introDone ? matchEndTitleAnimTime - introDuration : matchEndTitleAnimTime;
+
+        drawPam(path, state, clipTime, viewW * 0.5f, viewH * 0.5f, MATCH_END_TITLE_SCALE, false, visibility);
     }
 
     private void togglePause() {
@@ -789,6 +892,7 @@ public class GameScreen extends UiScreen {
         drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         drawDragPreview(delta);
+        drawMatchEndOverlay();
 
         batch.end();
     }

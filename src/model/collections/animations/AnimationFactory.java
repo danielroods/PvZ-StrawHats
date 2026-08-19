@@ -105,6 +105,18 @@ public class AnimationFactory {
         return resolveClipName(byPath.get(pamPath), preferredState);
     }
 
+    /** Same as {@link #clipDurationForDisplayName} but looks the config up by its PAM path first. */
+    public static float clipDurationForPath(String pamPath, String preferredState) {
+        if (pamPath == null) return -1f;
+        autoInit();
+        AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
+        if (config == null || config.clips == null) return -1f;
+        String clipName = resolveClipName(config, preferredState);
+        if (clipName == null) return -1f;
+        Double duration = config.clips.get(clipName);
+        return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
     private static String firstClipContaining(AnimationJsonParser.AnimationConfig config, String substring) {
         if (config == null || config.clips == null || substring == null) return null;
         String needle = substring.toLowerCase();
