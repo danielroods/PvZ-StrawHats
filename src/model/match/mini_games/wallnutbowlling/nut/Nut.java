@@ -8,8 +8,9 @@ public abstract class Nut {
     protected static final double SPEED = 3.0; // columns per second
 
     protected Position position;
-    protected Position direction; // unit-ish vector, e.g. (1, 0) rolling toward the zombies
+    protected Position direction;
     protected boolean alive = true;
+    private double rolledDistance;
 
     protected Nut(Position position, Position direction) {
         this.position = position;
@@ -18,8 +19,13 @@ public abstract class Nut {
 
     public Position getPosition() { return position; }
     public void setPosition(Position position) { this.position = position; }
+    public Position getDirection() { return direction; }
     public boolean isAlive() { return alive; }
     public void kill() { alive = false; }
+
+    public double getRolledDistance() { return rolledDistance; }
+
+    public double getRollSpeed() { return SPEED; }
 
     public String getKindName() {
         return getClass().getSimpleName();
@@ -27,10 +33,12 @@ public abstract class Nut {
 
     public void move(double deltaSeconds) {
         if (!alive) return;
-        position = position.add(direction.scale(SPEED * deltaSeconds));
+        Position step = direction.scale(getRollSpeed() * deltaSeconds);
+        position = position.add(step);
+        rolledDistance += step.length();
     }
 
-    public void bounceVertical() {
+    public void bounceOffLaneEdge() {
         direction = new Position(direction.x(), -direction.y());
     }
 

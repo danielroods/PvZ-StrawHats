@@ -133,6 +133,9 @@ public final class ScreenManager {
         if (menu instanceof ZombotanyController) {
             return new ZombotanyGameScreen();
         }
+        if (menu instanceof MiniGameEndMenu) {
+            return new MiniGameEndScreen();
+        }
 
         if (menu instanceof MatchMenu) {
             Level selected = MatchMenu.selectedLevel;

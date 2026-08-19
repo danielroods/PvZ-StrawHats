@@ -16,9 +16,12 @@ import java.util.*;
 
 public class WallnutBowling extends MiniGameMode {
     private static final Random RAND = new Random();
-    private static final double HIT_DISTANCE = 0.45;
+    private static final double HIT_RADIUS_COLUMNS = 0.5;
+    private static final double HIT_RADIUS_ROWS = 0.55;
     private static final double CONVEYOR_INTERVAL_SECONDS = 6.0;
     private static final int CONVEYOR_CAPACITY = 4;
+    private static final int BOWLING_SHARE_PERCENT = 70;
+    private static final int EXPLODE_SHARE_PERCENT = 20;
 
     public enum NutKind {
         BOWLING,
@@ -60,8 +63,10 @@ public class WallnutBowling extends MiniGameMode {
     }
 
     private NutKind randomNutKind() {
-        NutKind[] kinds = NutKind.values();
-        return kinds[RAND.nextInt(kinds.length)];
+        int roll = RAND.nextInt(100);
+        if (roll < BOWLING_SHARE_PERCENT) return NutKind.BOWLING;
+        if (roll < BOWLING_SHARE_PERCENT + EXPLODE_SHARE_PERCENT) return NutKind.EXPLODE;
+        return NutKind.BIG;
     }
 
     private void updateNextNut() {
@@ -173,11 +178,11 @@ public class WallnutBowling extends MiniGameMode {
                 log(nut.getKindName() + " left the lawn.");
                 continue;
             }
-            if (pos.y() <= 0 || pos.y() >= session.getEnvironment().getRows() - 1) {
-                double clampedY = Math.max(0, Math.min(session.getEnvironment().getRows() - 1, pos.y()));
-                nut.setPosition(new Position(pos.x(), clampedY));
-                nut.bounceVertical();
-                log(nut.getKindName() + " bounced off the edge.");
+            double lastRow = session.getRows() - 1;
+            if (pos.y() < 0 || pos.y() > lastRow) {
+                nut.setPosition(new Position(pos.x(), Math.max(0, Math.min(lastRow, pos.y()))));
+                nut.bounceOffLaneEdge();
+                log(nut.getKindName() + " ricocheted off the lawn edge.");
             }
         }
     }
@@ -185,12 +190,13 @@ public class WallnutBowling extends MiniGameMode {
     private void resolveCollisions() {
         for (Nut nut : activeNuts) {
             if (!nut.isAlive()) continue;
-            Set<Zombie> alreadyHit = hitHistory.getOrDefault(nut,
-                    Collections.newSetFromMap(new IdentityHashMap<>()));
+            Set<Zombie> alreadyHit = hitHistory.computeIfAbsent(nut,
+                    key -> Collections.newSetFromMap(new IdentityHashMap<>()));
             session.getZombies().stream()
                     .filter(zombie -> zombie.isAlive() && !alreadyHit.contains(zombie))
                     .filter(zombie -> isTouching(nut, zombie))
-                    .findFirst()
+                    .min(Comparator.comparingDouble(
+                            zombie -> nut.getPosition().distanceTo(zombie.getPosition())))
                     .ifPresent(zombie -> {
                         alreadyHit.add(zombie);
                         int oldHp = zombie.getHp();
@@ -214,8 +220,11 @@ public class WallnutBowling extends MiniGameMode {
     }
 
     private boolean isTouching(Nut nut, Zombie zombie) {
-        return zombie.getPosition() != null
-                && nut.getPosition().distanceTo(zombie.getPosition()) <= HIT_DISTANCE;
+        Position zombiePosition = zombie.getPosition();
+        if (zombiePosition == null) return false;
+        Position nutPosition = nut.getPosition();
+        return Math.abs(nutPosition.x() - zombiePosition.x()) <= HIT_RADIUS_COLUMNS
+                && Math.abs(nutPosition.y() - zombiePosition.y()) <= HIT_RADIUS_ROWS;
     }
 
     public boolean isWon() {
