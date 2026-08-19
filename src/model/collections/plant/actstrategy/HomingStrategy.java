@@ -6,8 +6,8 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.projectile.Projectile;
 import model.projectile.StraightMove;
+import model.projectile.hit.HypnotizeHit;
 import model.projectile.hit.NormalHit;
-import model.projectile.hit.PierceHit;
 import model.utils.GameSession;
 
 import java.util.List;
@@ -37,12 +37,10 @@ public class HomingStrategy implements ActStrategy {
 
         if (isMagic) {
             int pierceCount = (int) user.getAbilityValue();
-            Projectile p = new Projectile(user,
+            return new Projectile(user,
                     user.getPosition(), velocity, target,
-                    user.getDamage(), new StraightMove(), new PierceHit(pierceCount)
+                    user.getDamage(), new StraightMove(), new HypnotizeHit(pierceCount)
             );
-            p.setStunning(true);
-            return p;
         }
 
         return new Projectile(user,

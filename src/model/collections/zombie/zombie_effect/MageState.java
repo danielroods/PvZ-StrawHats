@@ -60,7 +60,9 @@ public class MageState implements ZombieEffectStatus {
             }
         } else {
             for (Zombie deadwalker : session.getZombies()) {
-                if (deadwalker.isAlive() && deadwalker != warlock && deadwalker.getStatus() != Zombie.Status.FREEZE) {
+                if (deadwalker.isAlive() && deadwalker != warlock
+                        && deadwalker.getStatus() != Zombie.Status.FREEZE
+                        && deadwalker.getStatus() != Zombie.Status.FROZEN) {
                     prospectiveTargets.add(deadwalker);
                 }
             }

@@ -914,6 +914,17 @@ public class GameSession {
                 && existing.getArmor() == null) {
             existing.setArmor((PlantArmour) ArmourFactory.createArmour(
                     ArmourType.PLANT_SHIELD, plant.getMaxHp(), 0, false));
+            plant.setAlive(false);
+            plantedAnyPlantThisMatch = true;
+            return true;
+        }
+
+       if (existing != null && !lilySupport && !incomingIsShell
+                && existing.getId() == plant.getId()
+                && plant.getTags().contains(PlantTag.STACK)
+                && plant.getMaxStackNumber() > 1) {
+            if (!existing.addStack()) return false;
+            plant.setAlive(false);
             plantedAnyPlantThisMatch = true;
             return true;
         }

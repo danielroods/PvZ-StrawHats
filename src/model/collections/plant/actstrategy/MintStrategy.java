@@ -6,6 +6,8 @@ import model.utils.GameSession;
 public class MintStrategy implements ActStrategy {
     @Override
     public void act(Plant user, GameSession session) {
+        if (user.getIntervalTimer() > 0) return;
+
         session.getPlants().stream()
                 .filter(plant -> plant != null && plant.isAlive() && plant.getType() == user.getType())
                 .forEach(plant -> {

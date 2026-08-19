@@ -10,5 +10,6 @@ public interface PlantFoodEffect {
     // 2.5s boosted window instead of an instant 0s one, so the plant-food state (and its
     // "plantfood" animation) is actually visible/felt instead of resolving in a single tick.
     default double getDurationSeconds() { return 2.5; }
+    default boolean drivesActStrategy() { return false; }
     default void reset() {}
 }

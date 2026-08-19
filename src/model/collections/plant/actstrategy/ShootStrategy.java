@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ShootStrategy implements ActStrategy {
-    private static final double VOLLEY_SPAWN_STAGGER = 0.18;
+    private static final double VOLLEY_STAGGER_TICKS = 2.0;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -24,20 +24,23 @@ public class ShootStrategy implements ActStrategy {
 
         List<Position> vectors = user.getShootingVectors();
         if (vectors == null || vectors.isEmpty()) return;
+        if (user.getTags().contains(PlantTag.STACK) && user.getMaxStackNumber() > 1) {
+            vectors = vectors.subList(0, Math.min(user.getStackNumber(), vectors.size()));
+        }
 
+        boolean boosted = user.isPlantFoodActive();
         boolean anyTarget = vectors.stream()
                 .anyMatch(v -> findTargetAlongVector(user, v, session) != null
                         || findGraveAlongVector(user, v, session) != null);
-        if (!anyTarget) return;
+        if (!anyTarget && !boosted) return;
 
         HitEffectStrategy hitEffect = buildHitEffect(user);
         Map<String, Integer> directionCounts = new HashMap<>();
 
         for (Position direction : vectors) {
             Zombie target = findTargetAlongVector(user, direction, session);
-            if (target == null) {
-                Cell grave = findGraveAlongVector(user, direction, session);
-                if (grave == null) continue;
+            if (target == null && findGraveAlongVector(user, direction, session) == null && !boosted) {
+                continue;
             }
 
             Position normalizedDirection = direction.normalize();
@@ -45,19 +48,19 @@ public class ShootStrategy implements ActStrategy {
 
             String directionKey = normalizedDirection.x() + "," + normalizedDirection.y();
             int repeatIndex = directionCounts.merge(directionKey, 1, Integer::sum) - 1;
-            double stagger = VOLLEY_SPAWN_STAGGER * repeatIndex;
-            Position startPosition = repeatIndex == 0
-                    ? user.getPosition()
-                    : user.getPosition().sub(normalizedDirection.scale(stagger));
 
-            session.getProjectiles().add(new Projectile(user,
-                    startPosition,
+            Projectile projectile = new Projectile(user,
+                    user.getPosition(),
                     velocity,
                     target,
                     user.getDamage(),
                     new StraightMove(),
                     hitEffect
-            ));
+            );
+            projectile.setSpawnDelayTicks(projectile.getSpawnDelayTicks()
+                    + VOLLEY_STAGGER_TICKS * repeatIndex);
+            projectile.setMaxTravelDistance(user.getAttackRange());
+            session.getProjectiles().add(projectile);
         }
 
         user.setInternalTimer(user.getActionInterval());
@@ -65,8 +68,10 @@ public class ShootStrategy implements ActStrategy {
 
     private HitEffectStrategy buildHitEffect(Plant user) {
         int areaLength = user.getTags().contains(PlantTag.AOE) ? 3 : 1;
-        if (user.getTags().contains(PlantTag.FIRE)) return new FireHit(areaLength);
-        if (user.getTags().contains(PlantTag.ICE)) return new IceHit(areaLength);
+        if (user.getTags().contains(PlantTag.FIRE)) return new FireHit(areaLength, 1.0);
+        if (user.getTags().contains(PlantTag.ICE)) {
+            return new IceHit(areaLength, 5.0 + user.getSpecialUpgrade("CHILL_DURATION_EXT", 0));
+        }
         if (user.getTags().contains(PlantTag.POISON)) return new PoisonHit(areaLength);
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         if (user.getTags().contains(PlantTag.BUTTER)) return new ButterHit(1);
@@ -88,6 +93,7 @@ public class ShootStrategy implements ActStrategy {
             double relX = zp.x() - origin.x();
             double relY = zp.y() - origin.y();
             if (!isInCone(relX, relY, dx, dy)) continue;
+            if (!user.isWithinAttackRange(zp)) continue;
 
             double dist = Math.sqrt(relX * relX + relY * relY);
             if (dist < bestDist) {
@@ -113,6 +119,7 @@ public class ShootStrategy implements ActStrategy {
                 double relX = col - origin.x();
                 double relY = row - origin.y();
                 if (!isInCone(relX, relY, dx, dy)) continue;
+                if (!user.isWithinAttackRange(new Position(col, row))) continue;
 
                 double dist = Math.sqrt(relX * relX + relY * relY);
                 if (dist < bestDist) {

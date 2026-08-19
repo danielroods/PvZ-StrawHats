@@ -500,7 +500,7 @@
     ],
     "cost": 250,
     "baseHp": 300,
-    "damage": 99999,
+    "damage": 0,
     "actionInterval": 12.0,
     "recharge": 15.0,
     "abilityType": "SHOOT_PROJECTILE",
@@ -799,6 +799,8 @@
     "recharge": 15.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
+    "attackRange": 3.5,
+    "lifespan": 60.0,
     "plantFoodType": "PROJECTILE_BURST",
     "plantFoodValue": 60.0,
     "upgrades": [
@@ -836,6 +838,8 @@
     "recharge": 5.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
+    "attackRange": 3.5,
+    "lifespan": 60.0,
     "plantFoodType": "PROJECTILE_BURST",
     "plantFoodValue": 60.0,
     "upgrades": [
@@ -873,6 +877,7 @@
     "recharge": 5.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 3.0,
+    "attackRange": 4.5,
     "plantFoodType": "KNOCKBACK_BLAST",
     "plantFoodValue": 100.0,
     "upgrades": [
@@ -943,7 +948,7 @@
     "recharge": 5.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
-    "plantFoodType": "MAP_WIDE_FREEZE",
+    "plantFoodType": "MAP_WIDE_BUTTER",
     "plantFoodValue": 4.0,
     "upgrades": [
       {
@@ -1577,7 +1582,7 @@
       {
         "stage": 2,
         "time": 24,
-        "damage": 15
+        "damage": 30
       },
       {
         "stage": 3,
@@ -1910,8 +1915,8 @@
     "recharge": 5.0,
     "abilityType": "MODIFIER_UTILITY",
     "abilityValue": 2.0,
-    "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 3.0,
+    "plantFoodType": "SELF_BOOST",
+    "plantFoodValue": 8.0,
     "upgrades": [
       {
         "level": 2,

@@ -49,7 +49,7 @@ public class Zombie extends Item implements Attack {
     private List<String> damageWhileSubmerged;
     private List<String> damageWhileSubmergedPlantfoodOnly;
 
-    public enum Status { NORMAL, FREEZE, FIRED, POISONED, BUTTER, HYPNOTIZED }
+    public enum Status { NORMAL, FREEZE, FROZEN, FIRED, POISONED, BUTTER, HYPNOTIZED }
     private Status status = Status.NORMAL;
     private double statusTimer = 0;
     private double statusDamageAccumulator = 0;
@@ -261,7 +261,8 @@ public class Zombie extends Item implements Attack {
         Position vel = getSpeed();
         if (pos == null || vel == null) return;
 
-        double speedMultiplier = (status == Status.FREEZE) ? 0.5 : (status == Status.BUTTER) ? 0 : 1.0;
+        double speedMultiplier = (status == Status.FREEZE) ? 0.5
+                : (status == Status.BUTTER || status == Status.FROZEN) ? 0 : 1.0;
         setPosition(new Position(
                 pos.x() + vel.x() * deltaTimeSeconds * speedMultiplier,
                 pos.y() + vel.y() * deltaTimeSeconds * speedMultiplier
@@ -335,7 +336,7 @@ public class Zombie extends Item implements Attack {
     public Status getStatus() { return this.status; }
     public void setStatus(Status status) {
         double duration = switch (status) {
-            case FREEZE -> 5.0;
+            case FREEZE, FROZEN -> 5.0;
             case FIRED -> 3.0;
             case POISONED -> 6.0;
             case BUTTER -> 4.0;
@@ -352,7 +353,7 @@ public class Zombie extends Item implements Attack {
         if (status == Status.FIRED) {
             if (zombieEffectStatus instanceof FireEffect fireEffect) fireEffect.setActiveFlame(true);
             if (moveBehavior instanceof ProspectorMove prospectorMove) prospectorMove.litDynamite();
-        } else if (status == Status.FREEZE) {
+        } else if (status == Status.FREEZE || status == Status.FROZEN) {
             if (zombieEffectStatus instanceof FireEffect fireEffect) fireEffect.setActiveFlame(false);
             if (moveBehavior instanceof ProspectorMove prospectorMove) prospectorMove.extinguishDynamite();
         }

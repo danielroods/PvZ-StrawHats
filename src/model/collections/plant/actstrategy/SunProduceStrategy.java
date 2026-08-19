@@ -9,6 +9,8 @@ import service.GameClock;
 import view.GeneralPrinter;
 
 public class SunProduceStrategy implements ActStrategy {
+    private static final double DOUBLE_SUN_PROBABILITY = 0.5;
+
     @Override
     public void act(Plant user, GameSession session) {
         if (!GameClock.isZero(user.getIntervalTimer())) return;
@@ -17,6 +19,10 @@ public class SunProduceStrategy implements ActStrategy {
         if (location == null) return;
 
         int sunValue = Math.max(0, (int) user.getAbilityValue());
+        if (user.hasSpecialUpgrade("DOUBLE_SUN_CHANCE")
+                && Math.random() < DOUBLE_SUN_PROBABILITY) {
+            sunValue *= 2;
+        }
         if (user.getAbilityType() == AbilityType.INSTANT_SUN_BURST) {
             session.addSun(sunValue);
             GeneralPrinter.print("plant " + user.getName() + " produced " + sunValue + " suns.");

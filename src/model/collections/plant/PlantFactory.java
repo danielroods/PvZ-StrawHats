@@ -1,5 +1,6 @@
 package model.collections.plant;
 
+import model.collections.animations.AnimationFactory;
 import model.collections.armour.ArmourFactory;
 import model.collections.armour.ArmourType;
 import model.collections.armour.PlantArmour;
@@ -16,6 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 public class PlantFactory {
+
+    private static final double DEFAULT_FUSE_SECONDS = 1.0;
+    private static final double MIN_FUSE_SECONDS = 0.7;
+    private static final double MAX_FUSE_SECONDS = 2.5;
 
     private static Map<Integer, PlantJsonParser.PlantConfig> blueprints = new HashMap<>();
     private static boolean loaded = false;
@@ -56,7 +61,11 @@ public class PlantFactory {
         int runtimeDamage = config.damage;
         double runtimeRecharge = config.recharge;
         double runtimeAbility = config.abilityValue;
+        double runtimeRange = config.attackRange;
+        double runtimeLifespan = config.lifespan;
+        double runtimePlantFoodValue = config.plantFoodValue;
         List<String> specialTags = new ArrayList<>();
+        Map<String, Double> specialValues = new HashMap<>();
 
         if (config.upgrades != null) {
             for (PlantJsonParser.UpgradeConfig upgrade : config.upgrades) {
@@ -67,7 +76,23 @@ public class PlantFactory {
                         case BUFF_ACTION_INTERVAL -> runtimeInterval += upgrade.value;
                         case BUFF_DAMAGE -> runtimeDamage += (int) upgrade.value;
                         case BUFF_RECHARGE -> runtimeRecharge += upgrade.value;
-                        case SPECIAL_MECHANIC -> specialTags.add(upgrade.specialTag);
+                        case SPECIAL_MECHANIC -> {
+                            specialTags.add(upgrade.specialTag);
+                            if (upgrade.specialTag != null && !upgrade.specialTag.isBlank()) {
+                                specialValues.merge(upgrade.specialTag, upgrade.value, Double::sum);
+                            }
+                            switch (upgrade.specialTag == null ? "" : upgrade.specialTag) {
+                                case "TILE_RANGE_EXT" -> {
+                                    if (runtimeRange > 0) runtimeRange += upgrade.value;
+                                }
+                                case "LIFESPAN_EXT" -> runtimeLifespan += upgrade.value;
+                                case "SUN_AMOUNT_BUFF", "SUN_DROP_INCREMENT", "ADDITIONAL_PIERCE" ->
+                                        runtimeAbility += upgrade.value;
+                                case "FREEZE_DURATION_EXT", "BONUS_GRAB_TARGETS" ->
+                                        runtimePlantFoodValue += upgrade.value;
+                                default -> { }
+                            }
+                        }
                     }
                 }
             }
@@ -91,24 +116,57 @@ public class PlantFactory {
         plant.setDamage(runtimeDamage);
         plant.setRecharge((int) Math.max(0, runtimeRecharge));
         plant.setAbilityValue(runtimeAbility);
+        plant.setAttackRange(runtimeRange);
+        plant.setLifespanSeconds(Math.max(0, runtimeLifespan));
         plant.setLevel(level);
         plant.setPlantFoodType(config.plantFoodType);
-        plant.setWrampUp(config.wrampUp);
+        plant.setWrampUp(config.wrampUp, specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0));
         plant.getRawUpgrades().addAll(specialTags);
+        specialValues.forEach(plant::addSpecialUpgrade);
 
         plant.setActStrategy(buildActStrategy(config));
 
-        plant.setPlantFoodEffect(buildPlantFoodEffect(config));
+        plant.setPlantFoodEffect(buildPlantFoodEffect(config, runtimePlantFoodValue));
         plant.setShootingVectors(buildShootingVectors(config));
+        if (config.category == PlantType.SHOOTER && plant.getTags().contains(PlantTag.STACK)) {
+            plant.setMaxStackNumber((int) runtimeAbility);
+        }
         if (plant.getTags().contains(PlantTag.CHARGE)) {
+            plant.setInternalTimer(plant.getActionInterval());
+        }
+
+        double fuse = resolveFuseSeconds(config);
+        if (fuse > 0) {
+            plant.setInternalTimer(fuse);
+            plant.setState(Plant.PlantState.PREPPING);
+        } else if (config.abilityType == AbilityType.PRODUCE_SUN) {
             plant.setInternalTimer(plant.getActionInterval());
         }
         return plant;
     }
 
+     private static double resolveFuseSeconds(PlantJsonParser.PlantConfig config) {
+        String clipState = switch (config.abilityType) {
+            case INSTANT_EXPLOSIVE -> AnimationFactory.firstAvailableClipState(
+                    config.name, "explode", "attack");
+            case INSTANT_SUN_BURST -> "attack";
+            case MINT_FAMILY_BOOST -> "intro";
+            default -> null;
+        };
+        if (config.abilityType == AbilityType.INSTANT_EXPLOSIVE && clipState == null) {
+            clipState = "attack";
+        }
+        if (clipState == null) return 0;
+
+        float clipSeconds = AnimationFactory.clipDurationForDisplayName(config.name, clipState);
+        double fuse = clipSeconds > 0 ? clipSeconds : DEFAULT_FUSE_SECONDS;
+        return Math.min(MAX_FUSE_SECONDS, Math.max(MIN_FUSE_SECONDS, fuse));
+    }
+
     private static ActStrategy buildActStrategy(PlantJsonParser.PlantConfig config) {
         if (config.abilityType == AbilityType.MINT_FAMILY_BOOST) return new MintStrategy();
         if (config.abilityType == AbilityType.MODIFIER_UTILITY) return new ModifyStrategy();
+        if ("Bowling Bulb".equalsIgnoreCase(config.name)) return new BowlingBulbStrategy();
 
         if (config.category == null) return null;
         return switch (config.category) {
@@ -125,33 +183,36 @@ public class PlantFactory {
         };
     }
 
-    private static PlantFoodEffect buildPlantFoodEffect(PlantJsonParser.PlantConfig config) {
+    private static PlantFoodEffect buildPlantFoodEffect(PlantJsonParser.PlantConfig config,
+                                                       double plantFoodValue) {
         if (config.plantFoodType == null) return null;
-        int value = (int) config.plantFoodValue;
+        int value = (int) plantFoodValue;
 
         return switch (config.plantFoodType) {
             case NONE -> null;
             case SPAWN_SUN_ITEMS -> new SpawnSun(value);
-            case PROJECTILE_BURST -> new TimedProjectileBurst(projectileBurstCount(config));
+            case PROJECTILE_BURST -> new TimedProjectileBurst(projectileBurstCount(config, plantFoodValue));
             case SPAWN_CLONES -> new SpawnClones(Math.max(1, value));
             case LOCAL_AOE_ATTACK -> new LocalAttack(2.0, Math.max(config.damage, value));
             case GRANT_PERMANENT_ARMOR -> new GrantArmor(value);
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
             case KNOCKBACK_BLAST -> new KnockBackBlast(value, 2.0);
             case PULL_UNDERWATER -> new PullUnderWater(Math.max(1, value));
-            case MAP_WIDE_FREEZE -> new MapWideFreeze();
+            case MAP_WIDE_FREEZE -> new MapWideFreeze(plantFoodValue);
+            case MAP_WIDE_BUTTER -> new MapWideButter(plantFoodValue);
+            case SELF_BOOST -> new SelfBoost(plantFoodValue);
             case INSTANT_KILL -> new InstantKill();
-            case LOBBER_BARRAGE -> new LobberBarrage(projectileBurstCount(config));
+            case LOBBER_BARRAGE -> new LobberBarrage(projectileBurstCount(config, plantFoodValue));
             case RANDOM_INSTANT_KILL -> new RandomInstantKill(Math.max(1, value));
             case DISARM_BLAST -> new DisarmBlast(Math.max(1, value));
             case LANE_REDIRECT -> new LaneRedirectBlast();
-            case PULL_AND_HEAL -> new PullAndHeal(config.plantFoodValue);
+            case PULL_AND_HEAL -> new PullAndHeal(plantFoodValue);
         };
     }
 
-    private static int projectileBurstCount(PlantJsonParser.PlantConfig config) {
+    private static int projectileBurstCount(PlantJsonParser.PlantConfig config, double plantFoodValue) {
         int baseDamage = Math.max(1, config.damage);
-        return Math.max(1, Math.min(12, (int) Math.ceil(config.plantFoodValue / baseDamage)));
+        return Math.max(1, Math.min(12, (int) Math.ceil(plantFoodValue / baseDamage)));
     }
 
     private static final Map<String, List<Position>> NAMED_SHOOT_PATTERNS = Map.of(

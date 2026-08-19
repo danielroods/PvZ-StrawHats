@@ -5,20 +5,20 @@ import model.collections.plant.PlantFoodEffect;
 import model.collections.zombie.Zombie;
 import model.utils.GameSession;
 
-public class MapWideFreeze implements PlantFoodEffect {
-    private static final double DEFAULT_FREEZE_SECONDS = 5.0;
+public class MapWideButter implements PlantFoodEffect {
+    private static final double DEFAULT_BUTTER_SECONDS = 4.0;
 
-    private final double freezeSeconds;
+    private final double butterSeconds;
 
-    public MapWideFreeze(double freezeSeconds) {
-        this.freezeSeconds = freezeSeconds > 0 ? freezeSeconds : DEFAULT_FREEZE_SECONDS;
+    public MapWideButter(double butterSeconds) {
+        this.butterSeconds = butterSeconds > 0 ? butterSeconds : DEFAULT_BUTTER_SECONDS;
     }
 
     @Override
     public void triggerSuperpower(Plant plant, GameSession session) {
         for (Zombie zombie : session.getZombies()) {
             if (zombie != null && zombie.isAlive() && !zombie.isHypnotized()) {
-                zombie.applyStatus(Zombie.Status.FROZEN, freezeSeconds);
+                zombie.applyStatus(Zombie.Status.BUTTER, butterSeconds);
             }
         }
     }

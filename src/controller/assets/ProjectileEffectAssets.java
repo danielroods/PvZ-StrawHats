@@ -24,11 +24,22 @@ public final class ProjectileEffectAssets {
         PLANT_FOOD
     }
 
+    /** Where an EFFECT entry belongs: on the plant's own tile, or repeated along its whole row. */
+    public enum Scope {
+        SELF,
+        ROW
+    }
+
     public record AssetEntry(String path, String state, PlayMode playMode, Kind kind,
-                              Variant variant, String purpose) {
+                              Variant variant, Scope scope, String purpose) {
 
         public String fullPath() {
             return path.startsWith(AssetPaths.ROOT) ? path : AssetPaths.PVZ_ASSETS + path;
+        }
+
+        public boolean isStaticImage() {
+            String lower = path.toLowerCase();
+            return lower.endsWith(".png") || lower.endsWith(".jpg");
         }
     }
 
@@ -78,7 +89,12 @@ public final class ProjectileEffectAssets {
 
     private static AssetEntry entry(String path, String state, PlayMode playMode, Kind kind,
                                      Variant variant, String purpose) {
-        return new AssetEntry(path, state, playMode, kind, variant, purpose);
+        return new AssetEntry(path, state, playMode, kind, variant, Scope.SELF, purpose);
+    }
+
+    private static AssetEntry rowEntry(String path, String state, PlayMode playMode, Kind kind,
+                                        Variant variant, String purpose) {
+        return new AssetEntry(path, state, playMode, kind, variant, Scope.ROW, purpose);
     }
 
     private static void register(String plantName, AssetEntry... entries) {
@@ -178,10 +194,10 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/SPLAT_SNOW_PEA/SPLAT_SNOW_PEA.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "snow pea impact splat"),
-                entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD/SNOWPEA_PLANTFOOD.PAM",
+                rowEntry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD/SNOWPEA_PLANTFOOD.PAM",
                         "plantfood_on", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "ice line across the row, start (no idle/loop state given)"),
-                entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD/SNOWPEA_PLANTFOOD.PAM",
+                rowEntry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD/SNOWPEA_PLANTFOOD.PAM",
                         "plantfood_off", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "ice line across the row, end"),
                 entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD_SLOW/"
@@ -205,7 +221,7 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/T_SPLAT_FIRE_PEA/T_SPLAT_FIRE_PEA.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "fire pea impact splat"),
-                entry("768/INITIAL/EFFECTS/FIREPEASHOOTER_FIRE/FIREPEASHOOTER_FIRE.PAM",
+                rowEntry("768/INITIAL/EFFECTS/FIREPEASHOOTER_FIRE/FIREPEASHOOTER_FIRE.PAM",
                         "idle", PlayMode.LOOP, Kind.EFFECT, Variant.PLANT_FOOD,
                         "PF: sets the whole lane on fire (single-tile fire line asset)")
         );
@@ -549,7 +565,7 @@ public final class ProjectileEffectAssets {
 
     private static void registerJalapeno() {
         register("Jalapeno",
-                entry("768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM",
+                rowEntry("768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM",
                         "idle", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
                         "single-tile fire line on explosion (no separate blast asset given)")
         );

@@ -164,6 +164,26 @@ public class AnimationFactory {
         return null;
     }
 
+    public static String firstAvailableClipState(String displayName, String... preferredStates) {
+        AnimationJsonParser.AnimationConfig config = resolveByDisplayName(displayName);
+        if (config == null || config.clips == null || preferredStates == null) return null;
+        for (String state : preferredStates) {
+            if (state == null || state.isBlank()) continue;
+            if (config.clips.containsKey(state)) return state;
+            if (firstClipContaining(config, state) != null) return state;
+        }
+        return null;
+    }
+
+    public static float clipDurationForDisplayName(String displayName, String preferredState) {
+        AnimationJsonParser.AnimationConfig config = resolveByDisplayName(displayName);
+        if (config == null || config.clips == null) return -1f;
+        String clipName = resolveClipName(config, preferredState);
+        if (clipName == null) return -1f;
+        Double duration = config.clips.get(clipName);
+        return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
     /** PAM path shortcut for {@link #resolveByDisplayName}, or null if nothing matched. */
     public static String pathForDisplayName(String displayName) {
         AnimationJsonParser.AnimationConfig config = resolveByDisplayName(displayName);

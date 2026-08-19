@@ -68,7 +68,7 @@ public class MeleeStrategy implements ActStrategy {
                 for(Zombie zombie : session.getZombies()) {
                     if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
                     Position zomPos = zombie.getPosition();
-                    if(Math.abs(zomPos.x() - userPos.x()) < 1 && Math.abs(zomPos.y() - userPos.y()) < 1)
+                    if(Math.abs(zomPos.x() - userPos.x()) <= 1 && Math.abs(zomPos.y() - userPos.y()) <= 1)
                         return true;
                 }
                 break;
@@ -128,7 +128,7 @@ public class MeleeStrategy implements ActStrategy {
         for(Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
             Position zomPos = zombie.getPosition();
-            if(Math.abs(zomPos.y() - userPos.y()) < 1 && Math.abs(zomPos.x() - userPos.x()) < 1)
+            if(Math.abs(zomPos.y() - userPos.y()) <= 1 && Math.abs(zomPos.x() - userPos.x()) <= 1)
                 targets.add(zombie);
         }
         return targets;
@@ -169,7 +169,7 @@ public class MeleeStrategy implements ActStrategy {
     }
 
     private void userAct(Plant user , ArrayList<Zombie> targets) {
-        int userDamage = user.getTags().contains(PlantTag.FIRE) ? user.getDamage() * 2 : user.getDamage();
+        int userDamage = user.getDamage();
         for(Zombie zombie : targets) {
             if (user.getTags().contains(PlantTag.FIRE)) zombie.applyStatus(Zombie.Status.FIRED, 3.0);
             if (user.getTags().contains(PlantTag.ICE)) zombie.applyStatus(Zombie.Status.FREEZE, 5.0);

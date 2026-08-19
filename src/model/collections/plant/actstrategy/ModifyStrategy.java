@@ -13,6 +13,8 @@ import model.utils.GameSession;
 import java.util.ArrayList;
 
 public class ModifyStrategy implements ActStrategy {
+    private static final double MODIFY_RADIUS = 0.7;
+
     @Override
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0) return;
@@ -93,7 +95,10 @@ public class ModifyStrategy implements ActStrategy {
         ArrayList<Projectile> targets = new ArrayList<>();
         for (Projectile projectile : session.getProjectiles()) {
             Position projPos = projectile.getPosition();
-            if (projectile.isAlive() && projPos != null && userPos.distanceTo(projPos) < 0.7) targets.add(projectile);
+            if (projectile.isAlive() && projPos != null
+                    && projectile.distanceFromPathTo(userPos) < MODIFY_RADIUS) {
+                targets.add(projectile);
+            }
         }
         return targets;
     }

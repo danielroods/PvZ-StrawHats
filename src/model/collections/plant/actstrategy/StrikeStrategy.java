@@ -15,18 +15,20 @@ public class StrikeStrategy implements ActStrategy {
         if (user.getIntervalTimer() > 0) return;
 
         Zombie target = findNearestInLane(user, session);
-        if (target == null) return;
+        if (target == null && !user.isPlantFoodActive()) return;
 
         user.setInternalTimer(user.getActionInterval());
 
         int pierceCount = (int) user.getAbilityValue();
-        session.getProjectiles().add(new Projectile(user,
+        Projectile projectile = new Projectile(user,
                 user.getPosition(),
                 new Position(20, 0), target,
                 user.getDamage(),
                 new StraightMove(),
                 new PierceHit(pierceCount)
-        ));
+        );
+        projectile.setMaxTravelDistance(user.getAttackRange());
+        session.getProjectiles().add(projectile);
     }
 
 
@@ -41,7 +43,7 @@ public class StrikeStrategy implements ActStrategy {
             if (zombie == null || !zombie.isAlive()) continue;
             Position zp = zombie.getPosition();
 
-            if (Math.abs(zp.y() - plantRow) < 0.5 && zp.x() > plantCol) {
+            if (Math.abs(zp.y() - plantRow) < 0.5 && zp.x() > plantCol && user.isWithinAttackRange(zp)) {
                 double dist = zp.x() - plantCol;
                 if (dist < minDist) {
                     minDist = dist;

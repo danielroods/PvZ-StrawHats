@@ -23,6 +23,10 @@ public class Projectile extends Item {
     private final Item target;
     private Plant sourcePlant;
     private boolean isStunning;
+    private int assetVariant;
+    private double maxTravelDistance;
+    private double travelledDistance;
+    private Position previousPosition;
 
     private final MoveStrategy moveStrategy;
     private HitEffectStrategy hitEffectStrategy;
@@ -102,11 +106,44 @@ public class Projectile extends Item {
         this.isStunning = isStunning;
     }
 
+    public Position getPreviousPosition() {
+        return previousPosition == null ? getPosition() : previousPosition;
+    }
+
+    public double distanceFromPathTo(Position point) {
+        Position end = getPosition();
+        Position start = getPreviousPosition();
+        if (point == null || end == null || start == null) return Double.MAX_VALUE;
+
+        Position movement = end.sub(start);
+        double lengthSquared = movement.dot(movement);
+        if (lengthSquared == 0) return end.distanceTo(point);
+
+        double projection = point.sub(start).dot(movement) / lengthSquared;
+        double clamped = Math.max(0, Math.min(1, projection));
+        return start.add(movement.scale(clamped)).distanceTo(point);
+    }
+
+    public double getMaxTravelDistance() {
+        return maxTravelDistance;
+    }
+
+    public void setMaxTravelDistance(double maxTravelDistance) {
+        this.maxTravelDistance = Math.max(0, maxTravelDistance);
+    }
+
+    public int getAssetVariant() {
+        return assetVariant;
+    }
+
+    public void setAssetVariant(int assetVariant) {
+        this.assetVariant = Math.max(0, assetVariant);
+    }
+
     @Override
     public void tick() {
         if (!isAlive) return;
 
-        // ۱. اگر هنوز تاخیر تمام نشده، تاخیر را کم کن و از متد خارج شو (بدون تغییر سرعت)
         if (spawnDelayTicks > 0) {
             spawnDelayTicks -= 1.0;
             return;
@@ -117,8 +154,8 @@ public class Projectile extends Item {
             setAlive(false);
             return;
         }
+        this.previousPosition = previousPosition;
 
-        // ۲. حرکت پیوسته بر اساس MoveStrategy
         if (moveStrategy != null) {
             moveStrategy.move(this);
         }
@@ -127,6 +164,13 @@ public class Projectile extends Item {
         if (currentPosition == null) {
             setAlive(false);
             return;
+        }
+        if (maxTravelDistance > 0) {
+            travelledDistance += currentPosition.distanceTo(previousPosition);
+            if (travelledDistance > maxTravelDistance) {
+                setAlive(false);
+                return;
+            }
         }
 
         GameSession session = GameSession.peekInstance();

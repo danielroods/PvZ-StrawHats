@@ -25,6 +25,7 @@ import model.collections.animations.AnimationJsonParser;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
+import model.collections.plant.AbilityType;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantType;
 import model.collections.zombie.Zombie;
@@ -56,6 +57,7 @@ import view.hud.MatchHud;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -171,23 +173,50 @@ public class GameScreen extends UiScreen {
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
+    private static final float IMPACT_EFFECT_DURATION = 0.35f;
 
-    private static final class ExplodingPlantEffect {
+    private static final class TimedPamEffect {
         final String path;
         final String state;
         final boolean loop;
+        final boolean staticImage;
         final Position position;
+        final float duration;
+        final float scale;
         float time;
 
-        ExplodingPlantEffect(String path, String state, boolean loop, Position position) {
+        TimedPamEffect(String path, String state, boolean loop, boolean staticImage,
+                       Position position, float duration, float scale) {
             this.path = path;
             this.state = state;
             this.loop = loop;
+            this.staticImage = staticImage;
+            this.position = position;
+            this.duration = duration;
+            this.scale = scale;
+        }
+    }
+
+    // Last known state of every live projectile, so the frame a projectile disappears we still
+    // know who fired it and where it stopped and can play its registered impact art there.
+    private static final class ProjectileTrace {
+        final String plantName;
+        final boolean boosted;
+        final int variant;
+        final Position position;
+
+        ProjectileTrace(String plantName, boolean boosted, int variant, Position position) {
+            this.plantName = plantName;
+            this.boosted = boosted;
+            this.variant = variant;
             this.position = position;
         }
     }
 
-    private final List<ExplodingPlantEffect> explodingPlantEffects = new ArrayList<>();
+    private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
+    private final List<TimedPamEffect> impactEffects = new ArrayList<>();
+    private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
+    private final Map<String, Texture> staticEffectTextures = new HashMap<>();
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
@@ -1174,11 +1203,17 @@ public class GameScreen extends UiScreen {
         for (Plant plant : new ArrayList<>(session.getPlants())) {
             if (plant == null || plant.getPosition() == null) continue;
             boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(session, plant);
+            // One-shot plants (bombs, mints, Gold Bloom) hold a fuse in PREPPING before their
+            // payload resolves; that window exists so their own explode/intro clip can play,
+            // so it must run forward once instead of looping the idle clip.
+            boolean prepping = plant.getPlantState() == Plant.PlantState.PREPPING;
             float t = plantAnimTimes.getOrDefault(plant, 0f);
             if (!frozenInIce) {
                 t += delta;
-                float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
-                if (idleDuration > 0f) t %= idleDuration;
+                if (!prepping) {
+                    float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
+                    if (idleDuration > 0f) t %= idleDuration;
+                }
                 plantAnimTimes.put(plant, t);
             }
             Position p = visualPositionFor(plant);
@@ -1222,8 +1257,20 @@ public class GameScreen extends UiScreen {
 
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
-            String preferredState = attacking ? (attackIsBoosted ? "plantfood" : "attack") : "idle";
-            float animTime = attacking ? plantAttackAnimTimes.get(plant) : t;
+            String preferredState;
+            float animTime;
+            if (prepping) {
+                preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
+                        ? "intro"
+                        : resolveFuseClipState(plant.getName());
+                animTime = t;
+            } else if (attacking) {
+                preferredState = attackIsBoosted ? "plantfood" : "attack";
+                animTime = plantAttackAnimTimes.get(plant);
+            } else {
+                preferredState = "idle";
+                animTime = t;
+            }
 
             if (!drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, false)) {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
@@ -1263,6 +1310,11 @@ public class GameScreen extends UiScreen {
         plantAttackWindow.keySet().removeIf(p -> !session.getPlants().contains(p));
         plantAttackIsBoosted.keySet().removeIf(p -> !session.getPlants().contains(p));
     }
+    private String resolveFuseClipState(String displayName) {
+        String state = AnimationFactory.firstAvailableClipState(displayName, "explode", "attack");
+        return state == null ? "attack" : state;
+    }
+
     /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
     private float resolveClipDuration(String alias, String preferredState) {
         AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(alias);
@@ -1308,8 +1360,9 @@ public class GameScreen extends UiScreen {
 
             boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
             Position position = plant.getPosition();
-            explodingPlantEffects.add(
-                    new ExplodingPlantEffect(entry.path(), entry.state(), loop, position));
+            explodingPlantEffects.add(new TimedPamEffect(entry.path(), entry.state(), loop,
+                    entry.isStaticImage(), position, EXPLODING_PLANT_EFFECT_DURATION,
+                    PROJECTILE_PAM_SCALE));
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
         }
@@ -1327,16 +1380,70 @@ public class GameScreen extends UiScreen {
     }
 
     private void drawExplodingPlantEffects(float delta) {
-        if (explodingPlantEffects.isEmpty()) return;
-        for (ExplodingPlantEffect effect : explodingPlantEffects) {
+        drawTimedEffects(explodingPlantEffects, delta);
+        drawTimedEffects(impactEffects, delta);
+        drawPlantFoodEffects();
+    }
+
+   private void drawPlantFoodEffects() {
+        for (Plant plant : session.getPlants()) {
+            if (plant == null || !plant.isPlantFoodActive() || plant.getPosition() == null) continue;
+            List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
+                    plant.getName(), ProjectileEffectAssets.Kind.EFFECT,
+                    ProjectileEffectAssets.Variant.PLANT_FOOD);
+            if (entries.isEmpty()) continue;
+
+            float time = plantAnimTimes.getOrDefault(plant, 0f);
+            ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+            boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
+            int row = (int) plant.getPosition().y();
+            int fromCol = (int) plant.getPosition().x();
+            int toCol = entry.scope() == ProjectileEffectAssets.Scope.ROW
+                    ? session.getEnvironment().getCols() - 1 : fromCol;
+
+            for (int col = fromCol; col <= toCol; col++) {
+                float x = BOARD_X + col * boardTileWidth + boardTileWidth * 0.3f;
+                float y = cellY(row) + boardTileHeight * 0.3f;
+                if (entry.isStaticImage()) {
+                    drawStaticEffect(entry.path(), x, y, PROJECTILE_PAM_SCALE);
+                } else {
+                    drawPam(entry.path(), entry.state(), time, x, y, PROJECTILE_PAM_SCALE, loop);
+                }
+            }
+        }
+    }
+
+    private void drawTimedEffects(List<TimedPamEffect> effects, float delta) {
+        if (effects.isEmpty()) return;
+        for (TimedPamEffect effect : effects) {
             effect.time += delta;
             float x = BOARD_X + (float) effect.position.x() * boardTileWidth
                     + boardTileWidth * 0.3f;
             float y = cellY((int) effect.position.y()) + boardTileHeight * 0.3f;
-            drawPam(effect.path, effect.state, effect.time,
-                    x, y, PROJECTILE_PAM_SCALE, effect.loop);
+            if (effect.staticImage) {
+                drawStaticEffect(effect.path, x, y, effect.scale);
+            } else {
+                drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
+            }
         }
-        explodingPlantEffects.removeIf(e -> e.time > EXPLODING_PLANT_EFFECT_DURATION);
+        effects.removeIf(e -> e.time > e.duration);
+    }
+
+    private Texture staticEffectTexture(String path) {
+        if (path == null) return null;
+        if (staticEffectTextures.containsKey(path)) return staticEffectTextures.get(path);
+        Texture texture = loadOptionalTexture(path);
+        staticEffectTextures.put(path, texture);
+        return texture;
+    }
+
+    private boolean drawStaticEffect(String path, float x, float y, float scale) {
+        Texture texture = staticEffectTexture(path);
+        if (texture == null) return false;
+        float width = texture.getWidth() * scale;
+        float height = texture.getHeight() * scale;
+        batch.draw(texture, x - width * 0.5f, y - height * 0.5f, width, height);
+        return true;
     }
 
     /**
@@ -1478,6 +1585,13 @@ public class GameScreen extends UiScreen {
             if (zombie.isFromNecromancy()) {
                 zombieSpawnEffects.put(zombie, 0f);
                 zombie.setFromNecromancy(false);
+            }
+
+            // Hypno-shroom's registered overlay marks a zombie that now fights for the player;
+            // without it a hypnotised zombie is indistinguishable from a hostile one.
+            if (zombie.isHypnotized()) {
+                drawPam(HYPNO_ZOMBIE_EFFECT_PAM, "animation", t, x + 20f, zombieOffsetY,
+                        HYPNO_OVERLAY_SCALE, false);
             }
 
             if (zombieSpawnEffects.containsKey(zombie)) {
@@ -1664,27 +1778,63 @@ public class GameScreen extends UiScreen {
     }
 
     private static final float PROJECTILE_PAM_SCALE = 0.35f;
-    private static final float PROJECTILE_VOLLEY_STAGGER_SECONDS = 0.05f;
+    private static final float HYPNO_OVERLAY_SCALE = 0.55f;
+    private static final String HYPNO_ZOMBIE_EFFECT_PAM =
+            "768/INITIAL/EFFECTS/HYPNO_ZOMBIE_EFFECT/HYPNO_ZOMBIE_EFFECT.PAM";
+    private static final float STATIC_PROJECTILE_SCALE = 0.25f;
 
     private void drawProjectiles(float delta, float bw, float bh) {
-        Map<Plant, Integer> volleyIndex = new IdentityHashMap<>();
         for (Projectile projectile : session.getProjectiles()) {
-            boolean isNew = !projectileAnimTimes.containsKey(projectile);
-            float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
-            if (isNew) {
-                Plant source = projectile.getSourcePlant();
-                if (source != null) {
-                    int index = volleyIndex.merge(source, 1, Integer::sum) - 1;
-                    age += index * PROJECTILE_VOLLEY_STAGGER_SECONDS;
-                }
+            Plant source = projectile.getSourcePlant();
+            if (source != null && projectile.getPosition() != null) {
+                projectileTraces.put(projectile, new ProjectileTrace(source.getName(),
+                        source.isPlantFoodActive(), projectile.getAssetVariant(),
+                        projectile.getPosition()));
             }
+           if (!projectile.isVisible()) continue;
+            float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             projectileAnimTimes.put(projectile, age);
             if (!drawProjectilePam(projectile, age)) {
                 drawSmallDot(projectile.getPosition(), new Color(0.95f, 0.9f, 0.18f, 1f));
             }
         }
+        spawnImpactEffectsForSpentProjectiles();
         for (ZombieProjectile projectile : session.getZombieProjectiles()) drawSmallDot(projectile.getPosition(), new Color(0.8f, 0.18f, 0.18f, 1f));
         projectileAnimTimes.keySet().removeIf(p -> !session.getProjectiles().contains(p));
+        projectileTraces.keySet().removeIf(p -> !session.getProjectiles().contains(p));
+    }
+
+   private void spawnImpactEffectsForSpentProjectiles() {
+        if (projectileTraces.isEmpty()) return;
+        for (Map.Entry<Projectile, ProjectileTrace> tracked : projectileTraces.entrySet()) {
+            if (session.getProjectiles().contains(tracked.getKey())) continue;
+            ProjectileTrace trace = tracked.getValue();
+            if (trace.position == null || isOffBoard(trace.position)) continue;
+
+            ProjectileEffectAssets.AssetEntry entry = resolveImpactEntry(trace);
+            if (entry == null) continue;
+            impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
+                    entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
+                    entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
+                    PROJECTILE_PAM_SCALE));
+        }
+    }
+
+    private boolean isOffBoard(Position position) {
+        return position.x() < 0 || position.x() >= session.getEnvironment().getCols()
+                || position.y() < 0 || position.y() >= session.getEnvironment().getRows();
+    }
+
+    private ProjectileEffectAssets.AssetEntry resolveImpactEntry(ProjectileTrace trace) {
+        List<ProjectileEffectAssets.AssetEntry> entries = trace.boosted
+                ? ProjectileEffectAssets.get(trace.plantName, ProjectileEffectAssets.Kind.HIT,
+                        ProjectileEffectAssets.Variant.PLANT_FOOD)
+                : List.of();
+        if (entries.isEmpty()) {
+            entries = ProjectileEffectAssets.get(trace.plantName,
+                    ProjectileEffectAssets.Kind.HIT, ProjectileEffectAssets.Variant.NORMAL);
+        }
+        return entries.isEmpty() ? null : entries.get(Math.min(trace.variant, entries.size() - 1));
     }
 
     private boolean drawProjectilePam(Projectile projectile, float age) {
@@ -1703,13 +1853,17 @@ public class GameScreen extends UiScreen {
         }
         if (entries.isEmpty()) return false;
 
-        ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+        ProjectileEffectAssets.AssetEntry entry =
+                entries.get(Math.min(projectile.getAssetVariant(), entries.size() - 1));
         boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
 
         float x = BOARD_X + (float) position.x() * boardTileWidth + boardTileWidth * 0.41f;
         float y = cellY((int) position.y()) + boardTileHeight * 0.42f;
         float scaleFactor = 2.0f;
 
+        if (entry.isStaticImage()) {
+            return drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE);
+        }
         return drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE * scaleFactor, loop);
     }
 
@@ -1917,6 +2071,10 @@ public class GameScreen extends UiScreen {
         if (plantIceBlockTexture2 != null) plantIceBlockTexture2.dispose();
         if (plantIceBlockTexture3 != null) plantIceBlockTexture3.dispose();
         if (zombieIceBlockTexture != null) zombieIceBlockTexture.dispose();
+        for (Texture texture : staticEffectTextures.values()) {
+            if (texture != null) texture.dispose();
+        }
+        staticEffectTextures.clear();
         super.dispose();
     }
 

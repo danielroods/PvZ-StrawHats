@@ -35,6 +35,8 @@ public class PlantJsonParser {
         public int damage;
         public double recharge;
         public double abilityValue;
+        public double attackRange;
+        public double lifespan;
         public AbilityType abilityType;
         public PlantFoodType plantFoodType;
         public double plantFoodValue;

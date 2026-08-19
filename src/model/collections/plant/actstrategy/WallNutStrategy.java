@@ -45,7 +45,7 @@ public class WallNutStrategy implements ActStrategy {
                 .filter(zombie -> zombie != null && zombie.isAlive() && !zombie.isHypnotized()
                         && zombie.getPosition() != null
                         && Math.abs(zombie.getPosition().x() - user.getPosition().x()) <= ATTRACT_RANGE
-                        && Math.abs(zombie.getPosition().y() - user.getPosition().y()) == 1)
+                        && Math.abs(Math.abs(zombie.getPosition().y() - user.getPosition().y()) - 1) < 0.5)
                 .min(Comparator.comparingDouble(zombie -> zombie.getPosition().distanceTo(user.getPosition())))
                 .orElse(null);
         if (target == null) return;

@@ -45,6 +45,11 @@ public class TimedProjectileBurst implements PlantFoodEffect {
     }
 
     @Override
+    public boolean drivesActStrategy() {
+        return true;
+    }
+
+    @Override
     public void applyStatusModifiers(Plant plant) {
     }
 

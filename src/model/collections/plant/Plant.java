@@ -13,6 +13,7 @@ import service.GameClock;
 import view.GeneralPrinter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private PlantType type;
     private AbilityType abilityType;
     private Plant bottom;
-    private final int stackNumber = 1;
+    private int stackNumber = 1;
+    private int maxStackNumber = 1;
 
     private final ModifiableStat hpStat;
     private ModifiableStat actionIntervalStat;
@@ -38,6 +40,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     private double internalTimer = 0.0;
     private double abilityValue;
+    private double attackRange;
+    private double lifespanSeconds;
+    private double remainingLifeSeconds;
     private int chillLevel = 0;
     private GrowthTracker growthTracker;
     private double plantFoodTimer = 0.0;
@@ -52,6 +57,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     }
     private PlantState state = PlantState.ACTIVE;
     private final List<String> rawUpgrades = new ArrayList<>();
+    private final Map<String, Double> specialUpgrades = new HashMap<>();
     private List<Position> shootingVectors = new ArrayList<>();
 
     public Plant(String name, Position position, int HP) {
@@ -79,6 +85,15 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public void tick(double deltaTimeSeconds, GameSession session) {
         if (state == PlantState.INCAPACITATED) return;
 
+        if (lifespanSeconds > 0) {
+            remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
+            if (GameClock.isZero(remainingLifeSeconds)) {
+                setState(PlantState.DYING);
+                setAlive(false);
+                return;
+            }
+        }
+
         if (hpStat != null) hpStat.update((float) deltaTimeSeconds);
         if (actionIntervalStat != null) actionIntervalStat.update((float) deltaTimeSeconds);
         if (growthTracker != null) growthTracker.update(deltaTimeSeconds);
@@ -88,11 +103,14 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 plantFoodEffect.tickDurationEffect(this, deltaTimeSeconds);
             }
             plantFoodTimer = GameClock.countDown(plantFoodTimer, deltaTimeSeconds);
-            return;
+            if (plantFoodEffect == null || plantFoodEffect.drivesActStrategy()) return;
         }
 
         if (actStrategy == null) return;
         internalTimer = GameClock.countDown(internalTimer, deltaTimeSeconds);
+        if (state == PlantState.PREPPING && GameClock.isZero(internalTimer)) {
+            state = PlantState.ACTIVE;
+        }
 
         actStrategy.act(this, session);
     }
@@ -105,7 +123,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
             return;
         }
         if (dealer != null && name.equalsIgnoreCase("Endurian") && getDamage() > 0) {
-            int reflectDamage = isPlantFoodActive() ? getDamage() * 2 : getDamage();
+            int baseReflect = getDamage() + (int) getSpecialUpgrade("REFLECT_DAMAGE_BUFF", 0);
+            int reflectDamage = isPlantFoodActive() ? baseReflect * 2 : baseReflect;
             dealer.takeDamage(reflectDamage, this);
         }
         if (name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
@@ -161,6 +180,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public boolean activatePlant(GameSession session) {
         if (this.plantFoodEffect == null || this.plantFoodTimer > 0 || session == null || !isAlive()) return false;
         this.plantFoodEffect.reset();
+        if (this.growthTracker != null) this.growthTracker.skipToMaxStage();
+        for (Plant sibling : session.getPlants()) {
+            if (sibling != null && sibling.isAlive() && sibling.getId() == this.id
+                    && sibling.getLifespanSeconds() > 0) {
+                sibling.resetLifespan();
+            }
+        }
         this.plantFoodEffect.applyStatusModifiers(this);
         this.plantFoodEffect.triggerSuperpower(this, session);
         this.plantFoodTimer = Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
@@ -201,13 +227,45 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public Plant getBottom() { return bottom; }
     public void setBottom(Plant bottom) { this.bottom = bottom; }
     public ArrayList<PlantTag> getTags() { return tags; }
+    public int getStackNumber() { return stackNumber; }
+    public int getMaxStackNumber() { return maxStackNumber; }
+    public void setMaxStackNumber(int maxStackNumber) {
+        this.maxStackNumber = Math.max(1, maxStackNumber);
+        this.stackNumber = Math.min(this.stackNumber, this.maxStackNumber);
+    }
+    public boolean addStack() {
+        if (stackNumber >= maxStackNumber) return false;
+        stackNumber++;
+        return true;
+    }
     public List<String> getRawUpgrades() { return rawUpgrades; }
+    public void addSpecialUpgrade(String tag, double value) {
+        if (tag != null && !tag.isBlank()) specialUpgrades.merge(tag, value, Double::sum);
+    }
+    public boolean hasSpecialUpgrade(String tag) { return specialUpgrades.containsKey(tag); }
+    public double getSpecialUpgrade(String tag, double fallback) {
+        return specialUpgrades.getOrDefault(tag, fallback);
+    }
     public void setActStrategy(ActStrategy actStrategy) { this.actStrategy = actStrategy; }
     public ActStrategy getActStrategy() { return this.actStrategy; }
     public PlantFoodEffect getPlantFoodEffect() { return plantFoodEffect; }
     public void setPlantFoodEffect(PlantFoodEffect plantFoodEffect) { this.plantFoodEffect = plantFoodEffect; }
     public void setPlantFoodType(PlantFoodType plantFoodType) { this.plantFoodType = plantFoodType; }
     public void setAbilityValue(double value) { this.abilityValue = value; }
+    public double getAttackRange() { return attackRange; }
+    public void setAttackRange(double attackRange) { this.attackRange = Math.max(0, attackRange); }
+    public boolean isWithinAttackRange(Position target) {
+        if (attackRange <= 0 || target == null) return true;
+        Position origin = getPosition();
+        return origin != null && origin.distanceTo(target) <= attackRange;
+    }
+    public double getLifespanSeconds() { return lifespanSeconds; }
+    public void setLifespanSeconds(double lifespanSeconds) {
+        this.lifespanSeconds = Math.max(0, lifespanSeconds);
+        this.remainingLifeSeconds = this.lifespanSeconds;
+    }
+    public double getRemainingLifeSeconds() { return remainingLifeSeconds; }
+    public void resetLifespan() { this.remainingLifeSeconds = this.lifespanSeconds; }
     public double getAbilityValue() {
         if (growthTracker != null) {
             Double staged = growthTracker.getStageValue("abilityValue");
@@ -215,7 +273,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
         }
         return this.abilityValue;
     }
-    public void setWrampUp(List<Map<String, Object>> wrampUp) { this.growthTracker = (wrampUp != null && !wrampUp.isEmpty()) ? new GrowthTracker(wrampUp) : null; }
+    public void setWrampUp(List<Map<String, Object>> wrampUp) { setWrampUp(wrampUp, 0.0); }
+    public void setWrampUp(List<Map<String, Object>> wrampUp, double stageTimeShift) {
+        this.growthTracker = (wrampUp != null && !wrampUp.isEmpty())
+                ? new GrowthTracker(wrampUp, stageTimeShift) : null;
+    }
     public List<Position> getShootingVectors() { return shootingVectors; }
     public void setShootingVectors(List<Position> shootingVectors) { this.shootingVectors = shootingVectors; }
     public PlantArmour getArmor() { return armor; }

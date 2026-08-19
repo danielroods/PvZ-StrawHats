@@ -16,6 +16,7 @@ import java.util.Set;
 
 public class ExplodeStrategy implements ActStrategy {
     private static final double TRAP_ACTIVATION_RADIUS = 0.3;
+    private static final double BASE_FREEZE_SECONDS = 5.0;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -24,8 +25,9 @@ public class ExplodeStrategy implements ActStrategy {
         ArrayList<Zombie> targets;
         switch ((int) user.getAbilityValue()) {
             case 1 -> {
-                if (!actsWithoutTouch(user) && !isZombieTouch(user, session)) return;
-                targets = touchDetect(user, session);
+                if (actsWithoutTouch(user)) targets = new ArrayList<>();
+                else if (!isZombieTouch(user, session)) return;
+                else targets = touchDetect(user, session);
             }
             case 2 -> targets = areaDetect(user, session);
             case 3 -> targets = lineDetect(user, session);
@@ -100,6 +102,7 @@ public class ExplodeStrategy implements ActStrategy {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
             if (requireWater && !isOnWaterTile(zombie.getPosition(), session)) continue;
             double distance = zombie.getPosition().distanceTo(user.getPosition());
+            if (distance >= TRAP_ACTIVATION_RADIUS) continue;
             if (distance < shortest) {
                 shortest = distance;
                 firstTouch = zombie;
@@ -147,8 +150,12 @@ public class ExplodeStrategy implements ActStrategy {
         int damage = user.getDamage();
         for (Zombie zombie : targets) {
             if (zombie == null || !zombie.isAlive()) continue;
-            if (user.getTags().contains(PlantTag.ICE)) zombie.setStatus(Zombie.Status.FREEZE);
-            else if (user.getTags().contains(PlantTag.FIRE)) zombie.setStatus(Zombie.Status.FIRED);
+            if (user.getTags().contains(PlantTag.ICE)) {
+                zombie.applyStatus(Zombie.Status.FROZEN,
+                        BASE_FREEZE_SECONDS + user.getSpecialUpgrade("FREEZE_DURATION_EXT", 0));
+            } else if (user.getTags().contains(PlantTag.FIRE)) {
+                zombie.setStatus(Zombie.Status.FIRED);
+            }
             zombie.takeDamage(damage, user);
         }
     }

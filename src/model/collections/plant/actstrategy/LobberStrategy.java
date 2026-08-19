@@ -15,6 +15,9 @@ public class LobberStrategy implements ActStrategy {
     private static final double GRAVITY = 15.0;
     private static final double HORIZONTAL_SPEED = 4.0;
     private static final double MIN_DISTANCE_X = 0.1;
+    private static final double BOOSTED_BLIND_LOB_DISTANCE = 4.0;
+    private static final double BASE_BUTTER_CHANCE = 0.25;
+    private static final int BUTTER_ASSET_VARIANT = 1;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -22,12 +25,18 @@ public class LobberStrategy implements ActStrategy {
 
         Zombie target = findNearestInLane(user, session);
         Cell grave = target == null ? findNearestGraveInLane(user, session) : null;
-        if (target == null && grave == null) return;
+        boolean boosted = user.isPlantFoodActive();
+        if (target == null && grave == null && !boosted) return;
 
         Position startPos = user.getPosition();
-        Position targetPos = target != null
-                ? target.getPosition()
-                : new Position(grave.getCol(), grave.getRow());
+        Position targetPos;
+        if (target != null) {
+            targetPos = target.getPosition();
+        } else if (grave != null) {
+            targetPos = new Position(grave.getCol(), grave.getRow());
+        } else {
+            targetPos = new Position(startPos.x() + BOOSTED_BLIND_LOB_DISTANCE, startPos.y());
+        }
         if (targetPos == null) return;
 
         double distanceX = targetPos.x() - startPos.x();
@@ -40,24 +49,31 @@ public class LobberStrategy implements ActStrategy {
         Position initialVelocity = new Position(HORIZONTAL_SPEED, initialVelocityY);
         HitEffectStrategy hitEffect = buildHitEffect(user);
 
-        session.getProjectiles().add(new Projectile(user,
+        Projectile projectile = new Projectile(user,
                 startPos,
                 initialVelocity,
                 target,
                 user.getDamage(),
                 new ArcMove(GRAVITY),
                 hitEffect
-        ));
+        );
+        if (hitEffect instanceof ButterHit) projectile.setAssetVariant(BUTTER_ASSET_VARIANT);
+        session.getProjectiles().add(projectile);
 
         user.setInternalTimer(user.getActionInterval());
     }
 
     private HitEffectStrategy buildHitEffect(Plant user) {
         int areaLength = user.getTags().contains(PlantTag.AOE) ? 3 : 1;
-        if (user.getTags().contains(PlantTag.FIRE)) return new FireHit(areaLength);
-        if (user.getTags().contains(PlantTag.ICE)) return new IceHit(areaLength);
+        if (user.getTags().contains(PlantTag.FIRE)) return new FireHit(areaLength, 1.0);
+        if (user.getTags().contains(PlantTag.ICE)) {
+            return new IceHit(areaLength, 5.0 + user.getSpecialUpgrade("CHILL_DURATION_EXT", 0));
+        }
         if (user.getTags().contains(PlantTag.POISON)) return new PoisonHit(areaLength);
-        if (user.getName().equalsIgnoreCase("Kernel-pult") && Math.random() < 0.25) return new ButterHit(areaLength);
+        double butterChance = BASE_BUTTER_CHANCE + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
+        if (user.getName().equalsIgnoreCase("Kernel-pult") && Math.random() < butterChance) {
+            return new ButterHit(areaLength);
+        }
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         return new NormalHit(areaLength);
     }
