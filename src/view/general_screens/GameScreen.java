@@ -27,6 +27,7 @@ import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
 import model.collections.plant.AbilityType;
 import model.collections.plant.Plant;
+import model.collections.plant.PlantTag;
 import model.collections.plant.PlantType;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
@@ -231,6 +232,12 @@ public class GameScreen extends UiScreen {
     // triggered while the plant was plant-food-boosted, so it plays "plantfood" instead
     // of the normal "attack" clip - see drawPlants.
     private final Map<Plant, Boolean> plantAttackIsBoosted = new IdentityHashMap<>();
+    // Split Pea shoots both forward (right) and backward (left) in the same volley, but only
+    // toward sides that actually have a target in range. Its PAM has three attack clips for
+    // this - "attack" (right only), "attack3" (left only), "attack2" (both sides) - so the
+    // side(s) that fired are captured once when the fire event is detected and held here for
+    // the rest of the attack window, so the clip choice doesn't flicker mid-animation.
+    private final Map<Plant, String> plantAttackBaseState = new IdentityHashMap<>();
     private final Map<String, Float> clipTimes = new java.util.HashMap<>();
     private static final Map<String, String[]> SEASON_LAWN_MOWER_PAM_PATHS = new java.util.HashMap<>();
     static {
@@ -1211,7 +1218,7 @@ public class GameScreen extends UiScreen {
             if (!frozenInIce) {
                 t += delta;
                 if (!prepping) {
-                    float idleDuration = resolvePlantClipDuration(plant.getName(), "idle");
+                    float idleDuration = resolvePlantClipDuration(plant.getName(), plantStackState(plant, "idle"));
                     if (idleDuration > 0f) t %= idleDuration;
                 }
                 plantAnimTimes.put(plant, t);
@@ -1234,12 +1241,14 @@ public class GameScreen extends UiScreen {
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
             if (!frozenInIce && lastCooldown != null && cooldown > lastCooldown + 0.05) {
                 boolean boosted = plant.isPlantFoodActive();
-                String durationState = boosted ? "plantfood" : "attack";
+                String baseAttackState = resolveAttackBaseState(plant);
+                String durationState = boosted ? "plantfood" : baseAttackState;
                 float attackDuration = resolvePlantClipDuration(plant.getName(), durationState);
                 if (attackDuration <= 0f) attackDuration = DEFAULT_PLANT_ATTACK_DURATION;
                 plantAttackAnimTimes.put(plant, 0f);
                 plantAttackWindow.put(plant, attackDuration);
                 plantAttackIsBoosted.put(plant, boosted);
+                plantAttackBaseState.put(plant, baseAttackState);
             }
 
             Float attackTime = plantAttackAnimTimes.get(plant);
@@ -1250,6 +1259,7 @@ public class GameScreen extends UiScreen {
                     plantAttackAnimTimes.remove(plant);
                     plantAttackWindow.remove(plant);
                     plantAttackIsBoosted.remove(plant);
+                    plantAttackBaseState.remove(plant);
                 } else {
                     plantAttackAnimTimes.put(plant, attackTime);
                 }
@@ -1265,10 +1275,11 @@ public class GameScreen extends UiScreen {
                         : resolveFuseClipState(plant.getName());
                 animTime = t;
             } else if (attacking) {
-                preferredState = attackIsBoosted ? "plantfood" : "attack";
+                preferredState = attackIsBoosted ? "plantfood"
+                        : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
             } else {
-                preferredState = "idle";
+                preferredState = plantStackState(plant, "idle");
                 animTime = t;
             }
 
@@ -1309,7 +1320,85 @@ public class GameScreen extends UiScreen {
         plantAttackAnimTimes.keySet().removeIf(p -> !session.getPlants().contains(p));
         plantAttackWindow.keySet().removeIf(p -> !session.getPlants().contains(p));
         plantAttackIsBoosted.keySet().removeIf(p -> !session.getPlants().contains(p));
+        plantAttackBaseState.keySet().removeIf(p -> !session.getPlants().contains(p));
     }
+    /**
+     * Stackable plants (e.g. Pea Pod, tagged {@link PlantTag#STACK}) have a separate clip per
+     * number of peas: "idle"/"attack" for 1 pea, "idle2".."idle5"/"attack2".."attack5" for
+     * 2-5 peas. Appends the current stack count to {@code baseState} for those plants only;
+     * everything else keeps using the plain base state name.
+     */
+    private String plantStackState(Plant plant, String baseState) {
+        if (plant.getTags().contains(PlantTag.STACK)) {
+            int stackNumber = plant.getStackNumber();
+            if (stackNumber > 1) {
+                String separator = "attack".equals(baseState) ? " " : "";
+                return baseState + separator + stackNumber;
+            }
+        }
+        return baseState;
+    }
+
+    /**
+     * Picks the base "attack" clip name for a plant's just-fired volley. Every plant except
+     * Split Pea keeps using {@link #plantStackState}'s plain "attack" (or "attack2".."attack5"
+     * for STACK-tagged plants); Split Pea gets its own side-aware resolution since it can fire
+     * right, left, or both in the same volley - see {@link #splitPeaAttackBaseState}.
+     */
+    private String resolveAttackBaseState(Plant plant) {
+        if (plant != null && "Split Pea".equalsIgnoreCase(plant.getName())) {
+            return splitPeaAttackBaseState(plant);
+        }
+        return plantStackState(plant, "attack");
+    }
+
+    /**
+     * Split Pea shoots both forward (right, toward the zombies) and backward (left) in the
+     * same volley, but {@link model.collections.plant.actstrategy.ShootStrategy} only actually
+     * launches a projectile toward a side that has a target (zombie or grave) in range. Its
+     * PAM mirrors that with three clips: "attack" (right side only), "attack3" (left side
+     * only), "attack2" (both sides). This picks the matching clip by re-checking, purely for
+     * display, which side(s) have a target right now using the same same-row / in-range rule
+     * ShootStrategy.act() uses - it doesn't change what actually gets fired.
+     */
+    private String splitPeaAttackBaseState(Plant plant) {
+        boolean rightHasTarget = splitPeaSideHasTarget(plant, 1.0);
+        boolean leftHasTarget = splitPeaSideHasTarget(plant, -1.0);
+        if (rightHasTarget && leftHasTarget) return "attack2";
+        if (leftHasTarget) return "attack3";
+        return "attack";
+    }
+
+    /** Whether Split Pea has a zombie or grave target on the given side (dxSign > 0 = right, < 0 = left). */
+    private boolean splitPeaSideHasTarget(Plant plant, double dxSign) {
+        if (plant == null || session == null) return false;
+        Position origin = plant.getPosition();
+        if (origin == null) return false;
+
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            double relX = zp.x() - origin.x();
+            double relY = zp.y() - origin.y();
+            if (Math.abs(relY) >= 0.75 || Math.signum(relX) != Math.signum(dxSign)) continue;
+            if (plant.isWithinAttackRange(zp)) return true;
+        }
+
+        if (session.getEnvironment() != null) {
+            for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+                for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                    Cell cell = session.getEnvironment().getCell(row, col);
+                    if (cell == null || !(cell.getObstacle() instanceof model.pitches.obstacles.Grave)) continue;
+                    double relX = col - origin.x();
+                    double relY = row - origin.y();
+                    if (Math.abs(relY) >= 0.75 || Math.signum(relX) != Math.signum(dxSign)) continue;
+                    if (plant.isWithinAttackRange(new Position(col, row))) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private String resolveFuseClipState(String displayName) {
         String state = AnimationFactory.firstAvailableClipState(displayName, "explode", "attack");
         return state == null ? "attack" : state;
@@ -1385,7 +1474,7 @@ public class GameScreen extends UiScreen {
         drawPlantFoodEffects();
     }
 
-   private void drawPlantFoodEffects() {
+    private void drawPlantFoodEffects() {
         for (Plant plant : session.getPlants()) {
             if (plant == null || !plant.isPlantFoodActive() || plant.getPosition() == null) continue;
             List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
@@ -1487,7 +1576,7 @@ public class GameScreen extends UiScreen {
         BASIC_ZOMBIE_ARMOR_ELEMENTS_BY_CHAPTER.put("egypt", egypt);
     }
 
-        private String basicZombieArmorChapter() {
+    private String basicZombieArmorChapter() {
         String s = seasonFolder == null ? "" : seasonFolder.toLowerCase().trim();
         if (s.contains("egypt")) return "egypt";
         if (s.contains("beach")) return "beach";
@@ -1791,7 +1880,7 @@ public class GameScreen extends UiScreen {
                         source.isPlantFoodActive(), projectile.getAssetVariant(),
                         projectile.getPosition()));
             }
-           if (!projectile.isVisible()) continue;
+            if (!projectile.isVisible()) continue;
             float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             projectileAnimTimes.put(projectile, age);
             if (!drawProjectilePam(projectile, age)) {
@@ -1804,7 +1893,7 @@ public class GameScreen extends UiScreen {
         projectileTraces.keySet().removeIf(p -> !session.getProjectiles().contains(p));
     }
 
-   private void spawnImpactEffectsForSpentProjectiles() {
+    private void spawnImpactEffectsForSpentProjectiles() {
         if (projectileTraces.isEmpty()) return;
         for (Map.Entry<Projectile, ProjectileTrace> tracked : projectileTraces.entrySet()) {
             if (session.getProjectiles().contains(tracked.getKey())) continue;
@@ -1828,7 +1917,7 @@ public class GameScreen extends UiScreen {
     private ProjectileEffectAssets.AssetEntry resolveImpactEntry(ProjectileTrace trace) {
         List<ProjectileEffectAssets.AssetEntry> entries = trace.boosted
                 ? ProjectileEffectAssets.get(trace.plantName, ProjectileEffectAssets.Kind.HIT,
-                        ProjectileEffectAssets.Variant.PLANT_FOOD)
+                ProjectileEffectAssets.Variant.PLANT_FOOD)
                 : List.of();
         if (entries.isEmpty()) {
             entries = ProjectileEffectAssets.get(trace.plantName,
