@@ -29,6 +29,15 @@ public class Projectile extends Item {
     private final Set<Zombie> hitZombies = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     private int remainingHits = Integer.MIN_VALUE;
 
+    // =========================================================================
+    //  تنظیمات سرعت و تاخیر اعشاری (double)
+    // =========================================================================
+    private static double SPEED_MULTIPLIER = 1.0;
+
+    // اعمال تاخیر پیش‌فرض ۳.۹ برای تمام تیرها در لحظه تولد
+    private double spawnDelayTicks = 3.9;
+    // =========================================================================
+
     public Projectile(Position position, Position velocity, Zombie zombie, int damage, MoveStrategy moveStrategy, HitEffectStrategy hitEffectStrategy) {
         this(zombie, position, velocity, damage, moveStrategy, hitEffectStrategy);
     }
@@ -42,13 +51,52 @@ public class Projectile extends Item {
     public Projectile(Item target, Position position, Position velocity, int damage, MoveStrategy moveStrategy, HitEffectStrategy hitEffectStrategy) {
         super(position, 1);
         this.setPosition(position);
-        this.setSpeed(velocity);
+
+        // اعمال ضریب سرعت روی بردار velocity ورودی
+        Position scaledVelocity = scaleVelocity(velocity, SPEED_MULTIPLIER);
+        this.setSpeed(scaledVelocity);
+
         this.target = target;
         this.damage = damage;
         this.moveStrategy = moveStrategy;
         this.hitEffectStrategy = hitEffectStrategy;
         this.isStunning = false;
+
+        // تنظیم مجدد تاخیر ۳.۹ در سازنده برای اطمینان از اعمال شدن روی هر شیء جدید
+        this.spawnDelayTicks = 3.9;
     }
+
+    // --- متدهای تنظیم سرعت و تاخیر ---
+
+    public static void setGlobalSpeedMultiplier(double multiplier) {
+        SPEED_MULTIPLIER = multiplier;
+    }
+
+    public void setSpawnDelayTicks(double ticks) {
+        this.spawnDelayTicks = Math.max(0.0, ticks);
+    }
+
+    public double getSpawnDelayTicks() {
+        return spawnDelayTicks;
+    }
+
+    public boolean isSpawning() {
+        return spawnDelayTicks > 0;
+    }
+
+    /**
+     * آیا تیر قابل دیدن و رسم است؟
+     * تا زمانی که تاخیر تمام نشده تیر نباید رسم شود تا روی صفحه بی‌حرکت به نظر نرسد.
+     */
+    public boolean isVisible() {
+        return isAlive && spawnDelayTicks <= 0;
+    }
+
+    private static Position scaleVelocity(Position v, double factor) {
+        if (v == null) return null;
+        return new Position(v.x() * factor, v.y() * factor);
+    }
+    // ---------------------------------------------------
 
     public void setStunning(boolean isStunning) {
         this.isStunning = isStunning;
@@ -58,13 +106,23 @@ public class Projectile extends Item {
     public void tick() {
         if (!isAlive) return;
 
+        // ۱. اگر هنوز تاخیر تمام نشده، تاخیر را کم کن و از متد خارج شو (بدون تغییر سرعت)
+        if (spawnDelayTicks > 0) {
+            spawnDelayTicks -= 1.0;
+            return;
+        }
+
         Position previousPosition = getPosition();
         if (previousPosition == null) {
             setAlive(false);
             return;
         }
 
-        if (moveStrategy != null) moveStrategy.move(this);
+        // ۲. حرکت پیوسته بر اساس MoveStrategy
+        if (moveStrategy != null) {
+            moveStrategy.move(this);
+        }
+
         Position currentPosition = getPosition();
         if (currentPosition == null) {
             setAlive(false);

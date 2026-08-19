@@ -1708,8 +1708,9 @@ public class GameScreen extends UiScreen {
 
         float x = BOARD_X + (float) position.x() * boardTileWidth + boardTileWidth * 0.41f;
         float y = cellY((int) position.y()) + boardTileHeight * 0.42f;
+        float scaleFactor = 2.0f;
 
-        return drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE, loop);
+        return drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE * scaleFactor, loop);
     }
 
     private void drawSmallDot(Position p, Color color) {

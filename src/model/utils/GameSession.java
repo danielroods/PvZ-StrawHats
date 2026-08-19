@@ -196,7 +196,9 @@ public class GameSession {
         }
         for (int i = projectiles.size() - 1; i >= 0; i--) {
             Projectile projectile = projectiles.get(i);
-            if (projectile.isAlive()) projectile.tick();
+            if (projectile.isAlive()) {
+                projectile.tick();
+            }
         }
         for (int i = zombieProjectiles.size() - 1; i >= 0; i--) {
             ZombieProjectile zombieProjectile = zombieProjectiles.get(i);
@@ -1217,6 +1219,7 @@ public class GameSession {
             beachBigWaveActive = false;
             beachBigWaveTimer = 0.0;
             beachBigWaveIndex = -1;
+            Projectile.setGlobalSpeedMultiplier(0.60f);
             clock.reset();
             gameOver = false;
             gameWon = false;
