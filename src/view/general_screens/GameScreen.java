@@ -74,7 +74,7 @@ public class GameScreen extends UiScreen {
     protected static float BOARD_X = 190f;
     protected static float BOARD_Y = 170f;
 
-    private static final String ASSET_ROOT = "assets/images/chapters/";
+    protected  static final String ASSET_ROOT = "assets/images/chapters/";
 
     /**
      * Season folder key, e.g. "egypt", "frostbite_caves", "big_wave_beach", "dark_ages".

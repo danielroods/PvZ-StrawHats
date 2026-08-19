@@ -52,22 +52,25 @@ public class Vasebreaker extends MiniGameMode {
     }
 
     private void layoutVases() {
-        int vaseCount = 6 + (getDifficulty() - 1) * 4; // 6, 10, 14
-        int zombieVases = Math.max(1, getDifficulty());
-        int gargantuarVases = 1;
-        int plantVases = 2 + getDifficulty();
-
+        // Column 0 is reserved for planting (matches PvZ2's real Vasebreaker
+        // boards - a plant-only lane on the left, confirmed against real
+        // gameplay screenshots). How many of the remaining 8 columns actually
+        // get filled with vases scales with difficulty - easier levels use a
+        // narrower board, harder ones use the full width - same idea as real
+        // Vasebreaker levels growing in size later in the game.
         Environment env = session.getEnvironment();
         List<Position> spots = candidateSpots(env);
         Collections.shuffle(spots, RAND);
 
+        int vaseCount = spots.size(); // every cell in the difficulty-selected columns
+        int gargantuarVases = Math.max(1, getDifficulty() / 2);
+        int plantVases = 5 + getDifficulty() * 2;
+
         for (int index = 0; index < vaseCount; index++) {
             Position spot = spots.get(index);
-            if (index < zombieVases) {
-                vases.add(new ZombieVase(spot));
-            } else if (index < zombieVases + gargantuarVases) {
+            if (index < gargantuarVases) {
                 vases.add(new GargantuarVase(spot));
-            } else if (index < zombieVases + gargantuarVases + plantVases) {
+            } else if (index < gargantuarVases + plantVases) {
                 vases.add(new PlantVase(spot, randomPlantId()));
             } else {
                 vases.add(new RandomVase(spot, unlockedPlantIds, zombiePool.toArray(String[]::new)));
@@ -79,10 +82,28 @@ public class Vasebreaker extends MiniGameMode {
         return unlockedPlantIds[RAND.nextInt(unlockedPlantIds.length)];
     }
 
+    /** Number of vase columns (out of the 8 columns to the right of the
+     *  planting column) to fill, scaled by difficulty: 4 at difficulty 1,
+     *  6 at difficulty 2, all 8 at difficulty 3. */
+    private int filledColumnCountFor(int cols) {
+        int vaseColumns = cols - 1; // every column except the planting one
+        return switch (getDifficulty()) {
+            case 1 -> Math.min(vaseColumns, 4);
+            case 2 -> Math.min(vaseColumns, 6);
+            default -> vaseColumns;
+        };
+    }
+
+    /** Every cell EXCEPT column 0 (reserved for planting), restricted to the
+     *  first filledColumnCountFor() columns of the remaining board - the
+     *  columns closest to the planting lane fill in first, matching PvZ2's
+     *  real Vasebreaker boards where lower-difficulty levels use a narrower
+     *  vase area instead of the full width. */
     private List<Position> candidateSpots(Environment env) {
+        int filledColumns = filledColumnCountFor(env.getCols());
         List<Position> spots = new ArrayList<>();
         for (int row = 0; row < env.getRows(); row++) {
-            for (int col = 0; col < env.getCols(); col++) {
+            for (int col = 1; col <= filledColumns; col++) {
                 spots.add(new Position(col, row));
             }
         }
@@ -125,8 +146,7 @@ public class Vasebreaker extends MiniGameMode {
             }
         } else if (vase instanceof GargantuarVase) {
             log("A Gargantuar appeared at (" + (col + 1) + ", " + (row + 1) + ").");
-        } else if (vase instanceof ZombieVase
-                || (vase instanceof RandomVase random && random.getContent() == RandomVase.Content.ZOMBIE)) {
+        } else if (vase instanceof RandomVase random && random.getContent() == RandomVase.Content.ZOMBIE) {
             log("A zombie appeared at (" + (col + 1) + ", " + (row + 1) + ").");
         } else {
             log("The vase was empty.");
@@ -300,7 +320,7 @@ public class Vasebreaker extends MiniGameMode {
         for (int row = 0; row < rows; row++) {
             result.append(row + 1).append(" ").append(board[row]).append("\n");
         }
-        result.append("(?=normal vase, P=plant seed vase, Z=zombie vase, G=Gargantuar vase, ")
+        result.append("(?=normal vase, P=plant seed vase, G=Gargantuar vase, ")
                 .append("S=seed packet, .=empty)\n");
         result.append("Vases:\n");
         for (Vase vase : vases) {

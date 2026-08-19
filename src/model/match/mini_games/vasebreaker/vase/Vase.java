@@ -8,7 +8,6 @@ public abstract class Vase {
     public enum VaseType {
         NORMAL,
         PLANT_SEED,
-        ZOMBIE,
         GARGANTUAR
     }
 
@@ -27,7 +26,6 @@ public abstract class Vase {
     public String getDisplayName() {
         return switch (getVaseType()) {
             case PLANT_SEED -> "Plant seed vase";
-            case ZOMBIE -> "Zombie vase";
             case GARGANTUAR -> "Gargantuar vase";
             case NORMAL -> "Normal vase";
         };
@@ -36,7 +34,6 @@ public abstract class Vase {
     public char getMapSymbol() {
         return switch (getVaseType()) {
             case PLANT_SEED -> 'P';
-            case ZOMBIE -> 'Z';
             case GARGANTUAR -> 'G';
             case NORMAL -> '?';
         };
