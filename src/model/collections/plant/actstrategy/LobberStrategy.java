@@ -6,14 +6,16 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.Grave;
-import model.projectile.ArcMove;
+import model.projectile.MoveStrategy;
 import model.projectile.Projectile;
 import model.projectile.hit.*;
 import model.utils.GameSession;
+import service.GameClock;
+
+import java.util.List;
 
 public class LobberStrategy implements ActStrategy {
-    private static final double GRAVITY = 15.0;
-    private static final double HORIZONTAL_SPEED = 4.0;
+    private static final double HORIZONTAL_SPEED = 4.5;
     private static final double MIN_DISTANCE_X = 0.1;
     private static final double BOOSTED_BLIND_LOB_DISTANCE = 4.0;
     private static final double BASE_BUTTER_CHANCE = 0.25;
@@ -23,44 +25,101 @@ public class LobberStrategy implements ActStrategy {
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0) return;
 
+        boolean boosted = user.isPlantFoodActive();
+        Position startPos = user.getPosition();
+
+        if (boosted) {
+            List<Zombie> activeZombies = session.getZombies().stream()
+                    .filter(z -> z != null && z.isAlive())
+                    .toList();
+
+            if (!activeZombies.isEmpty()) {
+                for (Zombie z : activeZombies) {
+                    spawnLobbedProjectile(user, startPos, z.getPosition(), z, session);
+                }
+            } else {
+                for (int r = 0; r < session.getEnvironment().getRows(); r++) {
+                    Position dummyTarget = new Position(startPos.x() + BOOSTED_BLIND_LOB_DISTANCE, r);
+                    spawnLobbedProjectile(user, startPos, dummyTarget, null, session);
+                }
+            }
+            user.setInternalTimer(user.getActionInterval());
+            return;
+        }
+
         Zombie target = findNearestInLane(user, session);
         Cell grave = target == null ? findNearestGraveInLane(user, session) : null;
-        boolean boosted = user.isPlantFoodActive();
-        if (target == null && grave == null && !boosted) return;
+        if (target == null && grave == null) return;
 
-        Position startPos = user.getPosition();
         Position targetPos;
         if (target != null) {
             targetPos = target.getPosition();
-        } else if (grave != null) {
-            targetPos = new Position(grave.getCol(), grave.getRow());
         } else {
-            targetPos = new Position(startPos.x() + BOOSTED_BLIND_LOB_DISTANCE, startPos.y());
+            targetPos = new Position(grave.getCol(), grave.getRow());
         }
-        if (targetPos == null) return;
 
-        double distanceX = targetPos.x() - startPos.x();
-        if (distanceX < MIN_DISTANCE_X) return;
+        spawnLobbedProjectile(user, startPos, targetPos, target, session);
+        user.setInternalTimer(user.getActionInterval());
+    }
 
-        double distanceY = targetPos.y() - startPos.y();
-        double timeOfFlight = distanceX / HORIZONTAL_SPEED;
-        double initialVelocityY = (distanceY - 0.5 * GRAVITY * timeOfFlight * timeOfFlight) / timeOfFlight;
+    private void spawnLobbedProjectile(Plant user, Position startPos, Position rawTargetPos, Zombie targetZombie, GameSession session) {
+        double targetX = rawTargetPos.x();
+        double targetY = rawTargetPos.y();
+        double targetSpeedX = (targetZombie != null && targetZombie.getSpeed() != null) ? targetZombie.getSpeed().x() : 0.0;
 
-        Position initialVelocity = new Position(HORIZONTAL_SPEED, initialVelocityY);
+        double distanceX = targetX - startPos.x();
+        if (distanceX < MIN_DISTANCE_X) distanceX = MIN_DISTANCE_X;
+
+        double relativeSpeedX = HORIZONTAL_SPEED - targetSpeedX;
+        if (relativeSpeedX <= 0) relativeSpeedX = HORIZONTAL_SPEED;
+
+        double timeOfFlight = distanceX / relativeSpeedX;
+        final double predictedTargetX = startPos.x() + (HORIZONTAL_SPEED * timeOfFlight);
+        final double finalTargetY = targetY;
+
+        final double peakHeight = Math.max(1.2, Math.min(2.2, distanceX * 0.28));
+
         HitEffectStrategy hitEffect = buildHitEffect(user);
+
+        MoveStrategy smoothParabolaMove = new MoveStrategy() {
+            private double currentX = startPos.x();
+
+            @Override
+            public void move(Projectile projectile) {
+                double actualSpeedX = projectile.getSpeed().x();
+                if (actualSpeedX == 0) actualSpeedX = HORIZONTAL_SPEED;
+
+                currentX += actualSpeedX * GameClock.SECONDS_PER_TICK;
+
+                double totalDistX = predictedTargetX - startPos.x();
+                if (totalDistX <= MIN_DISTANCE_X) totalDistX = MIN_DISTANCE_X;
+
+                double progress = (currentX - startPos.x()) / totalDistX;
+                if (progress > 1.0) progress = 1.0;
+
+                double currentBaseY = startPos.y() + progress * (finalTargetY - startPos.y());
+
+                double arcOffset = -4.0 * peakHeight * progress * (1.0 - progress);
+
+                projectile.setPosition(new Position(currentX, currentBaseY + arcOffset));
+            }
+        };
 
         Projectile projectile = new Projectile(user,
                 startPos,
-                initialVelocity,
-                target,
+                new Position(HORIZONTAL_SPEED, 0.0),
+                targetZombie,
                 user.getDamage(),
-                new ArcMove(GRAVITY),
+                smoothParabolaMove,
                 hitEffect
         );
+
+        if (!user.isPlantFoodActive()) {
+            projectile.setLobberTargetOnly(true);
+        }
+
         if (hitEffect instanceof ButterHit) projectile.setAssetVariant(BUTTER_ASSET_VARIANT);
         session.getProjectiles().add(projectile);
-
-        user.setInternalTimer(user.getActionInterval());
     }
 
     private HitEffectStrategy buildHitEffect(Plant user) {
