@@ -5,8 +5,15 @@ import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
 public class BigNut extends Nut {
+    private static final double ROLL_SPEED = 1.05;
+
     public BigNut(Position position, Position direction) {
         super(position, direction);
+    }
+
+    @Override
+    public double getRollSpeed() {
+        return ROLL_SPEED;
     }
 
     @Override

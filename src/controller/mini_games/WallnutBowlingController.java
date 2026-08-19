@@ -27,6 +27,11 @@ public class WallnutBowlingController extends Menu {
 
     public WallnutBowling getGame() { return game; }
 
+    public void tick(double deltaSeconds) {
+        game.tick(deltaSeconds);
+        reportOutcome();
+    }
+
     @Override
     public String getName() {
         return "Wallnut Bowling Menu";
@@ -109,15 +114,20 @@ public class WallnutBowlingController extends Menu {
     }
 
     private void reportOutcome() {
+        if (App.currentMenu != this) return;
+        int difficulty = game.getDifficulty();
+        Runnable restart = () -> App.currentMenu =
+                new WallnutBowlingController(new WallnutBowling(difficulty));
+
         if (game.isWon()) {
             if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
             GeneralPrinter.print("All Wall-nut Bowling waves cleared. You win!");
             App.currentMenu = new MiniGameEndMenu("Wall-nut Bowling", true,
-                    "Every zombie wave was cleared.");
+                    "Every zombie wave was cleared.", restart);
         } else if (game.isLost()) {
             GeneralPrinter.print("A zombie reached the house. You lose!");
             App.currentMenu = new MiniGameEndMenu("Wall-nut Bowling", false,
-                    "A zombie reached the house.");
+                    "A zombie reached the house.", restart);
         }
     }
 

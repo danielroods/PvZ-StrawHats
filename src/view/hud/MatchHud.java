@@ -70,6 +70,7 @@ public final class MatchHud extends Table implements Disposable {
     private boolean shovelActive;
     private boolean foodActive;
     private PamPlayer pamPlayer;
+    private Table leftColumn;
 
     private static final class SlotView {
         final String name;
@@ -193,7 +194,7 @@ public final class MatchHud extends Table implements Disposable {
         conveyorBox.pad(4f);
         conveyorBox.setVisible(false);
 
-        Table leftColumn = new Table();
+        leftColumn = new Table();
         leftColumn.top();
         leftColumn.add(bankFrame).top().expand().fill().row();
         leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
@@ -449,6 +450,10 @@ public final class MatchHud extends Table implements Disposable {
     }
     public void setPamPlayer(PamPlayer pamPlayer) {
         this.pamPlayer = pamPlayer;
+    }
+
+    public void setLoadoutBankVisible(boolean visible) {
+        leftColumn.setVisible(visible);
     }
 
     private final class DifficultyMeterActor extends Actor {
