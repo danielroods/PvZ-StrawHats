@@ -130,8 +130,12 @@ public class BigWaveBeachGameScreen extends GameScreen {
         float bob = (float) Math.sin(waterAnimationTime * 2.4f) * 3f;
 
         batch.setColor(Color.WHITE);
-        drawPam(WATER_UPPER_PAM, "water", waterAnimationTime,
-                waterEdgeX, centerY + bob, WATER_SCALE, true);
+// hehe
+        for (int i = 0; i < 3; i++) {
+            drawPam(WATER_UPPER_PAM, "water", waterAnimationTime,
+                    waterEdgeX, centerY + bob, WATER_SCALE, true);
+        }
+
         batch.setColor(Color.WHITE);
     }
 
