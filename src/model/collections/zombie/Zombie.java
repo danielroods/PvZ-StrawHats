@@ -49,6 +49,14 @@ public class Zombie extends Item implements Attack {
     private List<String> damageWhileSubmerged;
     private List<String> damageWhileSubmergedPlantfoodOnly;
 
+    // Optional visual-only animation override (e.g. "toss", "push", "cast",
+    // "cast_loop", "reel") on top of the coarse WALKING/EATING/DEAD state.
+    // Does not affect gameplay logic, only what the renderer prefers to show.
+    private String actionAnimationState;
+    private double actionAnimationElapsed;
+    private double actionAnimationDuration;
+    private boolean actionAnimationLoop;
+
     public enum Status { NORMAL, FREEZE, FROZEN, FIRED, POISONED, BUTTER, HYPNOTIZED }
     private Status status = Status.NORMAL;
     private double statusTimer = 0;
@@ -229,6 +237,8 @@ public class Zombie extends Item implements Attack {
             return;
         }
 
+        updateActionAnimation(deltaTimeSeconds);
+
         ZombieFactory.respawnPushedStructureIfNeeded(this);
 
         if (zombieEffectStatus != null) {
@@ -255,6 +265,51 @@ public class Zombie extends Item implements Attack {
             }
         }
     }
+
+    private void updateActionAnimation(double deltaTimeSeconds) {
+        if (actionAnimationState == null) return;
+        actionAnimationElapsed += deltaTimeSeconds;
+        if (actionAnimationDuration > 0 && actionAnimationElapsed >= actionAnimationDuration) {
+            clearActionAnimationState();
+        }
+    }
+
+    /**
+     * Plays a one-off or looping visual-only animation state (e.g. "toss",
+     * "push", "cast", "cast_loop", "reel") on top of walk/eat/die.
+     *
+     * @param state    the animation clip name to prefer, or null to clear it.
+     * @param duration how long (seconds) to keep showing it before automatically
+     *                 reverting to the default walk/eat resolution; pass 0 (or
+     *                 less) for a state that should persist until explicitly
+     *                 cleared with {@link #clearActionAnimationState()}.
+     * @param loop     whether the clip should loop (e.g. a continuous "push"
+     *                 while shoving a structure) or play once and hold its
+     *                 last frame (e.g. a single "toss"/"cast"/"reel" beat).
+     */
+    public void setActionAnimationState(String state, double duration, boolean loop) {
+        if (state == null) {
+            clearActionAnimationState();
+            return;
+        }
+        if (!state.equals(actionAnimationState)) {
+            actionAnimationState = state;
+            actionAnimationElapsed = 0;
+        }
+        actionAnimationDuration = duration;
+        actionAnimationLoop = loop;
+    }
+
+    public void clearActionAnimationState() {
+        actionAnimationState = null;
+        actionAnimationElapsed = 0;
+        actionAnimationDuration = 0;
+        actionAnimationLoop = false;
+    }
+
+    public String getActionAnimationState() { return actionAnimationState; }
+    public double getActionAnimationElapsed() { return actionAnimationElapsed; }
+    public boolean isActionAnimationLoop() { return actionAnimationLoop; }
 
     public void move(double deltaTimeSeconds) {
         Position pos = getPosition();

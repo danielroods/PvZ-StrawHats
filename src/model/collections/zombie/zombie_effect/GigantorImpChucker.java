@@ -49,7 +49,8 @@ public class GigantorImpChucker implements ZombieEffectStatus {
         Position destination = new Position(correctedCol, trackRow);
 
         session.addZombieProjectile(new GargantuarImpProjectile(
-                origin, destination, airTravelDuration, projectileArcApex, trackRow, impCharacterAlias, session
+                origin, destination, airTravelDuration, projectileArcApex, trackRow,
+                impCharacterAlias, launcher.isFacingRight(), session
         ));
         view.GeneralPrinter.print("ZombieGargantuar threw an Imp to column " + (correctedCol + 1)
                 + " in lane " + (trackRow + 1) + ".");

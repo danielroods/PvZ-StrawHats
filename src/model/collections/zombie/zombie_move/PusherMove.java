@@ -23,6 +23,11 @@ public class PusherMove implements MoveBehavior {
         PushableStructure structure = zombie.getPushedStructure();
 
         if (structure != null && structure.isAlive()) {
+            // Continuous "push" beat for as long as the zombie is actively
+            // shoving a structure (arcade cabinet / barrel); duration 0 means
+            // it persists until cleared below rather than auto-expiring.
+            zombie.setActionAnimationState("push", 0, true);
+
             int row = (int) Math.round(pos.y());
             Position oldPosition = structure.getPosition();
             if (oldPosition == null || Math.abs(oldPosition.y() - row) > 0.5
@@ -52,6 +57,10 @@ public class PusherMove implements MoveBehavior {
                 if (oldCell != null && oldCell.getStructure() == structure) oldCell.setStructure(null);
             }
             session.registerStructure(structure);
+        } else if ("push".equals(zombie.getActionAnimationState())) {
+            // No structure left to push (destroyed or never assigned this tick);
+            // fall back to the zombie's normal walk/eat animation.
+            zombie.clearActionAnimationState();
         }
 
         Position nextZombiePosition = new Position(targetZombieX, pos.y());

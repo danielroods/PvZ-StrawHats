@@ -3,9 +3,11 @@ package view.general_screens;
 import com.badlogic.gdx.graphics.Color;
 
 import controller.assets.ProjectileEffectAssets;
+import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.plant.Plant;
 import model.match_mechanisms.vector.Position;
 import model.projectile.Projectile;
+import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 
 import java.util.ArrayList;
@@ -62,6 +64,7 @@ class EffectRenderer {
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
+    private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
 
     EffectRenderer(GameScreen screen) {
         this.screen = screen;
@@ -155,9 +158,33 @@ class EffectRenderer {
             }
         }
         spawnImpactEffectsForSpentProjectiles();
-        for (ZombieProjectile projectile : screen.session.getZombieProjectiles()) drawSmallDot(projectile.getPosition(), new Color(0.8f, 0.18f, 0.18f, 1f));
+        for (ZombieProjectile projectile : screen.session.getZombieProjectiles()) {
+            if (!drawZombieProjectilePam(projectile, delta)) {
+                drawSmallDot(projectile.getPosition(), new Color(0.8f, 0.18f, 0.18f, 1f));
+            }
+        }
         projectileAnimTimes.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
         projectileTraces.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
+        zombieProjectileAnimTimes.keySet().removeIf(p -> !screen.session.getZombieProjectiles().contains(p));
+    }
+
+    // While a Gargantuar-thrown imp is airborne it isn't a Zombie yet (it
+    // only spawns as one on landing), so it's rendered here directly using
+    // its own PAM in the "fly" animation state.
+    private boolean drawZombieProjectilePam(ZombieProjectile projectile, float delta) {
+        if (!(projectile instanceof GargantuarImpProjectile impProjectile)) return false;
+        Position position = projectile.getPosition();
+        if (position == null) return false;
+
+        String path = ZombieAnimationRegistry.pathFor(impProjectile.getImpAlias(), screen.seasonFolder);
+        if (path == null) return false;
+
+        float age = zombieProjectileAnimTimes.getOrDefault(projectile, 0f) + delta;
+        zombieProjectileAnimTimes.put(projectile, age);
+
+        float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth() - 10f;
+        float y = screen.cellY(position.y()) + 40f;
+        return screen.drawPam(path, "fly", age, x, y, 0.52f, impProjectile.isFacingRight());
     }
 
     private void spawnImpactEffectsForSpentProjectiles() {

@@ -9,6 +9,10 @@ import model.utils.GameSession;
 import service.GameClock;
 
 public class OctopusThrow implements ZombieEffectStatus {
+    // How long the octopus zombie holds its "toss" beat before reverting to
+    // its normal walk/eat animation.
+    private static final double TOSS_ANIMATION_DURATION = 0.8;
+
     private final double snareCooldown;
     private double intervalTracker;
 
@@ -44,6 +48,7 @@ public class OctopusThrow implements ZombieEffectStatus {
                 if (gridCell != null && gridCell.getPlant() != null && gridCell.getPlant().isAlive()) {
                     Position targetPosition = new Position(gridCell.getPlant().getLocation().x(), gridCell.getPlant().getLocation().y());
                     session.addZombieProjectile(new OctopusProjectile(originPos, targetPosition, 1.5, session));
+                    activeOctopus.setActionAnimationState("toss", TOSS_ANIMATION_DURATION, false);
                     return true;
                 }
             }
@@ -52,6 +57,7 @@ public class OctopusThrow implements ZombieEffectStatus {
                 if (threat.isAlive() && threat.getFaction() == Faction.ZOMBIES
                         && (int) threat.getPosition().y() == r && threat.getPosition().x() > colX) {
                     session.addZombieProjectile(new OctopusProjectile(originPos, threat.getPosition(), 1.5, session));
+                    activeOctopus.setActionAnimationState("toss", TOSS_ANIMATION_DURATION, false);
                     return true;
                 }
             }
