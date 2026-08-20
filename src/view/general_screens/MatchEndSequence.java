@@ -24,15 +24,23 @@ class MatchEndSequence {
     private static final float MATCH_END_SHADE_ALPHA = 0.55f;
     private static final String MATCH_WON_TITLE_PAM = "768/FULL/UI/JOUST/MATCH_RESULTS/YOU_WON_TEXT/YOU_WON_TEXT.PAM";
     private static final String MATCH_LOST_TITLE_PAM = "768/FULL/UI/JOUST/MATCH_RESULTS/YOU_LOST_TEXT/YOU_LOST_TEXT.PAM";
-    // Only this single named image inside each title PAM should ever be drawn - see drawPam's
-    // elementVisibility mask (same mechanism basicZombieArmorVisibility uses).
-    private static final String MATCH_WON_TITLE_IMAGE = "you_won_text_1950x442|IMAGE_UI_JOUST_MATCH_RESULTS_YOU_WON_TEXT_YOU_WON_TEXT_1950X442";
-    private static final String MATCH_LOST_TITLE_IMAGE = "you_lost_text_699x208|IMAGE_UI_JOUST_MATCH_RESULTS_YOU_LOST_TEXT_YOU_LOST_TEXT_699X208";
+    private static final String[] TITLE_LOCALES =
+            { "eng", "fre_fr", "ger_de", "ita_it", "por_br", "spa_es" };
     private static final Map<String, Boolean> MATCH_WON_TITLE_VISIBILITY =
-            java.util.Collections.singletonMap(MATCH_WON_TITLE_IMAGE, true);
+            titleVisibility("you_won_text_");
     private static final Map<String, Boolean> MATCH_LOST_TITLE_VISIBILITY =
-            java.util.Collections.singletonMap(MATCH_LOST_TITLE_IMAGE, true);
-    private static final float MATCH_END_TITLE_SCALE = 1f;
+            titleVisibility("you_lost_text_");
+    private static final float MATCH_END_TITLE_SCALE = 0.45f;
+    private static final float MATCH_END_TITLE_OFFSET_X = -466f;
+    private static final float MATCH_END_TITLE_OFFSET_Y = -201f;
+
+    private static Map<String, Boolean> titleVisibility(String prefix) {
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        for (String locale : TITLE_LOCALES) {
+            visibility.put(prefix + locale, "eng".equals(locale));
+        }
+        return visibility;
+    }
 
     private final GameScreen screen;
 
@@ -68,7 +76,7 @@ class MatchEndSequence {
      * once that has all played out does {@link #finishMatchEndSequence()} actually run the
      * "end game" command and hand off to the after-match menu.
      */
-    private void startMatchEndSequence(boolean won) {
+    void startMatchEndSequence(boolean won) {
         matchEndWon = won;
         matchEndPhase = MatchEndPhase.HOLD;
         matchEndPhaseTimer = 0f;
@@ -105,7 +113,7 @@ class MatchEndSequence {
     private void finishMatchEndSequence() {
         matchEndPhase = MatchEndPhase.NONE;
         screen.matchFinished = true;
-        screen.runCommand(matchEndWon ? "end game -r win" : "end game -r lose");
+        screen.onMatchEndSequenceFinished(matchEndWon);
         controller.ScreenManager.syncWithCurrentMenu();
     }
 
@@ -136,6 +144,7 @@ class MatchEndSequence {
         String state = introDone ? "loop" : "intro";
         float clipTime = introDone ? matchEndTitleAnimTime - introDuration : matchEndTitleAnimTime;
 
-        screen.drawPam(path, state, clipTime, viewW * 0.5f, viewH * 0.5f, MATCH_END_TITLE_SCALE, false, visibility);
+        screen.drawPam(path, state, clipTime, viewW * 0.5f + MATCH_END_TITLE_OFFSET_X,
+                viewH * 0.5f + MATCH_END_TITLE_OFFSET_Y, MATCH_END_TITLE_SCALE, false, visibility);
     }
 }

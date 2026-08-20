@@ -34,16 +34,17 @@ public class ZombieAnimationRegistry {
 
             Map.entry("ZombieArmor1", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieArmor2", "ZOMBIE_TUTORIAL"),
-            Map.entry("ZombieArmor4", "ZOMBIE_TUTORIAL")
+            Map.entry("ZombieArmor4", "ZOMBIE_TUTORIAL"),
+
+            Map.entry("ZombieDarkArmor3", "ZOMBIE_DARK_BASIC"),
+            Map.entry("ZombieDarkJuggler", "ZOMBIE_DARK_JESTER")
     );
 
     private static final Map<String, String> BEST_GUESS = Map.of(
             "ZombieWizard", "ZOMBIE_DARK_WIZARD"
     );
 
-    private static final java.util.Set<String> NOT_FOUND = java.util.Set.of(
-            "ZombieDarkArmor3", "ZombieDarkJuggler"
-    );
+    private static final java.util.Set<String> NOT_FOUND = java.util.Set.of();
 
     public static AnimationJsonParser.AnimationConfig resolve(String zombieAlias) {
         if (zombieAlias == null || NOT_FOUND.contains(zombieAlias)) return null;

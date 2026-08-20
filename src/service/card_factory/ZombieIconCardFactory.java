@@ -37,7 +37,9 @@ public class ZombieIconCardFactory implements Disposable {
             "pirate_barrel.png", "modern_allstar.png", "beach_fisherman.png", "dark_gargantuar.png",
             "dark_imp_dragon.png", "dino_gargantuar.png", "eighties_arcade.png", "beach_fem_armor1.png",
             "beach_fem_armor2.png", "beach_gargantuar.png", "egypt_gargantuar.png", "modern_newspaper.png",
-            "dark_flag_veteran.png", "iceage_troglobite.png", "lostcity_crystalskull.png"
+            "dark_flag_veteran.png", "iceage_troglobite.png", "lostcity_crystalskull.png",
+            "tutorial.png", "tutorial_armor1.png", "tutorial_armor2.png", "tutorial_armor4.png",
+            "tutorial_imp.png", "tutorial_gargantuar.png"
     };
 
     // Zombie.json alias (exact) -> icon file, for cases the automatic matching below
@@ -58,24 +60,14 @@ public class ZombieIconCardFactory implements Disposable {
         // File name doesn't separate the compound word the same way the alias does.
         ALIAS_ICON_OVERRIDES.put("ZombieModernAllStar", "modern_allstar.png");
         ALIAS_ICON_OVERRIDES.put("ZombieLostCityJane", "lostcity_jane.png");
-
-        // --- Best guesses below: no world is specified in these aliases, but every
-        // matching icon in this pack is a world-specific variant. Picked "dark_*"
-        // consistently as the stand-in since dark.png is the only unsuffixed file in
-        // the whole set (reads like it's meant as the generic/default one) - double
-        // check these three visually before relying on them.
-        ALIAS_ICON_OVERRIDES.put("ZombieDefault", "dark.png");
-        ALIAS_ICON_OVERRIDES.put("ZombieGargantuar", "dark_gargantuar.png");
-        ALIAS_ICON_OVERRIDES.put("ZombieImp", "dark_imp.png");
-
-        // ZombieArmor1/2/4 (Cone/Bucket/Brick) aren't tied to a world either, but
-        // "mummy_armor1/2/4.png" is the only trio that covers exactly 1, 2, and 4 -
-        // every other armor set here only goes up to armor2 (dark_armor1/2 also has a
-        // 3 = Knight, already claimed by ZombieDarkArmor3 below). Structural fit, not
-        // a thematic one - also worth a visual check.
-        ALIAS_ICON_OVERRIDES.put("ZombieArmor1", "mummy_armor1.png");
-        ALIAS_ICON_OVERRIDES.put("ZombieArmor2", "mummy_armor2.png");
-        ALIAS_ICON_OVERRIDES.put("ZombieArmor4", "mummy_armor4.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieDefault", "tutorial.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieGargantuar", "tutorial_gargantuar.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieImp", "tutorial_imp.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieArmor1", "tutorial_armor1.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieArmor2", "tutorial_armor2.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieArmor4", "tutorial_armor4.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieDarkArmor3", "dark_armor3.png");
+        ALIAS_ICON_OVERRIDES.put("ZombieDarkJuggler", "dark_juggler.png");
     }
 
     // Aliases confirmed to have no icon in zombies_ui at all - skip straight to the

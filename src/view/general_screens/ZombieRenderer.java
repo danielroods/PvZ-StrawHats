@@ -51,7 +51,7 @@ class ZombieRenderer {
 
     ZombieRenderer(GameScreen screen) {
         this.screen = screen;
-        this.armorMask = new ZombieArmorMask(screen);
+        this.armorMask = new ZombieArmorMask();
     }
 
     void drawZombies(float delta, float bw, float bh) {
@@ -137,7 +137,6 @@ class ZombieRenderer {
         }
         zombieAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieSpawnEffects.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
-        armorMask.pruneDeadZombies();
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {

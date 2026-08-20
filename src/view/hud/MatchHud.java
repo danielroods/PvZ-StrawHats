@@ -71,6 +71,11 @@ public final class MatchHud extends Table implements Disposable {
     private boolean foodActive;
     private PamPlayer pamPlayer;
     private Table leftColumn;
+    private Table rightArea;
+    private String objectiveOverride;
+    private String progressLabelOverride;
+    private Float progressValueOverride;
+    private boolean startButtonAvailable = true;
 
     private static final class SlotView {
         final String name;
@@ -200,7 +205,7 @@ public final class MatchHud extends Table implements Disposable {
         leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
         leftColumn.add(conveyorBox).top().padTop(8f);
 
-        Table rightArea = new Table();
+        rightArea = new Table();
         rightArea.add().expand().fill().row();
         rightArea.add(shovelButton).size(64, 64).bottom().right().pad(10f);
 
@@ -276,10 +281,17 @@ public final class MatchHud extends Table implements Disposable {
         coinLabel.setText(String.valueOf(coins));
         int spawned = session.getWavesSpawnedCount();
         int total = Math.max(1, session.getTotalWaveCount());
-        waveLabel.setText("WAVES " + spawned + "/" + total);
-        waveProgressBar.setValue(Math.min(1f, spawned / (float) total));
-        objectiveLabel.setText(objectiveFor(session.getLevel()));
-        startButton.setVisible(!session.isWavesStarted() && !(session.getLevel() instanceof ConveyorBeltLevel));
+        if (progressLabelOverride != null) {
+            waveLabel.setText(progressLabelOverride);
+            waveProgressBar.setValue(progressValueOverride == null ? 0f : progressValueOverride);
+        } else {
+            waveLabel.setText("WAVES " + spawned + "/" + total);
+            waveProgressBar.setValue(Math.min(1f, spawned / (float) total));
+        }
+        objectiveLabel.setText(objectiveOverride != null
+                ? objectiveOverride : objectiveFor(session.getLevel()));
+        startButton.setVisible(startButtonAvailable && !session.isWavesStarted()
+                && !(session.getLevel() instanceof ConveyorBeltLevel));
         shovelButton.setChecked(shovelActive);
         foodButton.setChecked(foodActive);
         foodButton.setDisabled(session.getPlantFoodCount() <= 0);
@@ -454,6 +466,23 @@ public final class MatchHud extends Table implements Disposable {
 
     public void setLoadoutBankVisible(boolean visible) {
         leftColumn.setVisible(visible);
+    }
+
+    public void setShovelVisible(boolean visible) {
+        if (rightArea != null) rightArea.setVisible(visible);
+    }
+
+    public void setStartButtonAvailable(boolean available) {
+        this.startButtonAvailable = available;
+    }
+
+    public void setObjectiveOverride(String objective) {
+        this.objectiveOverride = objective;
+    }
+
+    public void setProgressOverride(String label, float value) {
+        this.progressLabelOverride = label;
+        this.progressValueOverride = label == null ? null : value;
     }
 
     private final class DifficultyMeterActor extends Actor {

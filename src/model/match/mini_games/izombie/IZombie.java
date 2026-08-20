@@ -1,6 +1,9 @@
 package model.match.mini_games.izombie;
 
+import model.collections.Item;
 import model.collections.item.GroundItem;
+import model.collections.item.GroundPlantFood;
+import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
 import model.collections.zombie.Zombie;
@@ -12,202 +15,237 @@ import model.pitches.Environment;
 import model.utils.GameSession;
 import view.GeneralPrinter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class IZombie extends MiniGameMode {
-    private static final int STARTING_SUN = 150;
-    private static final String SUN_ZOMBIE_ALIAS = "ZombieArmor2"; // bucket-tier toughness
-    private static final int SUN_PER_PRODUCTION = 25;
-    private static final double INITIAL_PRODUCTION_INTERVAL = 10.0;
-    private static final double MIN_PRODUCTION_INTERVAL = 2.0;
-    private static final double PRODUCTION_ACCELERATION = 0.08;
-    private static final int REDLINE_COLUMN = 6; // red line is shown after 1-based column 7
-    private static final Random RAND = new Random();
-    private static final int[] DEFENDER_PLANTS = {1, 6, 44, 23, 30, 25};
 
-    // Exactly five purchasable zombies per level.
-    private static final Map<Integer, Map<String, Integer>> ROSTERS = buildRosters();
+    private static final int ROWS = 5;
+    private static final int COLS = 9;
+    private static final int BRAIN_COLUMN = 0;
+    private static final int REDLINE_COLUMN = 5;
+    private static final int DEFENDER_FIRST_COLUMN = 1;
+    private static final double ESCAPE_COLUMN = -1.2;
+
+    /// The player owns the zombies here, so the profile-wide difficulty setting would
+    /// scale the player's own units instead of the opposition. Every I, Zombie board is
+    /// balanced against this one fixed zombie stat tier; the level number is the
+    /// difficulty knob.
+    private static final int ZOMBIE_STAT_TIER = 3;
+
+    private static final Map<Integer, Integer> SUN_BUDGET = Map.of(1, 3000, 2, 4000, 3, 4500);
+
+    private static final Map<Character, Integer> LAYOUT_PLANT_IDS = buildLayoutPlantIds();
+    private static final Map<Integer, String[]> LAYOUTS = buildLayouts();
+    private static final Map<Integer, List<ZombiePacket>> ROSTERS = buildRosters();
 
     private final GameSession session;
-    private final Brain[] brains;
-    private final Map<String, Integer> roster;
-    private final List<Zombie> sunZombies;
-    private final Set<Zombie> playerZombies =
-            Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Map<Zombie, Double> sunProductionTimers =
-            new IdentityHashMap<>();
+    private final Brain[] brains = new Brain[ROWS];
+    private final List<ZombiePacket> roster;
+    private final Set<Zombie> playerZombies = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<String> eventLog = new ArrayList<>();
+
+    private final int startingSun;
+    private int brainsEaten;
+    private int zombiesPlaced;
+    private int zombiesLost;
     private double elapsedSeconds;
+    private boolean won;
+    private boolean lost;
 
     public IZombie(int difficulty) {
         setDifficulty(difficulty);
-        this.session = new GameSession(5, 9);
+        this.session = new GameSession(ROWS, COLS);
         configureSession(session);
+        session.setDifficultyLevel(ZOMBIE_STAT_TIER);
         session.setSkySunEnabled(false);
         session.setZombieBreachesEnabled(false);
-        session.addSun(STARTING_SUN);
-        this.roster = ROSTERS.get(getDifficulty());
-        this.brains = new Brain[session.getEnvironment().getRows()];
-        for (int row = 0; row < brains.length; row++) {
-            brains[row] = new Brain(new Position(0, row));
-        }
+        this.startingSun = SUN_BUDGET.getOrDefault(getDifficulty(), 1500);
+        session.addSun(startingSun);
+        this.roster = ROSTERS.getOrDefault(getDifficulty(), ROSTERS.get(1)).stream()
+                .map(packet -> new ZombiePacket(packet.getAlias(), packet.getDisplayName(),
+                        packet.getCost(), packet.getRecharge()))
+                .collect(Collectors.toList());
         seedDefendingPlants();
-        this.sunZombies = spawnSunZombies();
-        log("I, Zombie level " + getDifficulty()
-                + " started with " + STARTING_SUN + " sun.");
+        placeBrains();
+        log("I, Zombie level " + getDifficulty() + " started with " + startingSun + " sun.");
+        log("Eat all " + ROWS + " brains to win.");
     }
 
-    /// Place two or three real plants in the first three columns of every
     private void seedDefendingPlants() {
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            List<Integer> columns = new ArrayList<>(List.of(0, 1, 2));
-            Collections.shuffle(columns, RAND);
-            int count = 2 + RAND.nextInt(2);
-            for (int i = 0; i < count; i++) {
-                int col = columns.get(i);
-                int plantId = DEFENDER_PLANTS[RAND.nextInt(DEFENDER_PLANTS.length)];
+        String[] layout = LAYOUTS.getOrDefault(getDifficulty(), LAYOUTS.get(1));
+        for (int row = 0; row < ROWS && row < layout.length; row++) {
+            String line = layout[row];
+            for (int i = 0; i < line.length(); i++) {
+                Integer plantId = LAYOUT_PLANT_IDS.get(line.charAt(i));
+                if (plantId == null) continue;
+                int col = DEFENDER_FIRST_COLUMN + i;
+                if (col <= BRAIN_COLUMN || col > REDLINE_COLUMN) continue;
                 Plant plant = PlantFactory.createPlant(plantId, 1, new Position(col, row));
                 session.plantAt(row, col, plant);
             }
         }
-        log("Defending plants were generated in columns 1-3, left of the red line.");
+        log("The lawn is defended by " + session.getPlants().size() + " plants.");
     }
 
-    private List<Zombie> spawnSunZombies() {
-        return IntStream.range(0, session.getEnvironment().getRows())
-                .mapToObj(row -> {
-                    Zombie zombie = ZombieFactory.create(SUN_ZOMBIE_ALIAS, row, REDLINE_COLUMN + 1);
-                    zombie.setPosition(new Position(REDLINE_COLUMN + 1, row));
-                    zombie.setSpeed(Position.ShowZero());
-                    session.spawnZombie(zombie);
-                    sunProductionTimers.put(zombie, INITIAL_PRODUCTION_INTERVAL);
-                    return zombie;
-                })
-                .collect(Collectors.toList());
+    private void placeBrains() {
+        for (int row = 0; row < ROWS; row++) {
+            brains[row] = new Brain(new Position(BRAIN_COLUMN, row));
+            Cell cell = session.getEnvironment().getCell(row, BRAIN_COLUMN);
+            if (cell != null) cell.setObstacle(brains[row]);
+        }
     }
 
     public boolean placeZombie(String alias, int row) {
-        return placeZombie(alias, row, REDLINE_COLUMN + 1);
+        return placeZombie(alias, row, COLS - 1);
     }
 
     public boolean placeZombie(String alias, int row, int col) {
-        if (row < 0 || row >= brains.length || alias == null) return false;
-        if (col <= REDLINE_COLUMN || col >= session.getCols()) return false;
-        String selectedAlias = findRosterAlias(alias);
-        if (selectedAlias == null) return false;
+        if (won || lost) return false;
+        if (row < 0 || row >= ROWS || alias == null) return false;
+        if (col <= REDLINE_COLUMN || col >= COLS) return false;
 
-        int cost = roster.get(selectedAlias);
-        if (!session.spendSun(cost)) return false;
+        ZombiePacket packet = findPacket(alias);
+        if (packet == null || !packet.isReady()) return false;
+        if (!session.spendSun(packet.getCost())) return false;
 
-        Zombie zombie = ZombieFactory.create(selectedAlias, row, col);
+        Zombie zombie = ZombieFactory.create(packet.getAlias(), row, col);
         zombie.setPosition(new Position(col, row));
         session.spawnZombie(zombie);
         playerZombies.add(zombie);
-        log("Placed " + selectedAlias + " in lane " + (row + 1)
-                + " at column " + (col + 1) + " for " + cost
-                + " sun. Sun left: " + session.getSunCount() + ".");
+        packet.startCooldown();
+        zombiesPlaced++;
+        log(packet.getDisplayName() + " placed in lane " + (row + 1) + " at column "
+                + (col + 1) + " for " + packet.getCost() + " sun. Sun left: "
+                + session.getSunCount() + ".");
         return true;
     }
 
-    private String findRosterAlias(String alias) {
-        if (SUN_ZOMBIE_ALIAS.equalsIgnoreCase(alias.trim())) return null;
-        return roster.keySet().stream()
-                .filter(candidate -> candidate.equalsIgnoreCase(alias.trim()))
-                .findFirst().orElse(null);
+    public ZombiePacket findPacket(String alias) {
+        if (alias == null) return null;
+        String needle = alias.trim();
+        for (ZombiePacket packet : roster) {
+            if (packet.getAlias().equalsIgnoreCase(needle)
+                    || packet.getDisplayName().equalsIgnoreCase(needle)
+                    || packet.getDisplayName().replace(" ", "").equalsIgnoreCase(needle)) {
+                return packet;
+            }
+        }
+        return null;
     }
 
     public void tick(double deltaSeconds) {
-        if (isWon() || isLost()) return;
+        if (won || lost) return;
         double safeDelta = Math.max(0, deltaSeconds);
         elapsedSeconds += safeDelta;
+        for (ZombiePacket packet : roster) {
+            packet.tick(safeDelta);
+        }
         session.tick();
-        detectSunZombieDeaths();
-        generateSunFromSunZombies(safeDelta);
-        checkBrainsEaten();
+        discardPlantSideDrops();
+        resolveBrains();
+        despawnEscapedZombies();
+        trackLostZombies();
+        evaluateOutcome();
     }
 
-    private void detectSunZombieDeaths() {
-        for (Zombie zombie : sunZombies) {
-            if (!zombie.isAlive() && sunProductionTimers.containsKey(zombie)) {
-                sunProductionTimers.remove(zombie);
-                log("The Sun Producer Zombie in lane "
-                        + (zombie.getPosition() == null
-                        ? "unknown" : ((int) zombie.getPosition().y() + 1))
-                        + " was killed. It will never return.");
-            }
+    private void discardPlantSideDrops() {
+        List<Item> items = session.getItems();
+        items.removeIf(item -> item instanceof GroundSun || item instanceof GroundPlantFood);
+    }
+
+    private void resolveBrains() {
+        for (int row = 0; row < ROWS; row++) {
+            Brain brain = brains[row];
+            if (brain == null || brain.isEaten()) continue;
+            if (brain.getHP() > 0) continue;
+
+            brain.markEaten();
+            brainsEaten++;
+            Cell cell = session.getEnvironment().getCell(row, BRAIN_COLUMN);
+            if (cell != null && cell.getObstacle() == brain) cell.setObstacle(null);
+            log("A brain was eaten in lane " + (row + 1) + ". Brains left: "
+                    + (ROWS - brainsEaten) + ".");
         }
     }
 
-    private void generateSunFromSunZombies(double deltaSeconds) {
-        double interval = currentProductionInterval();
-        for (Zombie zombie : sunZombies) {
-            if (!zombie.isAlive()) continue;
-            double remaining = sunProductionTimers.getOrDefault(zombie, interval) - deltaSeconds;
-            if (remaining <= 1e-9) {
-                session.addSun(SUN_PER_PRODUCTION);
-                log("Sun Producer Zombie in lane "
-                        + ((int) zombie.getPosition().y() + 1)
-                        + " generated " + SUN_PER_PRODUCTION + " sun. Total: "
-                        + session.getSunCount() + " (rate interval "
-                        + String.format("%.1fs", interval) + ").");
-                remaining += interval;
-            }
-            sunProductionTimers.put(zombie, remaining);
-        }
-    }
-
-    private double currentProductionInterval() {
-        return Math.max(MIN_PRODUCTION_INTERVAL,
-                INITIAL_PRODUCTION_INTERVAL - PRODUCTION_ACCELERATION * elapsedSeconds);
-    }
-
-    private void checkBrainsEaten() {
+    private void despawnEscapedZombies() {
         for (Zombie zombie : new ArrayList<>(session.getZombies())) {
-            if (!zombie.isAlive() || zombie.getPosition() == null
-                    || zombie.getPosition().x() > 0) continue;
-
-            int row = (int) Math.round(zombie.getPosition().y());
-            if (row >= 0 && row < brains.length) {
-                if (!brains[row].isEaten()) {
-                    brains[row].markEaten();
-                    log(zombie.getName() + " ate the brain in lane " + (row + 1) + ".");
-                }
-                // second zombie reaching an eaten brain remain stranded outside the lawn.
-                zombie.setHp(0);
+            if (zombie.getPosition() == null) continue;
+            if (zombie.getPosition().x() <= ESCAPE_COLUMN) {
+                playerZombies.remove(zombie);
+                session.getZombies().remove(zombie);
             }
         }
-        if (isWon()) {
-            log("All five brains were eaten. I, Zombie is won.");
+    }
+
+    private void trackLostZombies() {
+        for (Zombie zombie : new ArrayList<>(playerZombies)) {
+            if (!zombie.isAlive() || !session.getZombies().contains(zombie)) {
+                playerZombies.remove(zombie);
+                if (!zombie.isAlive()) zombiesLost++;
+            }
         }
     }
 
-    public boolean isWon() {
-        for (Brain brain : brains) {
-            if (!brain.isEaten()) return false;
+    private void evaluateOutcome() {
+        if (brainsEaten >= ROWS) {
+            won = true;
+            log("All " + ROWS + " brains were eaten. I, Zombie is won.");
+            return;
         }
-        return true;
+        if (!playerZombies.isEmpty()) return;
+        if (session.getZombies().stream().anyMatch(Zombie::isAlive)) return;
+        int cheapest = cheapestCost();
+        if (cheapest <= session.getSunCount()) return;
+        lost = true;
+        log("No zombies left on the lawn and only " + session.getSunCount()
+                + " sun - not enough for the cheapest zombie (" + cheapest + ").");
     }
 
-    public boolean isLost() {
-        if (isWon()) return false;
-        boolean anyPlayerZombieAlive = playerZombies.stream().anyMatch(Zombie::isAlive);
-        boolean canAffordAnything = roster.values().stream()
-                .anyMatch(cost -> cost <= session.getSunCount());
-        return !anyPlayerZombieAlive && !canAffordAnything;
+    private int cheapestCost() {
+        return roster.stream().mapToInt(ZombiePacket::getCost).min().orElse(Integer.MAX_VALUE);
     }
 
-    public Map<String, Integer> getRoster() { return roster; }
+    public boolean isWon() { return won; }
+
+    public boolean isLost() { return lost; }
+
+    public boolean isFinished() { return won || lost; }
+
+    public List<ZombiePacket> getRoster() { return Collections.unmodifiableList(roster); }
+
     public Brain[] getBrains() { return brains; }
-    public GameSession getSession() { return session; }
-    public List<Zombie> getSunZombies() { return List.copyOf(sunZombies); }
-    public int getRedLineColumn() { return REDLINE_COLUMN; }
-    public double getSunProductionInterval() { return currentProductionInterval(); }
 
-    public boolean isSunProducer(Zombie zombie) {
-        return sunZombies.stream().anyMatch(candidate -> candidate == zombie);
+    public Brain getBrain(int row) {
+        return row >= 0 && row < brains.length ? brains[row] : null;
     }
+
+    public GameSession getSession() { return session; }
+
+    public int getRedLineColumn() { return REDLINE_COLUMN; }
+
+    public int getBrainColumn() { return BRAIN_COLUMN; }
+
+    public int getBrainsEaten() { return brainsEaten; }
+
+    public int getBrainCount() { return ROWS; }
+
+    public int getStartingSun() { return startingSun; }
+
+    public int getZombiesPlaced() { return zombiesPlaced; }
+
+    public int getZombiesLost() { return zombiesLost; }
+
+    public double getElapsedSeconds() { return elapsedSeconds; }
+
+    public boolean isPlayerZombie(Zombie zombie) { return playerZombies.contains(zombie); }
 
     public List<GroundItem> collectItemsAt(int x, int y) {
         return session.collectItemsNear(new Position(x, y));
@@ -224,7 +262,6 @@ public class IZombie extends MiniGameMode {
     }
 
     public String renderDefendingPlants() {
-        if (session.getPlants().isEmpty()) return "no defending plants";
         return renderPlants();
     }
 
@@ -232,40 +269,40 @@ public class IZombie extends MiniGameMode {
         return renderZombies();
     }
 
+    public String renderRoster() {
+        return roster.stream()
+                .map(packet -> packet.getDisplayName() + " [" + packet.getAlias() + "] "
+                        + packet.getCost() + " sun"
+                        + (packet.isReady() ? "" : String.format(" (recharging %.1fs)",
+                        packet.getCooldown())))
+                .collect(Collectors.joining("\n  "));
+    }
+
     public String renderState() {
         StringBuilder result = new StringBuilder(getStageDetails())
                 .append(" | Sun: ").append(session.getSunCount())
+                .append(" | Brains left: ").append(ROWS - brainsEaten).append("/").append(ROWS)
                 .append(" | Red line after column ").append(REDLINE_COLUMN + 1)
-                .append("\nAvailable zombies (cost): ").append(roster)
-                .append("\nBrains:");
-        for (int row = 0; row < brains.length; row++) {
-            result.append(" lane ").append(row + 1).append("=")
-                    .append(brains[row].isEaten() ? "eaten" : "safe");
-        }
-        result.append("\nLawn (| = red line):\n");
+                .append("\nAvailable zombies:\n  ").append(renderRoster())
+                .append("\nLawn (| = red line, zombies are placed to its right):\n");
         Environment env = session.getEnvironment();
         for (int row = 0; row < env.getRows(); row++) {
-            char brainSymbol = brains[row].isEaten() ? '-' : 'B';
-            result.append(row + 1).append(" ").append(brainSymbol).append(" ");
-
+            result.append(row + 1).append(" ");
             for (int col = 0; col < env.getCols(); col++) {
                 if (col == REDLINE_COLUMN + 1) result.append("| ");
                 result.append(symbolAt(row, col)).append(" ");
             }
             result.append("\n");
         }
-        result.append("Legend: B=brain, P=plant, Z=playable zombie, S=Sun Producer Zombie\n");
+        result.append("Legend: B=brain, -=eaten brain, P=plant, Z=your zombie, .=empty\n");
         result.append("Plants:\n  ").append(renderPlants().replace("\n", "\n  "));
         result.append("\nZombies:\n  ").append(renderZombies().replace("\n", "\n  "));
         String groundItems = renderGroundItems();
         if (!groundItems.isBlank()) {
             result.append("\nGround items:\n  ").append(groundItems.replace("\n", "\n  "));
         }
-        result.append("\nSun Producer rate interval: ")
-                .append(String.format("%.1fs", currentProductionInterval()));
         if (!eventLog.isEmpty()) {
-            result.append("\nRecent events:\n  ")
-                    .append(String.join("\n  ", eventLog));
+            result.append("\nRecent events:\n  ").append(String.join("\n  ", eventLog));
         }
         return result.toString();
     }
@@ -284,16 +321,13 @@ public class IZombie extends MiniGameMode {
     private char symbolAt(int row, int col) {
         Cell cell = session.getEnvironment().getCell(row, col);
         if (cell == null) return '?';
-        boolean playerZombie = session.getZombies().stream()
+        boolean zombieHere = session.getZombies().stream()
                 .anyMatch(z -> z.isAlive() && z.getPosition() != null
                         && Math.round(z.getPosition().x()) == col
                         && Math.round(z.getPosition().y()) == row);
-        boolean sunZombie = session.getZombies().stream()
-                .anyMatch(z -> playerZombie && isSunProducer(z)
-                        && z.isAlive() && Math.round(z.getPosition().x()) == col
-                        && Math.round(z.getPosition().y()) == row);
-        if (sunZombie) return 'S';
-        if (playerZombie) return 'Z';
+        if (zombieHere) return 'Z';
+        if (cell.getObstacle() instanceof Brain brain) return brain.isEaten() ? '-' : 'B';
+        if (col == BRAIN_COLUMN && brains[row] != null && brains[row].isEaten()) return '-';
         if (cell.getPlant() != null && cell.getPlant().isAlive()) return 'P';
         return '.';
     }
@@ -312,12 +346,17 @@ public class IZombie extends MiniGameMode {
         if (session.getZombies().isEmpty()) return "none";
         return session.getZombies().stream()
                 .filter(zombie -> zombie.isAlive() && zombie.getPosition() != null)
-                .map(zombie -> (isSunProducer(zombie) ? "Sun Producer Zombie" : zombie.getName())
+                .map(zombie -> displayNameFor(zombie)
                         + " | hp: " + zombie.getHp() + "/" + zombie.getMaxHp()
                         + " | position: (" + String.format("%.2f", zombie.getPosition().x() + 1)
                         + ", " + ((int) Math.round(zombie.getPosition().y()) + 1) + ")"
                         + " | state: " + zombie.getZombieState())
                 .collect(Collectors.joining("\n"));
+    }
+
+    private String displayNameFor(Zombie zombie) {
+        ZombiePacket packet = findPacket(zombie.getAlias());
+        return packet == null ? zombie.getName() : packet.getDisplayName();
     }
 
     private void log(String message) {
@@ -326,33 +365,74 @@ public class IZombie extends MiniGameMode {
         GeneralPrinter.print(message);
     }
 
-    private static Map<Integer, Map<String, Integer>> buildRosters() {
-        Map<Integer, Map<String, Integer>> rosters = new LinkedHashMap<>();
+    private static Map<Character, Integer> buildLayoutPlantIds() {
+        Map<Character, Integer> ids = new LinkedHashMap<>();
+        ids.put('S', 1);
+        ids.put('P', 6);
+        ids.put('R', 7);
+        ids.put('H', 8);
+        ids.put('W', 9);
+        ids.put('D', 12);
+        ids.put('A', 19);
+        ids.put('U', 23);
+        ids.put('F', 24);
+        ids.put('C', 25);
+        ids.put('K', 26);
+        ids.put('M', 30);
+        ids.put('X', 33);
+        ids.put('B', 39);
+        ids.put('N', 44);
+        ids.put('T', 45);
+        ids.put('G', 47);
+        return Map.copyOf(ids);
+    }
 
-        Map<String, Integer> level1 = new LinkedHashMap<>();
-        level1.put("ZombieDefault", 50);
-        level1.put("ZombieImp", 75);
-        level1.put("ZombieRa", 100);
-        level1.put("ZombieArmor1", 125);
-        level1.put("ZombieExplorer", 150);
-        rosters.put(1, Map.copyOf(level1));
+    private static Map<Integer, String[]> buildLayouts() {
+        Map<Integer, String[]> layouts = new LinkedHashMap<>();
+        layouts.put(1, new String[] {
+                "SP.N.",
+                "S.P..",
+                "SPUN.",
+                "S.P..",
+                "SP.N.",
+        });
+        layouts.put(2, new String[] {
+                "SW..M",
+                "SP.N.",
+                "SR...",
+                "SP.N.",
+                "SW..M",
+        });
+        layouts.put(3, new String[] {
+                "SRF.X",
+                "SHN.M",
+                "SRFT.",
+                "SHN.M",
+                "SRF.X",
+        });
+        return Map.copyOf(layouts);
+    }
 
-        Map<String, Integer> level2 = new LinkedHashMap<>();
-        level2.put("ZombieArmor1", 75);
-        level2.put("ZombieTombRaiser", 125);
-        level2.put("ZombieProspector", 100);
-        level2.put("ZombieLostCityJane", 150);
-        level2.put("ZombieNewspaper", 125);
-        rosters.put(2, Map.copyOf(level2));
-
-        Map<String, Integer> level3 = new LinkedHashMap<>();
-        level3.put("ZombieImp", 60);
-        level3.put("ZombieDarkArmor3", 125);
-        level3.put("ZombieModernAllStar", 150);
-        level3.put("ZombieGargantuar", 150);
-        level3.put("ZombieDarkJuggler", 125);
-        rosters.put(3, Map.copyOf(level3));
-
-        return rosters;
+    private static Map<Integer, List<ZombiePacket>> buildRosters() {
+        Map<Integer, List<ZombiePacket>> rosters = new LinkedHashMap<>();
+        rosters.put(1, List.of(
+                new ZombiePacket("ZombieImp", "Imp", 25, 5.0),
+                new ZombiePacket("ZombieDefault", "Browncoat", 50, 5.0),
+                new ZombiePacket("ZombieArmor1", "Conehead", 75, 7.5),
+                new ZombiePacket("ZombieNewspaper", "Newspaper Zombie", 100, 12.0),
+                new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0)));
+        rosters.put(2, List.of(
+                new ZombiePacket("ZombieDefault", "Browncoat", 50, 5.0),
+                new ZombiePacket("ZombieArmor1", "Conehead", 75, 7.5),
+                new ZombiePacket("ZombieRa", "Ra Zombie", 100, 12.0),
+                new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0),
+                new ZombiePacket("ZombieExplorer", "Explorer Zombie", 150, 20.0)));
+        rosters.put(3, List.of(
+                new ZombiePacket("ZombieImp", "Imp", 25, 5.0),
+                new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0),
+                new ZombiePacket("ZombieArmor4", "Brickhead", 175, 20.0),
+                new ZombiePacket("ZombieModernAllStar", "All-Star Zombie", 175, 25.0),
+                new ZombiePacket("ZombieGargantuar", "Gargantuar", 200, 30.0)));
+        return Map.copyOf(rosters);
     }
 }

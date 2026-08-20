@@ -66,6 +66,7 @@ class MowerRenderer {
     }
 
     void drawMowers(float bw, float bh) {
+        if (!screen.areLawnMowersVisible()) return;
         final float time = screen.getRenderTime();
         float boardTileWidth = screen.getBoardTileWidth();
         String seasonKey = screen.getLawnMowerSeasonKey();

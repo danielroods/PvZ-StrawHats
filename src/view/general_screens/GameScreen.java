@@ -245,6 +245,18 @@ public class GameScreen extends UiScreen {
         matchEnd.checkMatchEnd();
     }
 
+    protected void startMatchEndSequence(boolean won) {
+        matchEnd.startMatchEndSequence(won);
+    }
+
+    protected boolean isMatchEndSequenceIdle() {
+        return matchEnd.isIdle();
+    }
+
+    protected void onMatchEndSequenceFinished(boolean won) {
+        runCommand(won ? "end game -r win" : "end game -r lose");
+    }
+
     private void togglePause() {
         if (matchFinished) return;
         if (paused) return;
@@ -284,6 +296,10 @@ public class GameScreen extends UiScreen {
 
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
         // Default seasons have no extra gameplay overlay.
+    }
+
+    protected boolean areLawnMowersVisible() {
+        return true;
     }
 
     protected void drawSeasonForegroundEffects(float delta, float bw, float bh) {

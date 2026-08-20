@@ -5,7 +5,9 @@ import controller.menus.TravelLogMenu;
 import model.App;
 import model.Regex;
 import model.match.mini_games.izombie.IZombie;
+import model.match.mini_games.izombie.ZombiePacket;
 import model.user_data.User;
+import service.GameClock;
 import view.GeneralPrinter;
 
 import java.util.List;
@@ -14,7 +16,8 @@ import java.util.regex.Pattern;
 
 public class ImZombieController extends Menu {
     private static final Pattern PLACE_ZOMBIE_AT = Pattern.compile(
-            "^\\s*place\\s+zombie\\s+-t\\s+(?<type>\\S+)\\s+-l\\s*\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$",
+            "^\\s*place\\s+zombie\\s+-t\\s+(?<type>\\S+)\\s+-l\\s*"
+                    + "\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PLACE_ZOMBIE_ROW = Pattern.compile(
             "^\\s*place\\s+zombie\\s+-t\\s+(?<type>\\S+)\\s+-r\\s+(?<row>\\d+)\\s*$",
@@ -25,13 +28,26 @@ public class ImZombieController extends Menu {
     private static final Pattern SUN_CHEAT = Pattern.compile(
             "^\\s*cheat\\s+(?:sun\\s+|add\\s+-n\\s+)(?<count>\\d+)\\s*(?:suns?)?\\s*$",
             Pattern.CASE_INSENSITIVE);
-    private final IZombie game;
+    private static final Pattern RESTART = Pattern.compile(
+            "^\\s*restart\\s*$", Pattern.CASE_INSENSITIVE);
+
+    private IZombie game;
 
     public ImZombieController(IZombie game) {
         this.game = game;
     }
 
     public IZombie getGame() { return game; }
+
+    public void tick(double deltaSeconds) {
+        game.tick(deltaSeconds);
+        reportOutcome();
+    }
+
+    public void restartGame() {
+        game = new IZombie(game.getDifficulty());
+        GeneralPrinter.print("I, Zombie level " + game.getDifficulty() + " restarted.");
+    }
 
     @Override
     public String getName() {
@@ -46,12 +62,15 @@ public class ImZombieController extends Menu {
         if (PLACE_ZOMBIE_AT.matcher(text).matches()
                 || Regex.IZOMBIE_PLACE_ZOMBIE.getMatcherRaw(text).matches()) {
             handlePlace(text);
+        } else if (RESTART.matcher(text).matches()) {
+            restartGame();
+            return;
         } else if (Regex.COLLECT_ITEM.getMatcherRaw(text).matches()
                 || COIN_COLLECTION.matcher(text).matches()) {
             handleCollect(text);
         } else if (Regex.COLLECT_SUN.getMatcherRaw(text).matches()) {
-            GeneralPrinter.print("Sun Producer Zombies generate sun automatically. Current sun: "
-                    + game.getSession().getSunCount() + ".");
+            GeneralPrinter.print("I, Zombie gives you a fixed sun budget - spend it wisely. "
+                    + "Current sun: " + game.getSession().getSunCount() + ".");
         } else if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
                 || SUN_CHEAT.matcher(text).matches()) {
             handleSunCheat(text);
@@ -62,13 +81,15 @@ public class ImZombieController extends Menu {
                 || text.trim().equalsIgnoreCase("show status")) {
             GeneralPrinter.print(game.renderState());
         } else if (text.trim().equalsIgnoreCase("show available zombies")) {
-            GeneralPrinter.print("Available zombies and costs: " + game.getRoster());
+            GeneralPrinter.print("Available zombies:\n  " + game.renderRoster());
+        } else if (text.trim().equalsIgnoreCase("show brains")) {
+            GeneralPrinter.print(renderBrains());
         } else if (text.trim().equalsIgnoreCase("show plants")
                 || text.trim().equalsIgnoreCase("plants info")) {
             GeneralPrinter.print(game.renderDefendingPlants());
         } else if (text.trim().equalsIgnoreCase("show zombies")
                 || Regex.ZOMBIES_INFO.getMatcherRaw(text).matches()) {
-            GeneralPrinter.print("Available zombies and costs: " + game.getRoster()
+            GeneralPrinter.print("Available zombies:\n  " + game.renderRoster()
                     + "\nOn-field zombies:\n" + game.renderZombiesInfo());
         } else if (Regex.SHOW_TILE_STATUS.getMatcherRaw(text).matches()) {
             Matcher matcher = Regex.SHOW_TILE_STATUS.getMatcherRaw(text);
@@ -87,13 +108,24 @@ public class ImZombieController extends Menu {
         reportOutcome();
     }
 
+    private String renderBrains() {
+        StringBuilder builder = new StringBuilder("Brains (" + (game.getBrainCount()
+                - game.getBrainsEaten()) + " left):");
+        for (int row = 0; row < game.getBrainCount(); row++) {
+            builder.append(" lane ").append(row + 1).append("=")
+                    .append(game.getBrain(row) != null && game.getBrain(row).isEaten()
+                            ? "eaten" : "safe");
+        }
+        return builder.toString();
+    }
+
     private void advanceTime(String text) {
         Matcher matcher = Regex.MINIGAME_ADVANCE_TIME.getMatcherRaw(text);
         matcher.matches();
         int ticks = Math.min(6000, Integer.parseInt(matcher.group("ticks")));
         int elapsed = 0;
-        for (; elapsed < ticks && !game.isWon() && !game.isLost(); elapsed++) {
-            game.tick(0.1);
+        for (; elapsed < ticks && !game.isFinished(); elapsed++) {
+            game.tick(GameClock.SECONDS_PER_TICK);
         }
         GeneralPrinter.print("Time passes... (" + elapsed + " ticks).");
     }
@@ -106,8 +138,7 @@ public class ImZombieController extends Menu {
             int x = Integer.parseInt(matcher.group("x"));
             int y = Integer.parseInt(matcher.group("y"));
             if (!game.placeZombie(alias, y - 1, x - 1)) {
-                GeneralPrinter.print("Can't place " + alias + " there. Zombies must be "
-                        + "to the right of the red line and cost available sun.");
+                GeneralPrinter.print(rejectionReason(alias, x - 1));
             }
             return;
         }
@@ -117,9 +148,26 @@ public class ImZombieController extends Menu {
         String alias = matcher.group("type");
         int row = Integer.parseInt(matcher.group("row")) - 1;
         if (!game.placeZombie(alias, row)) {
-            GeneralPrinter.print("Can't place " + alias + " right now (not enough sun, "
-                    + "not one of this level's five zombies, or invalid lane).");
+            GeneralPrinter.print(rejectionReason(alias, game.getSession().getCols() - 1));
         }
+    }
+
+    private String rejectionReason(String alias, int col) {
+        ZombiePacket packet = game.findPacket(alias);
+        if (packet == null) {
+            return "\"" + alias + "\" is not one of this level's zombies. Available:\n  "
+                    + game.renderRoster();
+        }
+        if (col <= game.getRedLineColumn()) {
+            return "Zombies can only be placed to the right of the red line (column "
+                    + (game.getRedLineColumn() + 2) + " and beyond).";
+        }
+        if (!packet.isReady()) {
+            return packet.getDisplayName() + " is still recharging ("
+                    + String.format("%.1fs", packet.getCooldown()) + " left).";
+        }
+        return "Not enough sun for " + packet.getDisplayName() + " (" + packet.getCost()
+                + " needed, " + game.getSession().getSunCount() + " available).";
     }
 
     private void handleCollect(String text) {
@@ -144,15 +192,21 @@ public class ImZombieController extends Menu {
     }
 
     private void reportOutcome() {
+        if (App.currentMenu != this) return;
+        int difficulty = game.getDifficulty();
+        Runnable restart = () -> App.currentMenu = new ImZombieController(new IZombie(difficulty));
+
         if (game.isWon()) {
             if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
             GeneralPrinter.print("Every brain has been eaten. You win!");
             App.currentMenu = new MiniGameEndMenu("I, Zombie", true,
-                    "All five brains were eaten.");
+                    "All " + game.getBrainCount() + " brains were eaten with "
+                            + game.getSession().getSunCount() + " sun to spare.", restart);
         } else if (game.isLost()) {
-            GeneralPrinter.print("Out of sun and out of playable zombies. You lose!");
+            GeneralPrinter.print("Out of sun and out of zombies. You lose!");
             App.currentMenu = new MiniGameEndMenu("I, Zombie", false,
-                    "There was no affordable playable zombie left.");
+                    game.getBrainsEaten() + " of " + game.getBrainCount()
+                            + " brains eaten before the sun ran out.", restart);
         }
     }
 
@@ -164,13 +218,16 @@ public class ImZombieController extends Menu {
     @Override
     public String showMenu() {
         return "[ I, Zombie Menu ]\n" + game.getStageDetails()
+                + " | Sun: " + game.getSession().getSunCount()
+                + " | Brains left: " + (game.getBrainCount() - game.getBrainsEaten())
                 + " | Red line after column " + (game.getRedLineColumn() + 1)
-                + "\nAvailable zombies and costs: " + game.getRoster() + "\nCommands:\n"
+                + "\nAvailable zombies:\n  " + game.renderRoster() + "\nCommands:\n"
                 + "  place zombie -t <alias> -r <row>\n"
                 + "  place zombie -t <alias> -l (<x>, <y>)\n"
-                + "  show available zombies | show plants | show map | show state\n"
-                + "  show tile status -l (x,y) | show sun amount | collect (x,y) | collect coin -l (x,y)\n"
-                + "  collect sun -l (x,y) | zombies info\n"
+                + "  show available zombies | show plants | show brains | show map | show state\n"
+                + "  show tile status -l (x,y) | show sun amount | collect (x,y)\n"
+                + "  collect coin -l (x,y)\n"
+                + "  zombies info | restart\n"
                 + "  cheat add -n <count> suns | cheat sun <count>\n"
                 + "  advance time -t <n> ticks\n"
                 + "  menu exit | menu show current";
