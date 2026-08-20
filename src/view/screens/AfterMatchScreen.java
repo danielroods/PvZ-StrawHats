@@ -164,14 +164,14 @@ public class AfterMatchScreen extends UiScreen {
 
         Table layer = new Table();
 
-        Label title = new Label("LEVEL COMPLETE!", skin, "title");
-        title.setColor(Color.GREEN);
-        layer.add(title).padBottom(SPACE_MD).row();
+       // Label title = new Label("LEVEL COMPLETE!", skin, "title");
+       // title.setColor(Color.GREEN);
+       // layer.add(title).padBottom(SPACE_MD).row();
 
         pinataActor = new PinataActor(resolvePinataPamPath());
         Table pinataCell = new Table();
         pinataCell.add(pinataActor).size(260f, 260f);
-        layer.add(pinataCell).padBottom(SPACE_SM).row();
+        layer.add(pinataCell).padBottom(SPACE_SM + 50f).row();
 
         pinataHintLabel = new Label("Tap the pinata!", skin, "main");
         pinataHintLabel.setAlignment(Align.center);
@@ -269,6 +269,7 @@ public class AfterMatchScreen extends UiScreen {
         }
     }
 
+
     /** Small reward icon that pops up above the piñata, floats, then fades away. */
     private void showRewardPopup(PinataReward reward) {
         if (pinataActor == null) return;
@@ -277,7 +278,7 @@ public class AfterMatchScreen extends UiScreen {
                 new Vector2(pinataActor.getWidth() / 2f, pinataActor.getHeight() / 2f));
 
         Table popup = new Table();
-        popup.add(buildRewardIcon(reward, 0.35f)).size(64f, 64f).row();
+        popup.add(buildRewardIcon(reward, 0.35f)).size(64f * 1.38f * 3f, 64f * 3f).row();
         Label label = new Label(rewardLabel(reward), skin, "title");
         label.setFontScale(0.55f);
         popup.add(label).padTop(2f);
@@ -303,9 +304,12 @@ public class AfterMatchScreen extends UiScreen {
             SeedPacketCard card = cardFactory.buildCardForDisplayName(reward.plantName);
             if (card != null) {
                 card.setTransform(true);
-                card.setOrigin(0f, 0f);
                 card.setScale(seedPacketScale);
-                return card;
+
+                float scale = 8f;
+                Container<SeedPacketCard> container = new Container<>(card);
+                container.size(card.getWidth() * seedPacketScale * scale, card.getHeight() * seedPacketScale * scale);
+                return container;
             }
             return new Image(solidColorDrawable(new Color(0f, 0f, 0f, 0f)));
         }
@@ -323,6 +327,10 @@ public class AfterMatchScreen extends UiScreen {
 
     /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
      *  win/lose result panel, unchanged from before this feature existed. */
+    /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
+     *  win/lose result panel, unchanged from before this feature existed. */
+    /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
+     *  win/lose result panel, unchanged from before this feature existed. */
     private void showOutcomeScroll() {
         Table overlay = new Table();
         overlay.setFillParent(true);
@@ -335,25 +343,36 @@ public class AfterMatchScreen extends UiScreen {
 
         Table scroll = new Table();
         scroll.setBackground(skin.getDrawable("modal-background"));
-        scroll.pad(26);
+        scroll.pad(20);
 
         Label title = new Label("PINATA REWARDS!", skin, "title");
         title.setColor(Color.GOLD);
-        scroll.add(title).padBottom(16).row();
+        scroll.add(title).padBottom(12).row();
+
+        Table rewardsRow = new Table();
 
         for (PinataReward reward : collectedRewards) {
-            Table row = new Table();
-            row.add(buildRewardIcon(reward, 0.3f)).size(54f, 54f).padRight(10f);
+            Table itemCell = new Table();
+
+            Actor icon = buildRewardIcon(reward, 0.23f);
+
+            itemCell.add(icon).size(280f, 150f).padBottom(6f).row();
+
             Label rowLabel = new Label(rewardLabel(reward), skin, "main");
-            row.add(rowLabel).left();
-            scroll.add(row).left().padBottom(8f).row();
+            rowLabel.setFontScale(0.7f);
+            rowLabel.setAlignment(Align.center);
+            itemCell.add(rowLabel).center();
+
+            rewardsRow.add(itemCell).top().pad(0f, 10f, 0f, 10f);
         }
+
+        scroll.add(rewardsRow).center().padBottom(14f).row();
 
         TextButton continueBtn = primaryButton("Continue", () -> {
             overlay.remove();
             buildResultPanel();
         });
-        scroll.add(continueBtn).width(200f).height(48f).padTop(14f);
+        scroll.add(continueBtn).width(190f).height(46f).padTop(8f);
 
         Container<Table> scrollContainer = new Container<>(scroll);
         scrollContainer.center();
@@ -574,7 +593,7 @@ public class AfterMatchScreen extends UiScreen {
                 float alpha = (0.4f + 0.6f * introProgress) * (1f - exitProgress) * parentAlpha;
                 if (alpha <= 0f) return;
                 // Grows in from 60% to 100% scale on intro, shrinks slightly again on exit.
-                float visualScale = (0.6f + 0.4f * introProgress) * (1f - 0.25f * exitProgress);
+                float visualScale = (0.6f + 0.4f * introProgress) * (1f - 0.25f * exitProgress) * 0.8f;
 
                 float centerX = getX() + getWidth() / 2f;
                 float centerY = getY() + getHeight() / 2f;
@@ -627,7 +646,7 @@ public class AfterMatchScreen extends UiScreen {
 
                 float centerX = getX() + getWidth() / 2f;
                 float centerY = getY() + getHeight() / 2f;
-                float visualScale = 0.4f;
+                float visualScale = 0.5f;
 
                 Matrix4 original = batch.getTransformMatrix().cpy();
                 Matrix4 scaled = new Matrix4(original)
