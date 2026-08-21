@@ -2491,7 +2491,7 @@
       "EatDPS": 100,
       "GroundTrackName": "ground_swatch",
       "HitRect": { "mHeight": 95, "mWidth": 40, "mX": 5, "mY": 10 },
-      "Hitpoints": 4000,
+      "Hitpoints": 1100,
       "ScaledProps": [
         { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "Hitpoints" },
         { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "EatDPS" },
@@ -2568,8 +2568,75 @@
       ],
       "attack": {
         "type": "KamikazeAttack",
-        "damage": 1800
+        "damage": 9999
       }
+    }
+  },
+  {
+    "aliases": [
+      "ZombieGatlingPea"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": { "x": 90, "y": 125 },
+      "AttackRect": { "mHeight": 95, "mWidth": 20, "mX": 15, "mY": 0 },
+      "CanSpawnPlantFood": true,
+      "Cost": 250,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": { "mHeight": 95, "mWidth": 32, "mX": 10, "mY": 10 },
+      "Hitpoints": 380,
+      "ScaledProps": [
+        { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "Hitpoints" },
+        { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "EatDPS" },
+        { "Formula": "constant", "Key": "Speed" },
+        { "Formula": "constant", "Key": "WavePointCost" }
+      ],
+      "ShadowOffset": { "x": 5, "y": 0, "z": 1.4 },
+      "Speed": 0.16,
+      "WavePointCost": 500,
+      "Weight": 1400,
+      "ZombieStats": [
+        { "Type": "toughness", "Value": "toughness3" },
+        { "Type": "speed", "Value": "speed1" }
+      ],
+      "effect": {
+        "type": "PeashooterZombieEffect",
+        "damage": 20,
+        "fireRate": 2.0,
+        "shotsPerVolley": 4,
+        "volleyGap": 0.2
+      }
+    }
+  },
+  {
+    "aliases": [
+      "ZombieTallnut"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": { "x": 90, "y": 125 },
+      "AttackRect": { "mHeight": 95, "mWidth": 20, "mX": 15, "mY": 0 },
+      "CanSpawnPlantFood": true,
+      "Cost": 125,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": { "mHeight": 95, "mWidth": 40, "mX": 5, "mY": 10 },
+      "Hitpoints": 2200,
+      "ScaledProps": [
+        { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "Hitpoints" },
+        { "Arg1": 1.3, "Arg2": 0.05, "Formula": "standard", "Key": "EatDPS" },
+        { "Formula": "constant", "Key": "Speed" },
+        { "Formula": "constant", "Key": "WavePointCost" }
+      ],
+      "ShadowOffset": { "x": 5, "y": 0, "z": 1.4 },
+      "Speed": 0.10,
+      "WavePointCost": 700,
+      "Weight": 3200,
+      "ZombieStats": [
+        { "Type": "toughness", "Value": "toughness9" },
+        { "Type": "speed", "Value": "speed0" }
+      ]
     }
   }
 ]

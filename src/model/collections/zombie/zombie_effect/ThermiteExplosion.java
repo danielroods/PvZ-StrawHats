@@ -1,57 +1,60 @@
 package model.collections.zombie.zombie_effect;
 
 import model.collections.Faction;
+import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.pitches.Cell;
 import model.utils.GameSession;
-import service.GameClock;
 
 public class ThermiteExplosion implements ZombieEffectStatus {
     private static final int PLANT_DAMAGE = 99999;
 
-    private final double combustionDelay;
-    private double fuseElapsed = 0.0;
     private boolean detonated = false;
+    private int blastRow = -1;
 
     public ThermiteExplosion() {
-        this(10.0);
-    }
-
-    public ThermiteExplosion(double combustionDelay) {
-        this.combustionDelay = combustionDelay;
     }
 
     @Override
     public void applyTickEffect(Zombie target, GameSession session) {
-        if (detonated || !target.isAlive() || target.getPosition() == null) return;
+    }
 
-        fuseElapsed += GameClock.SECONDS_PER_TICK;
+    @Override
+    public void onDeath(Zombie target, GameSession session) {
+        if (detonated || session == null || target == null || target.getPosition() == null) return;
+        detonated = true;
+        blastRow = (int) Math.round(target.getPosition().y());
+        burnLane(target, session, blastRow);
+    }
 
-        if (fuseElapsed >= combustionDelay) {
-            detonated = true;
-            detonate(target, session);
+    private void burnLane(Zombie source, GameSession session, int row) {
+        if (source.getFaction() == Faction.ZOMBIES) {
+            int totalCols = session.getEnvironment().getCols();
+            for (int col = 0; col < totalCols; col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null) continue;
+                Plant plant = cell.getPlant();
+                if (plant != null && plant.isAlive()) plant.takeDamage(PLANT_DAMAGE, source);
+            }
+            view.GeneralPrinter.print("The Jalapeno Zombie went up in flames and torched lane "
+                    + (row + 1) + ".");
+            return;
+        }
+
+        for (Zombie other : new java.util.ArrayList<>(session.getZombies())) {
+            if (other == source || !other.isAlive()) continue;
+            if (other.getFaction() != Faction.ZOMBIES) continue;
+            if (other.getPosition() == null) continue;
+            if ((int) Math.round(other.getPosition().y()) != row) continue;
+            other.takeDamage(other.getHp() + 1, source);
         }
     }
 
-    private void detonate(Zombie target, GameSession session) {
-        int rowIdx = (int) target.getPosition().y();
+    public boolean hasDetonated() {
+        return detonated;
+    }
 
-        if (target.getFaction() == Faction.ZOMBIES) {
-            int totalCols = session.getEnvironment().getCols();
-            for (int c = 0; c < totalCols; c++) {
-                Cell gridCell = session.getEnvironment().getCell(rowIdx, c);
-                if (gridCell != null && gridCell.getPlant() != null && gridCell.getPlant().isAlive()) {
-                    gridCell.getPlant().takeDamage(PLANT_DAMAGE, target);
-                }
-            }
-        } else {
-            session.getZombies().stream()
-                    .filter(z -> z.isAlive() && z.getFaction() == Faction.ZOMBIES && (int) z.getPosition().y() == rowIdx)
-                    .forEach(z -> z.takeDamage(z.getHp()));
-        }
-
-        int armorHp = target.getArmor() != null ? target.getArmor().getHP() : 0;
-        int overkillDamage = target.getHp() + armorHp + 1;
-        target.takeDamage(overkillDamage, null);
+    public int getBlastRow() {
+        return blastRow;
     }
 }

@@ -30,9 +30,6 @@ class MowerRenderer {
         String[] future = {
                 "768/FULL/MOWERS/MOWER_FUTURE/MOWER_FUTURE.PAM",
         };
-        String[] pirate = {
-                "768/FULL/MOWERS/MOWER_PIRATE/MOWER_PIRATE.PAM",
-        };
         String[] tutorial = {
                 "768/INITIAL/MOWERS/MOWER_TUTORIAL/MOWER_TUTORIAL.PAM",
         };
@@ -52,7 +49,7 @@ class MowerRenderer {
         SEASON_LAWN_MOWER_PAM_PATHS.put("wallnutbowlling", future);
         SEASON_LAWN_MOWER_PAM_PATHS.put("wallnut bowling", future);
         SEASON_LAWN_MOWER_PAM_PATHS.put("wallnut_bowling", future);
-        SEASON_LAWN_MOWER_PAM_PATHS.put("zombotany", pirate);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("zombotany", tutorial);
         SEASON_LAWN_MOWER_PAM_PATHS.put("vase breaker", tutorial);
         SEASON_LAWN_MOWER_PAM_PATHS.put("vasebreaker", tutorial);
         SEASON_LAWN_MOWER_PAM_PATHS.put("izombie", tutorial);

@@ -4,8 +4,11 @@ import controller.menus.Menu;
 import controller.menus.TravelLogMenu;
 import model.App;
 import model.Regex;
+import model.collections.plant.Plant;
+import model.game_exceptions.GameException;
 import model.match.mini_games.Zombotany;
 import model.user_data.User;
+import service.GameClock;
 import view.GeneralPrinter;
 
 import java.util.List;
@@ -13,16 +16,36 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ZombotanyController extends Menu {
+
     private static final Pattern COIN_COLLECTION = Pattern.compile(
             "^\\s*collect\\s+coin\\s+-l\\s*\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern SUN_CHEAT = Pattern.compile(
             "^\\s*cheat\\s+(?:sun\\s+|add\\s+-n\\s+)(?<count>\\d+)\\s*(?:suns?)?\\s*$",
             Pattern.CASE_INSENSITIVE);
-    private final Zombotany game;
+    private static final Pattern RESTART = Pattern.compile(
+            "^\\s*restart\\s*$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern END_GAME = Pattern.compile(
+            "^\\s*end\\s+game(?:\\s+-r\\s+(?<result>win|lose))?\\s*$", Pattern.CASE_INSENSITIVE);
+
+    private Zombotany game;
 
     public ZombotanyController(Zombotany game) {
         this.game = game;
+    }
+
+    public Zombotany getGame() {
+        return game;
+    }
+
+    public void tick(double deltaSeconds) {
+        game.tick(deltaSeconds);
+        reportOutcome();
+    }
+
+    public void restartGame() {
+        game = new Zombotany(game.getDifficulty());
+        GeneralPrinter.print("Zombotany level " + game.getDifficulty() + " restarted.");
     }
 
     @Override
@@ -41,16 +64,42 @@ public class ZombotanyController extends Menu {
                     ? Regex.PLANT_AT.getMatcherRaw(text)
                     : Regex.PLANT_ON_FIELD.getMatcherRaw(text);
             matcher.matches();
-            plant(matcher.group("type"), Integer.parseInt(matcher.group("x")),
-                    Integer.parseInt(matcher.group("y")));
+            game.plantAt(matcher.group("type"), Integer.parseInt(matcher.group("y")) - 1,
+                    Integer.parseInt(matcher.group("x")) - 1);
+        } else if (Regex.DIG_PLANT_AT.getMatcherRaw(text).matches()
+                || Regex.REMOVE_PLANT_AT.getMatcherRaw(text).matches()
+                || Regex.PLUCK_PLANT_FIELD.getMatcherRaw(text).matches()) {
+            handleDig(text);
+        } else if (Regex.FEED_PLANT_FIELD.getMatcherRaw(text).matches()
+                || Regex.USE_PLANT_FOOD.getMatcherRaw(text).matches()) {
+            handleFeed(text);
         } else if (Regex.COLLECT_ITEM.getMatcherRaw(text).matches()
+                || Regex.COLLECT_SUN.getMatcherRaw(text).matches()
                 || COIN_COLLECTION.matcher(text).matches()) {
-            handleCollect(text);
-        } else if (Regex.COLLECT_SUN.getMatcherRaw(text).matches()) {
             handleCollect(text);
         } else if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
                 || SUN_CHEAT.matcher(text).matches()) {
             handleSunCheat(text);
+        } else if (Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()) {
+            game.addPlantFoodCheat();
+        } else if (Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()) {
+            game.getSession().removeAllCooldowns();
+            GeneralPrinter.print("All seed packets are ready again.");
+        } else if (Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()) {
+            Matcher matcher = Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text);
+            matcher.matches();
+            game.spawnZombie(matcher.group("type"), Integer.parseInt(matcher.group("y")) - 1);
+        } else if (Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches()) {
+            game.getSession().killAllZombies();
+            GeneralPrinter.print("Every zombie on the lawn was wiped out.");
+        } else if (Regex.START_ZOMBIE_WAVES.getMatcherRaw(text).matches()) {
+            GeneralPrinter.print("Zombotany waves are already rolling.");
+        } else if (RESTART.matcher(text).matches()) {
+            restartGame();
+            return;
+        } else if (END_GAME.matcher(text).matches()) {
+            handleEndGame(text);
+            return;
         } else if (Regex.MINIGAME_ADVANCE_TIME.getMatcherRaw(text).matches()) {
             advanceTime(text);
         } else if (Regex.SHOW_MAP.getMatcherRaw(text).matches()
@@ -58,15 +107,27 @@ public class ZombotanyController extends Menu {
                 || text.trim().equalsIgnoreCase("show status")) {
             GeneralPrinter.print(game.renderState());
         } else if (text.trim().equalsIgnoreCase("show plants")
+                || Regex.SHOW_PLANT_STATUS.getMatcherRaw(text).matches()
                 || text.trim().equalsIgnoreCase("plants info")) {
             GeneralPrinter.print(game.renderPlantsInfo());
+        } else if (text.trim().equalsIgnoreCase("show seeds")
+                || text.trim().equalsIgnoreCase("show seed packets")) {
+            GeneralPrinter.print("Seed packets: " + game.getAvailablePlants());
+        } else if (text.trim().equalsIgnoreCase("show roster")
+                || text.trim().equalsIgnoreCase("show zombie roster")) {
+            GeneralPrinter.print("Zombie roster:\n  " + game.renderRoster());
         } else if (Regex.SHOW_SUN_AMOUNT.getMatcherRaw(text).matches()) {
             GeneralPrinter.print("Sun: " + game.getSession().getSunCount());
+        } else if (Regex.SHOW_PLANT_FOOD_AMOUNT.getMatcherRaw(text).matches()) {
+            GeneralPrinter.print("Plant food: " + game.getSession().getPlantFoodCount());
         } else if (Regex.ZOMBIES_INFO.getMatcherRaw(text).matches()
                 || text.trim().equalsIgnoreCase("show zombies")) {
             GeneralPrinter.print(game.renderZombiesInfo());
-        } else if (Regex.SHOW_TILE_STATUS.getMatcherRaw(text).matches()) {
-            Matcher matcher = Regex.SHOW_TILE_STATUS.getMatcherRaw(text);
+        } else if (Regex.SHOW_TILE_STATUS.getMatcherRaw(text).matches()
+                || Regex.SHOW_TILE.getMatcherRaw(text).matches()) {
+            Matcher matcher = Regex.SHOW_TILE_STATUS.getMatcherRaw(text).matches()
+                    ? Regex.SHOW_TILE_STATUS.getMatcherRaw(text)
+                    : Regex.SHOW_TILE.getMatcherRaw(text);
             matcher.matches();
             int x = Integer.parseInt(matcher.group("x"));
             int y = Integer.parseInt(matcher.group("y"));
@@ -85,17 +146,33 @@ public class ZombotanyController extends Menu {
         matcher.matches();
         int ticks = Math.min(6000, Integer.parseInt(matcher.group("ticks")));
         int elapsed = 0;
-        for (; elapsed < ticks && !game.isWon() && !game.isLost(); elapsed++) {
-            game.tick(0.1);
+        for (; elapsed < ticks && !game.isFinished(); elapsed++) {
+            game.tick(GameClock.SECONDS_PER_TICK);
         }
         GeneralPrinter.print("Time passes... (" + elapsed + " ticks).");
     }
 
-    private void plant(String plantName, int x, int y) {
-        if (!game.plantAt(plantName, y - 1, x - 1)) {
-            GeneralPrinter.print("Plant unavailable, recharging, too expensive, "
-                    + "or the tile is blocked.");
+    private void handleDig(String text) {
+        Matcher matcher = Regex.DIG_PLANT_AT.getMatcherRaw(text);
+        if (!matcher.matches()) {
+            matcher = Regex.REMOVE_PLANT_AT.getMatcherRaw(text);
+            if (!matcher.matches()) matcher = Regex.PLUCK_PLANT_FIELD.getMatcherRaw(text);
         }
+        matcher.matches();
+        int x = Integer.parseInt(matcher.group("x"));
+        int y = Integer.parseInt(matcher.group("y"));
+        Plant dug = game.digPlantAt(y - 1, x - 1);
+        if (dug == null) throw new GameException("there is no plant to dig up there.");
+        GeneralPrinter.print("Dug up " + dug.getName() + " at (" + x + ", " + y + ").");
+    }
+
+    private void handleFeed(String text) {
+        Matcher matcher = Regex.FEED_PLANT_FIELD.getMatcherRaw(text);
+        if (!matcher.matches()) matcher = Regex.USE_PLANT_FOOD.getMatcherRaw(text);
+        matcher.matches();
+        int x = Integer.parseInt(matcher.group("x"));
+        int y = Integer.parseInt(matcher.group("y"));
+        game.feedPlantAt(y - 1, x - 1);
     }
 
     private void handleCollect(String text) {
@@ -113,7 +190,7 @@ public class ZombotanyController extends Menu {
         List<?> collected = game.collectItemsAt(x - 1, y - 1);
         GeneralPrinter.print(collected.isEmpty()
                 ? "Nothing to collect there."
-                : "Collected " + collected.size() + " item(s), including coins or sun.");
+                : "Collected " + collected.size() + " item(s).");
     }
 
     private void handleSunCheat(String text) {
@@ -124,17 +201,45 @@ public class ZombotanyController extends Menu {
         game.addSunCheat(Integer.parseInt(matcher.group("count")));
     }
 
+    private void handleEndGame(String text) {
+        Matcher matcher = END_GAME.matcher(text);
+        matcher.matches();
+        String result = matcher.group("result");
+        boolean winner = game.isWon() || "win".equalsIgnoreCase(result);
+        finish(winner);
+    }
+
     private void reportOutcome() {
+        if (App.currentMenu != this) return;
         if (game.isWon()) {
-            if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
-            GeneralPrinter.print("All Zombotany waves cleared. You win!");
-            App.currentMenu = new MiniGameEndMenu("Zombotany", true,
-                    "Every Zombotany wave was cleared.");
+            finish(true);
         } else if (game.isLost()) {
-            GeneralPrinter.print("The zombies got through. You lose!");
-            App.currentMenu = new MiniGameEndMenu("Zombotany", false,
-                    "A zombie reached the house.");
+            finish(false);
         }
+    }
+
+    private void finish(boolean winner) {
+        int difficulty = game.getDifficulty();
+        Runnable restart = () ->
+                App.currentMenu = new ZombotanyController(new Zombotany(difficulty));
+
+        if (winner) {
+            if (User.currentUser != null && User.currentUser.userState != null) {
+                User.currentUser.userState.miniGamesWon++;
+            }
+            GeneralPrinter.print("All Zombotany waves cleared. You win!");
+            App.currentMenu = new MiniGameEndMenu("Zombotany", true, summary(), restart);
+        } else {
+            GeneralPrinter.print("The plant zombies got through. You lose!");
+            App.currentMenu = new MiniGameEndMenu("Zombotany", false, summary(), restart);
+        }
+    }
+
+    private String summary() {
+        return "Waves survived: " + game.getWavesSurvived() + "/" + game.getTotalWaves()
+                + "   |   Plant zombies destroyed: " + game.getZombiesKilled()
+                + "   |   Plants lost: " + game.getPlantsLost()
+                + "\nTime on the lawn: " + String.format("%.0f", game.getElapsedSeconds()) + "s";
     }
 
     @Override
@@ -145,14 +250,19 @@ public class ZombotanyController extends Menu {
     @Override
     public String showMenu() {
         return "[ Zombotany Menu ]\n" + game.getStageDetails()
-                + " | Available plants: " + game.getAvailablePlants()
-                + " | Zombie pool: " + game.getZombiePool() + "\nCommands:\n"
+                + " | Sun: " + game.getSession().getSunCount()
+                + " | Waves: " + game.getWavesSurvived() + "/" + game.getTotalWaves()
+                + "\nSeed packets: " + game.getAvailablePlants()
+                + "\nZombie roster:\n  " + game.renderRoster() + "\nCommands:\n"
                 + "  plant plant -t <type> -l (<x>, <y>)\n"
-                + "  show map | show state | show status | show sun amount\n"
-                + "  show plants | show zombies | zombies info | show tile status -l (x,y)\n"
+                + "  dig plant at (<x>, <y>) | feed plant -l (<x>, <y>)\n"
+                + "  show map | show state | show plants | show seeds | show roster\n"
+                + "  show zombies | zombies info | show tile status -l (x,y)\n"
+                + "  show sun amount | show plant food amount\n"
                 + "  collect (x,y) | collect sun -l (x,y) | collect coin -l (x,y)\n"
-                + "  cheat add -n <count> suns | cheat sun <count>\n"
-                + "  advance time -t <n> ticks\n"
+                + "  cheat add -n <count> suns | cheat add-plant-food | cheat remove-cooldown\n"
+                + "  cheat spawn-zombie -t <alias> -l (x,y)\n"
+                + "  advance time -t <n> ticks | restart\n"
                 + "  menu exit | menu show current";
     }
 }

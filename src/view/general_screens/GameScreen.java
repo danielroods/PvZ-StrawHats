@@ -196,16 +196,21 @@ public class GameScreen extends UiScreen {
         session.tick();
     }
 
+    protected List<String> loadoutPlants() {
+        return new ArrayList<>(BeforeMenu.selectedPlants);
+    }
+
     protected void refreshHud(float delta) {
         if (hud == null || session == null) return;
-        if (interaction.selectedPlant() != null && !BeforeMenu.selectedPlants.contains(interaction.selectedPlant())
+        List<String> loadout = loadoutPlants();
+        if (interaction.selectedPlant() != null && !loadout.contains(interaction.selectedPlant())
                 && !(session.getLevel() instanceof ConveyorBeltLevel)) {
             interaction.clearSelectedPlant();
         }
         hud.setSelectedPlant(interaction.selectedPlant());
         hud.setTools(interaction.activeTool() == BoardInteraction.Tool.SHOVEL,
                 interaction.activeTool() == BoardInteraction.Tool.FOOD);
-        hud.update(session, new ArrayList<>(BeforeMenu.selectedPlants));
+        hud.update(session, loadout);
     }
 
     protected void selectPlant(String plantName) {
@@ -243,6 +248,9 @@ public class GameScreen extends UiScreen {
 
     protected void checkMatchEnd() {
         matchEnd.checkMatchEnd();
+    }
+
+    protected void onZombieDied(Zombie zombie) {
     }
 
     protected void startMatchEndSequence(boolean won) {
@@ -342,6 +350,18 @@ public class GameScreen extends UiScreen {
     protected boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip,
                               Map<String, Boolean> elementVisibility) {
         return pam.drawPam(path, preferred, time, x, y, scale, flip, elementVisibility);
+    }
+
+    protected void preloadPam(String... paths) {
+        if (pamPlayer == null || paths == null) return;
+        for (String path : paths) {
+            if (path == null || path.isBlank()) continue;
+            try {
+                pamPlayer.loadAsync(path, null);
+            } catch (Throwable t) {
+                Gdx.app.error("GameScreen", "Could not preload PAM " + path, t);
+            }
+        }
     }
 
     protected String getLawnMowerSeasonKey() {

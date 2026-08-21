@@ -24,6 +24,8 @@ class ZombieRenderer {
     private static final float ZOMBIE_SPAWN_EFFECT_DURATION = 1.33f;
     private static final float DEATH_ANIM_DURATION = 1.0f;
     private static final float HYPNO_OVERLAY_SCALE = 0.55f;
+    private static final float ZOMBIE_SCALE = 0.52f;
+    private static final float HEAD_BOB = 3.5f;
     private static final String HYPNO_ZOMBIE_EFFECT_PAM =
             "768/INITIAL/EFFECTS/HYPNO_ZOMBIE_EFFECT/HYPNO_ZOMBIE_EFFECT.PAM";
 
@@ -116,9 +118,15 @@ class ZombieRenderer {
                 }
             }
             Map<String, Boolean> armorVisibility = armorMask.basicZombieArmorVisibility(zombie);
+            ZombotanyArt.Head plantHead = ZombotanyArt.headFor(zombie.getAlias());
+            if (plantHead != null) armorVisibility = mergeHeadlessMask(armorVisibility);
             boolean pamDrawn = armorVisibility != null
                     ? screen.drawPam(path, preferred, animationTime, x - 10f, zombieOffsetY, 0.52f, zombie.isFacingRight(), armorVisibility)
                     : screen.drawPam(path, preferred, animationTime, x - 10f, zombieOffsetY, 0.52f, zombie.isFacingRight());
+            if (pamDrawn && plantHead != null) {
+                drawPlantHead(plantHead, t, x - 10f, zombieOffsetY, ZOMBIE_SCALE,
+                        zombie.isFacingRight(), zombie.getZombieState());
+            }
             if (!pamDrawn) {
                 TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
                 screen.drawEntity(region, x, zombieOffsetY, boardTileWidth, boardTileHeight,
@@ -149,6 +157,7 @@ class ZombieRenderer {
             if (dieDuration <= 0f) dieDuration = DEATH_ANIM_DURATION;
             dyingZombies.add(new DyingZombie(zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(), dieDuration));
             zombieAnimTimes.remove(zombie);
+            screen.onZombieDied(zombie);
         }
     }
 
@@ -169,13 +178,46 @@ class ZombieRenderer {
             float fallEase = 1f - (1f - fallProgress) * (1f - fallProgress);
             float particleDrop = 24f * fallEase;
 
-            screen.drawPam(path, "particles", dz.time, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
-            // Clamp to the clip's own last frame instead of letting time run past
-            // it, so the death animation holds on its final pose instead of
-            // looping/glitching once dz.time exceeds the clip's real length.
-            screen.drawPam(path, "die", Math.min(dz.time, dz.duration), x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+            ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
+            if (plantHead == null) {
+                screen.drawPam(path, "particles", dz.time, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
+            }
+            float dieTime = Math.min(dz.time, dz.duration);
+            if (plantHead != null) {
+                screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
+                        ZombotanyArt.headlessBodyMask());
+                float fade = Math.max(0f, 1f - dz.time / dz.duration);
+                screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
+                drawPlantHead(plantHead, dz.time, x - 10f, zombieOffsetY - particleDrop,
+                        ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
+                screen.batch.setColor(Color.WHITE);
+            } else {
+                screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+            }
         }
         dyingZombies.removeIf(dz -> dz.time > dz.duration);
+    }
+
+    private void drawPlantHead(ZombotanyArt.Head head, float time, float bodyX, float bodyY,
+                               float bodyScale, boolean facingRight, ZombieState state) {
+        float bob = state == ZombieState.EATING
+                ? (float) Math.sin(time * 9.0f) * HEAD_BOB * 1.6f
+                : (float) Math.sin(time * 4.2f) * HEAD_BOB;
+        float direction = facingRight ? 1f : -1f;
+        float headX = bodyX + head.offsetX() * bodyScale * direction;
+        float headY = bodyY + (head.offsetY() + bob) * bodyScale;
+        float headTime = time;
+        float duration = screen.pam().resolvePlantClipDuration(head.plantName(), "idle");
+        if (duration > 0f) headTime = time % duration;
+        screen.drawPam(head.pam(), "idle", headTime, headX, headY,
+                bodyScale * head.scale(), !facingRight);
+    }
+
+    private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
+        if (existing == null) return ZombotanyArt.headlessBodyMask();
+        Map<String, Boolean> merged = new java.util.HashMap<>(existing);
+        merged.putAll(ZombotanyArt.headlessBodyMask());
+        return merged;
     }
 
     private void drawZombieSandStorm(float centerX, float centerY, float tileW, float tileH,

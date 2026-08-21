@@ -6,6 +6,7 @@ import controller.assets.ProjectileEffectAssets;
 import model.collections.plant.Plant;
 import model.match_mechanisms.vector.Position;
 import model.projectile.Projectile;
+import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 
 import java.util.ArrayList;
@@ -19,6 +20,10 @@ class EffectRenderer {
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float STATIC_PROJECTILE_SCALE = 0.25f;
+    private static final String ZOMBIE_PEA_PAM =
+            "768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM";
+    private static final String ZOMBIE_PEA_SPLAT_PAM =
+            "768/INITIAL/EFFECTS/SPLAT_PEA/SPLAT_PEA.PAM";
 
     private static final class TimedPamEffect {
         final String path;
@@ -62,6 +67,8 @@ class EffectRenderer {
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
+    private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
+    private final Map<ZombieProjectile, Position> zombieProjectileTraces = new IdentityHashMap<>();
 
     EffectRenderer(GameScreen screen) {
         this.screen = screen;
@@ -155,9 +162,43 @@ class EffectRenderer {
             }
         }
         spawnImpactEffectsForSpentProjectiles();
-        for (ZombieProjectile projectile : screen.session.getZombieProjectiles()) drawSmallDot(projectile.getPosition(), new Color(0.8f, 0.18f, 0.18f, 1f));
+        drawZombieProjectiles(delta);
         projectileAnimTimes.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
         projectileTraces.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
+    }
+
+    private void drawZombieProjectiles(float delta) {
+        List<ZombieProjectile> live = screen.session.getZombieProjectiles();
+        for (ZombieProjectile projectile : live) {
+            Position position = projectile.getPosition();
+            if (position == null) continue;
+            zombieProjectileTraces.put(projectile, position);
+            float age = zombieProjectileAnimTimes.getOrDefault(projectile, 0f) + delta;
+            zombieProjectileAnimTimes.put(projectile, age);
+            if (!(projectile instanceof ZombiePeaProjectile)) {
+                drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+                continue;
+            }
+            float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                    + screen.getBoardTileWidth() * 0.41f;
+            float y = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.42f;
+            if (!screen.drawPam(ZOMBIE_PEA_PAM, "animation", age, x, y,
+                    PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                drawSmallDot(position, new Color(0.55f, 0.85f, 0.25f, 1f));
+            }
+        }
+
+        for (Map.Entry<ZombieProjectile, Position> spent : zombieProjectileTraces.entrySet()) {
+            if (live.contains(spent.getKey())) continue;
+            if (!(spent.getKey() instanceof ZombiePeaProjectile pea)) continue;
+            if (!pea.hasSplatted()) continue;
+            Position position = spent.getValue();
+            if (position == null || isOffBoard(position)) continue;
+            impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
+                    false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
+        }
+        zombieProjectileAnimTimes.keySet().removeIf(p -> !live.contains(p));
+        zombieProjectileTraces.keySet().removeIf(p -> !live.contains(p));
     }
 
     private void spawnImpactEffectsForSpentProjectiles() {

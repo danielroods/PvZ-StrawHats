@@ -6,206 +6,197 @@ import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantJsonParser;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
+import model.game_exceptions.GameException;
+import model.match_mechanisms.ZombieWave;
 import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 import view.GeneralPrinter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Zombotany extends MiniGameMode {
-    private static final Random RAND = new Random();
 
-    private static final String PEASHOOTER_ZOMBIE = "ZombiePeashooter";
-    private static final String WALLNUT_ZOMBIE = "ZombieWallnut";
-    private static final String JALAPENO_ZOMBIE = "ZombieJalapeno";
-    private static final String SQUASH_ZOMBIE = "ZombieSquash";
+    public static final String PEASHOOTER_ZOMBIE = "ZombiePeashooter";
+    public static final String GATLING_ZOMBIE = "ZombieGatlingPea";
+    public static final String WALLNUT_ZOMBIE = "ZombieWallnut";
+    public static final String TALLNUT_ZOMBIE = "ZombieTallnut";
+    public static final String JALAPENO_ZOMBIE = "ZombieJalapeno";
+    public static final String SQUASH_ZOMBIE = "ZombieSquash";
+    public static final String BASIC_ZOMBIE = "ZombieDefault";
 
-    private static final double PEASHOOTER_COOLDOWN_SECONDS = 1.5;
-    private static final int PEASHOOTER_DAMAGE = 20;
-    private static final double JALAPENO_FUSE_SECONDS = 10.0;
-    private static final double JALAPENO_SPEED_MULTIPLIER = 1.8;
-    private static final double SQUASH_TOUCH_DISTANCE = 0.4;
-    private static final int SQUASH_SPEED_MULTIPLIER = 3;
-    private static final int INITIAL_SUN = 500;
+    private static final int ROWS = 5;
+    private static final int COLS = 9;
+    private static final int MAX_EVENT_LOG = 14;
+
+    /** Human-readable names for the plant-headed zombies, for logs and the almanac strip. */
+    private static final Map<String, String> DISPLAY_NAMES = buildDisplayNames();
 
     private final GameSession session;
     private final List<String> availablePlants;
-    private final List<String> zombiePool = List.of(
-            PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE
-    );
-    private final Map<Zombie, Double> peashooterCooldowns = new HashMap<>();
-    private final Map<Zombie, Double> jalapenoFuses = new HashMap<>();
-    private final Set<Zombie> announcedZombies =
-            Collections.newSetFromMap(new IdentityHashMap<>());
+    private final List<String> zombiePool;
     private final List<String> eventLog = new ArrayList<>();
+    private final Set<Zombie> announcedZombies = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    private final int startingSun;
+    private int zombiesKilled;
+    private int plantsLost;
+    private double elapsedSeconds;
+    private boolean won;
+    private boolean lost;
 
     public Zombotany(int difficulty) {
         setDifficulty(difficulty);
-        this.session = new GameSession(5, 9);
+        this.session = new GameSession(ROWS, COLS);
         configureSession(session);
+        session.setSkySunEnabled(true);
+        session.setZombieBreachesEnabled(true);
         this.availablePlants = availablePlantsFor(getDifficulty());
-        this.session.addSun(INITIAL_SUN);
-        this.session.setWaves(wavesFor(getDifficulty()));
-        this.session.startWaves();
-        log("Zombotany level " + getDifficulty() + " started with "
-                + INITIAL_SUN + " sun.");
-    }
-
-    public Zombie spawnZombieForWave(int row, boolean forceSpecial) {
-        String alias = forceSpecial ? pickSpecialAlias() : "ZombieDefault";
-        Zombie zombie = ZombieFactory.create(alias, row, session.getEnvironment().getCols() - 1);
-        zombie.setPosition(new Position(session.getEnvironment().getCols() - 1, row));
-
-        if (alias.equals(SQUASH_ZOMBIE) && zombie.getSpeed() != null) {
-            zombie.setSpeed(zombie.getSpeed().scale(SQUASH_SPEED_MULTIPLIER));
-        }
-        if (alias.equals(JALAPENO_ZOMBIE)) {
-            increaseJalapenoSpeed(zombie);
-            jalapenoFuses.put(zombie, JALAPENO_FUSE_SECONDS);
-        }
-
-        session.spawnZombie(zombie);
-        announcedZombies.add(zombie);
-        log(alias + " spawned in lane " + (row + 1) + ".");
-        return zombie;
-    }
-
-    private String pickSpecialAlias() {
-        String[] specials = { PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE };
-        return specials[RAND.nextInt(specials.length)];
+        this.zombiePool = zombiePoolFor(getDifficulty());
+        this.startingSun = startingSunFor(getDifficulty());
+        session.addSun(startingSun);
+        session.setWaves(wavesFor(getDifficulty()));
+        session.startWaves();
+        log("Zombotany level " + getDifficulty() + " started with " + startingSun + " sun.");
+        log("Watch out - these zombies fight back with the plants they are wearing.");
     }
 
     public void tick(double deltaSeconds) {
-        Set<Plant> alivePlantsBefore = Collections.newSetFromMap(new IdentityHashMap<>());
-        session.getPlants().stream().filter(Plant::isAlive).forEach(alivePlantsBefore::add);
+        if (won || lost) return;
+
+        List<Plant> plantsBefore = new ArrayList<>(session.getPlants());
+        List<Zombie> zombiesBefore = new ArrayList<>(session.getZombies());
+
         session.tick();
-        configureSpecialZombies();
-        for (Plant plant : alivePlantsBefore) {
+        elapsedSeconds += deltaSeconds;
+
+        for (Plant plant : plantsBefore) {
             if (!plant.isAlive()) {
-                log(plant.getName() + " was destroyed by a Zombotany zombie.");
+                plantsLost++;
+                log(plant.getName() + " was lost.");
             }
         }
-        forgetDeadZombies();
+        for (Zombie zombie : zombiesBefore) {
+            if (!zombie.isAlive()) {
+                zombiesKilled++;
+                announcedZombies.remove(zombie);
+            }
+        }
+        announceNewZombies();
+        announcedZombies.retainAll(session.getZombies());
+        evaluateOutcome();
     }
 
-    private void configureSpecialZombies() {
+    private void announceNewZombies() {
         for (Zombie zombie : session.getZombies()) {
-            if (zombie.getPosition() == null) continue;
-            if (isAlias(zombie, JALAPENO_ZOMBIE)) {
-                increaseJalapenoSpeed(zombie);
-                jalapenoFuses.putIfAbsent(zombie, JALAPENO_FUSE_SECONDS);
-            }
-            if (announcedZombies.add(zombie)) {
-                log(zombie.getName() + " spawned in lane "
-                        + ((int) Math.round(zombie.getPosition().y()) + 1) + ".");
-            }
+            if (zombie.getPosition() == null || !announcedZombies.add(zombie)) continue;
+            log(displayName(zombie.getAlias()) + " is coming down lane "
+                    + ((int) Math.round(zombie.getPosition().y()) + 1) + ".");
         }
     }
 
-    private void increaseJalapenoSpeed(Zombie zombie) {
-        Position speed = zombie.getSpeed();
-        if (speed == null) return;
-        double direction = speed.x() < 0 ? -1 : 1;
-        double absoluteSpeed = Math.abs(speed.x());
-        if (absoluteSpeed < 0.185 * JALAPENO_SPEED_MULTIPLIER - 0.0001) {
-            zombie.setSpeed(new Position(direction * absoluteSpeed * JALAPENO_SPEED_MULTIPLIER,
-                    speed.y()));
+    private void evaluateOutcome() {
+        if (won || lost) return;
+        if (session.isGameOver()) {
+            lost = true;
+            log("A zombie got past the last lawn mower.");
+            return;
         }
-    }
-
-    private void tickPeashooterZombies(double deltaSeconds) {
-        for (Zombie zombie : session.getZombies()) {
-            if (!zombie.isAlive() || !isAlias(zombie, PEASHOOTER_ZOMBIE)) continue;
-
-            double cooldown = peashooterCooldowns.getOrDefault(zombie, 0.0) - deltaSeconds;
-            if (cooldown > 0) {
-                peashooterCooldowns.put(zombie, cooldown);
-                continue;
-            }
-            shootNearestPlantInRow(zombie);
-            peashooterCooldowns.put(zombie, PEASHOOTER_COOLDOWN_SECONDS);
+        if (session.areWavesDone()) {
+            won = true;
+            log("Every Zombotany wave has been cleared.");
         }
-    }
-
-    private void shootNearestPlantInRow(Zombie zombie) {
-        int row = (int) zombie.getPosition().y();
-        double zombieX = zombie.getPosition().x();
-
-        session.getPlants().stream()
-                .filter(plant -> plant.isAlive() && (int) plant.getLocation().y() == row
-                        && plant.getLocation().x() < zombieX)
-                .max((a, b) -> Double.compare(a.getLocation().x(), b.getLocation().x()))
-                .ifPresent(plant -> plant.takeDamage(PEASHOOTER_DAMAGE, zombie));
-    }
-
-    private void tickJalapenoZombies(double deltaSeconds) {
-        for (Map.Entry<Zombie, Double> entry : jalapenoFuses.entrySet()) {
-            Zombie zombie = entry.getKey();
-            if (!zombie.isAlive()) continue;
-
-            double remaining = entry.getValue() - deltaSeconds;
-            entry.setValue(remaining);
-            if (remaining <= 0) {
-                burnRow((int) zombie.getPosition().y());
-                zombie.setHp(0);
-                log("Jalapeno Zombie exploded in lane "
-                        + ((int) zombie.getPosition().y() + 1) + " after its fuse.");
-            }
-        }
-    }
-
-    private void burnRow(int row) {
-        session.getPlants().stream()
-                .filter(plant -> plant.isAlive() && (int) plant.getLocation().y() == row)
-                .forEach(plant -> plant.takeDamage(plant.getHP(), null));
-    }
-
-    private void tickSquashZombies() {
-        List<Zombie> squashZombies = new ArrayList<>();
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie.isAlive() && isAlias(zombie, SQUASH_ZOMBIE)) squashZombies.add(zombie);
-        }
-
-        for (Zombie zombie : squashZombies) {
-            session.getPlants().stream()
-                    .filter(plant -> plant.isAlive() && isTouching(zombie, plant))
-                    .findFirst()
-                    .ifPresent(plant -> {
-                        plant.takeDamage(plant.getHP(), zombie);
-                        zombie.setHp(0);
-                        log("Squash Zombie crushed " + plant.getName() + " in lane "
-                                + ((int) plant.getPosition().y() + 1) + ".");
-                    });
-        }
-    }
-
-    private boolean isTouching(Zombie zombie, Plant plant) {
-        return zombie.getPosition() != null && plant.getLocation() != null
-                && zombie.getPosition().distanceTo(plant.getLocation()) <= SQUASH_TOUCH_DISTANCE;
-    }
-
-    private boolean isAlias(Zombie zombie, String alias) {
-        return alias.equals(zombie.getAlias());
-    }
-
-    private void forgetDeadZombies() {
-        peashooterCooldowns.keySet().removeIf(zombie -> !zombie.isAlive());
-        jalapenoFuses.keySet().removeIf(zombie -> !zombie.isAlive());
     }
 
     public boolean isWon() {
-        return session.isWavesStarted() && session.areWavesDone() && !session.isGameOver();
+        return won;
     }
 
     public boolean isLost() {
-        return session.isGameOver();
+        return lost;
     }
 
-    public GameSession getSession() { return session; }
+    public boolean isFinished() {
+        return won || lost;
+    }
 
-    public List<String> getAvailablePlants() { return List.copyOf(availablePlants); }
-    public List<String> getZombiePool() { return List.copyOf(zombiePool); }
-    public double getJalapenoSpeedMultiplier() { return JALAPENO_SPEED_MULTIPLIER; }
+    public boolean plantAt(String plantName, int row, int col) {
+        if (isFinished()) throw new GameException("the match is already over.");
+        if (row < 0 || row >= session.getRows() || col < 0 || col >= session.getCols()) {
+            throw new GameException("that tile is off the lawn.");
+        }
+        PlantJsonParser.PlantConfig config = findConfig(plantName);
+        if (config == null || availablePlants.stream()
+                .noneMatch(name -> name.equalsIgnoreCase(config.name))) {
+            throw new GameException("\"" + plantName
+                    + "\" is not in this level's seed packet row.");
+        }
+        if (!session.isPlantReady(config.id)) {
+            throw new GameException(config.name + " is recharging for "
+                    + String.format("%.1f", session.getPlantCooldown(config.id))
+                    + " more seconds.");
+        }
+
+        Plant plant = PlantFactory.createPlant(config.id, 1, new Position(col, row));
+        if (session.getSunCount() < plant.getCost()) {
+            throw new GameException("not enough sun; " + config.name
+                    + " costs " + plant.getCost() + ".");
+        }
+        if (!session.plantAt(row, col, plant)) {
+            throw new GameException("that tile is occupied or blocked.");
+        }
+
+        session.spendSun(plant.getCost());
+        session.startPlantCooldown(config.id, plant.getRecharge());
+        log(plant.getName() + " planted at (" + (col + 1) + ", " + (row + 1)
+                + "). Sun: " + session.getSunCount() + ".");
+        return true;
+    }
+
+    public Plant digPlantAt(int row, int col) {
+        if (isFinished()) return null;
+        Plant dug = session.digPlantAt(row, col);
+        if (dug != null) {
+            log(dug.getName() + " was dug up at (" + (col + 1) + ", " + (row + 1) + ").");
+        }
+        return dug;
+    }
+
+    public boolean feedPlantAt(int row, int col) {
+        if (isFinished()) throw new GameException("the match is already over.");
+        Plant plant = plantAt(row, col);
+        if (plant == null) throw new GameException("there is no plant there to feed.");
+        if (plant.getPlantFoodEffect() == null) {
+            throw new GameException(plant.getName() + " has no plant food effect.");
+        }
+        if (plant.isPlantFoodActive()) {
+            throw new GameException(plant.getName() + " is already supercharged.");
+        }
+        if (!session.spendPlantFood()) throw new GameException("no plant food available.");
+        if (!plant.activatePlant(session)) {
+            session.addPlantFood();
+            throw new GameException("plant food could not be used on " + plant.getName() + ".");
+        }
+        log("Plant food supercharged " + plant.getName() + " at ("
+                + (col + 1) + ", " + (row + 1) + ").");
+        return true;
+    }
+
+    public Plant plantAt(int row, int col) {
+        for (Plant plant : session.getPlants()) {
+            if (!plant.isAlive() || plant.getLocation() == null) continue;
+            if ((int) plant.getLocation().x() == col && (int) plant.getLocation().y() == row) {
+                return plant;
+            }
+        }
+        return null;
+    }
 
     public List<GroundItem> collectItemsAt(int x, int y) {
         return session.collectItemsNear(new Position(x, y));
@@ -217,37 +208,100 @@ public class Zombotany extends MiniGameMode {
         log("Cheat added " + amount + " sun. Total: " + session.getSunCount() + ".");
     }
 
+    public boolean addPlantFoodCheat() {
+        boolean added = session.addPlantFood();
+        log(added ? "Cheat added 1 plant food." : "Plant food storage is already full.");
+        return added;
+    }
+
+    public Zombie spawnZombie(String alias, int row) {
+        String resolved = resolveAlias(alias);
+        if (resolved == null) {
+            throw new GameException("\"" + alias + "\" is not a Zombotany zombie.");
+        }
+        int lane = Math.max(0, Math.min(session.getRows() - 1, row));
+        Zombie zombie = ZombieFactory.create(resolved, lane, session.getCols() - 1);
+        zombie.setPosition(new Position(session.getCols() - 1 + 0.5, lane));
+        session.spawnZombie(zombie);
+        log(displayName(resolved) + " spawned in lane " + (lane + 1) + ".");
+        return zombie;
+    }
+
+    private String resolveAlias(String alias) {
+        if (alias == null) return null;
+        String normalized = alias.trim().replace("-", "").replace("_", "").replace(" ", "");
+        for (String candidate : DISPLAY_NAMES.keySet()) {
+            if (candidate.equalsIgnoreCase(normalized)
+                    || candidate.equalsIgnoreCase("Zombie" + normalized)
+                    || displayName(candidate).replace(" ", "").equalsIgnoreCase(normalized)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    public GameSession getSession() {
+        return session;
+    }
+
+    public List<String> getAvailablePlants() {
+        return List.copyOf(availablePlants);
+    }
+
+    public List<String> getZombiePool() {
+        return List.copyOf(zombiePool);
+    }
+
+    public int getStartingSun() {
+        return startingSun;
+    }
+
+    public int getZombiesKilled() {
+        return zombiesKilled;
+    }
+
+    public int getPlantsLost() {
+        return plantsLost;
+    }
+
+    public double getElapsedSeconds() {
+        return elapsedSeconds;
+    }
+
+    public int getWavesSurvived() {
+        return session.getWavesSpawnedCount();
+    }
+
+    public int getTotalWaves() {
+        return session.getTotalWaveCount();
+    }
+
+    public List<String> getEventLog() {
+        return List.copyOf(eventLog);
+    }
+
+    public static String displayName(String alias) {
+        return DISPLAY_NAMES.getOrDefault(alias, alias);
+    }
+
     public String renderZombiesInfo() {
         return session.renderZombiesInfo();
     }
 
     public String renderPlantsInfo() {
-        if (session.getPlants().isEmpty()) return "no plants on the field";
-        return session.getPlants().stream()
+        String rendered = session.getPlants().stream()
                 .filter(Plant::isAlive)
                 .map(plant -> plant.getName() + " | hp: " + plant.getHP()
-                        + " | position: (" + ((int) plant.getPosition().x() + 1)
-                        + ", " + ((int) plant.getPosition().y() + 1) + ")")
-                .collect(java.util.stream.Collectors.joining("\n"));
+                        + " | position: (" + ((int) plant.getLocation().x() + 1)
+                        + ", " + ((int) plant.getLocation().y() + 1) + ")")
+                .collect(Collectors.joining("\n"));
+        return rendered.isEmpty() ? "no plants on the field" : rendered;
     }
 
-    public boolean plantAt(String plantName, int row, int col) {
-        if (row < 0 || row >= session.getRows() || col < 0 || col >= session.getCols()) return false;
-        if (availablePlants.stream().noneMatch(name -> name.equalsIgnoreCase(plantName))) return false;
-
-        PlantJsonParser.PlantConfig config = PlantFactory.getBlueprints().values().stream()
-                .filter(candidate -> candidate.name.equalsIgnoreCase(plantName))
-                .findFirst().orElse(null);
-        if (config == null || !session.isPlantReady(config.id)) return false;
-
-        Plant plant = PlantFactory.createPlant(config.id, 1, new Position(col, row));
-        if (session.getSunCount() < plant.getCost() || !session.plantAt(row, col, plant)) return false;
-
-        session.spendSun(plant.getCost());
-        session.startPlantCooldown(config.id, plant.getRecharge());
-        log(plant.getName() + " planted at (" + (col + 1) + ", " + (row + 1)
-                + "). Sun: " + session.getSunCount() + ".");
-        return true;
+    public String renderRoster() {
+        return zombiePool.stream()
+                .map(alias -> displayName(alias) + " (" + alias + ")")
+                .collect(Collectors.joining("\n  "));
     }
 
     public String renderState() {
@@ -257,63 +311,117 @@ public class Zombotany extends MiniGameMode {
                         + ((int) plant.getLocation().x() + 1) + ", "
                         + ((int) plant.getLocation().y() + 1) + ")"
                         + " hp=" + plant.getHP())
-                .collect(java.util.stream.Collectors.joining("\n  "));
+                .collect(Collectors.joining("\n  "));
         if (plantsOnField.isEmpty()) plantsOnField = "none";
 
         StringBuilder result = new StringBuilder(getStageDetails()
-                + " | Available plants: " + availablePlants
-                + " | Zombie pool: " + zombiePool
+                + " | Sun: " + session.getSunCount()
+                + " | Plant food: " + session.getPlantFoodCount()
+                + " | Waves: " + getWavesSurvived() + "/" + getTotalWaves()
+                + "\nSeed packets: " + availablePlants
+                + "\nZombie roster:\n  " + renderRoster()
                 + "\n" + session.renderMap()
                 + "\nPlants on the field:\n  " + plantsOnField
                 + "\nZombies:\n  " + renderZombiesInfo().replace("\n", "\n  "));
         if (!eventLog.isEmpty()) {
-            result.append("\nRecent events:\n  ")
-                    .append(String.join("\n  ", eventLog));
+            result.append("\nRecent events:\n  ").append(String.join("\n  ", eventLog));
         }
         return result.toString();
     }
 
     private void log(String message) {
         eventLog.add(message);
-        if (eventLog.size() > 14) eventLog.remove(0);
+        if (eventLog.size() > MAX_EVENT_LOG) eventLog.remove(0);
         GeneralPrinter.print(message);
+    }
+
+    private PlantJsonParser.PlantConfig findConfig(String plantName) {
+        if (plantName == null) return null;
+        for (PlantJsonParser.PlantConfig config : PlantFactory.getBlueprints().values()) {
+            if (config.name.equalsIgnoreCase(plantName.trim())) return config;
+        }
+        return null;
+    }
+
+    private static Map<String, String> buildDisplayNames() {
+        Map<String, String> names = new LinkedHashMap<>();
+        names.put(PEASHOOTER_ZOMBIE, "Peashooter Zombie");
+        names.put(GATLING_ZOMBIE, "Gatling Pea Zombie");
+        names.put(WALLNUT_ZOMBIE, "Wall-nut Zombie");
+        names.put(TALLNUT_ZOMBIE, "Tall-nut Zombie");
+        names.put(JALAPENO_ZOMBIE, "Jalapeno Zombie");
+        names.put(SQUASH_ZOMBIE, "Squash Zombie");
+        names.put(BASIC_ZOMBIE, "Browncoat Zombie");
+        return Collections.unmodifiableMap(names);
+    }
+
+    private int startingSunFor(int level) {
+        return switch (level) {
+            case 2 -> 250;
+            case 3 -> 200;
+            default -> 300;
+        };
     }
 
     private List<String> availablePlantsFor(int level) {
         return switch (level) {
-            case 2 -> List.of("Sunflower", "Peashooter", "Repeater", "Wall-nut", "Potato Mine");
-            case 3 -> List.of("Sunflower", "Peashooter", "Repeater", "Snow Pea", "Wall-nut", "Tall-nut", "Chomper");
-            default -> List.of("Sunflower", "Peashooter", "Wall-nut");
+            case 2 -> List.of("Sunflower", "Peashooter", "Repeater", "Snow Pea",
+                    "Wall-nut", "Potato Mine", "Cherry Bomb");
+            case 3 -> List.of("Sunflower", "Peashooter", "Repeater",
+                    "Wall-nut", "Tall-nut", "Squash", "Jalapeno");
+            default -> List.of("Sunflower", "Peashooter", "Wall-nut", "Potato Mine");
         };
     }
 
-    private List<model.match_mechanisms.ZombieWave> wavesFor(int level) {
+    private List<String> zombiePoolFor(int level) {
+        return switch (level) {
+            case 2 -> List.of(BASIC_ZOMBIE, PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE,
+                    SQUASH_ZOMBIE, JALAPENO_ZOMBIE);
+            case 3 -> List.of(PEASHOOTER_ZOMBIE, GATLING_ZOMBIE, WALLNUT_ZOMBIE,
+                    TALLNUT_ZOMBIE, SQUASH_ZOMBIE, JALAPENO_ZOMBIE);
+            default -> List.of(BASIC_ZOMBIE, PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE);
+        };
+    }
+
+    private List<ZombieWave> wavesFor(int level) {
         return switch (level) {
             case 2 -> MiniGameWaves.create(session,
-                    new double[] {8, 18, 22, 26},
+                    new double[] {22, 26, 28, 30, 34},
                     new String[][] {
-                            {PEASHOOTER_ZOMBIE, SQUASH_ZOMBIE},
-                            {JALAPENO_ZOMBIE, WALLNUT_ZOMBIE},
-                            {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE},
-                            {WALLNUT_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, JALAPENO_ZOMBIE,
-                                    PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, SQUASH_ZOMBIE}
+                        {PEASHOOTER_ZOMBIE, BASIC_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, SQUASH_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE, SQUASH_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE,
+                            JALAPENO_ZOMBIE, SQUASH_ZOMBIE, BASIC_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE,
+                            PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE, WALLNUT_ZOMBIE,
+                            JALAPENO_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE,
+                            SQUASH_ZOMBIE, SQUASH_ZOMBIE},
                     });
             case 3 -> MiniGameWaves.create(session,
-                    new double[] {7, 16, 20, 24},
+                    new double[] {20, 24, 26, 28, 32},
                     new String[][] {
-                            {WALLNUT_ZOMBIE, JALAPENO_ZOMBIE},
-                            {WALLNUT_ZOMBIE, SQUASH_ZOMBIE, PEASHOOTER_ZOMBIE},
-                            {WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE, PEASHOOTER_ZOMBIE},
-                            {WALLNUT_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, JALAPENO_ZOMBIE,
-                                    SQUASH_ZOMBIE, SQUASH_ZOMBIE, PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE}
+                        {PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE},
+                        {GATLING_ZOMBIE, WALLNUT_ZOMBIE, TALLNUT_ZOMBIE,
+                            JALAPENO_ZOMBIE, SQUASH_ZOMBIE},
+                        {GATLING_ZOMBIE, GATLING_ZOMBIE, TALLNUT_ZOMBIE, TALLNUT_ZOMBIE,
+                            JALAPENO_ZOMBIE, SQUASH_ZOMBIE, PEASHOOTER_ZOMBIE},
+                        {GATLING_ZOMBIE, GATLING_ZOMBIE, GATLING_ZOMBIE, GATLING_ZOMBIE,
+                            TALLNUT_ZOMBIE, TALLNUT_ZOMBIE, TALLNUT_ZOMBIE,
+                            WALLNUT_ZOMBIE, WALLNUT_ZOMBIE, JALAPENO_ZOMBIE,
+                            JALAPENO_ZOMBIE, JALAPENO_ZOMBIE, SQUASH_ZOMBIE, SQUASH_ZOMBIE},
                     });
             default -> MiniGameWaves.create(session,
-                    new double[] {10, 22, 28},
+                    new double[] {25, 30, 32, 36},
                     new String[][] {
-                            {PEASHOOTER_ZOMBIE},
-                            {PEASHOOTER_ZOMBIE, SQUASH_ZOMBIE},
-                            {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE,
-                                    SQUASH_ZOMBIE, JALAPENO_ZOMBIE}
+                        {BASIC_ZOMBIE, PEASHOOTER_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, BASIC_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE,
+                            WALLNUT_ZOMBIE},
+                        {PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE,
+                            PEASHOOTER_ZOMBIE, PEASHOOTER_ZOMBIE, WALLNUT_ZOMBIE,
+                            WALLNUT_ZOMBIE, BASIC_ZOMBIE, BASIC_ZOMBIE},
                     });
         };
     }
