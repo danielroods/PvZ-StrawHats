@@ -96,7 +96,7 @@ class SessionReporter {
     String renderPlantsStatus() {
         List<Plant> plants = session.getPlants();
         StringBuilder sb = new StringBuilder("Loadout planting status:");
-        List<String> selected = controller.menus.match.BeforeMenu.selectedPlants;
+        List<String> selected = controller.match.BeforeMenu.selectedPlants;
         if (selected.isEmpty()) {
             sb.append("\n  no plants selected");
         }

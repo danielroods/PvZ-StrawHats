@@ -1,6 +1,6 @@
 package model.greenhouse;
 
-import controller.menus.greenhouse.PotController;
+import controller.ui_menus.greenhouse.PotController;
 
 public class Pot {
     private PotPlant potPlant;

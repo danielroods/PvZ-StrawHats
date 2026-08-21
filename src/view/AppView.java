@@ -4,10 +4,10 @@ import model.App;
 import model.game_exceptions.GameException;
 import view.menus.*;
 import view.menus.collection_view.CollectionMenuView;
-import view.menus.while_match.AfterMatchView;
-import view.menus.while_match.BeforeMatchView;
-import view.menus.while_match.MatchMenuView;
-import view.menus.while_match.MeanwhileMatchView;
+import view.menus.match.AfterMatchView;
+import view.menus.match.BeforeMatchView;
+import view.menus.match.MatchMenuView;
+import view.menus.match.MeanwhileMatchView;
 
 
 public class AppView {
