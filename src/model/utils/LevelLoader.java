@@ -27,7 +27,8 @@ import java.util.Map;
 public class LevelLoader {
     private static final Gson gson = new Gson();
     private static final List<String> MINI_GAME_ONLY_ZOMBIES = List.of(
-            "ZombiePeashooter", "ZombieWallnut", "ZombieJalapeno", "ZombieSquash"
+            "ZombiePeashooter", "ZombieWallnut", "ZombieJalapeno", "ZombieSquash",
+            "ZombieGatlingPea", "ZombieTallnut"
     );
 
     public static List<Level> loadLevels() throws java.io.IOException {

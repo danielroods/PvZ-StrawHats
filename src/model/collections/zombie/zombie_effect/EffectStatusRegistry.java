@@ -60,8 +60,10 @@ public class EffectStatusRegistry {
 
             case "PeashooterZombieEffect" -> new PeashooterZombieEffect(
                     getInt(params, data, "damage", 20),
-                    getDouble(params, data, "fireRate", 1.5));
-            case "JalapenoZombieEffect", "ThermiteExplosion" -> new ThermiteExplosion(getDouble(params, data, "fuseSeconds", 10.0));
+                    getDouble(params, data, "fireRate", 1.5),
+                    getInt(params, data, "shotsPerVolley", 1),
+                    getDouble(params, data, "volleyGap", 0.2));
+            case "JalapenoZombieEffect", "ThermiteExplosion" -> new ThermiteExplosion();
             case "SunProducer" -> new SunProducer();
             default -> null;
         };

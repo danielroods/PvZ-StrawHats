@@ -1,8 +1,8 @@
 package model;
 
-import controller.menus.MainMenu;
-import controller.menus.Menu;
-import controller.menus.authentication.SignupMenu;
+import controller.ui_menus.MainMenu;
+import controller.ui_menus.Menu;
+import controller.ui_menus.authentication.SignupMenu;
 import model.match.main.MainMode;
 import model.user_data.User;
 

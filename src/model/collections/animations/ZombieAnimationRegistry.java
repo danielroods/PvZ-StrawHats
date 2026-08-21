@@ -26,11 +26,12 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombieProspector", "ZOMBIE_PROSPECTOR"),
             Map.entry("ZombiePiano", "ZOMBIE_PIANO"),
             Map.entry("ZombieArcade", "ZOMBIE_80S_ARCADE"),
-
-            Map.entry("ZombiePeashooter", "PEASHOOTER"),
-            Map.entry("ZombieWallnut", "WALLNUT"),
-            Map.entry("ZombieJalapeno", "JALAPENO"),
-            Map.entry("ZombieSquash", "SQUASH"),
+            Map.entry("ZombiePeashooter", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieGatlingPea", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieWallnut", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieTallnut", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieJalapeno", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieSquash", "ZOMBIE_TUTORIAL"),
 
             Map.entry("ZombieArmor1", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieArmor2", "ZOMBIE_TUTORIAL"),

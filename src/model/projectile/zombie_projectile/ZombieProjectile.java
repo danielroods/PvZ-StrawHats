@@ -42,6 +42,10 @@ public abstract class ZombieProjectile extends Item {
         }
     }
 
+    public String getSourceZombieAlias() {
+        return sourceZombieAlias;
+    }
+
     protected abstract void updateFlightPath(double progress);
 
     protected abstract void onDestinationReached(GameSession session);

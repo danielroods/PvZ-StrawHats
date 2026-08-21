@@ -1,25 +1,29 @@
 package controller;
 
-import controller.menus.*;
-import controller.menus.authentication.LoginMenu;
-import controller.menus.authentication.SignupMenu;
-import controller.menus.match.MatchMenu;
-import controller.menus.match.BeforeMenu;
-import controller.menus.match.MeanwhileMenu;
-import controller.menus.match.AfterMenu;
-import controller.menus.greenhouse.GreenhouseMenu;
-import controller.menus.greenhouse.ShopMenu;
+import controller.ui_menus.*;
+import controller.ui_menus.authentication.LoginMenu;
+import controller.ui_menus.authentication.SignupMenu;
+import controller.match.MatchMenu;
+import controller.match.BeforeMenu;
+import controller.match.GameplayMenu;
+import controller.match.AfterMenu;
+import controller.ui_menus.greenhouse.GreenhouseMenu;
+import controller.ui_menus.greenhouse.ShopMenu;
 import model.App;
 import model.match.main.levels.Level;
-import view.general_screens.BaseScreen;
-import view.screens.*;
-import view.screens.stages_screens.BigWaveBeachStagesScreen;
-import view.screens.stages_screens.DarkAgesStagesScreen;
-import view.screens.stages_screens.EgyptStagesScreen;
-import view.screens.stages_screens.FrostbiteCavesStagesScreen;
-import view.general_screens.GameScreen;
-import controller.mini_games.*;
-import view.screens.mini_games.*;
+import view.screens.generals.BaseScreen;
+import view.screens.match.after.AfterMatchScreen;
+import view.screens.ui_menus.*;
+
+import view.screens.match.before.BeforeMatchScreen;
+import view.screens.match.gameplay.*;
+import view.screens.stages.BigWaveBeachStagesScreen;
+import view.screens.stages.DarkAgesStagesScreen;
+import view.screens.stages.EgyptStagesScreen;
+import view.screens.stages.FrostbiteCavesStagesScreen;
+import view.screens.generals.GameScreen;
+import controller.match.mini_games.*;
+import view.screens.match.gameplay.mini_games.*;
 
 public final class ScreenManager {
 
@@ -91,7 +95,7 @@ public final class ScreenManager {
         if (menu instanceof BeforeMenu) {
             return new BeforeMatchScreen();
         }
-        if (menu instanceof MeanwhileMenu) {
+        if (menu instanceof GameplayMenu) {
             Level level = model.utils.GameSession.peekInstance() == null
                     ? null : model.utils.GameSession.peekInstance().getLevel();
 
