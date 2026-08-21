@@ -84,6 +84,9 @@ public class ProspectorMove implements MoveBehavior {
                 );
                 nextPos = applySliderRedirect(zombie, pos, nextPos, session);
                 zombie.setPosition(nextPos);
+                if (session.getLawn() != null && nextPos.x() >= session.getLawn().getCols()) {
+                    zombie.setHp(0);
+                }
             }
         }
     }

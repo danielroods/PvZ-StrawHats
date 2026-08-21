@@ -44,7 +44,7 @@ public class GameSession {
     private Boolean skySunEnabledOverride = null;
     private int difficultyLevel;
 
-    private final SessionHazards hazards = new SessionHazards();
+    private final SessionHazards hazards = new SessionHazards(this);
     private final SessionEconomy economy = new SessionEconomy(this);
     private final SessionBoard board = new SessionBoard(this);
     private final SessionDrops drops = new SessionDrops(this);
@@ -146,6 +146,12 @@ public class GameSession {
     public int getWavesSpawnedCount() { return waves.getWavesSpawnedCount(); }
 
     public double getSecondsUntilNextWave() { return waves.getSecondsUntilNextWave(); }
+
+    public double getWaveProgress() { return waves.getWaveProgress(); }
+
+    public boolean isHugeWaveIncoming() { return waves.isHugeWaveIncoming(); }
+
+    public boolean isSpawningWave() { return waves.isSpawningWave(); }
 
     public void spawnZombie(Zombie zombie) {
         if (zombie == null) return;
@@ -271,7 +277,7 @@ public class GameSession {
             zombieProjectiles.clear();
             economy.clearCooldownsAndBoosts();
             IceWind.reset(this);
-            hazards.resetBeachBigWave();
+            hazards.reset();
             Projectile.setGlobalSpeedMultiplier(0.60f);
             clock.reset();
             gameOver = false;

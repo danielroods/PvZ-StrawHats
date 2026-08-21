@@ -25,6 +25,8 @@ import java.util.Set;
 public class ZombieFactory {
     private static final Map<String, Map<String, Object>> blueprints = new HashMap<>();
     private static final Map<String, Integer> armorBaseHp = new HashMap<>();
+    private static final int DEFAULT_WAVE_POINT_COST = 100;
+    private static final double DEFAULT_SPEED = 0.185;
     private static boolean loaded = false;
 
     public static void init() {
@@ -90,8 +92,39 @@ public class ZombieFactory {
     public static int getZombieCost(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);
-        if (data == null) return Integer.MAX_VALUE;
-        return ((Number) data.getOrDefault("WavePointCost", 100)).intValue();
+        if (data == null) return DEFAULT_WAVE_POINT_COST;
+        return ((Number) data.getOrDefault("WavePointCost", DEFAULT_WAVE_POINT_COST)).intValue();
+    }
+
+    public static boolean isStationaryMover(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        if (data == null) return false;
+        Object move = data.get("move");
+        Object type = move instanceof Map<?, ?> spec ? ((Map<?, ?>) spec).get("type") : move;
+        return "StationaryMove".equals(type);
+    }
+
+    public static double getZombieSpeed(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        if (data == null) return DEFAULT_SPEED;
+        return ((Number) data.getOrDefault("Speed", DEFAULT_SPEED)).doubleValue();
+    }
+
+    public static ZombieRace getZombieRace(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        Object size = data == null ? null : data.get("Size");
+        return raceFor(size instanceof String ? (String) size : "default");
+    }
+
+    private static ZombieRace raceFor(String sizeStr) {
+        return switch (sizeStr.toLowerCase()) {
+            case "imp" -> ZombieRace.IMP;
+            case "large" -> ZombieRace.GARGANTUAR;
+            default -> ZombieRace.DEFAULT;
+        };
     }
 
     @SuppressWarnings("unchecked")
@@ -131,11 +164,7 @@ public class ZombieFactory {
         double eatDps = ((Number) data.getOrDefault("EatDPS", 60)).doubleValue();
 
         String sizeStr = data.containsKey("Size") ? (String) data.get("Size") : "default";
-        ZombieRace race = switch (sizeStr.toLowerCase()) {
-            case "imp" -> ZombieRace.IMP;
-            case "large" -> ZombieRace.GARGANTUAR;
-            default -> ZombieRace.DEFAULT;
-        };
+        ZombieRace race = raceFor(sizeStr);
 
         boolean canSpawnPlantFood = !data.containsKey("CanSpawnPlantFood") || (Boolean) data.get("CanSpawnPlantFood");
         Armour armour = resolveArmor(data);

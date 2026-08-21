@@ -286,7 +286,7 @@ public final class MatchHud extends Table implements Disposable {
             waveProgressBar.setValue(progressValueOverride == null ? 0f : progressValueOverride);
         } else {
             waveLabel.setText("WAVES " + spawned + "/" + total);
-            waveProgressBar.setValue(Math.min(1f, spawned / (float) total));
+            waveProgressBar.setValue(Math.min(1f, (float) session.getWaveProgress()));
         }
         objectiveLabel.setText(objectiveOverride != null
                 ? objectiveOverride : objectiveFor(session.getLevel()));

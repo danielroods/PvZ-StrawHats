@@ -35,13 +35,6 @@ public class GameScreen extends UiScreen {
 
     protected  static final String ASSET_ROOT = "assets/images/chapters/";
 
-    /**
-     * Season folder key, e.g. "egypt", "frostbite_caves", "big_wave_beach", "dark_ages".
-     * Every season's gameplay art lives at the same relative layout -
-     * chapters/<seasonFolder>/gameplay/{map,texture_left,texture_right}.png -
-     * so a subclass only needs to set this field (in its constructor) instead of
-     * overriding three separate path-getter methods with full paths each.
-     */
     protected String seasonFolder = "egypt";
 
     public GameSession session;
@@ -91,17 +84,11 @@ public class GameScreen extends UiScreen {
         assets.initFrostbiteTextures();
     }
 
-    /**
-     * Base folder for this season's gameplay art: chapters/<seasonFolder>/gameplay/.
-     * Subclasses set {@link #seasonFolder} instead of overriding this.
-     */
     protected String getSeasonGameplayFolder() {
         return ASSET_ROOT + seasonFolder + "/gameplay/";
     }
 
     protected String getGameplayBackgroundPath() { return getSeasonGameplayFolder() + "map.png"; }
-    protected String getSideTextureLeftPath() { return getSeasonGameplayFolder() + "texture_left.png"; }
-    protected String getSideTextureRightPath() { return getSeasonGameplayFolder() + "texture_right.png"; }
 
     protected String getGraveIconPath() {
         return getSeasonGameplayFolder() + "grave.png";

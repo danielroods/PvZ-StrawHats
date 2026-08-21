@@ -12,6 +12,8 @@ import model.App;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.match_mechanisms.vector.Position;
+import model.match.waves.LaneBag;
+import model.match.waves.SpawnPlacement;
 import model.utils.GameSession;
 import view.screens.generals.GameScreen;
 import view.hud.LotteryMatchHud;
@@ -41,6 +43,7 @@ public class LotteryGameScreen extends GameScreen {
     private float gameTimeSeconds = 0f;
     private float spawnTimer = 0f;
     private float sunSpawnTimer = 0f;
+    private LaneBag laneBag;
 
     public LotteryGameScreen() {
         super();
@@ -265,16 +268,20 @@ public class LotteryGameScreen extends GameScreen {
 
         if (sessionZombies == null) return;
 
-        for (int i = 0; i < zombieCount; i++) {
-            int row = random.nextInt(rows);
-            float startCol = cols + random.nextFloat() * 1.5f + (i * 0.35f);
-            Position pos = new Position(startCol, row);
+        if (laneBag == null || laneBag.laneCount() != rows) {
+            laneBag = new LaneBag(rows, random);
+        }
 
+        for (int i = 0; i < zombieCount; i++) {
             String selectedClass = zombiePool.get(random.nextInt(zombiePool.size()));
+            SpawnPlacement.Placement placement = SpawnPlacement.resolve(sessionZombies,
+                    selectedClass, cols, laneBag.preferenceOrder(laneBag.draw()));
+            Position pos = new Position(placement.x(), placement.lane());
+
             Zombie z = safeInstantiateZombie(selectedClass, pos);
             if (z != null) {
+                safeSetPosition(z, pos);
                 sessionZombies.add(z);
-
             }
         }
     }
