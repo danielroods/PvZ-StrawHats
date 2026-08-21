@@ -353,6 +353,10 @@ public class GameScreen extends UiScreen {
         return pam.drawPam(path, preferred, time, x, y, scale, flip, elementVisibility);
     }
 
+    public boolean drawPamMirrored(String path, String preferred, float time, float x, float y, float scale) {
+        return pam.drawPamMirrored(path, preferred, time, x, y, scale);
+    }
+
     protected void preloadPam(String... paths) {
         if (pamPlayer == null || paths == null) return;
         for (String path : paths) {

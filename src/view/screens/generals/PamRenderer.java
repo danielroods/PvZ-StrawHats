@@ -80,6 +80,40 @@ class PamRenderer {
         }
     }
 
+    boolean drawPamMirrored(String path, String preferred, float time, float x, float y, float scale) {
+        PamPlayer pamPlayer = screen.pamPlayer;
+        if (pamPlayer == null || path == null) return false;
+        try {
+            String pamPath = path;
+            if (pamPath.startsWith("assets/pvz-assets/")) {
+                pamPath = pamPath.substring("assets/pvz-assets/".length());
+            }
+            String clipName = AnimationFactory.resolveClipNameForPath(pamPath, preferred);
+            if (clipName == null) clipName = preferred;
+            if (clipName == null || clipName.isBlank()) return false;
+
+            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
+            if (clip == null) return false;
+
+            screen.batch.flush();
+            com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();
+
+            screen.batch.getTransformMatrix().translate(x, y, 0f).scale(-scale, scale, 1f);
+            screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
+            pamPlayer.draw(screen.batch, clip, time, 0f, 0f, false);
+
+            screen.batch.flush();
+            screen.batch.setTransformMatrix(old);
+            return true;
+        } catch (Throwable t) {
+            if (GameSettings.get().isDebugMode()) {
+                Gdx.app.error("DRAWPAM_MIRROR_FAIL",
+                        "drawPamMirrored threw for path=" + path + " preferred=" + preferred, t);
+            }
+            return false;
+        }
+    }
+
     String resolveFuseClipState(String displayName) {
         String state = AnimationFactory.firstAvailableClipState(displayName, "explode", "attack");
         return state == null ? "attack" : state;

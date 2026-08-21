@@ -262,8 +262,8 @@ class ZombieRenderer {
         float headTime = time;
         float duration = screen.pam().resolvePlantClipDuration(head.plantName(), "idle");
         if (duration > 0f) headTime = time % duration;
-        screen.drawPam(head.pam(), "idle", headTime, headX, headY,
-                bodyScale * head.scale(), !facingRight);
+        screen.drawPamMirrored(head.pam(), "idle", headTime, headX, headY,
+                bodyScale * head.scale());
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
