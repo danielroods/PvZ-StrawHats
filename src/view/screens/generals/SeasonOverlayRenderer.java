@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 import controller.assets.GameAssetManager;
+import model.collections.animations.AnimationFactory;
 import model.match.main.levels.special_levels.BossLevel;
 import model.match.main.levels.special_levels.DeadLineLevel;
 import model.match.main.levels.special_levels.IntroductionLevel;
@@ -20,6 +21,18 @@ import model.utils.GameSettings;
  * the sandstorm haze over the lawn.
  */
 class SeasonOverlayRenderer {
+
+    private static final String BEACH_PROTECT_TILE_PATH =
+            "assets/images/chapters/beach/gameplay/protect_tile_112x125.png";
+
+    private static final String DEADLINE_FLOWER_PAM =
+            "768/INITIAL/EFFECTS/STAR_OBJECTIVE_FLOWER/STAR_OBJECTIVE_FLOWER.PAM";
+    private static final float DEADLINE_FLOWER_SCALE = 0.52f;
+
+    private enum DeadlineFlowerPhase { IDLE, FAIL, FAIL_IDLE, WIN, WIN_IDLE }
+
+    private DeadlineFlowerPhase deadlineFlowerPhase = DeadlineFlowerPhase.IDLE;
+    private float deadlineFlowerPhaseElapsed = 0f;
 
     private final GameScreen screen;
 
@@ -63,19 +76,27 @@ class SeasonOverlayRenderer {
         }
     }
 
-    void drawSpecialEffects(float bw, float bh) {
+    void drawSpecialEffects(float delta, float bw, float bh) {
         float boardTileWidth = screen.getBoardTileWidth();
         var level = screen.session.getLevel();
         if (level == null) return;
 
         if (level instanceof SaveOurSeedsLevel save && save.getSeedPositions() != null) {
-            for (Position p : save.getSeedPositions().keySet()) drawCellBorder((int) p.y(), (int) p.x(), new Color(0.2f, 1f, 0.35f, 0.55f), 4f);
+            if (screen.isBeach()) {
+                for (Position p : save.getSeedPositions().keySet()) drawBeachProtectTile((int) p.y(), (int) p.x());
+            } else {
+                for (Position p : save.getSeedPositions().keySet()) drawCellBorder((int) p.y(), (int) p.x(), new Color(0.2f, 1f, 0.35f, 0.55f), 4f);
+            }
         }
         if (level instanceof DeadLineLevel deadline && deadline.getDeadLine() != null) {
-            int c = (int) deadline.getDeadLine().x();
-            screen.batch.setColor(1f, 0.12f, 0.08f, 0.75f);
-            screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth, GameScreen.BOARD_Y, 5f, bh);
-            screen.batch.setColor(Color.WHITE);
+            if (screen.isIceAge()) {
+                drawIceAgeDeadlineFlowers(delta, deadline);
+            } else {
+                int c = (int) deadline.getDeadLine().x();
+                screen.batch.setColor(1f, 0.12f, 0.08f, 0.75f);
+                screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth, GameScreen.BOARD_Y, 5f, bh);
+                screen.batch.setColor(Color.WHITE);
+            }
         }
         if (level instanceof IntroductionLevel) {
             screen.batch.setColor(1f, 0.95f, 0.65f, 0.10f);
@@ -145,6 +166,73 @@ class SeasonOverlayRenderer {
                     screen.drawFallback(drawX, drawY, 60, 78, new Color(0.55f, 0.52f, 0.48f, 1f));
                 }
             }
+        }
+    }
+
+    private void drawBeachProtectTile(int row, int col) {
+        float boardTileWidth = screen.getBoardTileWidth();
+        float boardTileHeight = screen.getBoardTileHeight();
+        if (row < 0 || col < 0 || row >= screen.session.getRows() || col >= screen.session.getCols()) return;
+        float x = GameScreen.BOARD_X + col * boardTileWidth;
+        float y = screen.cellY(row);
+        screen.assets().drawStaticEffectStretched(BEACH_PROTECT_TILE_PATH, x, y, boardTileWidth, boardTileHeight);
+    }
+
+    /**
+     * Ice Age (Frostbite Caves) dead line: instead of a plain red bar, each
+     * tile in the dead-line column shows a STAR_OBJECTIVE_FLOWER effect.
+     * They idle normally, then latch to a one-shot "fail"/"win" beat
+     * followed by a held "fail_idle"/"win_idle" once the match resolves,
+     * and stay that way for the rest of the screen.
+     */
+    private void drawIceAgeDeadlineFlowers(float delta, DeadLineLevel deadline) {
+        if (deadlineFlowerPhase == DeadlineFlowerPhase.IDLE) {
+            if (screen.session.isGameOver()) {
+                deadlineFlowerPhase = DeadlineFlowerPhase.FAIL;
+                deadlineFlowerPhaseElapsed = 0f;
+            } else if (screen.session.isGameWon()) {
+                deadlineFlowerPhase = DeadlineFlowerPhase.WIN;
+                deadlineFlowerPhaseElapsed = 0f;
+            }
+        }
+        deadlineFlowerPhaseElapsed += delta;
+
+        String state;
+        switch (deadlineFlowerPhase) {
+            case FAIL -> {
+                float failDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, "fail");
+                if (failDuration > 0f && deadlineFlowerPhaseElapsed >= failDuration) {
+                    deadlineFlowerPhase = DeadlineFlowerPhase.FAIL_IDLE;
+                    deadlineFlowerPhaseElapsed = 0f;
+                }
+                state = deadlineFlowerPhase == DeadlineFlowerPhase.FAIL ? "fail" : "fail_idle";
+            }
+            case WIN -> {
+                float winDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, "win");
+                if (winDuration > 0f && deadlineFlowerPhaseElapsed >= winDuration) {
+                    deadlineFlowerPhase = DeadlineFlowerPhase.WIN_IDLE;
+                    deadlineFlowerPhaseElapsed = 0f;
+                }
+                state = deadlineFlowerPhase == DeadlineFlowerPhase.WIN ? "win" : "win_idle";
+            }
+            case FAIL_IDLE -> state = "fail_idle";
+            case WIN_IDLE -> state = "win_idle";
+            default -> state = "idle";
+        }
+
+        float clipTime = deadlineFlowerPhaseElapsed;
+        boolean looping = state.equals("idle") || state.equals("fail_idle") || state.equals("win_idle");
+        if (looping) {
+            float loopDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, state);
+            if (loopDuration > 0f) clipTime = clipTime % loopDuration;
+        }
+
+        float boardTileWidth = screen.getBoardTileWidth();
+        int col = (int) deadline.getDeadLine().x();
+        for (int row = 0; row < screen.session.getRows(); row++) {
+            float x = GameScreen.BOARD_X + col * boardTileWidth - 10f;
+            float y = screen.cellY(row) + 40f;
+            screen.drawPam(DEADLINE_FLOWER_PAM, state, clipTime, x, y, DEADLINE_FLOWER_SCALE, false);
         }
     }
 

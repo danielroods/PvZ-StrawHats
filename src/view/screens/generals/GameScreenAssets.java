@@ -199,6 +199,18 @@ class GameScreenAssets {
         return true;
     }
 
+    /**
+     * Draws a cached static texture stretched to an explicit width/height
+     * (top-left anchored at x,y), rather than centered and native-scaled.
+     * Useful for tile-fitting overlays like the beach protect-tile frame.
+     */
+    boolean drawStaticEffectStretched(String path, float x, float y, float width, float height) {
+        Texture texture = staticEffectTexture(path);
+        if (texture == null) return false;
+        screen.batch.draw(texture, x, y, width, height);
+        return true;
+    }
+
     void dispose() {
         if (graveTexture != null) graveTexture.dispose();
         if (shovelIconTexture != null) shovelIconTexture.dispose();

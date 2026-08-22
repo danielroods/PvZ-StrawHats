@@ -273,7 +273,7 @@ public class GameScreen extends UiScreen {
         overlays.drawTiles(bw, bh);
         frostbite.drawFrostbiteTileArt();
         drawSeasonGameplayEffects(delta, bw, bh);
-        overlays.drawSpecialEffects(bw, bh);
+        overlays.drawSpecialEffects(delta, bw, bh);
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
         zombies.drawZombies(delta, bw, bh);
@@ -306,6 +306,12 @@ public class GameScreen extends UiScreen {
         return session != null && session.getLevel() != null
                 && session.getLevel().getSeason() != null
                 && "Big Wave Beach".equalsIgnoreCase(session.getLevel().getSeason().getName());
+    }
+
+    protected boolean isIceAge() {
+        return session != null && session.getLevel() != null
+                && session.getLevel().getSeason() != null
+                && "Frostbite Caves".equalsIgnoreCase(session.getLevel().getSeason().getName());
     }
 
     protected float getBoardTileWidth() { return layout.boardTileWidth(); }
