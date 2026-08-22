@@ -2,6 +2,7 @@ package model.utils;
 
 import model.collections.zombie.Zombie;
 import model.match.main.season.travellog.egypt.SandStorm;
+import model.match.waves.SpawnPlacement;
 import model.match_mechanisms.vector.Position;
 
 import java.util.IdentityHashMap;
@@ -16,6 +17,8 @@ import java.util.Map;
 class SessionHazards {
 
     static final double BEACH_BIG_WAVE_ENTRY_TARGET_OFFSET = 0.20;
+    private static final double LANDING_MIN_COLUMN = 0.5;
+    private static final double LANDING_MAX_COLUMN_INSET = 0.4;
 
     private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 1.35;
     private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 1.05;
@@ -29,6 +32,22 @@ class SessionHazards {
     private double beachBigWaveTimer = 0.0;
     private int beachBigWaveIndex = -1;
     private final Map<Zombie, BeachBigWaveEntry> beachBigWaveEntries = new IdentityHashMap<>();
+
+    private final GameSession session;
+
+    SessionHazards(GameSession session) {
+        this.session = session;
+    }
+
+    /**
+     * Where a hazard may actually set this zombie down. The spot it was promised at spawn time
+     * can have been taken since, because the zombies that landed first have already walked on.
+     */
+    private double landingSpotFor(Zombie zombie, int row, double targetX) {
+        if (session == null) return targetX;
+        return SpawnPlacement.clearSpot(session.getZombies(), zombie, row, targetX,
+                LANDING_MIN_COLUMN, session.getCols() - LANDING_MAX_COLUMN_INSET);
+    }
 
     private static final class BeachBigWaveEntry {
         final int row;
@@ -46,17 +65,18 @@ class SessionHazards {
     private static final class SandStormEntry {
         final int startRow;
         final int targetRow;
-        final int targetColumn;
+        final double targetX;
         final double startX;
         final double duration;
         final double startDelay;
         double elapsed;
         double animationElapsed;
 
-        SandStormEntry(int startRow, int targetRow, int targetColumn, double startX, double duration, double startDelay) {
+        SandStormEntry(int startRow, int targetRow, double targetX, double startX,
+                       double duration, double startDelay) {
             this.startRow = startRow;
             this.targetRow = targetRow;
-            this.targetColumn = targetColumn;
+            this.targetX = targetX;
             this.startX = startX;
             this.duration = duration;
             this.startDelay = startDelay;
@@ -97,13 +117,14 @@ class SessionHazards {
                 double progress = Math.min(1.0, travelElapsed / stormEntry.duration);
                 double smooth = progress * progress * (3.0 - 2.0 * progress);
                 double eased = 1.0 - Math.pow(1.0 - smooth, 2.2);
-                double targetX = stormEntry.targetColumn + 0.15;
+                double targetX = stormEntry.targetX;
                 double x = stormEntry.startX + (targetX - stormEntry.startX) * eased;
                 double y = stormEntry.startRow + (stormEntry.targetRow - stormEntry.startRow) * eased;
                 zombie.setPosition(new Position(x, y));
 
                 if (progress >= 1.0) {
-                    zombie.setPosition(new Position(targetX, stormEntry.targetRow));
+                    double landingX = landingSpotFor(zombie, stormEntry.targetRow, targetX);
+                    zombie.setPosition(new Position(landingX, stormEntry.targetRow));
                     Position speed = zombie.getSpeed();
                     if (speed != null) zombie.setSpeed(new Position(-Math.abs(speed.x()), 0));
 
@@ -176,7 +197,8 @@ class SessionHazards {
                 zombie.setPosition(new Position(x, waveEntry.row));
 
                 if (progress >= 1.0) {
-                    zombie.setPosition(new Position(waveEntry.targetX, waveEntry.row));
+                    double landingX = landingSpotFor(zombie, waveEntry.row, waveEntry.targetX);
+                    zombie.setPosition(new Position(landingX, waveEntry.row));
                     Position speed = zombie.getSpeed();
                     if (speed != null) zombie.setSpeed(new Position(-Math.abs(speed.x()), 0));
                     iterator.remove();
@@ -221,9 +243,9 @@ class SessionHazards {
         return sandStormEntries.containsKey(zombie) || beachBigWaveEntries.containsKey(zombie);
     }
 
-    void addSandStormEntry(Zombie zombie, int startRow, int targetRow, int targetColumn,
+    void addSandStormEntry(Zombie zombie, int startRow, int targetRow, double targetX,
                            double startX, double duration, double startDelay) {
-        sandStormEntries.put(zombie, new SandStormEntry(startRow, targetRow, targetColumn,
+        sandStormEntries.put(zombie, new SandStormEntry(startRow, targetRow, targetX,
                 startX, duration, startDelay));
     }
 
@@ -233,6 +255,15 @@ class SessionHazards {
 
     void pruneSandStormEntries(List<Zombie> zombies) {
         sandStormEntries.entrySet().removeIf(entry -> !entry.getKey().isAlive() || !zombies.contains(entry.getKey()));
+    }
+
+    /** Clears every hazard entry animation, e.g. when a fresh level is loaded. */
+    void reset() {
+        sandStormEntries.clear();
+        sandStormActive = false;
+        sandStormTimer = 0.0;
+        sandStormWaveIndex = -1;
+        resetBeachBigWave();
     }
 
     void resetBeachBigWave() {

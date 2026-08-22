@@ -3,10 +3,14 @@ package model.collections.zombie.zombie_effect;
 import model.collections.Faction;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
+import model.match.waves.SpawnPlacement;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.utils.GameSession;
 import service.GameClock;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReelingTackleStatus implements ZombieEffectStatus {
 
@@ -35,14 +39,27 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
         this.cooldownTimer = reelCooldown;
     }
 
+    private static double holdColumnFor(Zombie target, GameSession session) {
+        double lastGridCol = session.getEnvironment().getCols() - 1;
+        List<Zombie> otherFishermen = new ArrayList<>();
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie != target && zombie.isAlive() && target.getAlias().equals(zombie.getAlias())) {
+                otherFishermen.add(zombie);
+            }
+        }
+        if (otherFishermen.isEmpty()) return lastGridCol;
+        return SpawnPlacement.clearSpot(otherFishermen, target,
+                (int) Math.round(target.getPosition().y()), lastGridCol, 0.5, lastGridCol);
+    }
+
     @Override
     public void applyTickEffect(Zombie target, GameSession session) {
         if (!target.isAlive() || target.getPosition() == null) return;
 
         if (target.getFaction() == Faction.ZOMBIES) {
-            int lastGridCol = session.getEnvironment().getCols() - 1;
-            if (target.getPosition().x() < lastGridCol) {
-                target.setPosition(new Position(lastGridCol, target.getPosition().y()));
+            double holdColumn = holdColumnFor(target, session);
+            if (target.getPosition().x() < holdColumn) {
+                target.setPosition(new Position(holdColumn, target.getPosition().y()));
             }
         }
 

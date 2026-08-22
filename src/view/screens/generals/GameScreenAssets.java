@@ -24,9 +24,6 @@ class GameScreenAssets {
 
     private final GameScreen screen;
 
-    private Texture sideTextureLeft;
-    private Texture sideTextureRight;
-
     private Texture graveTexture;
     private TextureRegion graveRegion;
 
@@ -47,14 +44,6 @@ class GameScreenAssets {
 
     GameScreenAssets(GameScreen screen) {
         this.screen = screen;
-    }
-
-    Texture sideTextureLeft() {
-        return sideTextureLeft;
-    }
-
-    Texture sideTextureRight() {
-        return sideTextureRight;
     }
 
     TextureRegion graveRegion() {
@@ -115,20 +104,6 @@ class GameScreenAssets {
         if (Gdx.files.internal(path).exists()) {
             screen.boardTexture = new Texture(Gdx.files.internal(path));
             screen.boardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        }
-        initSideTextures();
-    }
-
-    private void initSideTextures() {
-        String leftPath = resolveExistingAssetPath(screen.getSideTextureLeftPath());
-        if (leftPath != null && !leftPath.isEmpty() && Gdx.files.internal(leftPath).exists()) {
-            sideTextureLeft = new Texture(Gdx.files.internal(leftPath));
-            sideTextureLeft.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        }
-        String rightPath = resolveExistingAssetPath(screen.getSideTextureRightPath());
-        if (rightPath != null && !rightPath.isEmpty() && Gdx.files.internal(rightPath).exists()) {
-            sideTextureRight = new Texture(Gdx.files.internal(rightPath));
-            sideTextureRight.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         }
     }
 
@@ -225,8 +200,6 @@ class GameScreenAssets {
     }
 
     void dispose() {
-        if (sideTextureLeft != null) sideTextureLeft.dispose();
-        if (sideTextureRight != null) sideTextureRight.dispose();
         if (graveTexture != null) graveTexture.dispose();
         if (shovelIconTexture != null) shovelIconTexture.dispose();
         if (potTexture != null) potTexture.dispose();

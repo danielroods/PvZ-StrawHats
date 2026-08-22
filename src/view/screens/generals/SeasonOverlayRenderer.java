@@ -15,7 +15,7 @@ import model.pitches.Cell;
 import model.utils.GameSettings;
 
 /**
- * The layers under the entities: the season background and side strips, water/grid tiles,
+ * The layers under the entities: the season background, water/grid tiles,
  * the per-level tints and markers (deadline, boss, night, Save Our Seeds), graves, and
  * the sandstorm haze over the lawn.
  */
@@ -29,17 +29,8 @@ class SeasonOverlayRenderer {
 
     void drawBackground(float bw, float bh) {
         BoardLayout layout = screen.layout();
-        GameScreenAssets assets = screen.assets();
         if (screen.boardTexture != null) {
             screen.batch.setColor(Color.WHITE);
-            if (assets.sideTextureLeft() != null) {
-                screen.batch.draw(assets.sideTextureLeft(), layout.sideLeftX, layout.bgY,
-                        layout.sideLeftW, layout.sideLeftH);
-            }
-            if (assets.sideTextureRight() != null) {
-                screen.batch.draw(assets.sideTextureRight(), layout.sideRightX, layout.bgY,
-                        layout.sideRightW, layout.sideRightH);
-            }
             screen.batch.draw(screen.boardTexture, layout.bgX, layout.bgY, layout.bgW, layout.bgH);
         } else {
             screen.batch.setColor(new Color(0.46f, 0.35f, 0.18f, 1f));

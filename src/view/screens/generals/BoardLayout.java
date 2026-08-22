@@ -6,19 +6,20 @@ class BoardLayout {
 
     static final float FALLING_SUN_CLICK_HEIGHT = 80f;
 
-    private static final float BOARD_INSET_LEFT_FRAC = 260f / 1024f;
-    private static final float BOARD_INSET_RIGHT_FRAC = (1024f - 993f) / 1024f;
+    /**
+     * Where the lawn sits inside a season's background image. Every match background is one
+     * wide picture whose right edge *is* the right edge of the lawn, so there is no inset on
+     * that side: pinning the picture to the right of the screen puts column 9 hard against
+     * the screen edge, the way PvZ2 frames a lawn.
+     */
+    private static final float BOARD_INSET_LEFT_FRAC = 633f / 1366f;
     private static final float BOARD_INSET_TOP_FRAC = 192f / 768f;
-    private static final float BOARD_INSET_BOTTOM_FRAC = (768f - 686f) / 768f;
+    private static final float BOARD_INSET_BOTTOM_FRAC = 82f / 768f;
+
+    /** Lawn width in background-image pixels, used to keep art scales stable. */
+    private static final float SOURCE_BOARD_WIDTH = 733f;
 
     private final GameScreen screen;
-
-    float sideLeftX;
-    float sideLeftW;
-    float sideLeftH;
-    float sideRightX;
-    float sideRightW;
-    float sideRightH;
 
     private float boardTileWidth = GameScreen.TILE_WIDTH;
     private float boardTileHeight = GameScreen.TILE_HEIGHT;
@@ -53,7 +54,8 @@ class BoardLayout {
     }
 
     float cellY(double row) {
-        return (float) (GameScreen.BOARD_Y + (screen.session.getRows() - 1 - row) * boardTileHeight);
+        int rows = screen.session.getRows();
+        return (float) (GameScreen.BOARD_Y + (rows - 1 - row) * boardTileHeight);
     }
 
     void updateBoardLayout() {
@@ -61,45 +63,38 @@ class BoardLayout {
         float viewH = screen.stage.getViewport().getWorldHeight();
 
         Texture boardTexture = screen.boardTexture;
-        Texture sideTextureLeft = screen.assets().sideTextureLeft();
-        Texture sideTextureRight = screen.assets().sideTextureRight();
 
         if (boardTexture != null) {
             float texW = boardTexture.getWidth();
             float texH = boardTexture.getHeight();
-            float fitScale = Math.min(viewW / texW, viewH / texH);
-            boardFitScale = fitScale;
+
+            // Fill the screen height, and never leave a gap on the left: the background is
+            // authored just wide enough for 16:9, so this normally resolves to the height fit.
+            float fitScale = Math.max(viewH / texH, viewW / texW);
             bgW = texW * fitScale;
             bgH = texH * fitScale;
-            bgX = (viewW - bgW) / 2f;
-            bgY = (viewH - bgH) / 2f;
+            bgX = viewW - bgW;
+            bgY = (viewH - bgH) * 0.5f;
 
+            float boardPixelW = bgW * (1f - BOARD_INSET_LEFT_FRAC);
+            float boardPixelH = bgH * (1f - BOARD_INSET_TOP_FRAC - BOARD_INSET_BOTTOM_FRAC);
             GameScreen.BOARD_X = bgX + bgW * BOARD_INSET_LEFT_FRAC;
             GameScreen.BOARD_Y = bgY + bgH * BOARD_INSET_BOTTOM_FRAC;
-            float boardPixelW = bgW * (1f - BOARD_INSET_LEFT_FRAC - BOARD_INSET_RIGHT_FRAC);
-            float boardPixelH = bgH * (1f - BOARD_INSET_TOP_FRAC - BOARD_INSET_BOTTOM_FRAC);
+
             int cols = screen.session == null ? 9 : screen.session.getCols();
             int rows = screen.session == null ? 5 : screen.session.getRows();
             boardTileWidth = boardPixelW / cols;
             boardTileHeight = boardPixelH / rows;
-
-            if (sideTextureLeft != null) {
-                sideLeftW = sideTextureLeft.getWidth() * fitScale;
-                sideLeftH = sideTextureLeft.getHeight() * fitScale;
-                sideLeftX = bgX - sideLeftW;
-            }
-            if (sideTextureRight != null) {
-                sideRightW = sideTextureRight.getWidth() * fitScale;
-                sideRightH = sideTextureRight.getHeight() * fitScale;
-                sideRightX = bgX + bgW;
-            }
+            boardFitScale = boardPixelW / SOURCE_BOARD_WIDTH;
         } else {
+            boardTileWidth = GameScreen.TILE_WIDTH;
+            boardTileHeight = GameScreen.TILE_HEIGHT;
+            GameScreen.BOARD_X = viewW - boardWidth();
+            GameScreen.BOARD_Y = (viewH - boardHeight()) * 0.5f;
             bgX = GameScreen.BOARD_X;
             bgY = GameScreen.BOARD_Y;
             bgW = boardWidth();
             bgH = boardHeight();
-            boardTileWidth = GameScreen.TILE_WIDTH;
-            boardTileHeight = GameScreen.TILE_HEIGHT;
             boardFitScale = 1f;
         }
 

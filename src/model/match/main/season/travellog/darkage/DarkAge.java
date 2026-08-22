@@ -101,6 +101,21 @@ public class DarkAge extends Season {
         return count;
     }
 
+    /**
+     * A grave only opens where nothing is standing yet, so a risen zombie never appears on top
+     * of one that is already walking through that spot.
+     */
+    private static boolean isSpotClear(GameSession session, int row, int col) {
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if ((int) Math.round(zombie.getPosition().y()) != row) continue;
+            double separation =
+                    model.match.waves.WavePacing.minSeparation(zombie.getAlias(), "ZombieDefault");
+            if (Math.abs(zombie.getPosition().x() - col) < separation) return false;
+        }
+        return true;
+    }
+
     public static void necromancy(GameSession session, int waveIndex) {
         if (session == null || session.getEnvironment() == null) return;
         Environment env = session.getEnvironment();
@@ -113,7 +128,8 @@ public class DarkAge extends Season {
                         && col >= 5 && col <= 9
                         && cell.getObstacle() instanceof Grave
                         && !cell.hasPlant()
-                        && cell.getStructure() == null) {
+                        && cell.getStructure() == null
+                        && isSpotClear(session, row, col)) {
                     graves.add(cell);
                 }
             }
