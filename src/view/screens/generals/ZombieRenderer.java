@@ -158,14 +158,36 @@ class ZombieRenderer {
             }
             zombieGyratingLast.put(zombie, gyratingNow);
 
-            String preferred = switch (zombie.getZombieState()) {
-                case EATING -> "eat";
-                case DEAD -> "die";
-                default -> gyratingNow ? "spin" : "walk";
-            };
+            boolean hasActionOverride = zombie.getZombieState() != ZombieState.DEAD
+                    && zombie.getActionAnimationState() != null;
+            String preferred;
+            if (zombie.getZombieState() == ZombieState.DEAD) {
+                preferred = "die";
+            } else if (hasActionOverride) {
+                // A special one-off/looping action beat (e.g. "toss", "push",
+                // "cast", "cast_loop", "reel") takes priority over the plain
+                // eat/spin/walk resolution below.
+                preferred = zombie.getActionAnimationState();
+            } else if (zombie.getZombieState() == ZombieState.EATING) {
+                // ZombieBeachFisherman's PAM has no dedicated "eat" clip; it
+                // reuses its "toss" animation for chomping instead.
+                preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss" : "eat";
+            } else {
+                preferred = gyratingNow ? "spin" : "walk";
+            }
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
-            if (("walk".equals(preferred) || "eat".equals(preferred) || "spin".equals(preferred)) && path != null) {
+            if (hasActionOverride) {
+                float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
+                float elapsed = (float) zombie.getActionAnimationElapsed();
+                if (zombie.isActionAnimationLoop()) {
+                    animationTime = duration > 0f ? elapsed % duration : elapsed;
+                } else {
+                    // One-shot beat: play forward and hold the last frame
+                    // instead of looping/glitching once it finishes.
+                    animationTime = duration > 0f ? Math.min(elapsed, duration) : elapsed;
+                }
+            } else if (("walk".equals(preferred) || "eat".equals(preferred) || "toss".equals(preferred) || "spin".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
                     animationTime = t % duration;
