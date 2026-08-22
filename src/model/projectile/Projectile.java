@@ -43,6 +43,12 @@ public class Projectile extends Item {
         this.lobberTargetOnly = lobberTargetOnly;
     }
 
+    public void deflectTowardsPlant(Zombie deflector) {
+        if (deflector != null) hitZombies.add(deflector);
+        remainingHits = 2;
+        setAlive(true);
+    }
+
     public Projectile(Position position, Position velocity, Zombie zombie, int damage, MoveStrategy moveStrategy, HitEffectStrategy hitEffectStrategy) {
         this(zombie, position, velocity, damage, moveStrategy, hitEffectStrategy);
     }

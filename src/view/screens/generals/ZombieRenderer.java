@@ -9,8 +9,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import controller.assets.GameAssetManager;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
+import model.collections.animations.ZombieAshAnimationRegistry;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
+import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match.main.season.travellog.egypt.SandStorm;
 import model.match_mechanisms.vector.Position;
@@ -61,13 +63,17 @@ class ZombieRenderer {
         final Position position;
         final boolean facingRight;
         final float duration;
+        // Non-null when this zombie died from fire: play this ash PAM instead
+        // of the normal die/particles animation.
+        final String ashPath;
         float time;
 
-        DyingZombie(String alias, Position position, boolean facingRight, float duration) {
+        DyingZombie(String alias, Position position, boolean facingRight, float duration, String ashPath) {
             this.alias = alias;
             this.position = position;
             this.facingRight = facingRight;
             this.duration = duration;
+            this.ashPath = ashPath;
         }
     }
 
@@ -147,11 +153,12 @@ class ZombieRenderer {
             String preferred = switch (zombie.getZombieState()) {
                 case EATING -> "eat";
                 case DEAD -> "die";
-                default -> "walk";
+                default -> zombie.getEffectStatus() instanceof RotationalTurbulenceState spin
+                        && spin.isActivelyGyrating() ? "spin" : "walk";
             };
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
-            if (("walk".equals(preferred) || "eat".equals(preferred)) && path != null) {
+            if (("walk".equals(preferred) || "eat".equals(preferred) || "spin".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
                     animationTime = t % duration;
@@ -206,9 +213,17 @@ class ZombieRenderer {
             if (stillAlive.contains(zombie)) continue;
             if (zombie.getPosition() == null) continue;
             if (zombie.getZombieState() != ZombieState.DEAD) continue;
-            float dieDuration = screen.pam().resolveClipDuration(zombie.getAlias(), "die");
+
+            String ashPath = zombie.diedFromFire() ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
+            float dieDuration;
+            if (ashPath != null) {
+                dieDuration = AnimationFactory.clipDurationForPath(ashPath, ZombieAshAnimationRegistry.ASH_STATE);
+            } else {
+                dieDuration = screen.pam().resolveClipDuration(zombie.getAlias(), "die");
+            }
             if (dieDuration <= 0f) dieDuration = DEATH_ANIM_DURATION;
-            dyingZombies.add(new DyingZombie(zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(), dieDuration));
+
+            dyingZombies.add(new DyingZombie(zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(), dieDuration, ashPath));
             zombieAnimTimes.remove(zombie);
             screen.onZombieDied(zombie);
         }
@@ -222,6 +237,15 @@ class ZombieRenderer {
             float x = GameScreen.BOARD_X + (float) dz.position.x() * boardTileWidth;
             float y = screen.cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
+
+            if (dz.ashPath != null) {
+                // Fire-kill: play the ash burn-down effect in place of the
+                // normal die animation and particles.
+                float ashTime = Math.min(dz.time, dz.duration);
+                screen.drawPam(dz.ashPath, ZombieAshAnimationRegistry.ASH_STATE, ashTime,
+                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+                continue;
+            }
 
             String path = ZombieAnimationRegistry.pathFor(dz.alias, screen.seasonFolder);
 

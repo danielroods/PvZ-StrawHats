@@ -1,9 +1,7 @@
 package view.screens.stages;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -12,30 +10,19 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 
-import controller.match.MatchMenu;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.BossLevel;
-import model.user_data.User;
-import model.utils.LevelLoader;
-import model.utils.LevelProgression;
 
-import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.pam.ClipRef;
-import pvz.libpvz.textures.TextureBank;
-
-import service.resource_manager.AudioEnum;
-import service.resource_manager.AudioManager;
-import view.screens.match.before.ComicIntroScreen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +39,8 @@ public class EgyptStagesScreen extends StagesScreen {
     private static final String GEM_ICON = "images/ui/buttons_premium_normal.png";
 
     private static final String CHAPTER_BACKGROUND = "images/backg/egyptbg.png";
+    private static final String COMIC_SHEET_PATH = "assets/images/chapters/egypt/introcomic.jpg";
+    private static final String HOURGLASS_PARTICLE_PATH = "assets/images/ui/gravebuster_dirt__rock_01.png";
 
     private static final String[] STAGE_ISLAND_TEXTURES = {
             "images/chapters/egypt/island5.png",
@@ -72,59 +61,14 @@ public class EgyptStagesScreen extends StagesScreen {
     private static final float LAYOUT_SCALE_X = PATH_WIDTH / 1080f;
     private static final float LAYOUT_SCALE_Y = PATH_HEIGHT / 380f;
 
-
-
     private static final DecorTuning LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.34f, 27f, 44f);
-    private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.53f, 35f,25f);
+    private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.53f, 35f, 25f);
     private static final DecorTuning PYRAMID_TUNING = new DecorTuning(350f, 300f, 0.15f, 70f, -215f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.30f, 37f, 140f);
     private static final DecorTuning TORNADO_TUNING = new DecorTuning(250f, 300f, 0.30f, -83f, -24f);
     private static final DecorTuning ROCK_TUNING = new DecorTuning(100f, 100f, 0.22f, 0f, 0f);
     private static final DecorTuning DUST_TUNING = new DecorTuning(200f, 150f, 0.50f, 10f, 45f);
     private static final DecorTuning STAR_TUNING = new DecorTuning(25f, 25f, 0.30f, 0f, 0f);
-
-    private List<Level> allLevels = new ArrayList<>();
-    private List<Level> chapterLevels = new ArrayList<>();
-
-    private Label selectionLabel;
-    private TextButton playButton;
-
-    private TextureBank textureBank;
-    private PamPlayer pamPlayer;
-
-    public enum PyramidState {
-        LOCKED_IDLE("locked_idle"),
-        UNLOCKED_ANIMATION("unlocked_animation"),
-        UNLOCKED_IDLE("unlocked_idle");
-
-        private final String pamState;
-
-        PyramidState(String pamState) {
-            this.pamState = pamState;
-        }
-
-        public String getPamState() {
-            return pamState;
-        }
-    }
-
-    public enum LevelNodeState {
-        LOCKED_IDLE("locked_idle"),
-        LOCKED_ANIMATION("locked_animation"),
-        UNLOCKED("unlocked"),
-        UNLOCKED_ANIMATION("unlocked_animation"),
-        FINISHED("finished");
-
-        private final String pamState;
-
-        LevelNodeState(String pamState) {
-            this.pamState = pamState;
-        }
-
-        public String getPamState() {
-            return pamState;
-        }
-    }
 
     public enum MapObjectType {
         DECOR_HOUSE_ISLAND("images/chapters/egypt/island1.png", false),
@@ -160,12 +104,12 @@ public class EgyptStagesScreen extends StagesScreen {
         public boolean isPamAnimation() { return isPamAnimation; }
     }
 
-    public static class MapObjectPlacement {
-        MapObjectType type;
-        float x, y;
-        float width, height;
+    private static class MapObjectPlacement {
+        final MapObjectType type;
+        final float x, y;
+        final float width, height;
 
-        public MapObjectPlacement(MapObjectType type, float x, float y, float width, float height) {
+        MapObjectPlacement(MapObjectType type, float x, float y, float width, float height) {
             this.type = type;
             this.x = x;
             this.y = y;
@@ -175,42 +119,35 @@ public class EgyptStagesScreen extends StagesScreen {
     }
 
     @Override
-    public void show() {
-        if (CHAPTER_BACKGROUND != null && !CHAPTER_BACKGROUND.isEmpty() && Gdx.files.internal(CHAPTER_BACKGROUND).exists()) {
-            setBackground(CHAPTER_BACKGROUND);
-        }
-        AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
+    protected String getChapterName() { return CHAPTER_NAME; }
 
-        if (textureBank == null) {
-            try {
-                FileHandle rootHandle = Gdx.files.internal("assets/pvz-assets");
-                textureBank = new TextureBank("atlases", rootHandle);
-                pamPlayer = new PamPlayer(textureBank, rootHandle);
+    @Override
+    protected String getChapterBackground() { return CHAPTER_BACKGROUND; }
 
-                Gdx.app.log("PAM_INIT", "PAM System and TextureBank initialized successfully!");
-            } catch (Throwable t) {
-                Gdx.app.error("PAM_INIT", "Failed to initialize PAM System", t);
-            }
-        }
+    @Override
+    protected String getBackIcon() { return BACK_ICON; }
 
-        super.show();
-        loadLevels();
-        build();
-    }
-    private static final String HOURGLASS_PARTICLE_PATH = "assets/images/ui/gravebuster_dirt__rock_01.png";
+    @Override
+    protected String getCollectionIcon() { return COLLECTION_ICON; }
+
+    @Override
+    protected String getGreenhouseIcon() { return GREENHOUSE_ICON; }
+
+    @Override
+    protected String getLeaderboardIcon() { return LEADERBOARD_ICON; }
+
+    @Override
+    protected String getCoinIcon() { return COIN_ICON; }
+
+    @Override
+    protected String getGemIcon() { return GEM_ICON; }
+
+    @Override
+    protected String getComicSheetPath() { return COMIC_SHEET_PATH; }
 
     @Override
     public void initParticles() {
-        if (particles != null) {
-            particles.dispose();
-        }
-        particlePaths = new String[]{ HOURGLASS_PARTICLE_PATH };
-
-        particles = new view.screens.generals.ParticleCreator(particlePaths, 20, 20f, 35f, 1.2f, true);
-
-        com.badlogic.gdx.scenes.scene2d.Actor particleActor = particles.createActor();
-        particleActor.setTouchable(Touchable.disabled);
-        rootStack.addActorAt(1, particleActor);
+        setupParticles(HOURGLASS_PARTICLE_PATH, 20, 20f, 35f, 1.2f);
     }
 
     @Override
@@ -220,109 +157,7 @@ public class EgyptStagesScreen extends StagesScreen {
     }
 
     @Override
-    public void render(float delta) {
-        if (textureBank != null) {
-            try {
-                textureBank.update();
-            } catch (Throwable t) {
-            }
-        }
-        super.render(delta);
-    }
-
-    private void loadLevels() {
-        try {
-            allLevels = LevelProgression.sorted(LevelLoader.loadLevels());
-        } catch (Exception e) {
-            allLevels = new ArrayList<>();
-        }
-        if (allLevels != null) {
-            chapterLevels = allLevels.stream()
-                    .filter(level -> level != null && level.getSeason() != null && level.getSeason().getName() != null)
-                    .filter(level -> level.getSeason().getName().equalsIgnoreCase(CHAPTER_NAME))
-                    .toList();
-        } else {
-            chapterLevels = new ArrayList<>();
-        }
-    }
-
-    /**
-     * The danger node is a hidden, unlisted level of this chapter: it reuses the
-     * chapter's own season (so it plays through the exact same gameplay screen as
-     * every other stage here) plus the first stage's basic settings as a starting
-     * point. No special gameplay logic yet.
-     */
-    private Level buildDangerLevel() {
-        model.match.main.levels.normal_levels.NormalLevel level = new model.match.main.levels.normal_levels.NormalLevel();
-        Level base = chapterLevels.isEmpty() ? null : chapterLevels.get(0);
-        level.setId(base != null ? -(1_000_000 + base.getId()) : -1_000_000);
-        level.setName(CHAPTER_NAME + " Lottery");
-        level.setGameMode("Lottery");
-        if (base != null) {
-            level.setSeason(base.getSeason());
-            level.setRows(base.getRows());
-            level.setCols(base.getCols());
-            level.setInitialSun(base.getInitialSun());
-            level.setAvailablePlants(base.getAvailablePlants());
-            level.setForcedPlants(base.getForcedPlants());
-            level.setZombiePool(base.getZombiePool());
-            level.setWaves(base.getWaves());
-        }
-        return level;
-    }
-
-    private void playDangerNode() {
-        MatchMenu.selectedLevel = buildDangerLevel();
-        runCommand("start game");
-    }
-
-    private void build() {
-        rootTable.clear();
-
-        Table topBar = buildTopBar();
-        Table pathContainer = buildPathContainer();
-        Table selectionBar = buildSelectionBar();
-
-        rootTable.add(topBar).fillX().padTop(5).padLeft(15).padRight(15).row();
-        rootTable.add(pathContainer).expand().padTop(SPACE_SM).row();
-        rootTable.add(selectionBar).fillX().padBottom(SPACE_SM);
-
-        topBar.toFront();
-        selectionBar.toFront();
-    }
-    private Table buildTopBar() {
-        ImageButton backBtn = createIconButton(BACK_ICON, 54, 54, () -> runCommand("menu exit"));
-
-        Table topLeft = new Table();
-        topLeft.add(backBtn).padRight(16);
-        topLeft.add(createIconButtonWithLabel(COLLECTION_ICON, 54, 54,
-                "Collection", () -> runCommand("menu enter collection"))).padRight(16);
-        topLeft.add(createIconButtonWithLabel(GREENHOUSE_ICON, 54, 54,
-                "Greenhouse", () -> runCommand("menu greenhouse"))).padRight(16);
-        topLeft.add(createIconButtonWithLabel(LEADERBOARD_ICON, 54, 54,
-                "Leaderboard", () -> runCommand("menu leaderboard")));
-
-        User user = User.currentUser;
-        int coins = (user != null && user.userState != null) ? user.userState.coins : 0;
-        int diamonds = (user != null && user.userState != null) ? user.userState.diamonds : 0;
-
-        Table topRight = new Table();
-        topRight.add(createResourceWidget(COIN_ICON, String.valueOf(coins))).padRight(15);
-        topRight.add(createResourceWidget(GEM_ICON, String.valueOf(diamonds)));
-
-        Table topBar = new Table();
-        topBar.add(topLeft).left().expandX();
-        topBar.add(topRight).right();
-        return topBar;
-    }
-
-
-
-
-
-
-
-    private Table buildPathContainer() {
+    protected Table buildPathContainer() {
         Table wrap = new Table();
 
         StagePath stagePath = new StagePath();
@@ -335,72 +170,6 @@ public class EgyptStagesScreen extends StagesScreen {
 
         wrap.add(scrollPane).expand().fill().padLeft(-50).padRight(-50).padTop(0).padBottom(-100);
         return wrap;
-    }
-
-    private Table buildSelectionBar() {
-        Table bar = new Table();
-        bar.setBackground(skin.getDrawable("card-background"));
-        bar.pad(14);
-
-        selectionLabel = new Label("", skin, "main");
-        selectionLabel.setWrap(true);
-
-        playButton = primaryButton("Play", () -> {
-            Level selected = MatchMenu.selectedLevel;
-
-            // اگر اولین مرحله فصل مصر انتخاب شده باشد
-            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
-                ComicIntroScreen.COMIC_SHEET_PATH = "assets/images/chapters/egypt/introcomic.jpg";
-                controller.ScreenManager.setScreen(new ComicIntroScreen(() -> {
-                    runCommand("start game");
-                }));
-            } else {
-                runCommand("start game");
-            }
-        });
-
-        bar.add(selectionLabel).width(760).left().expandX();
-        bar.add(playButton).width(180).height(56).padLeft(SPACE_LG);
-
-        refreshSelectionBar();
-        return bar;
-    }
-
-    private void refreshSelectionBar() {
-        Level selected = MatchMenu.selectedLevel;
-        boolean isEgyptSelection = selected != null && selected.getSeason() != null && selected.getSeason().getName().equalsIgnoreCase(CHAPTER_NAME);
-        if (isEgyptSelection) {
-            selectionLabel.setText(selected.getName() + "\n" + selected.getGameMode());
-            playButton.setDisabled(false);
-            playButton.setTouchable(Touchable.enabled);
-        } else {
-            selectionLabel.setText("Tap an unlocked stage to select it.");
-            playButton.setDisabled(true);
-            playButton.setTouchable(Touchable.disabled);
-        }
-    }
-
-    @Override
-    protected void onAfterCommand() {
-        build();
-    }
-
-    private enum StageStatus { LOCKED, UNLOCKED, COMPLETED, CURRENT }
-
-    private StageStatus statusOf(Level level) {
-        int lastLevel = (User.currentUser != null && User.currentUser.userState != null)
-                ? User.currentUser.userState.lastLevel : 0;
-        Level selected = MatchMenu.selectedLevel;
-        if (selected != null && selected.getId() == level.getId()) {
-            return StageStatus.CURRENT;
-        }
-        if (LevelProgression.isCompleted(allLevels, lastLevel, level)) {
-            return StageStatus.COMPLETED;
-        }
-        if (LevelProgression.isUnlocked(allLevels, lastLevel, level)) {
-            return StageStatus.UNLOCKED;
-        }
-        return StageStatus.LOCKED;
     }
 
     private class StagePath extends Group {
@@ -447,7 +216,7 @@ public class EgyptStagesScreen extends StagesScreen {
             }
 
             if (count >= 3) {
-                zombossNodeX = (centerX[1] + centerX[2]) / 2f ;
+                zombossNodeX = (centerX[1] + centerX[2]) / 2f;
                 zombossNodeY = Math.max(centerY[1], centerY[2]) - 200f * LAYOUT_SCALE_Y;
             } else {
                 zombossNodeX = 450f * LAYOUT_SCALE_X;
@@ -559,11 +328,11 @@ public class EgyptStagesScreen extends StagesScreen {
         }
 
         private void addForegroundEffects() {
-            PyramidState pState = calculatePyramidState();
-            String zombossState = (pState == PyramidState.UNLOCKED_IDLE) ? "defeated" : "active";
+            DangerNodeState pState = calculateDangerNodeState();
+            String zombossState = (pState == DangerNodeState.UNLOCKED_IDLE) ? "defeated" : "active";
             addActor(createAnchoredAnimation(MapObjectType.BIG_BOSS_DECOR_ISLAND, ZOMBOSS_TUNING, zombossState, zombossNodeX, zombossNodeY));
             Group pyramid = createAnchoredAnimation(MapObjectType.PYRAMID_ANIM, PYRAMID_TUNING, pState.getPamState(), pyramidAnchorX, pyramidAnchorY);
-            if (pState != PyramidState.LOCKED_IDLE) {
+            if (pState != DangerNodeState.LOCKED_IDLE) {
                 pyramid.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
@@ -591,34 +360,6 @@ public class EgyptStagesScreen extends StagesScreen {
             }
         }
 
-        private PyramidState calculatePyramidState() {
-            if (chapterLevels.size() >= 3) {
-                StageStatus s2 = statusOf(chapterLevels.get(1));
-                StageStatus s3 = statusOf(chapterLevels.get(2));
-                if (s3 != StageStatus.LOCKED) {
-                    return PyramidState.UNLOCKED_IDLE;
-                } else if (s2 == StageStatus.COMPLETED) {
-                    return PyramidState.UNLOCKED_ANIMATION;
-                }
-            }
-            return PyramidState.LOCKED_IDLE;
-        }
-
-        private LevelNodeState levelNodeStateOf(int index, StageStatus status) {
-            switch (status) {
-                case COMPLETED:
-                    return LevelNodeState.FINISHED;
-                case CURRENT:
-                    return LevelNodeState.UNLOCKED_ANIMATION;
-                case UNLOCKED:
-                    return LevelNodeState.UNLOCKED;
-                case LOCKED:
-                default:
-                    boolean nextUp = index > 0 && statusOf(chapterLevels.get(index - 1)) != StageStatus.LOCKED;
-                    return nextUp ? LevelNodeState.LOCKED_ANIMATION : LevelNodeState.LOCKED_IDLE;
-            }
-        }
-
         private void buildNode(Level level, int index, int stageNumber) {
             boolean boss = level instanceof BossLevel;
             float width = boss ? BOSS_NODE_WIDTH : NODE_WIDTH;
@@ -630,7 +371,7 @@ public class EgyptStagesScreen extends StagesScreen {
             stack.setSize(width, height);
 
             String islandPath = boss ? BOSS_STAGE_ISLAND_TEXTURE : STAGE_ISLAND_TEXTURES[index % STAGE_ISLAND_TEXTURES.length];
-            Image islandImage = new Image(getTextureDrawable(islandPath, (int) width, (int) height));
+            Image islandImage = new Image(getTextureDrawable(islandPath, (int) width, (int) height, new Color(0.8f, 0.6f, 0.2f, 1f)));
             stack.add(islandImage);
 
             Label numberLabel = new Label(boss ? "BOSS" : String.valueOf(stageNumber), skin, "title");
@@ -664,25 +405,6 @@ public class EgyptStagesScreen extends StagesScreen {
             DecorTuning tuning = boss ? BOSS_LEVEL_NODE_TUNING : LEVEL_NODE_TUNING;
             addActor(createAnchoredAnimation(MapObjectType.LEVEL_NODE, tuning, nodeState.getPamState(),
                     centerX[index], centerY[index]));
-        }
-
-        private com.badlogic.gdx.scenes.scene2d.utils.Drawable getTextureDrawable(String path, int w, int h) {
-            if (Gdx.files.internal(path).exists()) {
-                return new TextureRegionDrawable(loadTextureSafe(path));
-            }
-            return circleDrawable(Math.min(w, h), new Color(0.8f, 0.6f, 0.2f, 1f), Color.WHITE, 2);
-        }
-
-        private com.badlogic.gdx.scenes.scene2d.utils.Drawable circleDrawable(int diameter, Color fill, Color border, int borderWidth) {
-            Pixmap pixmap = new Pixmap(diameter, diameter, Pixmap.Format.RGBA8888);
-            pixmap.setColor(border);
-            pixmap.fillCircle(diameter / 2, diameter / 2, diameter / 2);
-            pixmap.setColor(fill);
-            pixmap.fillCircle(diameter / 2, diameter / 2, diameter / 2 - borderWidth);
-            Texture texture = new Texture(pixmap);
-            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-            pixmap.dispose();
-            return new TextureRegionDrawable(texture);
         }
 
         private class TrailActor extends Actor {
@@ -783,6 +505,4 @@ public class EgyptStagesScreen extends StagesScreen {
             }
         }
     }
-
-
 }
