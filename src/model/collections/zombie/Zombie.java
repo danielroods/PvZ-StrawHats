@@ -18,6 +18,7 @@ import model.match_mechanisms.Attack;
 import model.match_mechanisms.vector.Position;
 import model.projectile.ArcMove;
 import model.projectile.Projectile;
+import model.projectile.hit.HitEffectStrategy;
 import model.utils.GameSession;
 
 import java.util.List;
@@ -62,6 +63,7 @@ public class Zombie extends Item implements Attack {
     private double statusTimer = 0;
     private double statusDamageAccumulator = 0;
     private boolean deathHandled = false;
+    private boolean firedDeath = false;
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
@@ -120,7 +122,7 @@ public class Zombie extends Item implements Attack {
             int newHp = Math.max(0, getHP() - damage);
             setHP(newHp);
 
-            if (newHp <= 0) handleDeath(GameSession.peekInstance(), "Poison");
+            if (newHp <= 0) handleDeath(GameSession.peekInstance(), "Poison", false);
         } else {
             takeDamage(damage, null);
         }
@@ -175,17 +177,36 @@ public class Zombie extends Item implements Attack {
         int newHp = Math.max(0, getHP() - remaining);
         setHP(newHp);
 
-        if (newHp <= 0) handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource));
+        if (newHp <= 0) {
+            boolean diedFromFire = isFireDamageSource(damageSource) || status == Status.FIRED;
+            handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire);
+        }
     }
 
-    private void handleDeath(GameSession session, String killerName) {
+    private void handleDeath(GameSession session, String killerName, boolean firedDeath) {
         if (deathHandled) return;
         deathHandled = true;
         zombieState = ZombieState.DEAD;
+        this.firedDeath = firedDeath;
         setHP(0);
         if (isGlowing) plantFoodPending = true;
         if (zombieEffectStatus != null) zombieEffectStatus.onDeath(this, session);
         if (session != null) session.notifyZombieDied(this, killerName);
+    }
+
+    /**
+     * Whether the given damage source was fire-based (e.g. a Fire Peashooter
+     * pea), used to decide if a zombie's death should play the ash-death
+     * animation instead of its normal die animation. Mirrors the same
+     * fire-source check used elsewhere for ice/obstacle fire damage.
+     */
+    private boolean isFireDamageSource(Object damageSource) {
+        if (FrostbiteFreezing.isFireDamageSource(damageSource)) return true;
+        if (damageSource instanceof Projectile projectile) {
+            HitEffectStrategy strategy = projectile.getHitEffectStrategy();
+            return strategy != null && strategy.isFireDamage();
+        }
+        return false;
     }
 
     private void updateStatus(double deltaTimeSeconds) {
@@ -225,7 +246,7 @@ public class Zombie extends Item implements Attack {
 
     public void tick(double deltaTimeSeconds, GameSession session) {
         if (!isAlive()) {
-            handleDeath(session, "Unknown");
+            handleDeath(session, "Unknown", status == Status.FIRED);
             return;
         }
 
@@ -233,7 +254,7 @@ public class Zombie extends Item implements Attack {
 
         updateStatus(deltaTimeSeconds);
         if (!isAlive()) {
-            handleDeath(session, status == Status.POISONED ? "Poison" : "Fire");
+            handleDeath(session, status == Status.POISONED ? "Poison" : "Fire", status == Status.FIRED);
             return;
         }
 
@@ -382,6 +403,8 @@ public class Zombie extends Item implements Attack {
     public ZombieRace getRace() { return race; }
     public void setRace(ZombieRace race) { this.race = race; }
     public ZombieState getZombieState() { return zombieState; }
+    /** True when this zombie's death was caused by fire (fire pea hit, or dying while ablaze). */
+    public boolean diedFromFire() { return firedDeath; }
     public Armour getArmor() { return armour; }
     public void setArmor(Armour armour) { this.armour = armour; }
     public Armour getArmour() { return armour; }
