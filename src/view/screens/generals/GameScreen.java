@@ -98,6 +98,7 @@ public class GameScreen extends UiScreen {
         hud = new MatchHud(skin);
         hud.setPamPlayer(pamPlayer);
         hud.setPlantSelection(this::selectPlant);
+        hud.setConveyorPlantSelection(interaction::selectConveyorPlant);
         hud.setPlantDragRelease(interaction::handlePlantDragRelease);
         hud.setShovelAction(() -> interaction.armTool(BoardInteraction.Tool.SHOVEL));
         hud.setFoodAction(() -> interaction.armTool(BoardInteraction.Tool.FOOD));

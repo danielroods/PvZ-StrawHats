@@ -5,18 +5,22 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Scaling;
 
+import model.collections.plant.Plant;
 import model.collections.plant.PlantJsonParser;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
@@ -26,7 +30,10 @@ import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -42,7 +49,6 @@ public final class MatchHud extends Table implements Disposable {
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
     private final Table loadoutRow = new Table();
-    private final Table conveyorBox = new Table();
     private final Label sunLabel;
     private final Label foodLabel;
     private final Label coinLabel;
@@ -56,6 +62,7 @@ public final class MatchHud extends Table implements Disposable {
     private final ProgressBar waveProgressBar;
 
     private Consumer<String> plantSelection;
+    private Consumer<Plant> conveyorPlantSelection;
     private Consumer<Vector2> plantDragRelease;
     private Runnable shovelAction;
     private Runnable foodAction;
@@ -65,13 +72,14 @@ public final class MatchHud extends Table implements Disposable {
     private Runnable debugAddFoodAction;
     private String selectedPlant;
     private String lastLoadoutKey = "";
-    private String lastConveyorPlant = null;
     private final List<SlotView> slotViews = new ArrayList<>();
     private boolean shovelActive;
     private boolean foodActive;
     private PamPlayer pamPlayer;
     private Table leftColumn;
     private Table rightArea;
+    private ConveyorBeltWidget conveyorWidget;
+    private boolean loadoutBankVisible = true;
     private String objectiveOverride;
     private String progressLabelOverride;
     private Float progressValueOverride;
@@ -195,15 +203,15 @@ public final class MatchHud extends Table implements Disposable {
         foodBadge.setTouchable(Touchable.disabled);
         foodStack.add(foodBadge);
 
-        conveyorBox.setBackground(skin.getDrawable("card-background"));
-        conveyorBox.pad(4f);
-        conveyorBox.setVisible(false);
-
         leftColumn = new Table();
         leftColumn.top();
         leftColumn.add(bankFrame).top().expand().fill().row();
         leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
-        leftColumn.add(conveyorBox).top().padTop(8f);
+
+        conveyorWidget = new ConveyorBeltWidget();
+        conveyorWidget.setVisible(false);
+        conveyorWidget.setTouchable(Touchable.childrenOnly);
+        addActor(conveyorWidget);
 
         rightArea = new Table();
         rightArea.add().expand().fill().row();
@@ -260,6 +268,7 @@ public final class MatchHud extends Table implements Disposable {
     }
 
     public void setPlantSelection(Consumer<String> callback) { plantSelection = callback; }
+    public void setConveyorPlantSelection(Consumer<Plant> callback) { conveyorPlantSelection = callback; }
     public void setPlantDragRelease(Consumer<Vector2> callback) { plantDragRelease = callback; }
     public void setShovelAction(Runnable action) { shovelAction = action; }
     public void setFoodAction(Runnable action) { foodAction = action; }
@@ -439,33 +448,23 @@ public final class MatchHud extends Table implements Disposable {
 
     private void updateConveyor(GameSession session) {
         if (!(session.getLevel() instanceof ConveyorBeltLevel conveyor)) {
-            conveyorBox.setVisible(false);
-            lastConveyorPlant = null;
+            conveyorWidget.setVisible(false);
+            leftColumn.setVisible(loadoutBankVisible);
             return;
         }
-        String current = conveyor.getCurrentPlant() == null ? null : conveyor.getCurrentPlant().getName();
-        if (java.util.Objects.equals(current, lastConveyorPlant)) {
-            conveyorBox.setVisible(true);
-            return;
-        }
-        lastConveyorPlant = current;
-        conveyorBox.setVisible(true);
-        conveyorBox.clearChildren();
-        conveyorBox.add(new Label("CONVEYOR", skin, "title")).padRight(10);
-        if (current != null) {
-            SlotView slot = createPlantSlot(session, current);
-            conveyorBox.add(slot.stack).size(CARD_W, CARD_H);
-            slotViews.remove(slot);
-        } else {
-            conveyorBox.add(new Label("Waiting for next plant...", skin, "main"));
-        }
+
+        leftColumn.setVisible(false);
+        conveyorWidget.setVisible(true);
+        conveyorWidget.setConveyor(conveyor);
     }
+
     public void setPamPlayer(PamPlayer pamPlayer) {
         this.pamPlayer = pamPlayer;
     }
 
     public void setLoadoutBankVisible(boolean visible) {
-        leftColumn.setVisible(visible);
+        loadoutBankVisible = visible;
+        if (leftColumn != null) leftColumn.setVisible(visible);
     }
 
     public void setShovelVisible(boolean visible) {
@@ -483,6 +482,231 @@ public final class MatchHud extends Table implements Disposable {
     public void setProgressOverride(String label, float value) {
         this.progressLabelOverride = label;
         this.progressValueOverride = label == null ? null : value;
+    }
+
+    @Override
+    public void layout() {
+        super.layout();
+        if (conveyorWidget != null) {
+            float frameHeight = Math.min(530f, Math.max(300f, getHeight() - 30f));
+            conveyorWidget.setBounds(28f, (getHeight() - frameHeight) * 0.5f, 127f, frameHeight);
+            conveyorWidget.setFrameHeight(frameHeight);
+        }
+    }
+
+    /**
+     * Lightweight graphical conveyor. The belt is tiled from one small texture,
+     * while seed cards are regular Scene2D actors so they remain fully draggable.
+     * Cards are clipped to the metal frame and are ordered top -> bottom.
+     */
+    private final class ConveyorBeltWidget extends Group implements Disposable {
+        private static final float FRAME_WIDTH = 127f;
+        private static final float SIDE_WIDTH = 18f;
+        private static final float TOP_HEIGHT = 15f;
+        private static final float CARD_GAP = 3f;
+        private static final float BELT_SPEED = 85f;
+        private static final float CARD_SPEED = BELT_SPEED;
+
+        private final Texture topTexture = loadTexture("assets/images/chapters/egypt/gameplay/conveyor_top.png");
+        private final Texture sideTexture = loadTexture("assets/images/chapters/egypt/gameplay/conveyor_side.png");
+        private final Texture beltTexture = loadTexture("assets/images/chapters/egypt/gameplay/conveyor_belt.png");
+        private final BeltActor beltActor = new BeltActor();
+        private final ClippedCardLayer cardLayer = new ClippedCardLayer();
+        private final FrameActor frameActor = new FrameActor();
+        private final Map<Plant, SeedPacketCard> cards = new IdentityHashMap<>();
+        private final Map<Plant, Float> cardY = new IdentityHashMap<>();
+
+        private ConveyorBeltLevel conveyor;
+        private float beltOffset;
+        private float frameHeight = 530f;
+
+        ConveyorBeltWidget() {
+            setTouchable(Touchable.childrenOnly);
+            setSize(FRAME_WIDTH, frameHeight);
+            addActor(beltActor);
+            addActor(cardLayer);
+            addActor(frameActor);
+            updateChildBounds();
+        }
+
+        void setFrameHeight(float height) {
+            frameHeight = Math.max(300f, height);
+            setSize(FRAME_WIDTH, frameHeight);
+            updateChildBounds();
+        }
+
+        private void updateChildBounds() {
+            beltActor.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+            cardLayer.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+            frameActor.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+        }
+
+        void setConveyor(ConveyorBeltLevel conveyor) {
+            this.conveyor = conveyor;
+            syncCards(0f);
+        }
+
+        @Override
+        public void act(float delta) {
+            super.act(delta);
+            beltOffset += delta * BELT_SPEED;
+            if (beltTexture.getHeight() > 0) beltOffset %= beltTexture.getHeight();
+            syncCards(delta);
+        }
+
+        private void syncCards(float delta) {
+            if (conveyor == null) return;
+
+            List<Plant> active = conveyor.getActiveConveyorPlants();
+            var activeSet = Collections.newSetFromMap(new IdentityHashMap<Plant, Boolean>());
+            activeSet.addAll(active);
+
+            for (Plant plant : active) {
+                if (cards.containsKey(plant)) continue;
+
+                SeedPacketCard card;
+                try {
+                    card = cardFactory.buildCardForDisplayName(plant.getName());
+                } catch (Throwable ignored) {
+                    card = null;
+                }
+                if (card == null) continue;
+
+                card.setSize(CARD_W, CARD_H);
+                card.setTouchable(Touchable.enabled);
+                final Plant selected = plant;
+                card.addListener(new InputListener() {
+                    private boolean dragging;
+
+                    @Override
+                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                        if (conveyorPlantSelection == null || !isCardReady(selected)) return false;
+                        dragging = true;
+                        conveyorPlantSelection.accept(selected);
+                        return true;
+                    }
+
+                    @Override
+                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                        if (!dragging) return;
+                        dragging = false;
+                        if (plantDragRelease != null) {
+                            plantDragRelease.accept(new Vector2(event.getStageX(), event.getStageY()));
+                        }
+                    }
+                });
+
+                cards.put(plant, card);
+                cardY.put(plant, -CARD_H - 8f);
+                cardLayer.addActor(card);
+            }
+
+            for (Plant plant : new ArrayList<>(cards.keySet())) {
+                if (activeSet.contains(plant)) continue;
+                SeedPacketCard card = cards.remove(plant);
+                cardY.remove(plant);
+                if (card != null) card.remove();
+            }
+
+            float topY = frameHeight - TOP_HEIGHT - CARD_H - 3f;
+            float step = CARD_H + CARD_GAP;
+            float cardX = (FRAME_WIDTH - CARD_W) * 0.5f;
+
+            for (int i = 0; i < active.size(); i++) {
+                Plant plant = active.get(i);
+                SeedPacketCard card = cards.get(plant);
+                if (card == null) continue;
+
+                float targetY = topY - i * step;
+                float currentY = cardY.getOrDefault(plant, targetY);
+                float nextY = currentY;
+                if (delta > 0f) {
+                    float distance = targetY - currentY;
+                    float stepY = CARD_SPEED * delta;
+                    nextY = Math.abs(distance) <= stepY
+                            ? targetY
+                            : currentY + Math.signum(distance) * stepY;
+                }
+                cardY.put(plant, nextY);
+                card.setPosition(cardX, nextY);
+            }
+        }
+
+        private boolean isCardReady(Plant plant) {
+            if (conveyor == null || plant == null) return false;
+            List<Plant> active = conveyor.getActiveConveyorPlants();
+            int index = active.indexOf(plant);
+            if (index < 0) return false;
+
+            float targetY = frameHeight - TOP_HEIGHT - CARD_H - 3f
+                    - index * (CARD_H + CARD_GAP);
+            return Math.abs(cardY.getOrDefault(plant, -CARD_H - 8f) - targetY) < 1.5f;
+        }
+
+        private final class BeltActor extends Actor {
+            BeltActor() { setTouchable(Touchable.disabled); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.setColor(1f, 1f, 1f, parentAlpha);
+                float tileH = beltTexture.getHeight();
+                if (tileH <= 0f) return;
+
+                float beltY = TOP_HEIGHT - tileH + beltOffset;
+                while (beltY < getHeight() - TOP_HEIGHT) {
+                    batch.draw(beltTexture, 0f, beltY, getWidth(), tileH);
+                    beltY += tileH;
+                }
+            }
+        }
+
+        private final class ClippedCardLayer extends Group {
+            ClippedCardLayer() { setTouchable(Touchable.childrenOnly); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.flush();
+                Rectangle clip = new Rectangle(
+                        SIDE_WIDTH,
+                        TOP_HEIGHT,
+                        getWidth() - SIDE_WIDTH * 2f,
+                        getHeight() - TOP_HEIGHT * 2f
+                );
+                Rectangle scissors = new Rectangle();
+                ScissorStack.calculateScissors(
+                        getStage().getCamera(),
+                        batch.getTransformMatrix(),
+                        clip,
+                        scissors
+                );
+
+                if (ScissorStack.pushScissors(scissors)) {
+                    super.draw(batch, parentAlpha);
+                    batch.flush();
+                    ScissorStack.popScissors();
+                }
+            }
+        }
+
+        private final class FrameActor extends Actor {
+            FrameActor() { setTouchable(Touchable.disabled); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.setColor(1f, 1f, 1f, parentAlpha);
+                batch.draw(sideTexture, 0f, 0f, SIDE_WIDTH, getHeight());
+                batch.draw(sideTexture, getWidth() - SIDE_WIDTH + 9f, 0f, SIDE_WIDTH, getHeight());
+                batch.draw(topTexture, 0f, -5f, getWidth(), TOP_HEIGHT);
+                batch.draw(topTexture, 0f, getHeight() - TOP_HEIGHT + 1f, getWidth(), TOP_HEIGHT);
+            }
+        }
+
+        @Override
+        public void dispose() {
+            topTexture.dispose();
+            sideTexture.dispose();
+            beltTexture.dispose();
+        }
     }
 
     private final class DifficultyMeterActor extends Actor {
@@ -550,5 +774,8 @@ public final class MatchHud extends Table implements Disposable {
             batch.setTransformMatrix(old);
         }
     }
-    @Override public void dispose() { cardFactory.dispose(); }
+    @Override public void dispose() {
+        if (conveyorWidget != null) conveyorWidget.dispose();
+        cardFactory.dispose();
+    }
 }

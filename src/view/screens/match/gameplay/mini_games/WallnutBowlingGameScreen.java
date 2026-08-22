@@ -2,17 +2,18 @@ package view.screens.match.gameplay.mini_games;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
+import com.badlogic.gdx.utils.Disposable;
 
 import controller.ScreenManager;
 import controller.match.mini_games.WallnutBowlingController;
@@ -39,49 +40,37 @@ import java.util.Map;
 public class WallnutBowlingGameScreen extends GameScreen {
 
     private static final float BURST_DURATION = 0.4f;
-    private static final String PLANTS_UI_DIR = "assets/images/ui/plants_ui/";
-    private static final float NUT_SIZE_FACTOR = 0.62f;
-    private static final float BIG_NUT_SIZE_FACTOR = 1.05f;
+    private static final String NUT_ASSET_DIR = "assets/images/chapters/mini_games/vasebreaker/gameplay/";
+    private static final String EGYPT_CONVEYOR_DIR = "assets/images/chapters/egypt/gameplay/";
+    private static final float NUT_SIZE_FACTOR = 0.62f *1.5f;
+    private static final float BIG_NUT_SIZE_FACTOR = 1.05f *1.5f;
+
+    private static final String EXPLODE_NUT_BURST_PAM =
+            "768/INITIAL/EFFECTS/VINE_BLASTBERRY_PROJECTILE_GRENADE_EXPLOSION/VINE_BLASTBERRY_PROJECTILE_GRENADE_EXPLOSION.PAM";
+    private static final String EXPLODE_NUT_BURST_STATE = "attack";
+    private static final float EXPLODE_NUT_BURST_SCALE = 0.35f;
 
     private static final float CARD_W = 95f;
     private static final float CARD_H = 60f;
-    private static final float CARD_GAP = 4f;
-    private static final float BELT_PAD = 6f;
     private static final int BELT_CAPACITY = 4;
     private static final float CONVEYOR_LEFT_X = 20f;
     private static final float CONVEYOR_TOP_Y = SCREEN_HEIGHT - 90f;
-    private static final float SLIDE_DURATION = 0.35f;
 
     {
         seasonFolder = "wallnutbowlling";
     }
 
     private Group conveyorPanel;
-    private Group beltTrack;
-    private final List<CardView> cardViews = new ArrayList<>();
-    private List<WallnutBowling.NutKind> lastConveyorSnapshot = List.of();
+    private ConveyorBeltWidget conveyorWidget;
     private WallnutBowling.NutKind selectedKind;
 
     private static final class CardView {
         final WallnutBowling.NutKind kind;
         final Actor actor;
-        float targetY = Float.NaN;
         boolean active;
         CardView(WallnutBowling.NutKind kind, Actor actor) {
             this.kind = kind;
             this.actor = actor;
-        }
-    }
-
-    private static final class ClippedGroup extends Group {
-        @Override
-        public void draw(com.badlogic.gdx.graphics.g2d.Batch batch, float parentAlpha) {
-            batch.flush();
-            if (clipBegin(getX(), getY(), getWidth(), getHeight())) {
-                super.draw(batch, parentAlpha);
-                batch.flush();
-                clipEnd();
-            }
         }
     }
 
@@ -113,7 +102,6 @@ public class WallnutBowlingGameScreen extends GameScreen {
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
         if (hud != null) hud.setLoadoutBankVisible(false);
         buildConveyorPanel();
-        syncConveyorCards();
     }
 
     @Override
@@ -124,6 +112,9 @@ public class WallnutBowlingGameScreen extends GameScreen {
         }
         nutTextures.clear();
         nutRegions.clear();
+        if (conveyorWidget != null) {
+            conveyorWidget.dispose();
+        }
         super.dispose();
     }
 
@@ -175,7 +166,6 @@ public class WallnutBowlingGameScreen extends GameScreen {
             return;
         }
         runCommand("plant nut -t " + kindToPlant + " -l (" + (col + 1) + ", " + (row + 1) + ")");
-        syncConveyorCards();
     }
 
     private String labelFor(WallnutBowling.NutKind kind) {
@@ -193,10 +183,6 @@ public class WallnutBowlingGameScreen extends GameScreen {
 
         float redLineX = getCellX(game.getRedLineColumn() + 1);
         drawFallback(redLineX - 2f, getBoardBottom(), 4f, bh, new Color(0.85f, 0.2f, 0.2f, 0.85f));
-
-        if (!game.getConveyorBelt().equals(lastConveyorSnapshot)) {
-            syncConveyorCards();
-        }
 
         Map<Nut, Position> aliveExplodeNuts = new HashMap<>();
         for (Nut nut : game.getActiveNuts()) {
@@ -250,9 +236,13 @@ public class WallnutBowlingGameScreen extends GameScreen {
     }
 
     private TextureRegion nutRegion(WallnutBowling.NutKind kind) {
-        String file = kind == WallnutBowling.NutKind.EXPLODE ? "explodeonut.png" : "wallnut.png";
+        String file = switch (kind) {
+            case EXPLODE -> "explosivenut.png";
+            case BIG -> "Bignut.png";
+            default -> "bowlingnut.png";
+        };
         return nutRegions.computeIfAbsent(file, name -> {
-            Texture texture = loadTextureSafe(PLANTS_UI_DIR + name);
+            Texture texture = loadTextureSafe(NUT_ASSET_DIR + name);
             nutTextures.add(texture);
             return new TextureRegion(texture);
         });
@@ -262,16 +252,23 @@ public class WallnutBowlingGameScreen extends GameScreen {
         return kind == WallnutBowling.NutKind.BIG ? BIG_NUT_SIZE_FACTOR : NUT_SIZE_FACTOR;
     }
 
-    // TODO: no dedicated Wall-nut Bowling explosion/impact VFX asset was found in
     private void drawBurst(Burst burst) {
-        float progress = burst.elapsed / BURST_DURATION;
-        float x = getCellX(0) + (float) burst.position.x() * getBoardTileWidth();
-        float y = getCellY((int) Math.round(burst.position.y()));
-        float size = getBoardTileWidth() * (0.9f + progress * 1.6f);
-        float alpha = Math.max(0f, 1f - progress);
-        float boxX = x + (getBoardTileWidth() - size) * 0.5f;
-        float boxY = y + (getBoardTileHeight() - size) * 0.5f;
-        drawFallback(boxX, boxY, size, size, new Color(1f, 0.55f, 0.15f, alpha * 0.8f));
+        float x = getCellX(0) + (float) burst.position.x() * getBoardTileWidth()
+                + getBoardTileWidth() * 0.3f;
+        float y = getCellY((int) Math.round(burst.position.y())) + getBoardTileHeight() * 0.3f;
+
+        boolean drawn = drawPam(EXPLODE_NUT_BURST_PAM, EXPLODE_NUT_BURST_STATE, burst.elapsed,
+                x, y, EXPLODE_NUT_BURST_SCALE, false);
+        if (!drawn) {
+            float progress = burst.elapsed / BURST_DURATION;
+            float boardX = getCellX(0) + (float) burst.position.x() * getBoardTileWidth();
+            float boardY = getCellY((int) Math.round(burst.position.y()));
+            float size = getBoardTileWidth() * (0.9f + progress * 1.6f);
+            float alpha = Math.max(0f, 1f - progress);
+            float boxX = boardX + (getBoardTileWidth() - size) * 0.5f;
+            float boxY = boardY + (getBoardTileHeight() - size) * 0.5f;
+            drawFallback(boxX, boxY, size, size, new Color(1f, 0.55f, 0.15f, alpha * 0.8f));
+        }
     }
 
     private WallnutBowling.NutKind kindOf(Nut nut) {
@@ -300,93 +297,26 @@ public class WallnutBowlingGameScreen extends GameScreen {
         if (conveyorPanel != null) return;
         if (currentGame() == null) return;
 
-        float trackH = BELT_CAPACITY * CARD_H + (BELT_CAPACITY - 1) * CARD_GAP;
+        conveyorWidget = new ConveyorBeltWidget();
+
         float titleH = 22f;
-        float panelW = CARD_W + BELT_PAD * 2f;
-        float panelH = trackH + titleH + BELT_PAD * 2f;
+        float panelW = conveyorWidget.getWidth();
+        float panelH = conveyorWidget.getHeight() + titleH;
 
         Group panel = new Group();
         panel.setSize(panelW, panelH);
         panel.setPosition(CONVEYOR_LEFT_X, CONVEYOR_TOP_Y - panelH);
 
-        Image background = new Image(skin.getDrawable("card-background"));
-        background.setSize(panelW, panelH);
-        background.setTouchable(Touchable.disabled);
-        panel.addActor(background);
-
         Label title = new Label("CONVEYOR", skin, "main");
-        title.setPosition(BELT_PAD, panelH - titleH);
+        title.setPosition(0f, panelH - titleH);
         title.setTouchable(Touchable.disabled);
         panel.addActor(title);
 
-        beltTrack = new ClippedGroup();
-        beltTrack.setBounds(BELT_PAD, BELT_PAD, CARD_W, trackH);
-        panel.addActor(beltTrack);
+        conveyorWidget.setPosition(0f, 0f);
+        panel.addActor(conveyorWidget);
 
         conveyorPanel = panel;
         stage.addActor(conveyorPanel);
-    }
-
-    private float slotY(int index) {
-        float trackH = beltTrack.getHeight();
-        return trackH - CARD_H - index * (CARD_H + CARD_GAP);
-    }
-
-    private void syncConveyorCards() {
-        WallnutBowling game = currentGame();
-        if (game == null || beltTrack == null) return;
-
-        if (selectedKind != null && !game.getAvailableNutKinds().contains(selectedKind)) {
-            selectedKind = null;
-        }
-        WallnutBowling.NutKind activeKind = selectedKind != null ? selectedKind : game.getNextNutKind();
-
-        List<WallnutBowling.NutKind> belt = game.getConveyorBelt();
-        lastConveyorSnapshot = belt;
-
-        List<CardView> pool = new ArrayList<>(cardViews);
-        List<CardView> ordered = new ArrayList<>();
-        for (WallnutBowling.NutKind kind : belt) {
-            CardView match = null;
-            for (Iterator<CardView> it = pool.iterator(); it.hasNext();) {
-                CardView candidate = it.next();
-                if (candidate.kind == kind) {
-                    match = candidate;
-                    it.remove();
-                    break;
-                }
-            }
-            if (match == null) {
-                match = buildConveyorCard(kind);
-                match.actor.setPosition(0f, -CARD_H - CARD_GAP);
-                beltTrack.addActor(match.actor);
-            }
-            ordered.add(match);
-        }
-
-        for (CardView launched : pool) {
-            launched.actor.clearActions();
-            launched.actor.addAction(Actions.sequence(
-                    Actions.fadeOut(0.15f), Actions.removeActor()));
-        }
-
-        cardViews.clear();
-        cardViews.addAll(ordered);
-
-        for (int i = 0; i < cardViews.size(); i++) {
-            CardView view = cardViews.get(i);
-            float targetY = slotY(i);
-            if (view.targetY != targetY) {
-                view.targetY = targetY;
-                view.actor.clearActions();
-                view.actor.addAction(Actions.moveTo(0f, targetY, SLIDE_DURATION, Interpolation.pow2Out));
-            }
-            boolean active = view.kind == activeKind;
-            if (view.active != active) {
-                view.active = active;
-                view.actor.setColor(1f, 1f, 1f, active ? 1f : 0.55f);
-            }
-        }
     }
 
     private CardView buildConveyorCard(WallnutBowling.NutKind kind) {
@@ -415,9 +345,191 @@ public class WallnutBowlingGameScreen extends GameScreen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 selectedKind = kind;
-                syncConveyorCards();
             }
         });
         return new CardView(kind, visual);
+    }
+
+    /**
+     * Same conveyor belt mechanism used in the Egypt chapter (see
+     * view.hud.MatchHud.ConveyorBeltWidget): a metal-framed belt built from the
+     * Egypt conveyor textures, with cards clipped to the frame and slid into
+     * place at a constant speed every frame rather than via one-shot tweens.
+     */
+    private final class ConveyorBeltWidget extends Group implements Disposable {
+        private static final float FRAME_WIDTH = 127f;
+        private static final float SIDE_WIDTH = 18f;
+        private static final float TOP_HEIGHT = 15f;
+        private static final float CARD_GAP = 3f;
+        private static final float BELT_SPEED = 85f;
+        private static final float CARD_SPEED = BELT_SPEED;
+
+        private final Texture topTexture = loadTextureSafe(EGYPT_CONVEYOR_DIR + "conveyor_top.png");
+        private final Texture sideTexture = loadTextureSafe(EGYPT_CONVEYOR_DIR + "conveyor_side.png");
+        private final Texture beltTexture = loadTextureSafe(EGYPT_CONVEYOR_DIR + "conveyor_belt.png");
+        private final BeltActor beltActor = new BeltActor();
+        private final ClippedCardLayer cardLayer = new ClippedCardLayer();
+        private final FrameActor frameActor = new FrameActor();
+        private final List<CardView> activeCards = new ArrayList<>();
+
+        private float beltOffset;
+        private final float frameHeight;
+
+        ConveyorBeltWidget() {
+            setTouchable(Touchable.childrenOnly);
+            frameHeight = BELT_CAPACITY * CARD_H + (BELT_CAPACITY - 1) * CARD_GAP + TOP_HEIGHT * 2f + 6f;
+            setSize(FRAME_WIDTH, frameHeight);
+            addActor(beltActor);
+            addActor(cardLayer);
+            addActor(frameActor);
+            updateChildBounds();
+        }
+
+        private void updateChildBounds() {
+            beltActor.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+            cardLayer.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+            frameActor.setBounds(0f, 0f, FRAME_WIDTH, frameHeight);
+        }
+
+        @Override
+        public void act(float delta) {
+            super.act(delta);
+            beltOffset += delta * BELT_SPEED;
+            if (beltTexture.getHeight() > 0) beltOffset %= beltTexture.getHeight();
+            syncCards(delta);
+        }
+
+        private float cardX() {
+            return (FRAME_WIDTH - CARD_W) * 0.5f;
+        }
+
+        private void syncCards(float delta) {
+            WallnutBowling game = currentGame();
+            if (game == null) return;
+
+            if (selectedKind != null && !game.getAvailableNutKinds().contains(selectedKind)) {
+                selectedKind = null;
+            }
+            WallnutBowling.NutKind activeKind = selectedKind != null ? selectedKind : game.getNextNutKind();
+
+            List<WallnutBowling.NutKind> belt = game.getConveyorBelt();
+
+            List<CardView> pool = new ArrayList<>(activeCards);
+            List<CardView> ordered = new ArrayList<>();
+            for (WallnutBowling.NutKind kind : belt) {
+                CardView match = null;
+                for (Iterator<CardView> it = pool.iterator(); it.hasNext();) {
+                    CardView candidate = it.next();
+                    if (candidate.kind == kind) {
+                        match = candidate;
+                        it.remove();
+                        break;
+                    }
+                }
+                if (match == null) {
+                    match = buildConveyorCard(kind);
+                    match.actor.setPosition(cardX(), -CARD_H - 8f);
+                    cardLayer.addActor(match.actor);
+                }
+                ordered.add(match);
+            }
+
+            for (CardView launched : pool) {
+                launched.actor.remove();
+            }
+
+            activeCards.clear();
+            activeCards.addAll(ordered);
+
+            float topY = frameHeight - TOP_HEIGHT - CARD_H - 3f;
+            float step = CARD_H + CARD_GAP;
+            float x = cardX();
+
+            for (int i = 0; i < activeCards.size(); i++) {
+                CardView view = activeCards.get(i);
+                float targetY = topY - i * step;
+                float currentY = view.actor.getY();
+                float nextY = currentY;
+                if (delta > 0f) {
+                    float distance = targetY - currentY;
+                    float stepY = CARD_SPEED * delta;
+                    nextY = Math.abs(distance) <= stepY
+                            ? targetY
+                            : currentY + Math.signum(distance) * stepY;
+                }
+                view.actor.setPosition(x, nextY);
+
+                boolean active = view.kind == activeKind;
+                if (view.active != active) {
+                    view.active = active;
+                    view.actor.setColor(1f, 1f, 1f, active ? 1f : 0.55f);
+                }
+            }
+        }
+
+        private final class BeltActor extends Actor {
+            BeltActor() { setTouchable(Touchable.disabled); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.setColor(1f, 1f, 1f, parentAlpha);
+                float tileH = beltTexture.getHeight();
+                if (tileH <= 0f) return;
+
+                float beltY = TOP_HEIGHT - tileH + beltOffset;
+                while (beltY < getHeight() - TOP_HEIGHT) {
+                    batch.draw(beltTexture, 0f, beltY, getWidth(), tileH);
+                    beltY += tileH;
+                }
+            }
+        }
+
+        private final class ClippedCardLayer extends Group {
+            ClippedCardLayer() { setTouchable(Touchable.childrenOnly); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.flush();
+                Rectangle clip = new Rectangle(
+                        SIDE_WIDTH,
+                        TOP_HEIGHT,
+                        getWidth() - SIDE_WIDTH * 2f,
+                        getHeight() - TOP_HEIGHT * 2f
+                );
+                Rectangle scissors = new Rectangle();
+                ScissorStack.calculateScissors(
+                        getStage().getCamera(),
+                        batch.getTransformMatrix(),
+                        clip,
+                        scissors
+                );
+
+                if (ScissorStack.pushScissors(scissors)) {
+                    super.draw(batch, parentAlpha);
+                    batch.flush();
+                    ScissorStack.popScissors();
+                }
+            }
+        }
+
+        private final class FrameActor extends Actor {
+            FrameActor() { setTouchable(Touchable.disabled); }
+
+            @Override
+            public void draw(Batch batch, float parentAlpha) {
+                batch.setColor(1f, 1f, 1f, parentAlpha);
+                batch.draw(sideTexture, 0f, 0f, SIDE_WIDTH, getHeight());
+                batch.draw(sideTexture, getWidth() - SIDE_WIDTH + 9f, 0f, SIDE_WIDTH, getHeight());
+                batch.draw(topTexture, 0f, -5f, getWidth(), TOP_HEIGHT);
+                batch.draw(topTexture, 0f, getHeight() - TOP_HEIGHT + 1f, getWidth(), TOP_HEIGHT);
+            }
+        }
+
+        @Override
+        public void dispose() {
+            topTexture.dispose();
+            sideTexture.dispose();
+            beltTexture.dispose();
+        }
     }
 }
