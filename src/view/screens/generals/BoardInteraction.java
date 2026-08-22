@@ -26,6 +26,7 @@ class BoardInteraction {
     private final GameScreen screen;
 
     private String selectedPlant;
+    private Plant selectedConveyorPlant;
     private Tool activeTool = Tool.NONE;
     private Actor boardInput;
     private float dragPreviewTime;
@@ -40,6 +41,7 @@ class BoardInteraction {
 
     void clearSelectedPlant() {
         selectedPlant = null;
+        selectedConveyorPlant = null;
     }
 
     Tool activeTool() {
@@ -84,11 +86,11 @@ class BoardInteraction {
         int row = screen.session.getRows() - 1 - (int) ((y - GameScreen.BOARD_Y) / screen.getBoardTileHeight());
         if (row < 0 || row >= screen.session.getRows() || col < 0 || col >= screen.session.getCols()) return;
 
-        if (selectedPlant == null && screen.session.getLevel() instanceof ConveyorBeltLevel conveyor
+        if (selectedConveyorPlant == null && screen.session.getLevel() instanceof ConveyorBeltLevel conveyor
                 && conveyor.getCurrentPlant() != null) {
-            selectedPlant = conveyor.getCurrentPlant().getName();
+            selectConveyorPlant(conveyor.getCurrentPlant());
         }
-        if (selectedPlant == null) return;
+        if (selectedPlant == null && selectedConveyorPlant == null) return;
 
         plantAtCell(row, col);
     }
@@ -96,7 +98,7 @@ class BoardInteraction {
     void selectPlant(String plantName) {
         if (screen.paused || screen.matchFinished) return;
         if (screen.session.getLevel() instanceof ConveyorBeltLevel conveyor) {
-            if (conveyor.getCurrentPlant() != null) selectedPlant = conveyor.getCurrentPlant().getName();
+            selectConveyorPlant(conveyor.getCurrentPlant());
             activeTool = Tool.NONE;
             return;
         }
@@ -104,10 +106,18 @@ class BoardInteraction {
         activeTool = Tool.NONE;
     }
 
+    void selectConveyorPlant(Plant plant) {
+        if (screen.paused || screen.matchFinished) return;
+        selectedConveyorPlant = plant;
+        selectedPlant = plant == null ? null : plant.getName();
+        activeTool = Tool.NONE;
+    }
+
     void armTool(Tool tool) {
         if (screen.paused || screen.matchFinished) return;
         activeTool = activeTool == tool ? Tool.NONE : tool;
         selectedPlant = null;
+        selectedConveyorPlant = null;
     }
 
     private void handleBoardClick(float x, float y) {
@@ -139,9 +149,19 @@ class BoardInteraction {
         } else if (activeTool == Tool.FOOD) {
             command = "feed plant -l (" + commandX + ", " + commandY + ")";
         } else if (screen.session.getLevel() instanceof ConveyorBeltLevel conveyor) {
-            Plant offered = conveyor.getCurrentPlant();
+            Plant offered = selectedConveyorPlant != null ? selectedConveyorPlant : conveyor.getCurrentPlant();
             if (offered == null) return;
-            command = "plant plant -t " + offered.getName() + " -l (" + commandX + ", " + commandY + ")";
+
+            if (!screen.session.plantAt(row, col, offered)) {
+                Toast.show(screen.stage, "That tile is occupied, blocked, or out of bounds.");
+                return;
+            }
+
+            conveyor.takeConveyorPlant(offered);
+            selectedConveyorPlant = null;
+            selectedPlant = null;
+            activeTool = Tool.NONE;
+            return;
         } else if (selectedPlant != null) {
             command = "plant plant -t " + selectedPlant + " -l (" + commandX + ", " + commandY + ")";
         } else {
