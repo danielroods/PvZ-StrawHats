@@ -175,7 +175,9 @@ public class PlantFactory {
             case HOMING -> new HomingStrategy();
             case STRIKE_THROUGH -> new StrikeStrategy();
             case LOBBER -> new LobberStrategy();
-            case EXPLOSIVE -> new ExplodeStrategy();
+            case EXPLOSIVE -> "Squash".equalsIgnoreCase(config.name)
+                    ? new SquashStrategy()
+                    : new ExplodeStrategy();
             case MELEE -> new MeleeStrategy();
             case WALL_NUT -> new WallNutStrategy();
             case MODIFIER -> new ModifyStrategy();
@@ -216,7 +218,9 @@ public class PlantFactory {
             case SELF_BOOST -> new SelfBoost(plantFoodValue);
             case INSTANT_KILL -> new InstantKill();
             case LOBBER_BARRAGE -> new LobberBarrage(projectileBurstCount(config, plantFoodValue));
-            case RANDOM_INSTANT_KILL -> new RandomInstantKill(Math.max(1, value));
+            case RANDOM_INSTANT_KILL -> "Squash".equalsIgnoreCase(config.name)
+                    ? new SquashPlantFood(Math.max(1, value))
+                    : new RandomInstantKill(Math.max(1, value));
             case DISARM_BLAST -> new DisarmBlast(Math.max(1, value));
             case LANE_REDIRECT -> new LaneRedirectBlast();
             case PULL_AND_HEAL -> new PullAndHeal(plantFoodValue);

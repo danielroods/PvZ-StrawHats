@@ -57,6 +57,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private boolean chomperSpecialPending = false;
     private boolean chomperDigestIdlePending = false;
     private int kiwibeastHitCounter = 0;
+    private Position squashVisualPosition;
+    private Position squashVisualOrigin;
+    private Position squashVisualTarget;
+    private boolean squashActionState = false;
+    private boolean specialInvulnerable = false;
 
     private PlantArmour armor;
 
@@ -134,6 +139,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public void takeDamage(int damageAmount, Zombie dealer) {
         if (!isAlive() || damageAmount <= 0) return;
+        if (specialInvulnerable) return;
         GameSession frostSession = GameSession.peekInstance();
         if (frostSession != null && FrostbiteFreezing.isFrozenInIce(frostSession, this)) {
             FrostbiteFreezing.damageFrozenPlantIfInIce(frostSession, this, damageAmount, false);
@@ -318,6 +324,44 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public double getVisualAnimationElapsed() { return visualAnimationElapsed; }
     public boolean isChomperSpecialActive() { return chomperSpecialActive; }
 
+    public Position getSquashVisualPosition() {
+        return squashVisualPosition == null ? null
+                : new Position(squashVisualPosition.x(), squashVisualPosition.y());
+    }
+
+    public void setSquashVisualPosition(Position position) {
+        this.squashVisualPosition = position == null ? null
+                : new Position(position.x(), position.y());
+    }
+
+    public Position getSquashVisualOrigin() {
+        return squashVisualOrigin == null ? null
+                : new Position(squashVisualOrigin.x(), squashVisualOrigin.y());
+    }
+
+    public Position getSquashVisualTarget() {
+        return squashVisualTarget == null ? null
+                : new Position(squashVisualTarget.x(), squashVisualTarget.y());
+    }
+
+    public void setSquashVisualPath(Position origin, Position target) {
+        this.squashVisualOrigin = origin == null ? null : new Position(origin.x(), origin.y());
+        this.squashVisualTarget = target == null ? null : new Position(target.x(), target.y());
+        this.squashVisualPosition = origin == null ? null : new Position(origin.x(), origin.y());
+    }
+
+    public void clearSquashVisualPath() {
+        this.squashVisualOrigin = null;
+        this.squashVisualTarget = null;
+        this.squashVisualPosition = null;
+    }
+
+    public boolean isSquashActionState() { return squashActionState; }
+    public void setSquashActionState(boolean active) { this.squashActionState = active; }
+
+    public boolean isSpecialInvulnerable() { return specialInvulnerable; }
+    public void setSpecialInvulnerable(boolean value) { this.specialInvulnerable = value; }
+
     public void setVisualAnimationState(String state, double durationSeconds) {
         this.visualAnimationState = state;
         this.visualAnimationRemaining = Math.max(0.0, durationSeconds);
@@ -326,6 +370,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public void clearVisualAnimationState() {
         this.visualAnimationState = null;
+        this.visualAnimationRemaining = 0.0;
+        this.visualAnimationElapsed = 0.0;
+    }
+
+    public void holdVisualAnimationAtEnd() {
+        this.visualAnimationElapsed += this.visualAnimationRemaining;
         this.visualAnimationRemaining = 0.0;
     }
 

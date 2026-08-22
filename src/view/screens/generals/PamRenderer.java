@@ -37,6 +37,42 @@ class PamRenderer {
         }
     }
 
+    boolean drawPamExact(String path, String exactState, float time, float x, float y, float scale, boolean flip) {
+        PamPlayer pamPlayer = screen.pamPlayer;
+        if (pamPlayer == null || path == null || exactState == null) return false;
+        try {
+            String pamPath = path;
+            if (pamPath.startsWith("assets/pvz-assets/")) {
+                pamPath = pamPath.substring("assets/pvz-assets/".length());
+            }
+            String clipName = AnimationFactory.exactClipNameForPath(pamPath, exactState);
+            if (clipName == null) {
+                if (GameSettings.get().isDebugMode()) {
+                    Gdx.app.error("SQUASH_CLIP_MISSING",
+                            "Exact PAM clip not found: path=" + pamPath + " clip=" + exactState);
+                }
+                return false;
+            }
+            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
+            if (clip == null) return false;
+
+            screen.batch.flush();
+            com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();
+            screen.batch.getTransformMatrix().translate(x, y, 0f).scale(scale, scale, 1f);
+            screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
+            pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip);
+            screen.batch.flush();
+            screen.batch.setTransformMatrix(old);
+            return true;
+        } catch (Throwable t) {
+            if (GameSettings.get().isDebugMode()) {
+                Gdx.app.error("SQUASH_EXACT_DRAW_FAIL",
+                        "Exact PAM draw failed for path=" + path + " clip=" + exactState, t);
+            }
+            return false;
+        }
+    }
+
     boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip,
                     Map<String, Boolean> elementVisibility) {
         PamPlayer pamPlayer = screen.pamPlayer;

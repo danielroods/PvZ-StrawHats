@@ -77,7 +77,17 @@ class PlantRenderer {
                 }
                 plantAnimTimes.put(plant, t);
             }
-            Position p = screen.visualPositionFor(plant);
+            Position p = plant.getSquashVisualPosition();
+            boolean squashJumping = "Squash".equalsIgnoreCase(plant.getName())
+                    && plant.isSquashActionState()
+                    && plant.getVisualAnimationState() != null
+                    && plant.getSquashVisualOrigin() != null
+                    && plant.getSquashVisualTarget() != null;
+            if (squashJumping) {
+                p = smoothSquashVisualPosition(plant);
+                plant.setSquashVisualPosition(p);
+            }
+            if (p == null) p = screen.visualPositionFor(plant);
             float x = GameScreen.BOARD_X + (float) p.x() * boardTileWidth;
             float y = screen.cellY((int) p.y());
 
@@ -123,16 +133,14 @@ class PlantRenderer {
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
             String preferredState;
             float animTime;
-            if (prepping) {
+            if (plant.getVisualAnimationState() != null) {
+                preferredState = plant.getVisualAnimationState();
+                animTime = (float) plant.getVisualAnimationElapsed();
+            } else if (prepping) {
                 preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
                         ? "intro"
                         : screen.pam().resolveFuseClipState(plant.getName());
                 animTime = t;
-            } else if (plant.getVisualAnimationState() != null) {
-                // Explicit special/melee Plant Food animation states have priority over the
-                // generic cooldown-driven attack detector.
-                preferredState = plant.getVisualAnimationState();
-                animTime = (float) plant.getVisualAnimationElapsed();
             } else if (attacking) {
                 preferredState = attackIsBoosted ? "plantfood"
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
@@ -142,9 +150,14 @@ class PlantRenderer {
                 animTime = t;
             }
 
+            if (squashJumping) {
+                plantOffsetY += squashJumpArcOffset(plant, boardTileHeight);
+            }
+
             boolean meleePlant = "Bonk Choy".equalsIgnoreCase(plant.getName())
                     || "Wasabi Whip".equalsIgnoreCase(plant.getName())
-                    || "Chomper".equalsIgnoreCase(plant.getName());
+                    || "Chomper".equalsIgnoreCase(plant.getName())
+                    || "Squash".equalsIgnoreCase(plant.getName());
 
             boolean mirror = meleePlant && plant.isMeleeFacingLeft()
                     && (attacking
@@ -160,7 +173,17 @@ class PlantRenderer {
                 if (clipDuration > 0f) animTime %= clipDuration;
             }
 
-            if (!screen.drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, mirror)) {
+            boolean drawn;
+            boolean squashExactState = "Squash".equalsIgnoreCase(plant.getName())
+                    && plant.getVisualAnimationState() != null;
+            if (squashExactState) {
+                boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, squashMirror);
+            } else {
+                drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
+            }
+            if (!drawn) {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
                         new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
@@ -201,6 +224,71 @@ class PlantRenderer {
         plantAttackWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantAttackIsBoosted.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantAttackBaseState.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+    }
+
+    private float squashJumpArcOffset(Plant plant, float boardTileHeight) {
+        String state = plant.getVisualAnimationState();
+        if (state == null) return 0f;
+
+        double elapsed = Math.max(0.0, plant.getVisualAnimationElapsed());
+        double total = elapsed + Math.max(0.0, plant.getVisualAnimationRemaining());
+        double arc;
+
+        if (plant.getVisualAnimationRemaining() <= 0.0001) {
+            if (state.startsWith("jump_up_")) return boardTileHeight * 0.9f;
+            return 0f;
+        }
+        if (total <= 0.0001) return 0f;
+
+        double t = Math.max(0.0, Math.min(1.0, elapsed / total));
+
+        if (state.startsWith("jump_up_")) {
+            arc = Math.sin(t * Math.PI * 0.5);
+        } else if (state.startsWith("jump_down_")) {
+            double fallT = Math.max(0.0, Math.min(1.0, elapsed / 0.20));
+            arc = Math.cos(fallT * Math.PI * 0.5);
+        } else if (state.startsWith("plantfood_jump_down_")) {
+            arc = Math.sin(t * Math.PI);
+        } else {
+            return 0f;
+        }
+
+        return boardTileHeight * 0.9f * (float) Math.max(0.0, arc);
+    }
+
+    private Position smoothSquashVisualPosition(Plant plant) {
+        Position origin = plant.getSquashVisualOrigin();
+        Position target = plant.getSquashVisualTarget();
+        if (origin == null || target == null) return plant.getSquashVisualPosition();
+
+        String state = plant.getVisualAnimationState();
+        double duration = plant.getVisualAnimationRemaining() + plant.getVisualAnimationElapsed();
+        if (duration <= 0.0001) return new Position(origin.x(), origin.y());
+        double t = Math.max(0.0, Math.min(1.0, plant.getVisualAnimationElapsed() / duration));
+
+        if (state != null && state.startsWith("jump_up_")) {
+            double eased = t * t * (3.0 - 2.0 * t);
+            return new Position(
+                    origin.x() + (target.x() - origin.x()) * 0.45 * eased,
+                    origin.y() + (target.y() - origin.y()) * 0.45 * eased);
+        }
+        if (state != null && state.startsWith("jump_down_")) {
+            final double fallDuration = 0.20;
+            double fallT = Math.max(0.0, Math.min(1.0, plant.getVisualAnimationElapsed() / fallDuration));
+            double eased = fallT * fallT * (3.0 - 2.0 * fallT);
+            double startX = origin.x() + (target.x() - origin.x()) * 0.45;
+            double startY = origin.y() + (target.y() - origin.y()) * 0.45;
+            return new Position(
+                    startX + (target.x() - startX) * eased,
+                    startY + (target.y() - startY) * eased);
+        }
+        if (state != null && state.startsWith("plantfood_jump_down_")) {
+            double eased = t * t * (3.0 - 2.0 * t);
+            return new Position(
+                    origin.x() + (target.x() - origin.x()) * eased,
+                    origin.y() + (target.y() - origin.y()) * eased);
+        }
+        return new Position(origin.x(), origin.y());
     }
 
     /**

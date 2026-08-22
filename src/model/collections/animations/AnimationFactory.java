@@ -117,6 +117,22 @@ public class AnimationFactory {
         return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
     }
 
+    public static String exactClipNameForPath(String pamPath, String exactState) {
+        if (pamPath == null || exactState == null || exactState.isBlank()) return null;
+        autoInit();
+        AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
+        if (config == null || config.clips == null || config.clips.isEmpty()) return null;
+        return config.clips.containsKey(exactState) ? exactState : null;
+    }
+
+    public static float exactClipDurationForPath(String pamPath, String exactState) {
+        String clipName = exactClipNameForPath(pamPath, exactState);
+        if (clipName == null) return -1f;
+        AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
+        Double duration = config.clips.get(clipName);
+        return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
     private static String firstClipContaining(AnimationJsonParser.AnimationConfig config, String substring) {
         if (config == null || config.clips == null || substring == null) return null;
         String needle = substring.toLowerCase();
