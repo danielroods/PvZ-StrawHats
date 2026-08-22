@@ -128,16 +128,39 @@ class PlantRenderer {
                         ? "intro"
                         : screen.pam().resolveFuseClipState(plant.getName());
                 animTime = t;
+            } else if (plant.getVisualAnimationState() != null) {
+                // Explicit special/melee Plant Food animation states have priority over the
+                // generic cooldown-driven attack detector.
+                preferredState = plant.getVisualAnimationState();
+                animTime = (float) plant.getVisualAnimationElapsed();
             } else if (attacking) {
                 preferredState = attackIsBoosted ? "plantfood"
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
             } else {
-                preferredState = plantStackState(plant, "idle");
+                preferredState = resolveIdleState(plant);
                 animTime = t;
             }
 
-            if (!screen.drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, false)) {
+            boolean meleePlant = "Bonk Choy".equalsIgnoreCase(plant.getName())
+                    || "Wasabi Whip".equalsIgnoreCase(plant.getName())
+                    || "Chomper".equalsIgnoreCase(plant.getName());
+
+            boolean mirror = meleePlant && plant.isMeleeFacingLeft()
+                    && (attacking
+                    || preferredState.startsWith("attack")
+                    || "bite_end".equals(preferredState)
+                    || "special".equals(preferredState)
+                    || "special_idle".equals(preferredState));
+
+            // special_idle is a looping chew animation. The visual-state timer itself
+            // is finite (10 seconds), so wrap only the clip time, not the state lifetime.
+            if ("special_idle".equals(preferredState)) {
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                if (clipDuration > 0f) animTime %= clipDuration;
+            }
+
+            if (!screen.drawPam(path, preferredState, animTime, plantOffsetX , plantOffsetY, 0.55f, mirror)) {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
                         new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
@@ -203,9 +226,30 @@ class PlantRenderer {
      * for STACK-tagged plants); Split Pea gets its own side-aware resolution since it can fire
      * right, left, or both in the same volley - see {@link #splitPeaAttackBaseState}.
      */
+    private String resolveIdleState(Plant plant) {
+        if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
+            return switch (plant.getGrowthStage()) {
+                case 2 -> "idle_stage2_2";
+                case 3 -> "idle_stage3_3";
+                default -> "idle";
+            };
+        }
+        return plantStackState(plant, "idle");
+    }
+
     private String resolveAttackBaseState(Plant plant) {
+        if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
+            return switch (plant.getGrowthStage()) {
+                case 2 -> "attack_stage2";
+                case 3 -> "attack_stage3";
+                default -> "attack";
+            };
+        }
         if (plant != null && "Split Pea".equalsIgnoreCase(plant.getName())) {
             return splitPeaAttackBaseState(plant);
+        }
+        if (plant != null && "Chomper".equalsIgnoreCase(plant.getName())) {
+            return "bite_end";
         }
         return plantStackState(plant, "attack");
     }

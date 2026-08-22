@@ -40,6 +40,11 @@ public class Zombie extends Item implements Attack {
     private final boolean isGlowing;
 
     private MoveBehavior moveBehavior;
+
+    // Temporary smooth knockback used by melee plants. The knockback is applied
+    // over time in tick(), so the zombie does not teleport to the final tile.
+    private double knockbackVelocityX = 0.0;
+    private double knockbackRemaining = 0.0;
     private AttackBehavior attackBehavior;
     private DefenseBehavior defenseBehavior;
     private ZombieEffectStatus zombieEffectStatus;
@@ -266,6 +271,21 @@ public class Zombie extends Item implements Attack {
             zombieEffectStatus.applyTickEffect(this, session);
         }
 
+        if (knockbackRemaining > 0.0) {
+            double stepTime = Math.min(deltaTimeSeconds, knockbackRemaining);
+            Position pos = getPosition();
+            if (pos != null) {
+                setPosition(new Position(
+                        pos.x() + knockbackVelocityX * stepTime,
+                        pos.y()));
+            }
+            knockbackRemaining = Math.max(0.0, knockbackRemaining - stepTime);
+            if (knockbackRemaining <= 0.0) {
+                knockbackVelocityX = 0.0;
+            }
+            return;
+        }
+
         Item target = acquireTarget(session);
         if (target != null && target.isAlive()) {
             zombieState = ZombieState.EATING;
@@ -331,6 +351,16 @@ public class Zombie extends Item implements Attack {
     public String getActionAnimationState() { return actionAnimationState; }
     public double getActionAnimationElapsed() { return actionAnimationElapsed; }
     public boolean isActionAnimationLoop() { return actionAnimationLoop; }
+
+    public void startKnockback(double distance, double durationSeconds) {
+        if (durationSeconds <= 0.0 || Math.abs(distance) < 0.0001) return;
+        this.knockbackVelocityX = distance / durationSeconds;
+        this.knockbackRemaining = durationSeconds;
+    }
+
+    public boolean isBeingKnockedBack() {
+        return knockbackRemaining > 0.0;
+    }
 
     public void move(double deltaTimeSeconds) {
         Position pos = getPosition();

@@ -50,6 +50,17 @@ public class GrowthTracker {
         return null;
     }
 
+    public int advanceStage() {
+        if (!hasStages()) return currentStage;
+        int maxStage = currentStage;
+        for (Map<String, Object> stageData : stages) {
+            int stage = ((Number) stageData.get("stage")).intValue();
+            if (stage > maxStage) maxStage = stage;
+        }
+        if (currentStage < maxStage) currentStage++;
+        return currentStage;
+    }
+
     public int getCurrentStage() {
         return currentStage;
     }

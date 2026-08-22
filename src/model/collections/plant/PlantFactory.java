@@ -145,7 +145,7 @@ public class PlantFactory {
         return plant;
     }
 
-     private static double resolveFuseSeconds(PlantJsonParser.PlantConfig config) {
+    private static double resolveFuseSeconds(PlantJsonParser.PlantConfig config) {
         String clipState = switch (config.abilityType) {
             case INSTANT_EXPLOSIVE -> AnimationFactory.firstAvailableClipState(
                     config.name, "explode", "attack");
@@ -184,7 +184,7 @@ public class PlantFactory {
     }
 
     private static PlantFoodEffect buildPlantFoodEffect(PlantJsonParser.PlantConfig config,
-                                                       double plantFoodValue) {
+                                                        double plantFoodValue) {
         if (config.plantFoodType == null) return null;
         int value = (int) plantFoodValue;
 
@@ -193,11 +193,24 @@ public class PlantFactory {
             case SPAWN_SUN_ITEMS -> new SpawnSun(value);
             case PROJECTILE_BURST -> new TimedProjectileBurst(projectileBurstCount(config, plantFoodValue));
             case SPAWN_CLONES -> new SpawnClones(Math.max(1, value));
-            case LOCAL_AOE_ATTACK -> new LocalAttack(2.0, Math.max(config.damage, value));
+            case LOCAL_AOE_ATTACK -> {
+                if ("Bonk Choy".equalsIgnoreCase(config.name)) {
+                    yield new MeleeAreaPlantFood(false, Math.max(config.damage, value));
+                }
+                if ("Phat Beet".equalsIgnoreCase(config.name)) {
+                    yield new MeleeAreaPlantFood(true, Math.max(config.damage, value));
+                }
+                if ("Kiwibeast".equalsIgnoreCase(config.name)) {
+                    yield new MeleeAreaPlantFood(false, Math.max(config.damage, value), true);
+                }
+                yield new LocalAttack(2.0, Math.max(config.damage, value));
+            }
             case GRANT_PERMANENT_ARMOR -> new GrantArmor(value);
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
             case KNOCKBACK_BLAST -> new KnockBackBlast(value, 2.0);
-            case PULL_UNDERWATER -> new PullUnderWater(Math.max(1, value));
+            case PULL_UNDERWATER -> "Chomper".equalsIgnoreCase(config.name)
+                    ? new ChomperPlantFood()
+                    : new PullUnderWater(Math.max(1, value));
             case MAP_WIDE_FREEZE -> new MapWideFreeze(plantFoodValue);
             case MAP_WIDE_BUTTER -> new MapWideButter(plantFoodValue);
             case SELF_BOOST -> new SelfBoost(plantFoodValue);

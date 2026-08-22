@@ -31,7 +31,7 @@ public final class ProjectileEffectAssets {
     }
 
     public record AssetEntry(String path, String state, PlayMode playMode, Kind kind,
-                              Variant variant, Scope scope, String purpose) {
+                             Variant variant, Scope scope, String purpose) {
 
         public String fullPath() {
             return path.startsWith(AssetPaths.ROOT) ? path : AssetPaths.PVZ_ASSETS + path;
@@ -88,12 +88,12 @@ public final class ProjectileEffectAssets {
     }
 
     private static AssetEntry entry(String path, String state, PlayMode playMode, Kind kind,
-                                     Variant variant, String purpose) {
+                                    Variant variant, String purpose) {
         return new AssetEntry(path, state, playMode, kind, variant, Scope.SELF, purpose);
     }
 
     private static AssetEntry rowEntry(String path, String state, PlayMode playMode, Kind kind,
-                                        Variant variant, String purpose) {
+                                       Variant variant, String purpose) {
         return new AssetEntry(path, state, playMode, kind, variant, Scope.ROW, purpose);
     }
 
@@ -132,7 +132,7 @@ public final class ProjectileEffectAssets {
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "plain pea shot (fires twice)"),
                 entry("768/INITIAL/EFFECTS/REPEATER_PLANTFOOD_GIANTPEA/"
-                        + "REPEATER_PLANTFOOD_GIANTPEA.PAM",
+                                + "REPEATER_PLANTFOOD_GIANTPEA.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "giant pea, repeater-specific PF"),
                 entry(SPLAT_PEA, "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
@@ -155,7 +155,7 @@ public final class ProjectileEffectAssets {
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "plain pea shot"),
                 entry("768/FULL/EFFECTS/PEAPOD_PLANTFOOD_GIANTPEA/"
-                        + "PEAPOD_PLANTFOOD_GIANTPEA.PAM",
+                                + "PEAPOD_PLANTFOOD_GIANTPEA.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "giant pea, pea-pod-specific PF (note: FULL, not INITIAL, folder)"),
                 entry(SPLAT_PEA, "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
@@ -201,15 +201,15 @@ public final class ProjectileEffectAssets {
                         "plantfood_off", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "ice line across the row, end"),
                 entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD_SLOW/"
-                        + "SNOWPEA_PLANTFOOD_SLOW.PAM",
+                                + "SNOWPEA_PLANTFOOD_SLOW.PAM",
                         "plantfood_on", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "frozen-tile snow fx, start"),
                 entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD_SLOW/"
-                        + "SNOWPEA_PLANTFOOD_SLOW.PAM",
+                                + "SNOWPEA_PLANTFOOD_SLOW.PAM",
                         "plantfood_idle", PlayMode.LOOP, Kind.EFFECT, Variant.PLANT_FOOD,
                         "frozen-tile snow fx, active loop"),
                 entry("768/INITIAL/EFFECTS/SNOWPEA_PLANTFOOD_SLOW/"
-                        + "SNOWPEA_PLANTFOOD_SLOW.PAM",
+                                + "SNOWPEA_PLANTFOOD_SLOW.PAM",
                         "plantfood_off", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "frozen-tile snow fx, end")
         );
@@ -228,19 +228,19 @@ public final class ProjectileEffectAssets {
 
         register("Goo Peashooter",
                 entry("768/INITIAL/EFFECTS/GOOPEASHOOTER_PROJECTILES/"
-                        + "GOOPEASHOOTER_PROJECTILES.PAM",
+                                + "GOOPEASHOOTER_PROJECTILES.PAM",
                         "projectile_t1", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "goo pea shot"),
                 entry("768/INITIAL/EFFECTS/SHADOWPEASHOOTER_PROJECTILE_HIT/"
-                        + "SHADOWPEASHOOTER_PROJECTILE_HIT.PAM",
+                                + "SHADOWPEASHOOTER_PROJECTILE_HIT.PAM",
                         "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "goo pea hit effect (internal name mismatch: SHADOWPEASHOOTER)"),
                 entry("768/INITIAL/EFFECTS/GOOPEASHOOTER_PLANTFOOD/"
-                        + "GOOPEASHOOTER_PLANTFOOD.PAM",
+                                + "GOOPEASHOOTER_PLANTFOOD.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "goo pea PF shot"),
                 entry("768/INITIAL/EFFECTS/SHADOWPEASHOOTER_PLANTFOOD_PROJECTILE/"
-                        + "SHADOWPEASHOOTER_PLANTFOOD_PROJECTILE.PAM",
+                                + "SHADOWPEASHOOTER_PLANTFOOD_PROJECTILE.PAM",
                         "tier2_hit", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
                         "big goo ball ending explosion")
         );
@@ -249,7 +249,7 @@ public final class ProjectileEffectAssets {
     private static void registerSunProducers() {
         register("Sun Bean",
                 entry("768/FULL/EFFECTS/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1/"
-                        + "SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1.PAM",
+                                + "SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.PLANT_FOOD,
                         "PF overlay effect on the sun burst")
         );
@@ -258,15 +258,15 @@ public final class ProjectileEffectAssets {
     private static void registerRotobaga() {
         register("Rotobaga",
                 entry("768/FULL/EFFECTS/T_ROTORUTABAGA_PROJECTILE1/"
-                        + "T_ROTORUTABAGA_PROJECTILE1.PAM",
+                                + "T_ROTORUTABAGA_PROJECTILE1.PAM",
                         "animation2", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "normal thrown rutabaga (internal name: RotoRutabaga)"),
                 entry("768/FULL/EFFECTS/T_ROTORUTABAGA_PROJECTILE1/"
-                        + "T_ROTORUTABAGA_PROJECTILE1.PAM",
+                                + "T_ROTORUTABAGA_PROJECTILE1.PAM",
                         "animation3", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "plant food thrown rutabaga"),
                 entry("768/FULL/EFFECTS/ROTORUTABAGA_PROJECTILE_HIT/"
-                        + "ROTORUTABAGA_PROJECTILE_HIT.PAM",
+                                + "ROTORUTABAGA_PROJECTILE_HIT.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "impact splat")
         );
@@ -278,7 +278,7 @@ public final class ProjectileEffectAssets {
                         "Citron_Citrus_Orb", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "citrus orb shot"),
                 entry("768/FULL/EFFECTS/CITRON_PLANTFOOD_LIGHTNING_CHARGE/"
-                        + "CITRON_PLANTFOOD_LIGHTNING_CHARGE.PAM",
+                                + "CITRON_PLANTFOOD_LIGHTNING_CHARGE.PAM",
                         "Citron_Plantfood_Lightning_Charge", PlayMode.ONCE, Kind.EFFECT,
                         Variant.PLANT_FOOD, "PF charge-up before firing"),
                 entry("768/FULL/EFFECTS/CITRON_PLANTFOOD_ORB/CITRON_PLANTFOOD_ORB.PAM",
@@ -331,11 +331,11 @@ public final class ProjectileEffectAssets {
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "orange ball variant"),
                 entry("768/FULL/EFFECTS/BOWLINGBULB_PLANTFOOD_PROJECTILE/"
-                        + "BOWLINGBULB_PLANTFOOD_PROJECTILE.PAM",
+                                + "BOWLINGBULB_PLANTFOOD_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF ball rolling"),
                 entry("768/FULL/EFFECTS/BOWLINGBULB_PLANTFOOD_PROJECTILE/"
-                        + "BOWLINGBULB_PLANTFOOD_PROJECTILE.PAM",
+                                + "BOWLINGBULB_PLANTFOOD_PROJECTILE.PAM",
                         "explosion", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
                         "PF ball explosion")
         );
@@ -350,7 +350,7 @@ public final class ProjectileEffectAssets {
                         "idle2", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "anti-air spike shot"),
                 entry("768/INITIAL/EFFECTS/CACTUS_PROJECTILE_PLANTFOOD/"
-                        + "CACTUS_PROJECTILE_PLANTFOOD.PAM",
+                                + "CACTUS_PROJECTILE_PLANTFOOD.PAM",
                         "idle", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF spike shot"),
                 entry("768/INITIAL/EFFECTS/CACTUS_PROJECTILE_HIT/CACTUS_PROJECTILE_HIT.PAM",
@@ -387,11 +387,11 @@ public final class ProjectileEffectAssets {
     private static void registerPuffShroom() {
         register("Puff-shroom",
                 entry("768/INITIAL/EFFECTS/T_PUFFSHROOM_PROJECTILE/"
-                        + "T_PUFFSHROOM_PROJECTILE.PAM",
+                                + "T_PUFFSHROOM_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "spore shot"),
                 entry("768/INITIAL/EFFECTS/T_PUFFSHROOM_PROJECTILE/"
-                        + "T_PUFFSHROOM_PROJECTILE.PAM",
+                                + "T_PUFFSHROOM_PROJECTILE.PAM",
                         "animation3", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF spore shot"),
                 entry("768/INITIAL/EFFECTS/T_PUFFSHROOM_HIT/T_PUFFSHROOM_HIT.PAM",
@@ -414,18 +414,18 @@ public final class ProjectileEffectAssets {
     private static void registerCabbagePult() {
         register("Cabbage-pult",
                 entry("768/INITIAL/EFFECTS/T_CABBAGEPULT_PROJECTILE/"
-                        + "T_CABBAGEPULT_PROJECTILE.PAM",
+                                + "T_CABBAGEPULT_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "lobbed cabbage"),
                 entry("768/INITIAL/EFFECTS/SPLAT_CABBAGEPULT/SPLAT_CABBAGEPULT.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "cabbage impact splat"),
                 entry("768/INITIAL/EFFECTS/CABBAGEPULT_PLANTFOOD_PROJECTILE/"
-                        + "CABBAGEPULT_PLANTFOOD_PROJECTILE.PAM",
+                                + "CABBAGEPULT_PLANTFOOD_PROJECTILE.PAM",
                         "plantfood_cabbage", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF lobbed cabbage"),
                 entry("768/INITIAL/EFFECTS/CABBAGEPULT_PLANTFOOD_PROJECTILE/"
-                        + "CABBAGEPULT_PLANTFOOD_PROJECTILE.PAM",
+                                + "CABBAGEPULT_PLANTFOOD_PROJECTILE.PAM",
                         "plantfood_cabbageExplode", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
                         "PF cabbage explosion")
         );
@@ -434,7 +434,7 @@ public final class ProjectileEffectAssets {
     private static void registerKernelPult() {
         register("Kernel-pult",
                 entry("768/INITIAL/EFFECTS/T_KERNALPULT_PROJECTILE/"
-                        + "T_KERNALPULT_PROJECTILE.PAM",
+                                + "T_KERNALPULT_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "lobbed kernel"),
                 entry("assets/projectiles/kernelpult_projectile_butter.png",
@@ -444,11 +444,11 @@ public final class ProjectileEffectAssets {
                         "static", PlayMode.ONCE, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF butter projectile - same static image as normal butter"),
                 entry("768/INITIAL/EFFECTS/SPLAT_KERNALPULT_KERNAL/"
-                        + "SPLAT_KERNALPULT_KERNAL.PAM",
+                                + "SPLAT_KERNALPULT_KERNAL.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "kernel impact"),
                 entry("768/INITIAL/EFFECTS/SPLAT_KERNALPULT_BUTTER/"
-                        + "SPLAT_KERNALPULT_BUTTER.PAM",
+                                + "SPLAT_KERNALPULT_BUTTER.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "butter impact (shared by normal and PF butter shots)"),
                 entry("assets/projectiles/buttercup_butter_208x221.png",
@@ -477,11 +477,11 @@ public final class ProjectileEffectAssets {
     private static void registerWinterMelon() {
         register("Winter Melon",
                 entry("768/FULL/EFFECTS/T_WINTERMELON_PROJECTILE/"
-                        + "T_WINTERMELON_PROJECTILE.PAM",
+                                + "T_WINTERMELON_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "lobbed winter melon"),
                 entry("768/FULL/EFFECTS/T_WINTERMELON_PROJECTILE/"
-                        + "T_WINTERMELON_PROJECTILE.PAM",
+                                + "T_WINTERMELON_PROJECTILE.PAM",
                         "animation3", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF lobbed winter melon"),
                 entry("768/FULL/EFFECTS/T_SPLAT_WINTERMELON/T_SPLAT_WINTERMELON.PAM",
@@ -496,23 +496,23 @@ public final class ProjectileEffectAssets {
     private static void registerPepperPult() {
         register("Pepper-pult",
                 entry("768/FULL/EFFECTS/T_PEPPERPULT_PROJECTILE/"
-                        + "T_PEPPERPULT_PROJECTILE.PAM",
+                                + "T_PEPPERPULT_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "main lobbed pepper"),
                 entry("768/FULL/EFFECTS/PEPPERPULT_PROJECTILE_SMALL/"
-                        + "PEPPERPULT_PROJECTILE_SMALL.PAM",
+                                + "PEPPERPULT_PROJECTILE_SMALL.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "small pepper variant (possible duplicate of T_-prefixed asset below)"),
                 entry("768/FULL/EFFECTS/T_PEPPERPULT_PROJECTILE_SMALL/"
-                        + "T_PEPPERPULT_PROJECTILE_SMALL.PAM",
+                                + "T_PEPPERPULT_PROJECTILE_SMALL.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "small pepper variant (T_-prefixed; verify vs. entry above)"),
                 entry("768/FULL/EFFECTS/PEPPERPULT_PROJECTILE_SPLAT/"
-                        + "PEPPERPULT_PROJECTILE_SPLAT.PAM",
+                                + "PEPPERPULT_PROJECTILE_SPLAT.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "normal impact splat"),
                 entry("768/FULL/EFFECTS/PEPPERPULT_PROJECTILE_PF_SPLAT/"
-                        + "PEPPERPULT_PROJECTILE_PF_SPLAT.PAM",
+                                + "PEPPERPULT_PROJECTILE_PF_SPLAT.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
                         "PF impact splat")
         );
@@ -529,7 +529,7 @@ public final class ProjectileEffectAssets {
     private static void registerPrimalPotatoMine() {
         register("Primal Potato Mine",
                 entry("768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/"
-                        + "PRIMAL_POTATOMINE_EXPLOSION.PAM",
+                                + "PRIMAL_POTATOMINE_EXPLOSION.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "mine explosion")
         );
@@ -538,11 +538,11 @@ public final class ProjectileEffectAssets {
     private static void registerCherryBomb() {
         register("Cherry Bomb",
                 entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_REAR/"
-                        + "CHERRYBOMB_EXPLOSION_REAR.PAM",
+                                + "CHERRYBOMB_EXPLOSION_REAR.PAM",
                         "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "rear/background explosion layer"),
                 entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_TOP/"
-                        + "CHERRYBOMB_EXPLOSION_TOP.PAM",
+                                + "CHERRYBOMB_EXPLOSION_TOP.PAM",
                         "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "top explosion layer")
         );
@@ -551,7 +551,7 @@ public final class ProjectileEffectAssets {
     private static void registerGrapeshot() {
         register("Grapeshot",
                 entry("768/INITIAL/EFFECTS/ESCAPEROOT_EXPLOSION_GRAPESHOT/"
-                        + "ESCAPEROOT_EXPLOSION_GRAPESHOT.PAM",
+                                + "ESCAPEROOT_EXPLOSION_GRAPESHOT.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "explosion (internal name mismatch: ESCAPEROOT)"),
                 entry("768/INITIAL/EFFECTS/GRAPESHOT_HIT/GRAPESHOT_HIT.PAM",
@@ -581,14 +581,17 @@ public final class ProjectileEffectAssets {
                         "tile hit effect"),
                 entry("768/FULL/EFFECTS/PHATBEETS_PF_PULSE/PHATBEETS_PF_PULSE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
-                        "PF pulse")
+                        "PF pulse"),
+                entry("768/FULL/EFFECTS/PHATBEETS_PF_PULSE/PHATBEETS_PF_PULSE.PAM",
+                        "animation", PlayMode.LOOP, Kind.EFFECT, Variant.PLANT_FOOD,
+                        "PF pulse effect on the plant tile")
         );
     }
 
     private static void registerKiwibeast() {
         register("Kiwibeast",
                 entry("768/INITIAL/EFFECTS/KIWIBEAST_ATTACK_PULSE/"
-                        + "KIWIBEAST_ATTACK_PULSE.PAM",
+                                + "KIWIBEAST_ATTACK_PULSE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "attack pulse (normal attack)"),
                 entry("768/INITIAL/EFFECTS/KIWIBEAST_TILE_HIT/KIWIBEAST_TILE_HIT.PAM",
@@ -596,7 +599,10 @@ public final class ProjectileEffectAssets {
                         "tile hit effect"),
                 entry("768/INITIAL/EFFECTS/KIWIBEAST_PF_PULSE/KIWIBEAST_PF_PULSE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
-                        "PF pulse (Kiwibeast is itself Chomper's PF transform - verify)")
+                        "PF pulse"),
+                entry("768/INITIAL/EFFECTS/KIWIBEAST_PF_PULSE/KIWIBEAST_PF_PULSE.PAM",
+                        "animation", PlayMode.LOOP, Kind.EFFECT, Variant.PLANT_FOOD,
+                        "PF pulse effect on the plant tile")
         );
     }
 
@@ -622,11 +628,11 @@ public final class ProjectileEffectAssets {
     private static void registerTorchwood() {
         register("Torchwood",
                 entry("768/INITIAL/EFFECTS/TORCHWOOD_HIT_EFFECTS/"
-                        + "TORCHWOOD_HIT_EFFECTS.PAM",
+                                + "TORCHWOOD_HIT_EFFECTS.PAM",
                         "hit_normal", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "pea passing through fire, normal hit"),
                 entry("768/INITIAL/EFFECTS/TORCHWOOD_HIT_EFFECTS/"
-                        + "TORCHWOOD_HIT_EFFECTS.PAM",
+                                + "TORCHWOOD_HIT_EFFECTS.PAM",
                         "hit_power", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
                         "pea passing through fire, empowered hit (variant guessed)")
         );
@@ -643,15 +649,15 @@ public final class ProjectileEffectAssets {
     private static void registerCatTail() {
         register("Cat-tail",
                 entry("768/INITIAL/EFFECTS/T_HOMING_THISTLE_PROJECTILE/"
-                        + "T_HOMING_THISTLE_PROJECTILE.PAM",
+                                + "T_HOMING_THISTLE_PROJECTILE.PAM",
                         "animation2", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "homing projectile (reuses Homing Thistle's assets, per author's note)"),
                 entry("768/INITIAL/EFFECTS/T_HOMING_THISTLE_PROJECTILE_HIT/"
-                        + "T_HOMING_THISTLE_PROJECTILE_HIT.PAM",
+                                + "T_HOMING_THISTLE_PROJECTILE_HIT.PAM",
                         "animation3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "homing projectile impact"),
                 entry("768/INITIAL/EFFECTS/HOMING_THISTLE_PLANTFOOD_PROJECTILE/"
-                        + "HOMING_THISTLE_PLANTFOOD_PROJECTILE.PAM",
+                                + "HOMING_THISTLE_PLANTFOOD_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "PF homing projectile")
         );
@@ -683,11 +689,11 @@ public final class ProjectileEffectAssets {
     private static void registerHotPotato() {
         register("Hot Potato",
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
-                        + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
+                                + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
                         "melting ice puddle (synergy fx when melting an ice block)"),
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_STEAMFX/"
-                        + "HOTPOTATO_ICEBLOCK_STEAMFX.PAM",
+                                + "HOTPOTATO_ICEBLOCK_STEAMFX.PAM",
                         "animation", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
                         "ice block steam (synergy fx)"),
                 entry("768/FULL/EFFECTS/HOTPOTATO_STEAMFX/HOTPOTATO_STEAMFX.PAM",

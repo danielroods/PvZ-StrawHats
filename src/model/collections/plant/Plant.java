@@ -47,6 +47,17 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private GrowthTracker growthTracker;
     private double plantFoodTimer = 0.0;
 
+    // Melee/Chomper visual state. These fields are presentation hints only and
+    // do not alter the plant's gameplay state.
+    private boolean meleeFacingLeft = false;
+    private String visualAnimationState;
+    private double visualAnimationRemaining = 0.0;
+    private double visualAnimationElapsed = 0.0;
+    private boolean chomperSpecialActive = false;
+    private boolean chomperSpecialPending = false;
+    private boolean chomperDigestIdlePending = false;
+    private int kiwibeastHitCounter = 0;
+
     private PlantArmour armor;
 
     public enum PlantState {
@@ -85,6 +96,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public void tick(double deltaTimeSeconds, GameSession session) {
         if (state == PlantState.INCAPACITATED) return;
 
+        tickVisualAnimation(deltaTimeSeconds);
+
         if (lifespanSeconds > 0) {
             remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
             if (GameClock.isZero(remainingLifeSeconds)) {
@@ -102,7 +115,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (plantFoodEffect != null) {
                 plantFoodEffect.tickDurationEffect(this, deltaTimeSeconds);
             }
+            double previousPlantFoodTimer = plantFoodTimer;
             plantFoodTimer = GameClock.countDown(plantFoodTimer, deltaTimeSeconds);
+            if (previousPlantFoodTimer > 0.0 && plantFoodTimer <= 0.0) {
+                finishPlantFoodVisualState();
+            }
             if (plantFoodEffect == null || plantFoodEffect.drivesActStrategy()) return;
         }
 
@@ -146,6 +163,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         }
 
         if (remainingDamage > 0) {
+            advanceKiwibeastGrowthOnDamage();
             int newHp = getHP() - remainingDamage;
             if (newHp <= 0) {
                 setHP(0);
@@ -180,7 +198,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public boolean activatePlant(GameSession session) {
         if (this.plantFoodEffect == null || this.plantFoodTimer > 0 || session == null || !isAlive()) return false;
         this.plantFoodEffect.reset();
-        if (this.growthTracker != null) this.growthTracker.skipToMaxStage();
+        if (this.growthTracker != null && !"Kiwibeast".equalsIgnoreCase(name)) this.growthTracker.skipToMaxStage();
         for (Plant sibling : session.getPlants()) {
             if (sibling != null && sibling.isAlive() && sibling.getId() == this.id
                     && sibling.getLifespanSeconds() > 0) {
@@ -290,6 +308,97 @@ public abstract class Plant extends Item implements Pluck, Attack {
     /// getState()/setState(ItemState) pair with an unrelated return type.
     public PlantState getPlantState() {
         return this.state;
+    }
+
+    public boolean isMeleeFacingLeft() { return meleeFacingLeft; }
+    public void setMeleeFacingLeft(boolean meleeFacingLeft) { this.meleeFacingLeft = meleeFacingLeft; }
+
+    public String getVisualAnimationState() { return visualAnimationState; }
+    public double getVisualAnimationRemaining() { return visualAnimationRemaining; }
+    public double getVisualAnimationElapsed() { return visualAnimationElapsed; }
+    public boolean isChomperSpecialActive() { return chomperSpecialActive; }
+
+    public void setVisualAnimationState(String state, double durationSeconds) {
+        this.visualAnimationState = state;
+        this.visualAnimationRemaining = Math.max(0.0, durationSeconds);
+        this.visualAnimationElapsed = 0.0;
+    }
+
+    public void clearVisualAnimationState() {
+        this.visualAnimationState = null;
+        this.visualAnimationRemaining = 0.0;
+    }
+
+    private void finishPlantFoodVisualState() {
+        // Plant Food visual states are temporary. Once the Plant Food timer ends,
+        // never leave the plant locked on an intro/loop/outro frame. Clearing the
+        // explicit visual state lets PlantRenderer resume its normal idle/attack
+        // selection on the very next frame.
+        //
+        // Chomper is the only exception: if its eating special is still active,
+        // return to its looping special idle instead of the normal idle.
+        if ("Chomper".equalsIgnoreCase(name) && chomperSpecialActive) {
+            setVisualAnimationState("special_idle", 10.0);
+        } else {
+            clearVisualAnimationState();
+        }
+    }
+
+    public int getGrowthStage() {
+        return growthTracker == null ? 1 : growthTracker.getCurrentStage();
+    }
+
+    private void advanceKiwibeastGrowthOnDamage() {
+        // Kiwibeast growth is time-based through GrowthTracker.update().
+        // Damage must not change its growth stage.
+    }
+
+    public int incrementKiwibeastHitCounter() {
+        return ++kiwibeastHitCounter;
+    }
+
+    public int getKiwibeastHitCounter() {
+        return kiwibeastHitCounter;
+    }
+
+    public void startChomperBite(boolean killedZombie) {
+        if (!"Chomper".equalsIgnoreCase(name)) return;
+        // The attack clip is bite_end; the renderer will switch to special/special_idle
+        // only when a zombie was actually killed.
+        setVisualAnimationState("bite_end", 0.45);
+        chomperSpecialPending = killedZombie;
+    }
+
+    public void finishChomperSpecial() {
+        if (!"Chomper".equalsIgnoreCase(name)) return;
+        chomperSpecialActive = false;
+        setVisualAnimationState("special_end", 0.6);
+    }
+
+    public void tickVisualAnimation(double deltaTimeSeconds) {
+        if (visualAnimationRemaining <= 0) return;
+        visualAnimationElapsed += deltaTimeSeconds;
+        visualAnimationRemaining = Math.max(0.0, visualAnimationRemaining - deltaTimeSeconds);
+        if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
+            if (chomperDigestIdlePending) {
+                chomperDigestIdlePending = false;
+                setVisualAnimationState("special_idle", 10.0);
+            } else {
+                finishChomperSpecial();
+            }
+        } else if (visualAnimationRemaining <= 0 && "special_idle".equals(visualAnimationState)) {
+            finishChomperSpecial();
+        } else if (visualAnimationRemaining <= 0 && "special_end".equals(visualAnimationState)) {
+            clearVisualAnimationState();
+        } else if (visualAnimationRemaining <= 0 && "bite_end".equals(visualAnimationState)) {
+            clearVisualAnimationState();
+            if (chomperSpecialPending) {
+                chomperSpecialPending = false;
+                chomperSpecialActive = true;
+                chomperDigestIdlePending = true;
+                setVisualAnimationState("special", 0.8);
+            }
+        }
     }
 
     public int getChillLevel() {

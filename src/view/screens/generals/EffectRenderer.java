@@ -71,6 +71,8 @@ class EffectRenderer {
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Position> zombieProjectileTraces = new IdentityHashMap<>();
+    private final Map<Plant, Double> meleeLastCooldown = new IdentityHashMap<>();
+    private final Map<Plant, Boolean> meleePlantFoodSeen = new IdentityHashMap<>();
 
     EffectRenderer(GameScreen screen) {
         this.screen = screen;
@@ -169,9 +171,53 @@ class EffectRenderer {
             }
         }
         spawnImpactEffectsForSpentProjectiles();
+        drawMeleePlantProjectiles(delta);
         drawZombieProjectiles(delta);
         projectileAnimTimes.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
         projectileTraces.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
+    }
+
+
+    private void drawMeleePlantProjectiles(float delta) {
+        for (Plant plant : screen.session.getPlants()) {
+            if (plant == null || plant.getPosition() == null || !plant.isAlive()) continue;
+            String name = plant.getName();
+            if (!"Kiwibeast".equalsIgnoreCase(name) && !"Phat Beet".equalsIgnoreCase(name)) continue;
+
+            boolean pf = plant.isPlantFoodActive();
+            boolean seenPf = meleePlantFoodSeen.getOrDefault(plant, false);
+            if (pf && !seenPf) {
+                List<ProjectileEffectAssets.AssetEntry> pfEntries = ProjectileEffectAssets.get(
+                        name, ProjectileEffectAssets.Kind.PROJECTILE,
+                        ProjectileEffectAssets.Variant.PLANT_FOOD);
+                if (!pfEntries.isEmpty()) {
+                    ProjectileEffectAssets.AssetEntry entry = pfEntries.get(0);
+                    impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
+                            entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
+                            entry.isStaticImage(), plant.getPosition(),
+                            ("Phat Beet".equalsIgnoreCase(name) ? 5.0f : 1.2f),
+                            PROJECTILE_PAM_SCALE));
+                }
+            }
+            meleePlantFoodSeen.put(plant, pf);
+
+            double cooldown = plant.getIntervalTimer();
+            Double last = meleeLastCooldown.put(plant, cooldown);
+            if (!pf && last != null && cooldown > last + 0.05) {
+                List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
+                        name, ProjectileEffectAssets.Kind.PROJECTILE,
+                        ProjectileEffectAssets.Variant.NORMAL);
+                if (!entries.isEmpty()) {
+                    ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+                    impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
+                            entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
+                            entry.isStaticImage(), plant.getPosition(), 0.45f,
+                            PROJECTILE_PAM_SCALE));
+                }
+            }
+        }
+        meleeLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        meleePlantFoodSeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
     }
 
     private void drawZombieProjectiles(float delta) {
