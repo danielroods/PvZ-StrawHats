@@ -11,6 +11,7 @@ import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
+import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match.main.season.travellog.egypt.SandStorm;
 import model.match_mechanisms.vector.Position;
@@ -147,11 +148,12 @@ class ZombieRenderer {
             String preferred = switch (zombie.getZombieState()) {
                 case EATING -> "eat";
                 case DEAD -> "die";
-                default -> "walk";
+                default -> zombie.getEffectStatus() instanceof RotationalTurbulenceState spin
+                        && spin.isActivelyGyrating() ? "spin" : "walk";
             };
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
-            if (("walk".equals(preferred) || "eat".equals(preferred)) && path != null) {
+            if (("walk".equals(preferred) || "eat".equals(preferred) || "spin".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
                     animationTime = t % duration;

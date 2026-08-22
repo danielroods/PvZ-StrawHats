@@ -3,8 +3,10 @@ package model.collections.zombie.zombie_defense;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
+import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.projectile.Projectile;
+import model.projectile.StraightMove;
 import model.utils.GameSession;
 
 
@@ -24,8 +26,7 @@ public class JesterDeflection implements DefenseBehavior {
     }
 
     private boolean isDeflectable(Projectile projectile) {
-        String typeName = projectile.getClass().getSimpleName().toLowerCase();
-        return !typeName.contains("laser") && !typeName.contains("plasma");
+        return projectile.getMoveStrategy() instanceof StraightMove;
     }
 
     public void activateSpinning(Zombie zombie) {
@@ -35,15 +36,19 @@ public class JesterDeflection implements DefenseBehavior {
     }
 
     private void reflectTowardsPlant(Zombie zombie, Projectile projectile, GameSession session) {
+        if (projectile == null) return;
+
         Plant targetPlant = searchClosestPlantInRow(zombie, session);
-        if (targetPlant != null && projectile != null) {
+        if (targetPlant != null) {
             targetPlant.takeDamage(projectile.getDamage(), zombie);
             if (projectile.getHitEffectStrategy() instanceof model.projectile.hit.IceHit) {
-                targetPlant.setState(Plant.PlantState.INCAPACITATED);
+                FrostbiteFreezing.addChillLevel(session, targetPlant);
             }
-            Position speed = projectile.getSpeed();
-            if (speed != null) projectile.setSpeed(new Position(Math.abs(speed.x()), speed.y()));
         }
+
+        Position speed = projectile.getSpeed();
+        if (speed != null) projectile.setSpeed(new Position(Math.abs(speed.x()), speed.y()));
+        projectile.deflectTowardsPlant(zombie);
     }
 
     public Plant searchClosestPlantInRow(Zombie zombie, GameSession session) {

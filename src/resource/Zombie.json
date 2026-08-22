@@ -1460,7 +1460,7 @@
         "mX": 10,
         "mY": 10
       },
-      "Hitpoints": 420,
+      "Hitpoints": 150,
       "JuggleLaunchDelay": 2,
       "JuggleableProjectiles": [
         "PeaDefault",
