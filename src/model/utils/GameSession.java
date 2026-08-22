@@ -41,6 +41,7 @@ public class GameSession {
     boolean gameOver = false;
     boolean gameWon = false;
     private boolean zombieBreachesEnabled = true;
+    private boolean lawnMowersEnabled = true;
     private Boolean skySunEnabledOverride = null;
     private int difficultyLevel;
 
@@ -358,6 +359,14 @@ public class GameSession {
 
     public boolean isZombieBreachesEnabled() {
         return zombieBreachesEnabled;
+    }
+
+    public void setLawnMowersEnabled(boolean lawnMowersEnabled) {
+        this.lawnMowersEnabled = lawnMowersEnabled;
+    }
+
+    public boolean areLawnMowersEnabled() {
+        return lawnMowersEnabled;
     }
 
     public void setSkySunEnabled(boolean enabled) {

@@ -80,6 +80,7 @@ public final class MatchHud extends Table implements Disposable {
     private Table rightArea;
     private ConveyorBeltWidget conveyorWidget;
     private boolean loadoutBankVisible = true;
+    private boolean foodVisible = true;
     private String objectiveOverride;
     private String progressLabelOverride;
     private Float progressValueOverride;
@@ -464,7 +465,13 @@ public final class MatchHud extends Table implements Disposable {
 
     public void setLoadoutBankVisible(boolean visible) {
         loadoutBankVisible = visible;
-        if (leftColumn != null) leftColumn.setVisible(visible);
+        if (leftColumn != null) leftColumn.setVisible(visible || foodVisible);
+    }
+
+    public void setFoodVisible(boolean visible) {
+        foodVisible = visible;
+        if (foodButton != null) foodButton.setVisible(visible);
+        if (leftColumn != null) leftColumn.setVisible(loadoutBankVisible || foodVisible);
     }
 
     public void setShovelVisible(boolean visible) {

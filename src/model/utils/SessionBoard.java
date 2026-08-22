@@ -103,31 +103,36 @@ class SessionBoard {
     }
 
     void checkZombieBreaches() {
+        boolean mowersEnabled = session.areLawnMowersEnabled();
         LawnMower[] lawnMowers = session.getLawnMowers();
         for (Zombie zombie : session.getZombies()) {
             if (!zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (zombie.getPosition().x() >= 0.0) continue;
 
-            if (zombie.getPosition().x() < 0.0) {
-                int row = (int) Math.round(zombie.getPosition().y());
-                if (row < 0 || row >= lawnMowers.length) continue;
+            if (!mowersEnabled) {
+                session.onZombieReachedEnd();
+                return;
+            }
 
-                LawnMower mower = lawnMowers[row];
-                if (mower.getState() == LawnMower.MowerState.DEAD) {
-                    if (zombie.getPosition().x() < -0.8) {
-                        session.onZombieReachedEnd();
-                        return;
-                    }
-                } else if (mower.getState() == LawnMower.MowerState.IDLE) {
-                    boolean survived = mower.killZombiesInRow(zombiesInRow(row));
-                    if (!survived) {
-                        session.onZombieReachedEnd();
-                        return;
-                    }
-                } else {
-                    if (zombie.getPosition().x() < -2.0) {
-                        session.onZombieReachedEnd();
-                        return;
-                    }
+            int row = (int) Math.round(zombie.getPosition().y());
+            if (row < 0 || row >= lawnMowers.length) continue;
+
+            LawnMower mower = lawnMowers[row];
+            if (mower.getState() == LawnMower.MowerState.DEAD) {
+                if (zombie.getPosition().x() < -0.8) {
+                    session.onZombieReachedEnd();
+                    return;
+                }
+            } else if (mower.getState() == LawnMower.MowerState.IDLE) {
+                boolean survived = mower.killZombiesInRow(zombiesInRow(row));
+                if (!survived) {
+                    session.onZombieReachedEnd();
+                    return;
+                }
+            } else {
+                if (zombie.getPosition().x() < -2.0) {
+                    session.onZombieReachedEnd();
+                    return;
                 }
             }
         }
@@ -186,7 +191,7 @@ class SessionBoard {
             return true;
         }
 
-       if (existing != null && !lilySupport && !incomingIsShell
+        if (existing != null && !lilySupport && !incomingIsShell
                 && existing.getId() == plant.getId()
                 && plant.getTags().contains(PlantTag.STACK)
                 && plant.getMaxStackNumber() > 1) {

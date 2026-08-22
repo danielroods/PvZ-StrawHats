@@ -10,12 +10,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
+import controller.ScreenManager;
+import controller.match.mini_games.MiniGameEndMenu;
 import controller.match.mini_games.VasebreakerController;
 import model.App;
 import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantJsonParser;
 import model.match.mini_games.vasebreaker.Vasebreaker;
 import model.match.mini_games.vasebreaker.vase.Vase;
+import service.GameClock;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
 import service.resource_manager.AudioEnum;
@@ -29,14 +32,42 @@ import java.util.Map;
 public class VasebreakerGameScreen extends GameScreen {
 
     {
-        // Mini-games have no Level/Season, so this doubles as the lawn mower art
-        // key - see GameScreen.getLawnMowerSeasonKey() and SEASON_LAWN_MOWER_PAM_PATHS.
         seasonFolder = "vasebreaker";
     }
 
     private Table seedPanel;
     private String selectedSeedName;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
+
+    @Override
+    protected boolean areLawnMowersVisible() {
+        return false;
+    }
+
+    @Override
+    protected void tickSession() {
+        if (App.currentMenu instanceof VasebreakerController controller) {
+            controller.tick(GameClock.SECONDS_PER_TICK);
+        }
+    }
+
+    @Override
+    protected void checkMatchEnd() {
+        if (matchFinished || !isMatchEndSequenceIdle()) return;
+        if (App.currentMenu instanceof VasebreakerController) return;
+
+        if (App.currentMenu instanceof MiniGameEndMenu end) {
+            if (seedPanel != null) seedPanel.setVisible(false);
+            startMatchEndSequence(end.isWon());
+            return;
+        }
+        matchFinished = true;
+        ScreenManager.syncWithCurrentMenu();
+    }
+
+    @Override
+    public void onMatchEndSequenceFinished(boolean won) {
+    }
 
     @Override
     protected String getSeasonGameplayFolder() {
@@ -48,6 +79,12 @@ public class VasebreakerGameScreen extends GameScreen {
         super.show();
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
         selectedSeedName = null;
+        if (hud != null) {
+            hud.setLoadoutBankVisible(false);
+            hud.setFoodVisible(false);
+            hud.setShovelVisible(false);
+            hud.setStartButtonAvailable(false);
+        }
         buildSeedPanel();
     }
 
@@ -55,12 +92,6 @@ public class VasebreakerGameScreen extends GameScreen {
         return App.currentMenu instanceof VasebreakerController controller ? controller.getGame() : null;
     }
 
-    /**
-     * Click priority: break an unbroken vase first, then collect a dropped seed
-     * packet, then fall back to planting the selected inventory seed (handled by
-     * GameScreen's default plantAtCell, same "plant plant -t X -l (x,y)" command
-     * the terminal engine already understands).
-     */
     @Override
     protected void onCellClicked(int row, int col) {
         Vasebreaker game = currentGame();
@@ -131,19 +162,6 @@ public class VasebreakerGameScreen extends GameScreen {
         };
     }
 
-    /**
-     * Seed-inventory picker pinned to the bottom-left of the stage, since
-     * MatchHud's plant tray is built around the pre-match loadout (BeforeMenu)
-     * and Vasebreaker's seeds are earned mid-match by breaking plant vases
-     * instead. Uses the same SeedPacketCardFactory MatchHud's own loadout tray
-     * uses, so a seed here looks exactly like a normal level's seed packet
-     * (packet art + plant icon) instead of a plain text button - selecting one
-     * highlights its card; the actual plant idle animation once placed is
-     * already handled by GameScreen.drawPlants() for every screen, mini-games
-     * included, so nothing extra is needed there. Added directly to the stage
-     * (like Toast) rather than into rootStack, which force-stretches any actor
-     * added to it - see GameScreen board-layout notes.
-     */
     private void buildSeedPanel() {
         Vasebreaker game = currentGame();
         if (seedPanel != null) {
@@ -154,16 +172,18 @@ public class VasebreakerGameScreen extends GameScreen {
 
         Table panel = new Table();
         panel.setBackground(skin.getDrawable("card-background"));
-        panel.pad(8f);
+        panel.pad(6f);
 
         Label title = new Label("SEEDS", skin, "main");
-        panel.add(title).left().padBottom(4f).row();
+        title.setAlignment(com.badlogic.gdx.utils.Align.center);
+        panel.add(title).growX().padBottom(4f).row();
 
         Table row = new Table();
-        row.left();
+        row.top().center();
         Map<Integer, Integer> inventory = game.getSeedInventory();
         if (inventory.isEmpty()) {
-            row.add(new Label("Break plant vases to find seeds.", skin, "main")).left();
+            row.add(new Label("Break plant vases to find seeds.", skin, "main"))
+                    .width(94f).center();
         } else {
             if (selectedSeedName != null && inventory.keySet().stream()
                     .noneMatch(id -> plantName(id).equalsIgnoreCase(selectedSeedName))) {
@@ -171,25 +191,23 @@ public class VasebreakerGameScreen extends GameScreen {
             }
             for (Map.Entry<Integer, Integer> entry : inventory.entrySet()) {
                 String name = plantName(entry.getKey());
-                row.add(buildSeedCard(name, entry.getValue())).size(90f, 114f).padRight(6f);
+                row.add(buildSeedCard(name, entry.getValue()))
+                        .size(90f, 114f).padBottom(6f).row();
             }
         }
 
         ScrollPane scroll = new ScrollPane(row);
-        scroll.setScrollingDisabled(false, true);
-        panel.add(scroll).width(420f).height(122f);
+        scroll.setScrollingDisabled(true, false);
+        scroll.setFadeScrollBars(false);
+        scroll.setOverscroll(false, false);
+        panel.add(scroll).width(102f).height(Math.min(520f, Math.max(180f, stage.getViewport().getWorldHeight() - 90f)));
         panel.pack();
-        panel.setPosition(24f, 24f);
+        panel.setPosition(18f, (stage.getViewport().getWorldHeight() - panel.getHeight()) * 0.5f);
 
         seedPanel = panel;
         stage.addActor(seedPanel);
     }
 
-    /** One seed card: the real packet+icon art from SeedPacketCardFactory,
-     *  a count badge for how many of that seed are in the inventory, and a
-     *  highlight ring when it's the currently selected seed. Falls back to a
-     *  plain labeled button if this plant has no seed-packet art (buildCard
-     *  returns null - see SeedPacketCardFactory.buildCardByPlantName). */
     private Stack buildSeedCard(String name, int count) {
         Stack stack = new Stack();
         boolean selected = name.equalsIgnoreCase(selectedSeedName);

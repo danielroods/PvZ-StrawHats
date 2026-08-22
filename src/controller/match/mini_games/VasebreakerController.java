@@ -29,6 +29,11 @@ public class VasebreakerController extends Menu {
 
     public Vasebreaker getGame() { return game; }
 
+    public void tick(double deltaSeconds) {
+        game.tick(deltaSeconds);
+        reportOutcome();
+    }
+
     @Override
     public String getName() {
         return "Vasebreaker Menu";
