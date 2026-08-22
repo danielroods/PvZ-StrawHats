@@ -83,6 +83,7 @@ class ZombieRenderer {
     private final Map<Zombie, Float> zombieSpawnEffects = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> zombieWaterRipples = new IdentityHashMap<>();
+    private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -150,11 +151,17 @@ class ZombieRenderer {
                 }
             }
 
+            boolean gyratingNow = zombie.getEffectStatus() instanceof RotationalTurbulenceState spin
+                    && spin.isActivelyGyrating();
+            if (gyratingNow && !zombieGyratingLast.getOrDefault(zombie, false)) {
+                screen.effects().addDeflectSparkEffect(new Position(p.x(), p.y()));
+            }
+            zombieGyratingLast.put(zombie, gyratingNow);
+
             String preferred = switch (zombie.getZombieState()) {
                 case EATING -> "eat";
                 case DEAD -> "die";
-                default -> zombie.getEffectStatus() instanceof RotationalTurbulenceState spin
-                        && spin.isActivelyGyrating() ? "spin" : "walk";
+                default -> gyratingNow ? "spin" : "walk";
             };
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
@@ -205,6 +212,7 @@ class ZombieRenderer {
         zombieAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieSpawnEffects.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        zombieGyratingLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {

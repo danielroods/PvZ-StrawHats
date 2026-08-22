@@ -47,7 +47,11 @@ public class JesterDeflection implements DefenseBehavior {
         }
 
         Position speed = projectile.getSpeed();
-        if (speed != null) projectile.setSpeed(new Position(Math.abs(speed.x()), speed.y()));
+        if (speed != null) {
+            double magnitude = Math.abs(speed.x());
+            double reflectedX = zombie.isFacingRight() ? magnitude : -magnitude;
+            projectile.setSpeed(new Position(reflectedX, speed.y()));
+        }
         projectile.deflectTowardsPlant(zombie);
     }
 

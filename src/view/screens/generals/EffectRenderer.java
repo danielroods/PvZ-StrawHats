@@ -94,6 +94,11 @@ class EffectRenderer {
                 PROJECTILE_PAM_SCALE));
     }
 
+    void addDeflectSparkEffect(Position position) {
+        impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
+                false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
+    }
+
     void drawExplodingPlantEffects(float delta) {
         drawTimedEffects(explodingPlantEffects, delta);
         drawTimedEffects(impactEffects, delta);
