@@ -89,7 +89,7 @@ class WaveScheduler {
         boolean due = GameClock.hasReached(clockSeconds, lullStartedAt + currentInterval);
         if (!due && !canBePulledInEarly()) return;
         if (!GameClock.hasReached(clockSeconds,
-                lastSpawnEndedAt + WavePacing.MIN_GAP_AFTER_SPAWN_SECONDS)) {
+                lastSpawnEndedAt + WavePacing.minGapAfterSpawnSeconds())) {
             return;
         }
         startWave(waves.get(nextWaveIndex));
@@ -117,7 +117,7 @@ class WaveScheduler {
         List<ScheduledSpawn> spawns = activePlan.getSpawns();
         while (planCursor < spawns.size()
                 && GameClock.hasReached(clockSeconds,
-                        planStartedAt + spawns.get(planCursor).offsetSeconds())) {
+                planStartedAt + spawns.get(planCursor).offsetSeconds())) {
             spawnScheduled(spawns.get(planCursor));
             planCursor++;
         }
@@ -172,7 +172,7 @@ class WaveScheduler {
         hugeWaveAlertShown = false;
         currentInterval = nextWaveIndex < waves.size()
                 ? WavePlanner.intervalSeconds(waves.get(nextWaveIndex).getDelay(), nextWaveIndex,
-                        waves.size(), waveTypeOf(nextWaveIndex), session.getDifficultyLevel())
+                waves.size(), waveTypeOf(nextWaveIndex), session.getDifficultyLevel())
                 : 0;
     }
 
@@ -214,9 +214,9 @@ class WaveScheduler {
         SpawnPlacement.Placement placement = !activeSandStorm
                 && ZombieFactory.isStationaryMover(spawn.alias())
                 ? SpawnPlacement.resolveInward(session.getZombies(), spawn.alias(), cols,
-                        laneOrder, baseX)
+                laneOrder, baseX)
                 : SpawnPlacement.resolve(session.getZombies(), spawn.alias(), cols,
-                        laneOrder, baseX);
+                laneOrder, baseX);
         int lane = Math.max(0, Math.min(rows - 1, placement.lane()));
         double spawnX = placement.x();
         int waveNumber = activePlan == null ? nextWaveIndex : activePlan.getWaveNumber();
@@ -305,7 +305,7 @@ class WaveScheduler {
     double getSecondsUntilNextWave() {
         if (nextWaveIndex >= waves.size()) return -1;
         double startsAt = Math.max(lullStartedAt + currentInterval,
-                lastSpawnEndedAt + WavePacing.MIN_GAP_AFTER_SPAWN_SECONDS);
+                lastSpawnEndedAt + WavePacing.minGapAfterSpawnSeconds());
         return Math.max(0, startsAt - clockSeconds);
     }
 
@@ -378,7 +378,7 @@ class WaveScheduler {
         currentWaveStartingHp = 0;
         currentInterval = waves.isEmpty() ? 0
                 : WavePlanner.intervalSeconds(waves.get(0).getDelay(), 0, waves.size(),
-                        waveTypeOf(0), session.getDifficultyLevel());
+                waveTypeOf(0), session.getDifficultyLevel());
     }
 
     void resetWavesStarted() {

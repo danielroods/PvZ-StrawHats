@@ -5,6 +5,7 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
+import model.match.waves.WavePacing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.Environment;
@@ -59,7 +60,7 @@ public class Beghouled extends MiniGameMode {
             case 2 -> 16.0;
             case 3 -> 12.0;
             default -> 20.0;
-        };
+        } * WavePacing.SPAWN_TIMING_MULTIPLIER;
         this.zombiesPerSpawn = getDifficulty();
         this.zombiePool = zombiePoolFor(getDifficulty());
         seedBoard();

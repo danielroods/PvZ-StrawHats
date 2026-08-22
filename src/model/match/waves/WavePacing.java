@@ -7,6 +7,8 @@ public final class WavePacing {
 
     public static final double DEFAULT_WAVE_INTERVAL_SECONDS = 25.0;
 
+    public static final double SPAWN_TIMING_MULTIPLIER = 2.0;
+
     public static final double LULL_MULTIPLIER = 1.30;
     public static final double FIRST_WAVE_MIN_SECONDS = 16.0;
     public static final double MIN_WAVE_INTERVAL_SECONDS = 12.0;
@@ -126,5 +128,9 @@ public final class WavePacing {
 
     public static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    public static double minGapAfterSpawnSeconds() {
+        return MIN_GAP_AFTER_SPAWN_SECONDS * SPAWN_TIMING_MULTIPLIER;
     }
 }

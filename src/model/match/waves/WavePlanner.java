@@ -31,7 +31,7 @@ public final class WavePlanner {
         double floor = waveIndex == 0
                 ? Math.max(WavePacing.MIN_WAVE_INTERVAL_SECONDS, WavePacing.FIRST_WAVE_MIN_SECONDS)
                 : WavePacing.MIN_WAVE_INTERVAL_SECONDS;
-        return Math.max(floor, interval);
+        return Math.max(floor, interval) * WavePacing.SPAWN_TIMING_MULTIPLIER;
     }
 
     public WavePlan plan(List<String> aliases, int waveIndex, int totalWaves, WaveType type,
@@ -56,8 +56,9 @@ public final class WavePlanner {
             double gap = baseGapFor(alias, density, typeFactor, progression, difficulty);
             boolean closesCluster = (i + 1) % clusterSize == 0;
             gap *= closesCluster ? WavePacing.CLUSTER_PAUSE_FACTOR : WavePacing.CLUSTER_BEAT_FACTOR;
-            offset += WavePacing.clamp(gap,
+            double clampedGap = WavePacing.clamp(gap,
                     WavePacing.MIN_SPAWN_GAP_SECONDS, WavePacing.MAX_SPAWN_GAP_SECONDS);
+            offset += clampedGap * WavePacing.SPAWN_TIMING_MULTIPLIER;
         }
         return new WavePlan(waveIndex, type, spawns);
     }
