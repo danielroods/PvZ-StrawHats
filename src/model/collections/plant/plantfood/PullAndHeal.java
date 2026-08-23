@@ -7,10 +7,12 @@ import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
 public class PullAndHeal implements PlantFoodEffect {
-    private final double range;
+    private static final double SWEET_POTATO_SIDE_ROW_RADIUS = 1.0;
+
+    private final double configuredRange;
 
     public PullAndHeal(double range) {
-        this.range = range;
+        this.configuredRange = range;
     }
 
     @Override
@@ -20,11 +22,35 @@ public class PullAndHeal implements PlantFoodEffect {
 
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
+                    || session.isZombieInSandStorm(zombie)
                     || zombie.getPosition() == null) continue;
-            if (Math.abs(zombie.getPosition().y() - center.y()) < 0.5) continue;
-            if (Math.abs(zombie.getPosition().x() - center.x()) <= range) {
-                zombie.setPosition(new Position(zombie.getPosition().x(), center.y()));
+
+            Position zombiePos = zombie.getPosition();
+            double dy = Math.abs(zombiePos.y() - center.y());
+
+            boolean inArea;
+            if (plant.isSweetPotato()) {
+                inArea = dy <= SWEET_POTATO_SIDE_ROW_RADIUS;
+            } else {
+                double width = Math.max(0.5, configuredRange);
+                inArea = Math.abs(zombiePos.x() - center.x()) <= width && dy <= 1.0;
             }
+
+            if (!inArea) continue;
+
+            zombie.setPosition(new Position(zombiePos.x(), center.y()));
+            boolean cameFromLeft = zombiePos.x() < center.x();
+            zombie.setFacingRight(cameFromLeft);
+            if (zombie.getSpeed() != null) {
+                double speedX = zombie.getSpeed().x();
+                if (Math.abs(speedX) > 0.0001) {
+                    double towardSweetPotato = zombiePos.x() < center.x()
+                            ? Math.abs(speedX)
+                            : -Math.abs(speedX);
+                    zombie.setSpeed(new Position(towardSweetPotato, zombie.getSpeed().y()));
+                }
+            }
+            zombie.clearActionAnimationState();
         }
 
         plant.setHP(plant.getMaxHp());
