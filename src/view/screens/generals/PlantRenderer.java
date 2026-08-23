@@ -133,9 +133,23 @@ class PlantRenderer {
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
             String preferredState;
             float animTime;
-            if (plant.getVisualAnimationState() != null) {
+            boolean pumpkinHasArmor = plant.isPumpkin()
+                    && plant.getArmor() != null
+                    && plant.getArmor().getHP() > 0;
+            if (pumpkinHasArmor) {
+                preferredState = resolvePumpkinPlantFoodState(plant);
+                animTime = plant.isPlantFoodActive()
+                        ? (float) plant.getVisualAnimationElapsed()
+                        : t;
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                if (clipDuration > 0f) animTime %= clipDuration;
+            } else if (plant.getVisualAnimationState() != null) {
                 preferredState = plant.getVisualAnimationState();
                 animTime = (float) plant.getVisualAnimationElapsed();
+                if (plant.isPumpkin() && "idle_plantfood".equals(preferredState)) {
+                    float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                    if (clipDuration > 0f) animTime %= clipDuration;
+                }
             } else if (prepping) {
                 preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
                         ? "intro"
@@ -145,6 +159,9 @@ class PlantRenderer {
                 preferredState = attackIsBoosted ? "plantfood"
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
+            } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
+                preferredState = "idle_plantfood";
+                animTime = (float) plant.getVisualAnimationElapsed();
             } else {
                 preferredState = resolveIdleState(plant);
                 animTime = t;
@@ -176,10 +193,31 @@ class PlantRenderer {
             boolean drawn;
             boolean squashExactState = "Squash".equalsIgnoreCase(plant.getName())
                     && plant.getVisualAnimationState() != null;
+            boolean pumpkinPlantFoodState = plant.isPumpkin()
+                    && preferredState != null
+                    && (preferredState.equals("idle_plantfood")
+                    || preferredState.equals("idle_plantfood2")
+                    || preferredState.equals("idle_plantfood3")
+                    || preferredState.equals("idle_plantfood4"));
+            boolean pumpkinExactState = plant.isPumpkin()
+                    && ("idle".equals(preferredState)
+                    || "idle2".equals(preferredState)
+                    || "idle3".equals(preferredState));
             if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, squashMirror);
+            } else if (pumpkinPlantFoodState) {
+                java.util.Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
+                pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
+                pumpkinPfVisibility.put("pumpkin_armor_02", "idle_plantfood2".equals(preferredState));
+                pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
+                pumpkinPfVisibility.put("pumpkin_armor_04", "idle_plantfood4".equals(preferredState));
+                drawn = screen.drawPam(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false, pumpkinPfVisibility);
+            } else if (pumpkinExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
             } else {
                 drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
             }
@@ -187,6 +225,11 @@ class PlantRenderer {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
                         new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
+            }
+
+            if (plant.isPumpkin() && plant.getArmor() != null && plant.getArmor().getHP() > 0
+                    && !pumpkinPlantFoodState) {
+                drawPumpkinArmorOverlay(plant, plantOffsetX, plantOffsetY);
             }
             int chill = plant.getChillLevel();
             if (chill > 0 && chill < 3) {
@@ -315,6 +358,12 @@ class PlantRenderer {
      * right, left, or both in the same volley - see {@link #splitPeaAttackBaseState}.
      */
     private String resolveIdleState(Plant plant) {
+        if (plant != null && plant.isPumpkin()) {
+            double ratio = plant.getHealthRatio();
+            if (ratio > 0.60) return "idle";
+            if (ratio >= 0.25) return "idle2";
+            return "idle3";
+        }
         if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "idle_stage2_2";
@@ -323,6 +372,45 @@ class PlantRenderer {
             };
         }
         return plantStackState(plant, "idle");
+    }
+
+    private String resolvePumpkinPlantFoodState(Plant plant) {
+        int stage = plant.getPumpkinArmorVisualStage();
+        return switch (stage) {
+            case 1 -> "idle_plantfood";
+            case 2 -> "idle_plantfood2";
+            case 3 -> "idle_plantfood3";
+            case 4 -> "idle_plantfood4";
+            default -> resolveIdleState(plant);
+        };
+    }
+
+    private void drawPumpkinArmorOverlay(Plant plant, float x, float y) {
+        int stage = plant.getPumpkinArmorVisualStage();
+        if (stage <= 0) return;
+
+        String selected = switch (stage) {
+            case 1 -> "pumpkin_armor_01";
+            case 2 -> "pumpkin_armor_02";
+            case 3 -> "pumpkin_armor_03";
+            default -> "pumpkin_armor_04";
+        };
+
+        java.util.Map<String, Boolean> visibility = new java.util.HashMap<>();
+        visibility.put("pumpkin_body", false);
+        visibility.put("pumpkin_body_2", false);
+        visibility.put("pumpkin_body_3", false);
+        visibility.put("pumpkin_armor_01", false);
+        visibility.put("pumpkin_armor_02", false);
+        visibility.put("pumpkin_armor_03", false);
+        visibility.put("pumpkin_armor_04", false);
+        visibility.put(selected, true);
+
+        String path = AnimationFactory.pathForDisplayName(plant.getName());
+        if (path == null) return;
+        String clip = AnimationFactory.firstAvailableClipState(plant.getName(), "idle");
+        if (clip == null) return;
+        screen.drawPam(path, clip, 0f, x, y, 0.55f, false, visibility);
     }
 
     private String resolveAttackBaseState(Plant plant) {

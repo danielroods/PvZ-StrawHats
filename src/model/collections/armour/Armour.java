@@ -2,10 +2,12 @@ package model.collections.armour;
 
 public abstract class Armour {
     private int HP;
+    private final int maxHP;
     private ArmourStage stage;
 
     protected Armour(int HP) {
-        this.HP = HP;
+        this.HP = Math.max(0, HP);
+        this.maxHP = Math.max(0, HP);
         this.stage = ArmourStage.INTACT;
     }
 
@@ -18,6 +20,7 @@ public abstract class Armour {
     }
 
     public int getHP() { return HP; }
+    public int getMaxHP() { return maxHP; }
     public void setHP(int HP) {
         this.HP = HP;
         changeState();

@@ -5,17 +5,33 @@ import model.collections.armour.ArmourType;
 import model.collections.armour.PlantArmour;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFoodEffect;
+import model.collections.animations.AnimationFactory;
 import model.utils.GameSession;
 
 public class GrantArmor implements PlantFoodEffect {
     private final int hp;
+    private double runtimeDuration = 2.5;
 
     public GrantArmor(int hp) {
-        this.hp = hp;
+        this.hp = Math.max(1, hp);
     }
 
     @Override
     public void triggerSuperpower(Plant plant, GameSession session) {
+        if (plant == null) return;
+
+        if (plant.isPumpkin()) {
+            float clipDuration = AnimationFactory.clipDurationForDisplayName(
+                    plant.getName(), "idle_plantfood");
+            if (clipDuration > 0f) runtimeDuration = Math.max(2.5, clipDuration);
+            plant.setVisualAnimationState("idle_plantfood", runtimeDuration);
+
+            Plant bottom = plant.getBottom();
+            if (bottom != null && bottom.isAlive() && bottom.getPlantFoodEffect() != null
+                    && bottom.canUsePlantFood()) {
+                bottom.activatePlantFoodFromPumpkin(session);
+            }
+        }
     }
 
     @Override
@@ -24,6 +40,15 @@ public class GrantArmor implements PlantFoodEffect {
 
     @Override
     public void applyStatusModifiers(Plant plant) {
+        if (plant == null) return;
+        if (plant.isPumpkin()) {
+            plant.setHP(plant.getMaxHp());
+        }
         plant.setArmor((PlantArmour) ArmourFactory.createArmour(ArmourType.PLANT_SHIELD, hp, 0, false));
+    }
+
+    @Override
+    public double getDurationSeconds() {
+        return runtimeDuration;
     }
 }

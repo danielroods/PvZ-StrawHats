@@ -126,7 +126,7 @@ public class PlantFactory {
 
         plant.setActStrategy(buildActStrategy(config));
 
-        plant.setPlantFoodEffect(buildPlantFoodEffect(config, runtimePlantFoodValue));
+        plant.setPlantFoodEffect(buildPlantFoodEffect(config, runtimePlantFoodValue, level));
         plant.setShootingVectors(buildShootingVectors(config));
         if (config.category == PlantType.SHOOTER && plant.getTags().contains(PlantTag.STACK)) {
             plant.setMaxStackNumber((int) runtimeAbility);
@@ -186,7 +186,7 @@ public class PlantFactory {
     }
 
     private static PlantFoodEffect buildPlantFoodEffect(PlantJsonParser.PlantConfig config,
-                                                        double plantFoodValue) {
+                                                        double plantFoodValue, int level) {
         if (config.plantFoodType == null) return null;
         int value = (int) plantFoodValue;
 
@@ -207,7 +207,13 @@ public class PlantFactory {
                 }
                 yield new LocalAttack(2.0, Math.max(config.damage, value));
             }
-            case GRANT_PERMANENT_ARMOR -> new GrantArmor(value);
+            case GRANT_PERMANENT_ARMOR -> {
+                if ("Pumpkin".equalsIgnoreCase(config.name)) {
+                    int pumpkinArmor = configLevelPumpkinPlantFoodArmor(level, plantFoodValue);
+                    yield new GrantArmor(pumpkinArmor);
+                }
+                yield new GrantArmor(value);
+            }
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
             case KNOCKBACK_BLAST -> new KnockBackBlast(value, 2.0);
             case PULL_UNDERWATER -> "Chomper".equalsIgnoreCase(config.name)
@@ -225,6 +231,11 @@ public class PlantFactory {
             case LANE_REDIRECT -> new LaneRedirectBlast();
             case PULL_AND_HEAL -> new PullAndHeal(plantFoodValue);
         };
+    }
+
+    private static int configLevelPumpkinPlantFoodArmor(int level, double plantFoodValue) {
+        int actual = level >= 8 ? 16000 : level >= 4 ? 12000 : 8000;
+        return Math.max(actual, (int) Math.round(plantFoodValue));
     }
 
     private static int projectileBurstCount(PlantJsonParser.PlantConfig config, double plantFoodValue) {

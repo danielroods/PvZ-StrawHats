@@ -236,15 +236,7 @@ public class GameplayMenu extends Menu {
 
     private void useFoodAt(int x, int y) {
         GameSession session = GameSession.getInstance();
-        Plant plant = null;
-        for (Plant p : session.getPlants()) {
-            if (p.isAlive() && p.getPosition() != null
-                    && (int) p.getPosition().x() == x - 1
-                    && (int) p.getPosition().y() == y - 1) {
-                plant = p;
-                break;
-            }
-        }
+        Plant plant = session.getPlantAt(y - 1, x - 1);
         if (plant == null) {
             throw new GameException("no plant there.");
         } else if (plant.getPlantFoodEffect() == null) {

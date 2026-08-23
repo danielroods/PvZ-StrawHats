@@ -182,11 +182,11 @@ class SessionBoard {
         boolean existingIsShell = existing != null && !lilySupport
                 && existing.getName().equalsIgnoreCase("Pumpkin");
 
-        if (existing != null && !lilySupport && incomingIsShell && !existingIsShell
-                && existing.getArmor() == null) {
-            existing.setArmor((PlantArmour) ArmourFactory.createArmour(
-                    ArmourType.PLANT_SHIELD, plant.getMaxHp(), 0, false));
-            plant.setAlive(false);
+        if (existing != null && !lilySupport && incomingIsShell && !existingIsShell) {
+            plant.setBottom(existing);
+            cell.setPlant(plant);
+            plant.setPosition(new Position(col, row));
+            plants.add(plant);
             economy.markPlantedAnyPlant();
             return true;
         }
@@ -201,14 +201,19 @@ class SessionBoard {
             return true;
         }
 
-        Integer inheritedShellHp = null;
         if (existingIsShell && !incomingIsShell) {
-            inheritedShellHp = Math.max(1, existing.getHP());
-            plants.remove(existing);
-            cell.setPlant(null);
-            existing = null;
+            if (existing.getBottom() != null && existing.getBottom().isAlive()) return false;
+            plant.setPosition(new Position(col, row));
+            existing.setBottom(plant);
+            int pumpkinIndex = plants.indexOf(existing);
+            if (pumpkinIndex >= 0) {
+                plants.add(pumpkinIndex, plant);
+            } else {
+                plants.add(plant);
+            }
+            economy.markPlantedAnyPlant();
+            return true;
         }
-
         if (existing != null && !lilySupport) return false;
         if (flooded && !plant.getTags().contains(PlantTag.WATER) && !lilySupport) return false;
 
@@ -219,11 +224,6 @@ class SessionBoard {
         cell.setPlant(plant);
         plant.setPosition(new Position(col, row));
         plants.add(plant);
-        if (inheritedShellHp != null) {
-            plant.setArmor((PlantArmour) ArmourFactory.createArmour(
-                    ArmourType.PLANT_SHIELD, inheritedShellHp, 0, false));
-        }
-
         if (handlesIceBlock) {
             model.match.main.season.travellog.cave.FrostbiteFreezing.damageIce(cell, IceBlock.BASE_HP, true);
         }

@@ -189,13 +189,7 @@ public class Zombotany extends MiniGameMode {
     }
 
     public Plant plantAt(int row, int col) {
-        for (Plant plant : session.getPlants()) {
-            if (!plant.isAlive() || plant.getLocation() == null) continue;
-            if ((int) plant.getLocation().x() == col && (int) plant.getLocation().y() == row) {
-                return plant;
-            }
-        }
-        return null;
+        return session.getPlantAt(row, col);
     }
 
     public List<GroundItem> collectItemsAt(int x, int y) {

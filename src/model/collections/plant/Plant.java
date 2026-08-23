@@ -57,6 +57,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private boolean chomperSpecialPending = false;
     private boolean chomperDigestIdlePending = false;
     private int kiwibeastHitCounter = 0;
+
     private Position squashVisualPosition;
     private Position squashVisualOrigin;
     private Position squashVisualTarget;
@@ -219,6 +220,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public boolean canUsePlantFood() {
         return this.plantFoodEffect != null && this.plantFoodTimer <= 0 && isAlive();
     }
+
+    public boolean activatePlantFoodFromPumpkin(GameSession session) {
+        if (!canUsePlantFood() || session == null) return false;
+        return activatePlant(session);
+    }
     public boolean isPlantFoodActive() { return this.plantFoodTimer > 0; }
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -306,6 +312,25 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public void setShootingVectors(List<Position> shootingVectors) { this.shootingVectors = shootingVectors; }
     public PlantArmour getArmor() { return armor; }
     public void setArmor(PlantArmour armor) { this.armor = armor; }
+
+    public boolean isPumpkin() {
+        return name != null && name.equalsIgnoreCase("Pumpkin");
+    }
+
+    public double getHealthRatio() {
+        int max = Math.max(1, getMaxHp());
+        return Math.max(0.0, Math.min(1.0, getHP() / (double) max));
+    }
+
+    public int getPumpkinArmorVisualStage() {
+        if (!isPumpkin() || armor == null || armor.getHP() <= 0) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.75) return 1;
+        if (ratio > 0.50) return 2;
+        if (ratio > 0.25) return 3;
+        return 4;
+    }
     public void setState(PlantState state) {
         this.state = state;
     }

@@ -218,6 +218,8 @@ public class GameSession {
 
     public boolean plantAt(int row, int col, Plant plant) { return board.plantAt(row, col, plant); }
 
+    public Plant getPlantAt(int row, int col) { return board.findPlantAt(row, col); }
+
     public boolean removePlantAt(int row, int col) { return board.removePlantAt(row, col); }
 
     public Plant digPlantAt(int row, int col) { return board.digPlantAt(row, col); }
