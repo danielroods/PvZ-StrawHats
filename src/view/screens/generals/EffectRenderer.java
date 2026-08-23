@@ -3,8 +3,10 @@ package view.screens.generals;
 import com.badlogic.gdx.graphics.Color;
 
 import controller.assets.ProjectileEffectAssets;
+import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.plant.Plant;
+import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
@@ -49,6 +51,25 @@ class EffectRenderer {
         }
     }
 
+    // Ice-shroom: persists as a normal plant (idle/attack/plantfood, like any other MELEE
+    // plant - see MeleeStrategy's PlantTag.ICE handling and Plants.json), so unlike the
+    // exploding plants above it needs its own long-lived, per-plant tracked state: the
+    // 3x3 (9-tile) frost patch that stays on the ground the whole time it's alive.
+    private static final String ICE_SHROOM = "Ice-shroom";
+
+    /** Tracks one Ice-shroom's 3x3 ground frost patch through spawn -> animation_loop -> end. */
+    private static final class IceShroomZone {
+        final Plant plant;
+        final List<Position> tiles;
+        String phase = "spawn";
+        float phaseTime;
+
+        IceShroomZone(Plant plant, List<Position> tiles) {
+            this.plant = plant;
+            this.tiles = tiles;
+        }
+    }
+
     private static final class ProjectileTrace {
         final String plantName;
         final boolean boosted;
@@ -73,6 +94,9 @@ class EffectRenderer {
     private final Map<ZombieProjectile, Position> zombieProjectileTraces = new IdentityHashMap<>();
     private final Map<Plant, Double> meleeLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Boolean> meleePlantFoodSeen = new IdentityHashMap<>();
+    private final Map<Plant, Double> iceShroomLastCooldown = new IdentityHashMap<>();
+    private final Map<Plant, Boolean> iceShroomPlantFoodSeen = new IdentityHashMap<>();
+    private final List<IceShroomZone> iceShroomZones = new ArrayList<>();
 
     EffectRenderer(GameScreen screen) {
         this.screen = screen;
@@ -102,6 +126,9 @@ class EffectRenderer {
     }
 
     void drawExplodingPlantEffects(float delta) {
+        triggerIceShroomAttacks();
+        triggerIceShroomPlantFood();
+        updateIceShroomZones(delta);
         drawTimedEffects(explodingPlantEffects, delta);
         drawTimedEffects(impactEffects, delta);
         drawPlantFoodEffects();
@@ -183,6 +210,193 @@ class EffectRenderer {
             screen.drawPam(GARLIC_PF_PAM, "animation", (float) elapsed,
                     x, y, PROJECTILE_PAM_SCALE * 1.35f, false);
         }
+    }
+
+    private ProjectileEffectAssets.AssetEntry findIceShroomEntry(ProjectileEffectAssets.Kind kind,
+                                                                 ProjectileEffectAssets.Variant variant,
+                                                                 String state) {
+        for (ProjectileEffectAssets.AssetEntry entry : ProjectileEffectAssets.get(ICE_SHROOM, kind, variant)) {
+            if (state.equals(entry.state())) return entry;
+        }
+        return null;
+    }
+
+    /** The 9 board cells (3x3, clipped to the board) centered on an Ice-shroom's own tile. */
+    private List<Position> iceShroomTiles(Position center) {
+        List<Position> tiles = new ArrayList<>();
+        if (screen.session.getEnvironment() == null) return tiles;
+        int rows = screen.session.getEnvironment().getRows();
+        int cols = screen.session.getEnvironment().getCols();
+        int centerRow = (int) Math.round(center.y());
+        int centerCol = (int) Math.round(center.x());
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                int row = centerRow + dy;
+                int col = centerCol + dx;
+                if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+                tiles.add(new Position(col, row));
+            }
+        }
+        return tiles;
+    }
+
+    private void drawIceShroomTile(ProjectileEffectAssets.AssetEntry entry, float phaseTime, Position tile) {
+        if (entry == null) return;
+        float boardTileWidth = screen.getBoardTileWidth();
+        float boardTileHeight = screen.getBoardTileHeight();
+        float x = GameScreen.BOARD_X + (float) tile.x() * boardTileWidth + boardTileWidth * 0.3f;
+        float y = screen.cellY((int) tile.y()) + boardTileHeight * 0.3f;
+        float time = phaseTime;
+        if (entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP) {
+            float clipDuration = AnimationFactory.clipDurationForPath(entry.path(), entry.state());
+            if (clipDuration > 0f) time = time % clipDuration;
+        }
+        screen.drawPam(entry.path(), entry.state(), time, x, y, PROJECTILE_PAM_SCALE, false);
+    }
+
+    /**
+     * Keeps each living Ice-shroom's 9-tile frost patch alive: "spawn" once when the tiles
+     * first appear, then loops "animation_loop" for as long as the plant stays alive, then
+     * plays "end" once and drops the zone after the plant is gone (eaten/removed).
+     */
+    private void updateIceShroomZones(float delta) {
+        List<Plant> aliveIceShrooms = new ArrayList<>();
+        for (Plant plant : screen.session.getPlants()) {
+            if (plant != null && plant.isAlive() && plant.getPosition() != null
+                    && ICE_SHROOM.equalsIgnoreCase(plant.getName())) {
+                aliveIceShrooms.add(plant);
+            }
+        }
+        for (Plant plant : aliveIceShrooms) {
+            boolean tracked = false;
+            for (IceShroomZone zone : iceShroomZones) {
+                if (zone.plant == plant) {
+                    tracked = true;
+                    break;
+                }
+            }
+            if (!tracked) {
+                iceShroomZones.add(new IceShroomZone(plant, iceShroomTiles(plant.getPosition())));
+            }
+        }
+
+        ProjectileEffectAssets.AssetEntry spawnEntry =
+                findIceShroomEntry(ProjectileEffectAssets.Kind.EFFECT, ProjectileEffectAssets.Variant.NORMAL, "spawn");
+        ProjectileEffectAssets.AssetEntry loopEntry = findIceShroomEntry(
+                ProjectileEffectAssets.Kind.EFFECT, ProjectileEffectAssets.Variant.NORMAL, "animation_loop");
+        ProjectileEffectAssets.AssetEntry endEntry =
+                findIceShroomEntry(ProjectileEffectAssets.Kind.EFFECT, ProjectileEffectAssets.Variant.NORMAL, "end");
+
+        float spawnDuration = 0.3f;
+        if (spawnEntry != null) {
+            float d = AnimationFactory.clipDurationForPath(spawnEntry.path(), spawnEntry.state());
+            if (d > 0f) spawnDuration = d;
+        }
+        float endDuration;
+        if (endEntry != null) {
+            float d = AnimationFactory.clipDurationForPath(endEntry.path(), endEntry.state());
+            if (d > 0f) endDuration = d;
+            else {
+                endDuration = 0.4f;
+            }
+        } else {
+            endDuration = 0.4f;
+        }
+
+        for (IceShroomZone zone : iceShroomZones) {
+            if (!aliveIceShrooms.contains(zone.plant) && !"end".equals(zone.phase)) {
+                zone.phase = "end";
+                zone.phaseTime = 0f;
+            }
+            zone.phaseTime += delta;
+            if ("spawn".equals(zone.phase) && zone.phaseTime >= spawnDuration) {
+                zone.phase = "animation_loop";
+                zone.phaseTime = 0f;
+            }
+            ProjectileEffectAssets.AssetEntry entry = switch (zone.phase) {
+                case "spawn" -> spawnEntry;
+                case "end" -> endEntry;
+                default -> loopEntry;
+            };
+            for (Position tile : zone.tiles) {
+                drawIceShroomTile(entry, zone.phaseTime, tile);
+            }
+        }
+        iceShroomZones.removeIf(zone -> "end".equals(zone.phase) && zone.phaseTime >= endDuration);
+    }
+
+    /**
+     * Detects an Ice-shroom's melee-attack cooldown reset (same idiom as
+     * {@link #drawMeleePlantProjectiles}) and plays the ice-swing effect on its own tile
+     * plus the freeze fx on every zombie caught in its 3x3 attack zone.
+     */
+    private void triggerIceShroomAttacks() {
+        for (Plant plant : screen.session.getPlants()) {
+            if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
+            if (!ICE_SHROOM.equalsIgnoreCase(plant.getName())) continue;
+
+            double cooldown = plant.getIntervalTimer();
+            Double last = iceShroomLastCooldown.put(plant, cooldown);
+            if (plant.isPlantFoodActive() || last == null || cooldown <= last + 0.05) continue;
+
+            List<ProjectileEffectAssets.AssetEntry> swingEntries = ProjectileEffectAssets.get(
+                    ICE_SHROOM, ProjectileEffectAssets.Kind.PROJECTILE, ProjectileEffectAssets.Variant.NORMAL);
+            if (!swingEntries.isEmpty()) {
+                ProjectileEffectAssets.AssetEntry swing = swingEntries.get(0);
+                impactEffects.add(new TimedPamEffect(swing.path(), swing.state(),
+                        swing.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
+                        swing.isStaticImage(), plant.getPosition(), 0.5f, PROJECTILE_PAM_SCALE));
+            }
+
+            ProjectileEffectAssets.AssetEntry hit = findIceShroomEntry(
+                    ProjectileEffectAssets.Kind.EFFECT, ProjectileEffectAssets.Variant.NORMAL, "animation");
+            if (hit != null) {
+                Position center = plant.getPosition();
+                for (Zombie zombie : screen.session.getZombies()) {
+                    if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+                    Position zp = zombie.getPosition();
+                    if (Math.abs(zp.x() - center.x()) <= 1 && Math.abs(zp.y() - center.y()) <= 1) {
+                        impactEffects.add(new TimedPamEffect(hit.path(), hit.state(), false,
+                                hit.isStaticImage(), zp, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
+                    }
+                }
+            }
+        }
+        iceShroomLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+    }
+
+    /**
+     * On the frame Ice-shroom's Plant Food activates, drops one falling-icicle projectile
+     * onto every zombie inside its 3x3 zone (same edge-detection idiom as
+     * {@link #drawMeleePlantProjectiles}'s Kiwibeast/Phat Beet handling).
+     */
+    private void triggerIceShroomPlantFood() {
+        for (Plant plant : screen.session.getPlants()) {
+            if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
+            if (!ICE_SHROOM.equalsIgnoreCase(plant.getName())) continue;
+
+            boolean pf = plant.isPlantFoodActive();
+            boolean seen = iceShroomPlantFoodSeen.getOrDefault(plant, false);
+            if (pf && !seen) {
+                List<ProjectileEffectAssets.AssetEntry> pfEntries = ProjectileEffectAssets.get(
+                        ICE_SHROOM, ProjectileEffectAssets.Kind.PROJECTILE, ProjectileEffectAssets.Variant.PLANT_FOOD);
+                if (!pfEntries.isEmpty()) {
+                    ProjectileEffectAssets.AssetEntry entry = pfEntries.get(0);
+                    Position center = plant.getPosition();
+                    for (Zombie zombie : screen.session.getZombies()) {
+                        if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+                        Position zp = zombie.getPosition();
+                        if (Math.abs(zp.x() - center.x()) <= 1 && Math.abs(zp.y() - center.y()) <= 1) {
+                            impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
+                                    entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
+                                    entry.isStaticImage(), zp, 0.6f, PROJECTILE_PAM_SCALE));
+                        }
+                    }
+                }
+            }
+            iceShroomPlantFoodSeen.put(plant, pf);
+        }
+        iceShroomPlantFoodSeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
     }
 
     void drawProjectiles(float delta, float bw, float bh) {

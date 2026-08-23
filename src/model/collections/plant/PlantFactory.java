@@ -236,6 +236,9 @@ public class PlantFactory {
                 if ("Kiwibeast".equalsIgnoreCase(config.name)) {
                     yield new MeleeAreaPlantFood(false, Math.max(config.damage, value), true);
                 }
+                if ("Ice-shroom".equalsIgnoreCase(config.name)) {
+                    yield new IceShroomPlantFood(Math.max(config.damage, value));
+                }
                 yield new LocalAttack(2.0, Math.max(config.damage, value));
             }
             case GRANT_PERMANENT_ARMOR -> {

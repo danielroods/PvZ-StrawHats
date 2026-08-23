@@ -675,24 +675,32 @@ public final class ProjectileEffectAssets {
 
     private static void registerIceShroom() {
         register("Ice-shroom",
+                // Melee ice-swing effect, played on Ice-shroom's own tile each time its
+                // periodic 3x3 attack fires - see EffectRenderer.triggerIceShroomAttacks.
                 entry("768/FULL/EFFECTS/ICESHROOM_MELEE_ATTACK/ICESHROOM_MELEE_ATTACK.PAM",
                         "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
-                        "melee/thrown ice attack"),
-                entry("768/FULL/EFFECTS/ICESHROOM_PROJECTILE/ICESHROOM_PROJECTILE.PAM",
-                        "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
-                        "thrown ice nova"),
+                        "melee ice-swing attack effect"),
+                // Freeze fx played once on every zombie caught in the 3x3 attack zone -
+                // see EffectRenderer.triggerIceShroomAttacks.
                 entry("768/FULL/EFFECTS/ICESHROOM_FX/ICESHROOM_FX.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
-                        "general freeze fx"),
+                        "freeze fx played on each targeted zombie's tile"),
+                // The 9-tile (3x3) frost ground patch, alive for as long as the plant is -
+                // see EffectRenderer.updateIceShroomZones.
                 entry("768/FULL/EFFECTS/ICESHROOM_TILE_FX/ICESHROOM_TILE_FX.PAM",
                         "spawn", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
                         "frost tile patch, spawn"),
                 entry("768/FULL/EFFECTS/ICESHROOM_TILE_FX/ICESHROOM_TILE_FX.PAM",
                         "animation_loop", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "frost tile patch, active loop"),
+                        "frost tile patch, active loop while the plant is alive"),
                 entry("768/FULL/EFFECTS/ICESHROOM_TILE_FX/ICESHROOM_TILE_FX.PAM",
                         "end", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
-                        "frost tile patch, end")
+                        "frost tile patch, end (once the plant is gone)"),
+                // Plant Food: icicles dropping vertically onto every zombie in the 3x3 zone -
+                // see EffectRenderer.triggerIceShroomPlantFood.
+                entry("768/FULL/EFFECTS/ICESHROOM_PROJECTILE/ICESHROOM_PROJECTILE.PAM",
+                        "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.PLANT_FOOD,
+                        "Plant Food: icicle dropping vertically onto a targeted zombie")
         );
     }
 

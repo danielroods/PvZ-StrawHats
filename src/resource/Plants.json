@@ -2087,20 +2087,20 @@
   {
     "id": 57,
     "name": "Ice-shroom",
-    "category": "EXPLOSIVE",
+    "category": "MELEE",
     "tags": [
       "SHROOM",
       "ICE"
     ],
     "cost": 75,
-    "baseHp": 0,
-    "damage": 0,
-    "actionInterval": 0.0,
+    "baseHp": 300,
+    "damage": 20,
+    "actionInterval": 2.0,
     "recharge": 50.0,
-    "abilityType": "INSTANT_EXPLOSIVE",
-    "abilityValue": 4.0,
-    "plantFoodType": "NONE",
-    "plantFoodValue": 0.0,
+    "abilityType": "MELEE_ATTACK",
+    "abilityValue": 2.0,
+    "plantFoodType": "LOCAL_AOE_ATTACK",
+    "plantFoodValue": 40.0,
     "upgrades": [
       {
         "level": 2,
