@@ -42,6 +42,9 @@ class ZombieRenderer {
     // Named element inside every zombie's own PAM for the butter-stun face
     // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
+    // Multiply-tint applied to a zombie's sprite while it's iced (Status.FREEZE/FROZEN),
+    // matching the frosty blue look of the real game - see drawZombies.
+    private static final Color ICE_STATUS_TINT = new Color(0.55f, 0.75f, 1f, 1f);
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
     private static final String WATER_GARGANTUAR_RIPPLE_PAM =
@@ -207,18 +210,24 @@ class ZombieRenderer {
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
+            boolean iced = zombie.getStatus() == Zombie.Status.FREEZE || zombie.getStatus() == Zombie.Status.FROZEN;
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
+                if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
+                if (iced) screen.batch.setColor(Color.WHITE);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
                 }
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
+                    if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
-                            new Color(0.55f, 0.5f, 0.45f, 1f), GameScreenGraphics.initials(zombie.getAlias()));
+                            iced ? ICE_STATUS_TINT : new Color(0.55f, 0.5f, 0.45f, 1f),
+                            GameScreenGraphics.initials(zombie.getAlias()));
+                    if (iced) screen.batch.setColor(Color.WHITE);
                 }
             } finally {
                 if (waterClipActive) popWaterClip();

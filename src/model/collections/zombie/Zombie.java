@@ -308,9 +308,15 @@ public class Zombie extends Item implements Attack {
             }
         } else {
             zombieState = ZombieState.WALKING;
-            if (status != Status.BUTTER) {
+            // FROZEN (and BUTTER) halt movement entirely; FREEZE only slows it. This has to
+            // be handled here rather than inside move(double) below, since that method is a
+            // dead-code fallback - moveBehavior is set for effectively every zombie, so
+            // NormalWalk/PusherMove/etc. are what actually run, and none of them look at
+            // status on their own.
+            if (status != Status.BUTTER && status != Status.FROZEN) {
                 if (moveBehavior != null) {
-                    moveBehavior.move(this, deltaTimeSeconds, session);
+                    double scaledDeltaTime = status == Status.FREEZE ? deltaTimeSeconds * 0.5 : deltaTimeSeconds;
+                    moveBehavior.move(this, scaledDeltaTime, session);
                 } else {
                     move(deltaTimeSeconds);
                 }
