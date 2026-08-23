@@ -5,6 +5,7 @@ import controller.ui_menus.Menu;
 import model.App;
 import model.Regex;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantFoodType;
 import model.game_exceptions.GameException;
 import model.match.main.levels.Level;
@@ -129,6 +130,12 @@ public class BeforeMenu extends Menu {
 
     private void boostPlant(String plantName) {
         UserState state = User.currentUser.userState;
+        String imitaterTarget = selectedPlants.stream()
+                .filter(name -> name != null && !name.equalsIgnoreCase("Imitater"))
+                .findFirst()
+                .orElse(null);
+        PlantFactory.setImitaterTargetName(imitaterTarget);
+
         GameSession session = GameSession.getInstance();
         PlantJsonParser.PlantConfig config = manager.findPlant(plantName);
         if (config == null || !state.isPlantUnlocked(config.id)) {

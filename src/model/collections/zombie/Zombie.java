@@ -448,6 +448,11 @@ public class Zombie extends Item implements Attack {
     public boolean isGlowing() { return isGlowing; }
     public String getAlias() { return name; }
     public Status getStatus() { return this.status; }
+
+    /** True while an ice projectile's five-second chill is active. */
+    public boolean isChilled() {
+        return status == Status.FREEZE;
+    }
     public void setStatus(Status status) {
         double duration = switch (status) {
             case FREEZE, FROZEN -> 5.0;

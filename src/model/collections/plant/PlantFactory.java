@@ -24,6 +24,7 @@ public class PlantFactory {
 
     private static Map<Integer, PlantJsonParser.PlantConfig> blueprints = new HashMap<>();
     private static boolean loaded = false;
+    private static String imitaterTargetName;
 
     public static void init(InputStream jsonStream) {
         blueprints = PlantJsonParser.loadConfigs(jsonStream);
@@ -41,6 +42,31 @@ public class PlantFactory {
             GeneralPrinter.print("Could not load Plants.json: " + e.getMessage());
         }
         GeneralPrinter.print("Could not find Plants.json in any known location.");
+    }
+
+    public static void setImitaterTargetName(String name) {
+        imitaterTargetName = name;
+    }
+
+    public static String getImitaterTargetName() {
+        return imitaterTargetName;
+    }
+
+    public static int findPlantIdByName(String name) {
+        autoInit();
+        if (name == null) return -1;
+        for (PlantJsonParser.PlantConfig config : blueprints.values()) {
+            if (config != null && config.name != null && config.name.equalsIgnoreCase(name)) {
+                return config.id;
+            }
+        }
+        return -1;
+    }
+
+    public static Plant createPlantByName(String name, int level, Position position) {
+        int id = findPlantIdByName(name);
+        if (id < 0) throw new IllegalArgumentException("Plant " + name + " does not exist in dataset.");
+        return createPlant(id, level, position);
     }
 
     public static Map<Integer, PlantJsonParser.PlantConfig> getBlueprints() {
@@ -119,6 +145,9 @@ public class PlantFactory {
         plant.setAttackRange(runtimeRange);
         plant.setLifespanSeconds(Math.max(0, runtimeLifespan));
         plant.setLevel(level);
+        if (config.name.equalsIgnoreCase("Imitater")) {
+            plant.setImitaterTargetName(imitaterTargetName);
+        }
         plant.setPlantFoodType(config.plantFoodType);
         plant.setWrampUp(config.wrampUp, specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0));
         plant.getRawUpgrades().addAll(specialTags);
