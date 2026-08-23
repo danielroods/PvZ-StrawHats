@@ -322,6 +322,27 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return name != null && name.equalsIgnoreCase("Wall-nut");
     }
 
+    public boolean isTallNut() {
+        return name != null && name.equalsIgnoreCase("Tall-nut");
+    }
+
+    public String getTallNutHealthAnimationState() {
+        if (!isTallNut()) return "idle";
+        double ratio = getHealthRatio();
+        if (ratio > 0.60) return "idle";
+        if (ratio >= 0.25) return "damage";
+        return "damage2";
+    }
+
+    public int getTallNutPlantFoodArmorStage() {
+        if (!isTallNut() || armor == null || armor.getHP() <= 0) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
+        return 3;
+    }
+
     public String getWallNutHealthAnimationState() {
         if (!isWallNut()) return "idle";
         double ratio = getHealthRatio();
@@ -335,8 +356,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (!isWallNut() || armor == null || armor.getHP() <= 0) return 0;
         int max = Math.max(1, armor.getMaxHP());
         double ratio = armor.getHP() / (double) max;
-        if (ratio > (2.0 / 3.0)) return 1;
-        if (ratio > (1.0 / 3.0)) return 2;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
         return 3;
     }
 

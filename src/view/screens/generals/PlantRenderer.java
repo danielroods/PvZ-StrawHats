@@ -71,9 +71,10 @@ class PlantRenderer {
             if (!frozenInIce) {
                 t += delta;
                 if (!prepping) {
-                    String loopState = plant.isWallNut()
-                            ? plant.getWallNutHealthAnimationState()
-                            : plantStackState(plant, "idle");
+                    String loopState;
+                    if (plant.isWallNut()) loopState = plant.getWallNutHealthAnimationState();
+                    else if (plant.isTallNut()) loopState = plant.getTallNutHealthAnimationState();
+                    else loopState = plantStackState(plant, "idle");
                     float idleDuration = screen.pam().resolvePlantClipDuration(plant.getName(), loopState);
                     if (idleDuration > 0f) t %= idleDuration;
                 }
@@ -134,15 +135,18 @@ class PlantRenderer {
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
             String preferredState;
-            float animTime;
+            float animTime = t;
             boolean pumpkinHasArmor = plant.isPumpkin()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
             boolean wallNutHasPlantFoodArmor = plant.isWallNut()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
+            boolean tallNutHasPlantFoodArmor = plant.isTallNut()
+                    && plant.getArmor() != null
+                    && plant.getArmor().getHP() > 0;
             if (pumpkinHasArmor) {
-               preferredState = resolvePumpkinPlantFoodState(plant);
+                preferredState = resolvePumpkinPlantFoodState(plant);
                 animTime = plant.isPlantFoodActive()
                         ? (float) plant.getVisualAnimationElapsed()
                         : t;
@@ -150,6 +154,9 @@ class PlantRenderer {
                 if (clipDuration > 0f) animTime %= clipDuration;
             } else if (wallNutHasPlantFoodArmor) {
                 preferredState = resolveWallNutPlantFoodState(plant);
+                animTime = t;
+            } else if (tallNutHasPlantFoodArmor) {
+                preferredState = "idle";
                 float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                 animTime = t;
                 if (clipDuration > 0f) animTime %= clipDuration;
@@ -177,6 +184,9 @@ class PlantRenderer {
             } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
                 preferredState = "idle_plantfood";
                 animTime = (float) plant.getVisualAnimationElapsed();
+            } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
+                preferredState = "idle";
+                animTime = t;
             } else {
                 preferredState = resolveIdleState(plant);
                 animTime = t;
@@ -227,6 +237,12 @@ class PlantRenderer {
                     || "damage".equals(preferredState)
                     || "damage2".equals(preferredState)
                     || "damage3".equals(preferredState));
+            boolean tallNutArmorState = plant.isTallNut()
+                    && tallNutHasPlantFoodArmor;
+            boolean tallNutExactState = plant.isTallNut()
+                    && ("idle".equals(preferredState)
+                    || "damage".equals(preferredState)
+                    || "damage2".equals(preferredState));
             if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
@@ -250,6 +266,24 @@ class PlantRenderer {
                 drawn = screen.drawPam(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false, wallNutPfVisibility);
             } else if (wallNutExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (tallNutArmorState) {
+                Map<String, Boolean> tallNutArmorVisibility = new java.util.HashMap<>();
+                tallNutArmorVisibility.put("_tallnut_plantfood_armor", true);
+                tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", false);
+                tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", false);
+                tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", false);
+                int stage = plant.getTallNutPlantFoodArmorStage();
+                switch (stage) {
+                    case 1 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", true);
+                    case 2 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", true);
+                    case 3 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", true);
+                    default -> { }
+                }
+                drawn = screen.drawPam(path, "idle", animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false, tallNutArmorVisibility);
+            } else if (tallNutExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
             } else {
@@ -394,6 +428,9 @@ class PlantRenderer {
     private String resolveIdleState(Plant plant) {
         if (plant != null && plant.isWallNut()) {
             return plant.getWallNutHealthAnimationState();
+        }
+        if (plant != null && plant.isTallNut()) {
+            return plant.getTallNutHealthAnimationState();
         }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();
