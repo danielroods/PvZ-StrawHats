@@ -8,8 +8,27 @@ import model.utils.GameSession;
 import service.GameClock;
 import view.GeneralPrinter;
 
+import java.util.Random;
+
 public class SunProduceStrategy implements ActStrategy {
     private static final double DOUBLE_SUN_PROBABILITY = 0.5;
+
+    // Suns produced together by the same plant are nudged away from the plant's tile
+    // center (and from each other) so they never render stacked exactly on top of one
+    // another. Each entry is a base offset in tile units; a small random jitter is added
+    // on top of it per-drop so repeated productions don't look mechanically identical.
+    private static final Position[] SUN_DROP_OFFSETS = {
+            new Position(0.0, 0.0),
+            new Position(0.22, -0.15),
+            new Position(-0.20, 0.13),
+            new Position(0.12, 0.20)
+    };
+    private static final double DROP_JITTER = 0.06;
+    // How close an existing, uncollected sun has to be to the plant to be treated as
+    // "still sitting there" and block a new production this tick.
+    private static final double NEARBY_SUN_RADIUS = 0.35;
+
+    private static final Random RANDOM = new Random();
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -35,15 +54,47 @@ public class SunProduceStrategy implements ActStrategy {
                         && !sun.isCollected()
                         && item.isAlive()
                         && item.getPosition() != null
-                        && item.getPosition().x() == location.x()
-                        && item.getPosition().y() == location.y());
+                        && item.getPosition().distanceTo(location) < NEARBY_SUN_RADIUS);
 
         if (sunAlreadyExists) return;
 
-        session.getItems().add(new GroundSun(location, sunValue));
-        GeneralPrinter.print("plant " + user.getName() + " produced a sun at ("
-                + ((int) location.x() + 1) + ", " + ((int) location.y() + 1) + ").");
+        int sunCount = sunCountFor(user);
+        int[] shares = splitSunValue(sunValue, sunCount);
+        for (int i = 0; i < sunCount; i++) {
+            Position dropPosition = dropOffsetPosition(location, i);
+            session.getItems().add(new GroundSun(dropPosition, shares[i]));
+        }
+        GeneralPrinter.print("plant " + user.getName() + " produced " + sunCount
+                + " sun(s) near (" + ((int) location.x() + 1) + ", " + ((int) location.y() + 1) + ").");
 
         user.setInternalTimer(user.getActionInterval());
+    }
+
+    /**
+     * How many separate sun drops a single production cycle spawns, based on the plant's
+     * type. Twin Sunflower represents two flowers at once, so it drops two suns per cycle;
+     * every other sun producer (Sunflower, Primal Sunflower, Sun-shroom) drops one.
+     */
+    private int sunCountFor(Plant plant) {
+        if ("Twin Sunflower".equalsIgnoreCase(plant.getName())) return 2;
+        return 1;
+    }
+
+    /** Splits the total sun value as evenly as possible across {@code count} drops. */
+    private int[] splitSunValue(int totalValue, int count) {
+        int[] shares = new int[count];
+        int base = totalValue / count;
+        int remainder = totalValue - base * count;
+        for (int i = 0; i < count; i++) {
+            shares[i] = base + (i < remainder ? 1 : 0);
+        }
+        return shares;
+    }
+
+    private Position dropOffsetPosition(Position location, int index) {
+        Position offset = SUN_DROP_OFFSETS[index % SUN_DROP_OFFSETS.length];
+        double jitterX = (RANDOM.nextDouble() * 2 - 1) * DROP_JITTER;
+        double jitterY = (RANDOM.nextDouble() * 2 - 1) * DROP_JITTER;
+        return new Position(location.x() + offset.x() + jitterX, location.y() + offset.y() + jitterY);
     }
 }

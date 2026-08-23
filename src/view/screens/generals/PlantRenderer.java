@@ -48,6 +48,12 @@ class PlantRenderer {
     // side(s) that fired are captured once when the fire event is detected and held here for
     // the rest of the attack window, so the clip choice doesn't flicker mid-animation.
     private final Map<Plant, String> plantAttackBaseState = new IdentityHashMap<>();
+    // Sun-shroom growth-stage detection: a short one-shot "growth_stageN" clip plays once
+    // when GrowthTracker advances its stage (1->2 plays "growth_stage1", 2->3 plays
+    // "growth_stage2"), then playback falls back to the new stage's idle - see drawPlants.
+    private final Map<Plant, Integer> plantLastGrowthStage = new IdentityHashMap<>();
+    private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
 
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
@@ -109,7 +115,7 @@ class PlantRenderer {
             if (!frozenInIce && lastCooldown != null && cooldown > lastCooldown + 0.05) {
                 boolean boosted = plant.isPlantFoodActive();
                 String baseAttackState = resolveAttackBaseState(plant);
-                String durationState = boosted ? "plantfood" : baseAttackState;
+                String durationState = boosted ? plantFoodClipState(plant) : baseAttackState;
                 float attackDuration = screen.pam().resolvePlantClipDuration(plant.getName(), durationState);
                 if (attackDuration <= 0f) attackDuration = DEFAULT_PLANT_ATTACK_DURATION;
                 plantAttackAnimTimes.put(plant, 0f);
@@ -134,6 +140,33 @@ class PlantRenderer {
 
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
+
+            // Sun-shroom grows through 3 stages over time (GrowthTracker). Every time it
+            // steps up a stage, briefly play the matching one-shot "growth_stageN" clip
+            // before settling back into that stage's idle/plantfood loop.
+            if (isSunShroom(plant)) {
+                int stage = plant.getGrowthStage();
+                Integer lastStage = plantLastGrowthStage.put(plant, stage);
+                if (!frozenInIce && lastStage != null && stage > lastStage) {
+                    String growthState = "growth_stage" + (stage - 1);
+                    float growthDuration = screen.pam().resolvePlantClipDuration(plant.getName(), growthState);
+                    if (growthDuration <= 0f) growthDuration = DEFAULT_PLANT_ATTACK_DURATION;
+                    plantGrowthAnimTimes.put(plant, 0f);
+                    plantGrowthWindow.put(plant, growthDuration);
+                }
+            }
+            Float growthTime = plantGrowthAnimTimes.get(plant);
+            if (growthTime != null && !frozenInIce) {
+                growthTime += delta;
+                float growthWindow = plantGrowthWindow.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (growthTime >= growthWindow) {
+                    plantGrowthAnimTimes.remove(plant);
+                    plantGrowthWindow.remove(plant);
+                } else {
+                    plantGrowthAnimTimes.put(plant, growthTime);
+                }
+            }
+            boolean growing = plantGrowthAnimTimes.containsKey(plant) && !plant.isPlantFoodActive();
             String preferredState;
             float animTime = t;
             boolean pumpkinHasArmor = plant.isPumpkin()
@@ -178,7 +211,7 @@ class PlantRenderer {
                         : screen.pam().resolveFuseClipState(plant.getName());
                 animTime = t;
             } else if (attacking) {
-                preferredState = attackIsBoosted ? "plantfood"
+                preferredState = attackIsBoosted ? plantFoodClipState(plant)
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
             } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
@@ -187,6 +220,15 @@ class PlantRenderer {
             } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
                 preferredState = "idle";
                 animTime = t;
+            } else if (isSunProducerFamily(plant) && plant.isPlantFoodActive()) {
+                // Sunflower, Twin Sunflower, Primal Sunflower, Sun-shroom and Sun Bean all
+                // show the "plantfood" clip for their entire Plant Food duration, not just
+                // during the brief fire-event window handled above.
+                preferredState = plantFoodClipState(plant);
+                animTime = t;
+            } else if (growing) {
+                preferredState = "growth_stage" + (plant.getGrowthStage() - 1);
+                animTime = growthTime;
             } else {
                 preferredState = resolveIdleState(plant);
                 animTime = t;
@@ -335,6 +377,9 @@ class PlantRenderer {
         plantAttackWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantAttackIsBoosted.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantAttackBaseState.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
     }
 
     private float squashJumpArcOffset(Plant plant, float boardTileHeight) {
@@ -445,7 +490,62 @@ class PlantRenderer {
                 default -> "idle";
             };
         }
+        if (isSunShroom(plant)) {
+            return switch (plant.getGrowthStage()) {
+                case 2 -> "idle_stage2";
+                case 3 -> "idle_stage3";
+                default -> "idle_stage1";
+            };
+        }
         return plantStackState(plant, "idle");
+    }
+
+    private boolean isSunShroom(Plant plant) {
+        return plant != null && "Sun-shroom".equalsIgnoreCase(plant.getName());
+    }
+
+    /**
+     * Sunflower, Twin Sunflower, Primal Sunflower and Sun-shroom all use the "special"
+     * clip (Sun-shroom's staged "special_stageN" variant) while they're actively producing
+     * a sun. Sun Bean doesn't produce sun this way (it grants sun on taking damage instead),
+     * so it's excluded here even though it's still part of {@link #isSunProducerFamily}
+     * for Plant Food purposes.
+     */
+    private boolean isSunProducingPlant(Plant plant) {
+        if (plant == null) return false;
+        String name = plant.getName();
+        return "Sunflower".equalsIgnoreCase(name)
+                || "Twin Sunflower".equalsIgnoreCase(name)
+                || "Primal Sunflower".equalsIgnoreCase(name)
+                || isSunShroom(plant);
+    }
+
+    /** The full family that shows the "plantfood" clip for its whole Plant Food duration. */
+    private boolean isSunProducerFamily(Plant plant) {
+        return isSunProducingPlant(plant) || (plant != null && "Sun Bean".equalsIgnoreCase(plant.getName()));
+    }
+
+    private String sunProducerSpecialState(Plant plant) {
+        if (isSunShroom(plant)) {
+            return switch (plant.getGrowthStage()) {
+                case 2 -> "special_stage2";
+                case 3 -> "special_stage3";
+                default -> "special_stage1";
+            };
+        }
+        return "special";
+    }
+
+    /** Stage-aware "plantfood" clip name; only Sun-shroom actually has per-stage variants. */
+    private String plantFoodClipState(Plant plant) {
+        if (isSunShroom(plant)) {
+            return switch (plant.getGrowthStage()) {
+                case 2 -> "plantfood_stage2";
+                case 3 -> "plantfood_stage3";
+                default -> "plantfood_stage1";
+            };
+        }
+        return "plantfood";
     }
 
     private String resolvePumpkinPlantFoodState(Plant plant) {
@@ -510,6 +610,9 @@ class PlantRenderer {
         }
         if (plant != null && "Chomper".equalsIgnoreCase(plant.getName())) {
             return "bite_end";
+        }
+        if (isSunProducingPlant(plant)) {
+            return sunProducerSpecialState(plant);
         }
         return plantStackState(plant, "attack");
     }
