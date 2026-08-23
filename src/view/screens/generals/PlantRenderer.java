@@ -608,8 +608,10 @@ class PlantRenderer {
     /**
      * Sunflower, Twin Sunflower, Primal Sunflower and Sun-shroom all use the "special"
      * clip (Sun-shroom's staged "special_stageN" variant) while they're actively producing
-     * a sun. Sun Bean doesn't produce sun this way (it grants sun on taking damage instead),
-     * so it's excluded here even though it's still part of {@link #isSunProducerFamily}
+     * a sun. Sun Bean doesn't produce sun this way (biting it marks the zombie as a sun-bean
+     * carrier - halo overlay until that zombie dies, then it drops sun - see Plant#takeDamage
+     * and Zombie#markSunBeanCarrier), so it's excluded here even though it's still part of
+     * {@link #isSunProducerFamily}
      * for Plant Food purposes.
      */
     private boolean isSunProducingPlant(Plant plant) {

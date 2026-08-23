@@ -157,9 +157,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
             int reflectDamage = isPlantFoodActive() ? baseReflect * 2 : baseReflect;
             dealer.takeDamage(reflectDamage, this);
         }
-        if (name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
-            GameSession sunSession = GameSession.peekInstance();
-            if (sunSession != null) sunSession.addSun((int) abilityValue);
+        if (dealer != null && name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
+            int sunValue = (int) abilityValue;
+            if (isPlantFoodActive()) sunValue *= 2;
+            dealer.markSunBeanCarrier(sunValue);
         }
         int remainingDamage = damageAmount;
 
