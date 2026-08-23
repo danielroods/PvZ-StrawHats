@@ -1,6 +1,9 @@
 package model.collections.plant.actstrategy;
 
 import model.collections.plant.Plant;
+import model.collections.plant.PlantFactory;
+import model.collections.plant.PlantJsonParser;
+import controller.match.BeforeMenu;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
@@ -11,9 +14,25 @@ import model.projectile.hit.PoisonHit;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class ModifyStrategy implements ActStrategy {
     private static final double MODIFY_RADIUS = 0.7;
+    private static final double IMITATER_IDLE_SECONDS = 1.0;
+
+    private enum ImitaterPhase { IDLE, ATTACK }
+
+    private static final class ImitaterAction {
+        final String targetName;
+        ImitaterPhase phase = ImitaterPhase.IDLE;
+
+        ImitaterAction(String targetName) {
+            this.targetName = targetName;
+        }
+    }
+
+    private final Map<Plant, ImitaterAction> imitaterActions = new IdentityHashMap<>();
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -37,28 +56,70 @@ public class ModifyStrategy implements ActStrategy {
     }
 
     private void imitateNearestPlant(Plant user, GameSession session) {
-        Plant source = null;
-        double shortest = Double.MAX_VALUE;
-        for (Plant plant : session.getPlants()) {
-            if (plant == null || plant == user || !plant.isAlive() || plant.getPosition() == null) continue;
-            double distance = plant.getPosition().distanceTo(user.getPosition());
-            if (distance < shortest) {
-                shortest = distance;
-                source = plant;
+        ImitaterAction action = imitaterActions.get(user);
+        if (action == null) {
+            String targetName = resolveImitaterTargetName();
+            if (targetName == null) return;
+            action = new ImitaterAction(targetName);
+            imitaterActions.put(user, action);
+            user.setState(Plant.PlantState.PREPPING);
+            user.setVisualAnimationState("idle", IMITATER_IDLE_SECONDS);
+            return;
+        }
+
+        if (user.getVisualAnimationRemaining() > 0.0) return;
+
+        if (action.phase == ImitaterPhase.IDLE) {
+            action.phase = ImitaterPhase.ATTACK;
+            double attackDuration = 0.8;
+            float resolved = model.collections.animations.AnimationFactory
+                    .clipDurationForDisplayName("Imitater", "attack");
+            if (resolved > 0f) attackDuration = resolved;
+            user.setVisualAnimationState("attack", attackDuration);
+            return;
+        }
+
+        replaceImitaterWithTarget(user, session, action.targetName);
+        imitaterActions.remove(user);
+    }
+
+    /** Select exactly one loadout plant at match start and keep that target for the
+     * entire lifetime of each Imitater. The Imitater is never copied from a nearby
+     * plant, so planting it later cannot make it switch targets dynamically. */
+    private String resolveImitaterTargetName() {
+        for (String selected : BeforeMenu.selectedPlants) {
+            if (selected != null && !selected.equalsIgnoreCase("Imitater")) return selected;
+        }
+        return null;
+    }
+
+    private void replaceImitaterWithTarget(Plant imitater, GameSession session, String targetName) {
+        if (imitater == null || session == null || targetName == null || !imitater.isAlive()) return;
+        PlantJsonParser.PlantConfig targetConfig = null;
+        for (PlantJsonParser.PlantConfig config : PlantFactory.getBlueprints().values()) {
+            if (config != null && config.name != null && config.name.equalsIgnoreCase(targetName)) {
+                targetConfig = config;
+                break;
             }
         }
-        if (source == null) return;
-        user.setHP(source.getHP());
-        user.setType(source.getType());
-        user.setAbilityType(source.getAbilityType());
-        user.setAbilityValue(source.getAbilityValue());
-        user.setDamage(source.getDamage());
-        user.setActionInterval(source.getActionInterval());
-        user.getTags().clear();
-        user.getTags().addAll(source.getTags());
-        user.setShootingVectors(new ArrayList<>(source.getShootingVectors()));
-        user.setActStrategy(source.getActStrategy());
-        user.setPlantFoodEffect(source.getPlantFoodEffect());
+        if (targetConfig == null) return;
+
+        Position pos = imitater.getPosition();
+        if (pos == null) return;
+        int row = (int) Math.round(pos.y());
+        int col = (int) Math.round(pos.x());
+        Plant replacement = PlantFactory.createPlant(targetConfig.id, imitater.getLevel(),
+                new Position(col, row));
+
+        // Replace the board occupant itself. We do not mutate the Imitater into
+        // another runtime plant: the selected target becomes a real Plant object
+        // occupying the exact same tile.
+        if (!session.removePlantAt(row, col)) return;
+        if (!session.plantAt(row, col, replacement)) {
+            session.plantAt(row, col, imitater);
+            return;
+        }
+        imitater.setAlive(false);
     }
 
     private void disarmNearestZombie(Plant user, GameSession session) {

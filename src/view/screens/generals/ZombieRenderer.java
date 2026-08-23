@@ -224,6 +224,21 @@ class ZombieRenderer {
                 if (waterClipActive) popWaterClip();
             }
 
+            // Projectile-based ice chill is rendered as a second pass of the exact
+            // zombie animation, not as a rectangle. This keeps the overlay perfectly
+            // aligned with the current walk/eat/action frame while giving it the
+            // requested faint translucent light-blue appearance.
+            if (zombie.isAlive() && zombie.getStatus() == Zombie.Status.FREEZE) {
+                screen.batch.setColor(0.55f, 0.82f, 1.0f, 0.24f);
+                boolean overlayDrawn = screen.drawPam(path, preferred, animationTime,
+                        x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight(), elementVisibility);
+                screen.batch.setColor(Color.WHITE);
+                if (!overlayDrawn) {
+                    // If a PAM clip is unavailable, do not draw a square fallback; the
+                    // normal zombie remains visible and no malformed overlay is shown.
+                }
+            }
+
             if (waterRipple != null && (waterRipple.inWater || waterRipple.exiting)) {
                 drawWaterRipple(zombie.getAlias(), rippleDrawX, rippleDrawY,
                         zombie.isFacingRight(), waterRipple);

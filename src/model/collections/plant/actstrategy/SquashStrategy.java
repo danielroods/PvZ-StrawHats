@@ -25,13 +25,15 @@ public class SquashStrategy implements ActStrategy {
 
     private static final class Action {
         final Position origin;
+        Zombie targetZombie;
         int remainingSmashes;
         Position target;
         Phase phase;
         boolean facingLeft;
 
-        Action(Position origin, Position target, int remainingSmashes, boolean facingLeft) {
+        Action(Position origin, Position target, Zombie targetZombie, int remainingSmashes, boolean facingLeft) {
             this.origin = origin;
+            this.targetZombie = targetZombie;
             this.target = target;
             this.remainingSmashes = remainingSmashes;
             this.facingLeft = facingLeft;
@@ -61,7 +63,7 @@ public class SquashStrategy implements ActStrategy {
         int smashCount = 1 + Math.max(0, (int) Math.round(
                 user.getSpecialUpgrade("BONUS_SMASH_CHARGES", 0)));
 
-        Action newAction = new Action(origin, targetPosition, smashCount, left);
+        Action newAction = new Action(origin, targetPosition, target, smashCount, left);
         actions.put(user, newAction);
         startJumpUp(user, newAction);
     }
@@ -76,7 +78,7 @@ public class SquashStrategy implements ActStrategy {
         if (action.phase == Phase.JUMP_DOWN) {
             double elapsed = user.getVisualAnimationElapsed();
             if (elapsed >= JUMP_DOWN_FALL_DURATION - 0.0001) {
-                smashLandingTile(user, session, action.target);
+                smashLandingTarget(user, session, action);
                 action.remainingSmashes--;
                 user.setSquashVisualPosition(action.target);
                 action.phase = Phase.LANDED_STEADY;
@@ -107,6 +109,8 @@ public class SquashStrategy implements ActStrategy {
                 action.facingLeft = nextLeft;
                 action.phase = Phase.TURNING;
                 action.target = nextTarget;
+                // Keep the actual Zombie reference so landing damage does not depend
+                // on the Zombie still being exactly on the snapped board cell.
                 startTurn(user);
             } else {
                 action.target = nextTarget;
@@ -153,21 +157,26 @@ public class SquashStrategy implements ActStrategy {
         user.setVisualAnimationState("turn", duration);
     }
 
-    private void smashLandingTile(Plant squash, GameSession session, Position landing) {
-        if (landing == null) return;
+    private void smashLandingTarget(Plant squash, GameSession session, Action action) {
+        if (action == null || action.target == null) return;
 
-        List<Zombie> victims = new ArrayList<>();
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position p = zombie.getPosition();
-            if (Math.abs(p.x() - landing.x()) <= LANDING_RADIUS
-                    && Math.abs(p.y() - landing.y()) <= LANDING_RADIUS) {
-                victims.add(zombie);
-            }
+        // The Zombie selected when Squash started its jump is the primary target.
+        // Use the object reference instead of requiring it to remain exactly on the
+        // snapped landing cell; Zombies keep moving while Squash is in the air.
+        Zombie primary = action.targetZombie;
+        if (primary != null && primary.isAlive()) {
+            primary.takeDamage(Math.max(1, squash.getDamage()), squash);
         }
 
-        for (Zombie zombie : victims) {
-            zombie.takeDamage(Math.max(1, squash.getDamage()), squash);
+        // Preserve the original landing-area behaviour for any other Zombie that
+        // happens to be underneath the squash when it lands.
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || zombie == primary || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position p = zombie.getPosition();
+            if (Math.abs(p.x() - action.target.x()) <= LANDING_RADIUS
+                    && Math.abs(p.y() - action.target.y()) <= LANDING_RADIUS) {
+                zombie.takeDamage(Math.max(1, squash.getDamage()), squash);
+            }
         }
     }
 

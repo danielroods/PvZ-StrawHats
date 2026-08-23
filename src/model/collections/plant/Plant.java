@@ -58,6 +58,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private boolean chomperDigestIdlePending = false;
     private int kiwibeastHitCounter = 0;
 
+    // Imitater keeps the loadout-selected target until its planting animation
+    // completes, then becomes that plant.
+    private String imitaterTargetName;
+    private boolean imitaterTransformationStarted = false;
+    private int imitaterAnimationPhase = 0; // 0=idle, 1=attack, 2=transformed
+
     private Position squashVisualPosition;
     private Position squashVisualOrigin;
     private Position squashVisualTarget;
@@ -482,6 +488,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public double getVisualAnimationRemaining() { return visualAnimationRemaining; }
     public double getVisualAnimationElapsed() { return visualAnimationElapsed; }
     public boolean isChomperSpecialActive() { return chomperSpecialActive; }
+
+    public String getImitaterTargetName() { return imitaterTargetName; }
+    public void setImitaterTargetName(String name) { this.imitaterTargetName = name; }
+    public boolean isImitaterTransformationStarted() { return imitaterTransformationStarted; }
+    public void setImitaterTransformationStarted(boolean started) { this.imitaterTransformationStarted = started; }
+    public int getImitaterAnimationPhase() { return imitaterAnimationPhase; }
+    public void setImitaterAnimationPhase(int phase) { this.imitaterAnimationPhase = phase; }
 
     public Position getSquashVisualPosition() {
         return squashVisualPosition == null ? null
