@@ -212,6 +212,10 @@ public class PlantFactory {
                     int pumpkinArmor = configLevelPumpkinPlantFoodArmor(level, plantFoodValue);
                     yield new GrantArmor(pumpkinArmor);
                 }
+                if ("Wall-nut".equalsIgnoreCase(config.name)) {
+                    int wallNutArmor = configLevelWallNutPlantFoodArmor(level, plantFoodValue);
+                    yield new GrantArmor(wallNutArmor);
+                }
                 yield new GrantArmor(value);
             }
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
@@ -236,6 +240,10 @@ public class PlantFactory {
     private static int configLevelPumpkinPlantFoodArmor(int level, double plantFoodValue) {
         int actual = level >= 8 ? 16000 : level >= 4 ? 12000 : 8000;
         return Math.max(actual, (int) Math.round(plantFoodValue));
+    }
+
+    private static int configLevelWallNutPlantFoodArmor(int level, double plantFoodValue) {
+       return Math.max(8000, (int) Math.round(plantFoodValue));
     }
 
     private static int projectileBurstCount(PlantJsonParser.PlantConfig config, double plantFoodValue) {

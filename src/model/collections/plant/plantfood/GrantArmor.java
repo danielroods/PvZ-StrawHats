@@ -20,11 +20,12 @@ public class GrantArmor implements PlantFoodEffect {
     public void triggerSuperpower(Plant plant, GameSession session) {
         if (plant == null) return;
 
-        if (plant.isPumpkin()) {
+        if (plant.isPumpkin() || plant.isWallNut()) {
+           String initialState = plant.isPumpkin() ? "idle_plantfood" : "plantfood";
             float clipDuration = AnimationFactory.clipDurationForDisplayName(
-                    plant.getName(), "idle_plantfood");
+                    plant.getName(), initialState);
             if (clipDuration > 0f) runtimeDuration = Math.max(2.5, clipDuration);
-            plant.setVisualAnimationState("idle_plantfood", runtimeDuration);
+            plant.setVisualAnimationState(initialState, runtimeDuration);
 
             Plant bottom = plant.getBottom();
             if (bottom != null && bottom.isAlive() && bottom.getPlantFoodEffect() != null
@@ -41,7 +42,7 @@ public class GrantArmor implements PlantFoodEffect {
     @Override
     public void applyStatusModifiers(Plant plant) {
         if (plant == null) return;
-        if (plant.isPumpkin()) {
+        if (plant.isPumpkin() || plant.isWallNut()) {
             plant.setHP(plant.getMaxHp());
         }
         plant.setArmor((PlantArmour) ArmourFactory.createArmour(ArmourType.PLANT_SHIELD, hp, 0, false));

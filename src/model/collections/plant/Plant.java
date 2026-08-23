@@ -221,6 +221,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return this.plantFoodEffect != null && this.plantFoodTimer <= 0 && isAlive();
     }
 
+    /** Internal Plant Food transfer used by Pumpkin. It intentionally bypasses UI/card checks. */
     public boolean activatePlantFoodFromPumpkin(GameSession session) {
         if (!canUsePlantFood() || session == null) return false;
         return activatePlant(session);
@@ -317,6 +318,28 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return name != null && name.equalsIgnoreCase("Pumpkin");
     }
 
+    public boolean isWallNut() {
+        return name != null && name.equalsIgnoreCase("Wall-nut");
+    }
+
+    public String getWallNutHealthAnimationState() {
+        if (!isWallNut()) return "idle";
+        double ratio = getHealthRatio();
+        if (ratio > 0.80) return "idle";
+        if (ratio > 0.50) return "damage";
+        if (ratio > 0.20) return "damage2";
+        return "damage3";
+    }
+
+    public int getWallNutPlantFoodArmorStage() {
+        if (!isWallNut() || armor == null || armor.getHP() <= 0) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > (2.0 / 3.0)) return 1;
+        if (ratio > (1.0 / 3.0)) return 2;
+        return 3;
+    }
+
     public double getHealthRatio() {
         int max = Math.max(1, getMaxHp());
         return Math.max(0.0, Math.min(1.0, getHP() / (double) max));
@@ -399,6 +422,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.visualAnimationElapsed = 0.0;
     }
 
+    /** Freeze the current visual clip on its final frame. Used by Squash so the
+     * landing frame is actually rendered before the plant is removed. */
     public void holdVisualAnimationAtEnd() {
         this.visualAnimationElapsed += this.visualAnimationRemaining;
         this.visualAnimationRemaining = 0.0;
