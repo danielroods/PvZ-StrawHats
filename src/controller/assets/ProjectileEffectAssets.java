@@ -618,6 +618,9 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/GARLIC_PROJECTILE/GARLIC_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "thrown garlic clove"),
+                entry("768/INITIAL/EFFECTS/GARLIC_PROJECTILE/GARLIC_PROJECTILE.PAM",
+                        "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
+                        "Plant Food bad-smell projectile"),
                 entry("768/INITIAL/EFFECTS/GARLIC_STINK_LINES/GARLIC_STINK_LINES.PAM",
                         "stink", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
                         "trailing stink lines on the projectile")

@@ -341,6 +341,81 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return name != null && name.equalsIgnoreCase("Tall-nut");
     }
 
+    public boolean isGarlic() {
+        return name != null && name.equalsIgnoreCase("Garlic");
+    }
+
+    public String getGarlicHealthAnimationState() {
+        if (!isGarlic()) return "idle";
+        double ratio = getHealthRatio();
+        if (ratio > 0.65) return "idle";
+        if (ratio >= 0.30) return "idle_damage";
+        return "idle-damage2";
+    }
+
+    public boolean handleGarlicBite(Zombie zombie, GameSession session) {
+        if (!isGarlic() || zombie == null || session == null || zombie.getPosition() == null) return false;
+        if (isGarlicRedirectImmune(zombie)) return false;
+
+        int rows = session.getRows();
+        if (rows <= 1) return false;
+
+        int currentRow = (int) Math.round(zombie.getPosition().y());
+        if (currentRow < 0 || currentRow >= rows) return false;
+
+        int targetRow;
+        if (currentRow <= 0) targetRow = 1;
+        else if (currentRow >= rows - 1) targetRow = rows - 2;
+        else targetRow = Math.random() < 0.5 ? currentRow - 1 : currentRow + 1;
+
+        double originalX = zombie.getPosition().x();
+        double directionX = zombie.getSpeed() == null ? -1.0
+                : Math.signum(zombie.getSpeed().x());
+        if (Math.abs(directionX) < 0.0001) directionX = -1.0;
+        double redirectX = originalX + (0.06 * directionX);
+        zombie.setPosition(new Position(redirectX, targetRow));
+        zombie.startKnockback(0.03 * directionX, 0.12);
+        zombie.applyStatus(Zombie.Status.BUTTER, 0.65);
+        zombie.clearActionAnimationState();
+        return true;
+    }
+
+    private boolean isGarlicRedirectImmune(Zombie zombie) {
+        String alias = zombie.getAlias() == null ? "" : zombie.getAlias().toLowerCase();
+        return alias.contains("piano")
+                || alias.contains("arcade")
+                || alias.contains("robot")
+                || alias.contains("robo");
+    }
+
+    public void executeGarlicPlantFood(GameSession session) {
+        if (!isGarlic() || session == null || getPosition() == null) return;
+        int row = (int) Math.round(getPosition().y());
+        double garlicX = getPosition().x();
+
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
+                    || zombie.getPosition() == null) continue;
+            if (isGarlicRedirectImmune(zombie)) continue;
+            Position zp = zombie.getPosition();
+            if (Math.abs(zp.y() - row) > 0.5 || zp.x() <= garlicX) continue;
+
+            int targetRow;
+            if (row <= 0) targetRow = 1;
+            else if (row >= session.getRows() - 1) targetRow = session.getRows() - 2;
+            else targetRow = Math.random() < 0.5 ? row - 1 : row + 1;
+
+            double directionX = zombie.getSpeed() == null ? -1.0
+                    : Math.signum(zombie.getSpeed().x());
+            if (Math.abs(directionX) < 0.0001) directionX = -1.0;
+            double redirectX = zp.x() + (0.06 * directionX);
+            zombie.setPosition(new Position(redirectX, targetRow));
+            zombie.startKnockback(0.03 * directionX, 0.12);
+            zombie.applyStatus(Zombie.Status.BUTTER, 7.5);
+            zombie.clearActionAnimationState();
+        }
+    }
+
     public String getTallNutHealthAnimationState() {
         if (!isTallNut()) return "idle";
         double ratio = getHealthRatio();

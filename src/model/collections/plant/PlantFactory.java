@@ -238,7 +238,9 @@ public class PlantFactory {
                     ? new SquashPlantFood(Math.max(1, value))
                     : new RandomInstantKill(Math.max(1, value));
             case DISARM_BLAST -> new DisarmBlast(Math.max(1, value));
-            case LANE_REDIRECT -> new LaneRedirectBlast();
+            case LANE_REDIRECT -> "Garlic".equalsIgnoreCase(config.name)
+                    ? new GarlicPlantFood()
+                    : new LaneRedirectBlast();
             case PULL_AND_HEAL -> new PullAndHeal(plantFoodValue);
         };
     }

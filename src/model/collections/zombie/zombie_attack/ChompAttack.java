@@ -17,6 +17,9 @@ public class ChompAttack implements AttackBehavior {
 
         if (target instanceof Plant p) {
             p.takeDamage(damage, zombie);
+            if (p.isGarlic()) {
+                p.handleGarlicBite(zombie, session);
+            }
         } else {
             target.takeDamage(damage);
         }
