@@ -103,6 +103,7 @@ class PlantRenderer {
                     String loopState;
                     if (plant.isWallNut()) loopState = plant.getWallNutHealthAnimationState();
                     else if (plant.isTallNut()) loopState = plant.getTallNutHealthAnimationState();
+                    else if (plant.isGarlic()) loopState = plant.getGarlicHealthAnimationState();
                     else loopState = plantStackState(plant, "idle");
                     float idleDuration = screen.pam().resolvePlantClipDuration(plant.getName(), loopState);
                     if (idleDuration > 0f) t %= idleDuration;
@@ -309,6 +310,11 @@ class PlantRenderer {
                     && ("idle".equals(preferredState)
                     || "damage".equals(preferredState)
                     || "damage2".equals(preferredState));
+            boolean garlicExactState = plant.isGarlic()
+                    && ("idle".equals(preferredState)
+                    || "idle_damage".equals(preferredState)
+                    || "idle-damage2".equals(preferredState)
+                    || "plantfood".equals(preferredState));
             if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
@@ -332,6 +338,9 @@ class PlantRenderer {
                 drawn = screen.drawPam(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false, wallNutPfVisibility);
             } else if (wallNutExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (garlicExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
             } else if (tallNutArmorState) {
@@ -514,6 +523,9 @@ class PlantRenderer {
         }
         if (plant != null && plant.isTallNut()) {
             return plant.getTallNutHealthAnimationState();
+        }
+        if (plant != null && plant.isGarlic()) {
+            return plant.getGarlicHealthAnimationState();
         }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();

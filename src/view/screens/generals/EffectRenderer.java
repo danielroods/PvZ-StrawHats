@@ -105,6 +105,7 @@ class EffectRenderer {
         drawTimedEffects(explodingPlantEffects, delta);
         drawTimedEffects(impactEffects, delta);
         drawPlantFoodEffects();
+        drawGarlicPlantFoodProjectiles();
     }
 
     private void drawPlantFoodEffects() {
@@ -153,6 +154,35 @@ class EffectRenderer {
             }
         }
         effects.removeIf(e -> e.time > e.duration);
+    }
+
+    private void drawGarlicPlantFoodProjectiles() {
+        final String GARLIC_PF_PAM =
+                "768/INITIAL/EFFECTS/GARLIC_PROJECTILE/GARLIC_PROJECTILE.PAM";
+        final float TRAVEL_SECONDS = 1.15f;
+
+        float tileW = screen.getBoardTileWidth();
+        float tileH = screen.getBoardTileHeight();
+        int cols = screen.session.getEnvironment().getCols();
+
+        for (Plant plant : screen.session.getPlants()) {
+            if (plant == null || !plant.isAlive() || !plant.isGarlic()
+                    || !plant.isPlantFoodActive() || plant.getPosition() == null) continue;
+
+            double elapsed = plant.getVisualAnimationElapsed();
+            double local = elapsed % TRAVEL_SECONDS;
+            double progress = Math.max(0.0, Math.min(1.0, local / TRAVEL_SECONDS));
+
+            float startCol = (float) plant.getPosition().x() + 0.30f;
+            float endCol = cols - 0.15f;
+            float col = startCol + (endCol - startCol) * (float) progress;
+
+            float x = GameScreen.BOARD_X + col * tileW;
+            float y = screen.cellY((int) Math.round(plant.getPosition().y())) + tileH * 0.36f;
+
+            screen.drawPam(GARLIC_PF_PAM, "animation", (float) elapsed,
+                    x, y, PROJECTILE_PAM_SCALE * 1.35f, false);
+        }
     }
 
     void drawProjectiles(float delta, float bw, float bh) {

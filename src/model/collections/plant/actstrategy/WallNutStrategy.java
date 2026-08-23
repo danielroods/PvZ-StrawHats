@@ -14,6 +14,7 @@ public class WallNutStrategy implements ActStrategy {
 
     @Override
     public void act(Plant user, GameSession session) {
+        if (user.isGarlic()) return;
         if (!user.getTags().contains(PlantTag.MOVE_ZOMBIES) || user.getIntervalTimer() > 0) return;
 
         if (user.getName().equalsIgnoreCase("Sweet Potato")) attractZombie(user, session);
