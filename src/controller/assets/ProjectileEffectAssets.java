@@ -437,6 +437,12 @@ public final class ProjectileEffectAssets {
                                 + "T_KERNALPULT_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "lobbed kernel"),
+                // NOTE: this is a plain PNG living at assets/projectiles/..., NOT
+                // under the 768/.../*.PAM tree the other entries use. AssetEntry
+                // .isStaticImage()/.fullPath() already handle that (the path
+                // already starts with AssetPaths.ROOT, so it's used as-is rather
+                // than getting the pvz-assets PAM root prepended) - don't try to
+                // "fix" this into a PAM-style path.
                 entry("assets/projectiles/kernelpult_projectile_butter.png",
                         "static", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
                         "butter projectile - static image, not a PAM animation; also used for PF"),
@@ -450,10 +456,11 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/SPLAT_KERNALPULT_BUTTER/"
                                 + "SPLAT_KERNALPULT_BUTTER.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "butter impact (shared by normal and PF butter shots)"),
-                entry("assets/projectiles/buttercup_butter_208x221.png",
-                        "static", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "stays on the zombie's face for the whole butter-stun duration")
+                        "butter impact (shared by normal and PF butter shots)")
+                // The on-face butter-stun overlay is not a separate asset: it's a
+                // "butter" element baked into each zombie's own PAM (same idea as
+                // the armor pieces), toggled on/off via the per-zombie element
+                // visibility mask - see ZombieArmorMask/ZombieRenderer.
         );
     }
 

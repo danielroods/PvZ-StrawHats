@@ -519,6 +519,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 chomperDigestIdlePending = true;
                 setVisualAnimationState("special", 0.8);
             }
+        } else if (visualAnimationRemaining <= 0) {
+            // Generic one-shot states (e.g. Kernel-pult's butter "attack2" throw)
+            // that don't need a special follow-up transition just revert to the
+            // normal idle/attack resolution once their window elapses.
+            clearVisualAnimationState();
         }
     }
 

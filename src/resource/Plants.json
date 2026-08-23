@@ -949,7 +949,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
     "plantFoodType": "MAP_WIDE_BUTTER",
-    "plantFoodValue": 4.0,
+    "plantFoodValue": 5.0,
     "upgrades": [
       {
         "level": 2,

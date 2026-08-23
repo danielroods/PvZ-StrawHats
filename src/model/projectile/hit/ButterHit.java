@@ -12,7 +12,7 @@ public class ButterHit implements HitEffectStrategy {
     @Override
     public void apply(Zombie zombie) {
         if (zombie == null || !zombie.isAlive()) return;
-        zombie.applyStatus(Zombie.Status.BUTTER, 4.0);
+        zombie.applyStatus(Zombie.Status.BUTTER, 5.0);
     }
 
     @Override

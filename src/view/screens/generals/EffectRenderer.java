@@ -21,7 +21,7 @@ class EffectRenderer {
     static final float PROJECTILE_PAM_SCALE = 0.35f;
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
-    private static final float STATIC_PROJECTILE_SCALE = 0.25f;
+    private static final float STATIC_PROJECTILE_SCALE = 0.80f;
     private static final String ZOMBIE_PEA_PAM =
             "768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM";
     private static final String ZOMBIE_PEA_SPLAT_PAM =

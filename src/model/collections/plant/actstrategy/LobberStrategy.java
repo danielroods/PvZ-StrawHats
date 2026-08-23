@@ -20,6 +20,9 @@ public class LobberStrategy implements ActStrategy {
     private static final double BOOSTED_BLIND_LOB_DISTANCE = 4.0;
     private static final double BASE_BUTTER_CHANCE = 0.25;
     private static final int BUTTER_ASSET_VARIANT = 1;
+    // Kernel-pult's butter throw uses a separate "attack2" clip so it visually
+    // reads differently from a normal kernel lob ("attack").
+    private static final double KERNEL_PULT_BUTTER_ATTACK_DURATION = 0.5;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -118,7 +121,12 @@ public class LobberStrategy implements ActStrategy {
             projectile.setLobberTargetOnly(true);
         }
 
-        if (hitEffect instanceof ButterHit) projectile.setAssetVariant(BUTTER_ASSET_VARIANT);
+        if (hitEffect instanceof ButterHit) {
+            projectile.setAssetVariant(BUTTER_ASSET_VARIANT);
+            if (user.getName().equalsIgnoreCase("Kernel-pult")) {
+                user.setVisualAnimationState("attack2", KERNEL_PULT_BUTTER_ATTACK_DURATION);
+            }
+        }
         session.getProjectiles().add(projectile);
     }
 
@@ -129,9 +137,13 @@ public class LobberStrategy implements ActStrategy {
             return new IceHit(areaLength, 5.0 + user.getSpecialUpgrade("CHILL_DURATION_EXT", 0));
         }
         if (user.getTags().contains(PlantTag.POISON)) return new PoisonHit(areaLength);
-        double butterChance = BASE_BUTTER_CHANCE + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
-        if (user.getName().equalsIgnoreCase("Kernel-pult") && Math.random() < butterChance) {
-            return new ButterHit(areaLength);
+        if (user.getName().equalsIgnoreCase("Kernel-pult")) {
+            double butterChance = BASE_BUTTER_CHANCE + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
+            // Plant Food ("Butter Barrage") always butters every zombie it hits;
+            // outside of that it's the normal random chance per shot.
+            if (user.isPlantFoodActive() || Math.random() < butterChance) {
+                return new ButterHit(areaLength);
+            }
         }
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         return new NormalHit(areaLength);

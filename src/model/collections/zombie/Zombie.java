@@ -292,17 +292,23 @@ public class Zombie extends Item implements Attack {
             if (moveBehavior instanceof model.collections.zombie.zombie_move.SnorkelMove) {
                 vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
             }
-            if (attackBehavior != null) {
-                attackBehavior.attack(this, session);
-            } else {
-                dealDamage(target);
+            // Butter-stunned zombies hold whatever they were doing (here,
+            // about to eat) but don't actually act until it wears off.
+            if (status != Status.BUTTER) {
+                if (attackBehavior != null) {
+                    attackBehavior.attack(this, session);
+                } else {
+                    dealDamage(target);
+                }
             }
         } else {
             zombieState = ZombieState.WALKING;
-            if (moveBehavior != null) {
-                moveBehavior.move(this, deltaTimeSeconds, session);
-            } else {
-                move(deltaTimeSeconds);
+            if (status != Status.BUTTER) {
+                if (moveBehavior != null) {
+                    moveBehavior.move(this, deltaTimeSeconds, session);
+                } else {
+                    move(deltaTimeSeconds);
+                }
             }
         }
     }

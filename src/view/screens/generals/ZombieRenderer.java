@@ -39,6 +39,9 @@ class ZombieRenderer {
             "768/INITIAL/EFFECTS/HYPNO_ZOMBIE_EFFECT/HYPNO_ZOMBIE_EFFECT.PAM";
 
     private static final String ZOMBIE_BEACH_FISHERMAN_ALIAS = "ZombieBeachFisherman";
+    // Named element inside every zombie's own PAM for the butter-stun face
+    // overlay; toggled via the element visibility mask, same as armor pieces.
+    private static final String BUTTER_ELEMENT_NAME = "butter";
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
     private static final String WATER_GARGANTUAR_RIPPLE_PAM =
@@ -197,11 +200,17 @@ class ZombieRenderer {
             ZombotanyArt.Head plantHead = ZombotanyArt.headFor(zombie.getAlias());
             if (plantHead != null) armorVisibility = mergeHeadlessMask(armorVisibility);
 
+            // The butter-stun face overlay is a named element baked into each
+            // zombie's own PAM (same idea as the armor pieces above), so it's
+            // toggled the same way rather than drawn as a separate asset.
+            Map<String, Boolean> elementVisibility = armorVisibility != null
+                    ? armorVisibility : new java.util.HashMap<>();
+            elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
+
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
-                boolean pamDrawn = armorVisibility != null
-                        ? screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight(), armorVisibility)
-                        : screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight());
+                boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
+                        0.52f, zombie.isFacingRight(), elementVisibility);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
