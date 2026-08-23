@@ -222,6 +222,18 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.plantFoodEffect.triggerSuperpower(this, session);
         this.plantFoodTimer = Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
 
+        if ("Sweet Potato".equalsIgnoreCase(name) && this.plantFoodTimer > 0.0) {
+            this.specialInvulnerable = true;
+            float clipDuration = model.collections.animations.AnimationFactory
+                    .exactClipDurationForPath(
+                            model.collections.animations.AnimationFactory.pathForDisplayName(name),
+                            "plantfood");
+            double visualDuration = clipDuration > 0f
+                    ? Math.min(this.plantFoodTimer, Math.max(clipDuration, 0.1f))
+                    : this.plantFoodTimer;
+            setVisualAnimationState("plantfood", visualDuration);
+        }
+
         // Puff-shroom: feeding any one of them applies the full Plant Food boost (burst +
         // "plantfood" animation), not just the lifespan reset every shroom already gets
         // above, to every other live Puff-shroom currently on the field.
@@ -349,6 +361,19 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isGarlic() {
         return name != null && name.equalsIgnoreCase("Garlic");
+    }
+
+    public boolean isSweetPotato() {
+        return name != null && name.equalsIgnoreCase("Sweet Potato");
+    }
+
+    public String getSweetPotatoHealthAnimationState() {
+        if (!isSweetPotato()) return "idle";
+        double ratio = getHealthRatio();
+        if (ratio > 0.70) return "idle";
+        if (ratio > 0.45) return "idle_damage";
+        if (ratio >= 0.20) return "idle_damage2";
+        return "idle2_damage3";
     }
 
     public String getGarlicHealthAnimationState() {
@@ -561,6 +586,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
         //
         // Chomper is the only exception: if its eating special is still active,
         // return to its looping special idle instead of the normal idle.
+        if ("Sweet Potato".equalsIgnoreCase(name)) {
+            specialInvulnerable = false;
+            clearVisualAnimationState();
+            return;
+        }
         if ("Chomper".equalsIgnoreCase(name) && chomperSpecialActive) {
             setVisualAnimationState("special_idle", 10.0);
         } else {

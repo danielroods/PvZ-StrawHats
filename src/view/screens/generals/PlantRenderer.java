@@ -90,7 +90,7 @@ class PlantRenderer {
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
         for (Plant plant : new ArrayList<>(screen.session.getPlants())) {
-            if (plant == null || plant.getPosition() == null) continue;
+            if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
             boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(screen.session, plant);
             // One-shot plants (bombs, mints, Gold Bloom) hold a fuse in PREPPING before their
             // payload resolves; that window exists so their own explode/intro clip can play,
@@ -220,6 +220,10 @@ class PlantRenderer {
             } else if (plant.isWallNut() && plant.getVisualAnimationState() != null) {
                 preferredState = plant.getVisualAnimationState();
                 animTime = (float) plant.getVisualAnimationElapsed();
+            } else if (plant.isSweetPotato() && plant.isPlantFoodActive()) {
+
+                preferredState = "plantfood";
+                animTime = (float) plant.getVisualAnimationElapsed();
                 float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                 if (clipDuration > 0f) animTime %= clipDuration;
             } else if (plant.getVisualAnimationState() != null) {
@@ -315,6 +319,13 @@ class PlantRenderer {
                     || "idle_damage".equals(preferredState)
                     || "idle-damage2".equals(preferredState)
                     || "plantfood".equals(preferredState));
+            boolean sweetPotatoExactState = plant.isSweetPotato()
+                    && ("idle".equals(preferredState)
+                    || "idle_damage".equals(preferredState)
+                    || "idle_damage2".equals(preferredState)
+                    || "idle_damage3".equals(preferredState)
+                    || "idle2_damage3".equals(preferredState)
+                    || "plantfood".equals(preferredState));
             if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
@@ -341,6 +352,9 @@ class PlantRenderer {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
             } else if (garlicExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (sweetPotatoExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
             } else if (tallNutArmorState) {
@@ -526,6 +540,9 @@ class PlantRenderer {
         }
         if (plant != null && plant.isGarlic()) {
             return plant.getGarlicHealthAnimationState();
+        }
+        if (plant != null && plant.isSweetPotato()) {
+            return plant.getSweetPotatoHealthAnimationState();
         }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();

@@ -1761,31 +1761,31 @@
       "MOVE_ZOMBIE"
     ],
     "cost": 150,
-    "baseHp": 3000,
+    "baseHp": 4000,
     "damage": 0,
     "actionInterval": 0.0,
     "recharge": 20.0,
     "abilityType": "PASSIVE_SHIELD",
     "abilityValue": 0.0,
     "plantFoodType": "PULL_AND_HEAL",
-    "plantFoodValue": 5.0,
+    "plantFoodValue": 4.0,
     "upgrades": [
       {
         "level": 2,
         "type": "BUFF_HP",
-        "value": 1000.0,
+        "value": 500.0,
         "specialTag": ""
       },
       {
         "level": 3,
-        "type": "BUFF_RECHARGE",
-        "value": -5.0,
+        "type": "BUFF_HP",
+        "value": 500.0,
         "specialTag": ""
       },
       {
         "level": 4,
         "type": "BUFF_HP",
-        "value": 1500.0,
+        "value": 500.0,
         "specialTag": ""
       }
     ]

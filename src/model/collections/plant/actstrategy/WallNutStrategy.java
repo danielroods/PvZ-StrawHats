@@ -10,7 +10,7 @@ import java.util.Comparator;
 
 public class WallNutStrategy implements ActStrategy {
     private static final double CONTACT_RADIUS = 0.7;
-    private static final double ATTRACT_RANGE = 4.0;
+    private static final double SWEET_POTATO_FRONT_RANGE = 4.05;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -42,16 +42,39 @@ public class WallNutStrategy implements ActStrategy {
     }
 
     private void attractZombie(Plant user, GameSession session) {
-        Zombie target = session.getZombies().stream()
-                .filter(zombie -> zombie != null && zombie.isAlive() && !zombie.isHypnotized()
-                        && zombie.getPosition() != null
-                        && Math.abs(zombie.getPosition().x() - user.getPosition().x()) <= ATTRACT_RANGE
-                        && Math.abs(Math.abs(zombie.getPosition().y() - user.getPosition().y()) - 1) < 0.5)
-                .min(Comparator.comparingDouble(zombie -> zombie.getPosition().distanceTo(user.getPosition())))
-                .orElse(null);
-        if (target == null) return;
+        Position center = user.getPosition();
+        if (center == null) return;
 
-        target.setPosition(new Position(target.getPosition().x(), user.getPosition().y()));
-        user.setInternalTimer(Math.max(0.5, user.getActionInterval()));
+        int redirected = 0;
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
+                    || session.isZombieInSandStorm(zombie)
+                    || !isInSweetPotatoFrontStrip(zombie, center)) continue;
+
+            Position zombiePos = zombie.getPosition();
+            zombie.setPosition(new Position(zombiePos.x(), center.y()));
+            zombie.setFacingRight(false);
+            if (zombie.getSpeed() != null && zombie.getSpeed().x() > 0) {
+                zombie.setSpeed(new Position(-Math.abs(zombie.getSpeed().x()), zombie.getSpeed().y()));
+            }
+            zombie.clearActionAnimationState();
+            redirected++;
+        }
+
+        if (redirected > 0) {
+            user.setInternalTimer(Math.max(0.35, user.getActionInterval()));
+        }
+    }
+
+    private boolean isInSweetPotatoFrontStrip(Zombie zombie, Position center) {
+        Position pos = zombie.getPosition();
+        if (pos == null) return false;
+
+        double dx = pos.x() - center.x();
+        double dy = pos.y() - center.y();
+
+        return dx >= 0.0 && dx <= SWEET_POTATO_FRONT_RANGE
+                && Math.abs(dy) >= 0.5
+                && Math.abs(dy) <= 1.5;
     }
 }

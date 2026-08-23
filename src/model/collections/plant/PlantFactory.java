@@ -270,7 +270,9 @@ public class PlantFactory {
             case LANE_REDIRECT -> "Garlic".equalsIgnoreCase(config.name)
                     ? new GarlicPlantFood()
                     : new LaneRedirectBlast();
-            case PULL_AND_HEAL -> new PullAndHeal(plantFoodValue);
+            case PULL_AND_HEAL -> "Sweet Potato".equalsIgnoreCase(config.name)
+                    ? new PullAndHeal(4.0)
+                    : new PullAndHeal(plantFoodValue);
         };
     }
 
