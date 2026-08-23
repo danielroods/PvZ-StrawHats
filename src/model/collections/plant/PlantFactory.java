@@ -204,9 +204,11 @@ public class PlantFactory {
             case HOMING -> new HomingStrategy();
             case STRIKE_THROUGH -> new StrikeStrategy();
             case LOBBER -> new LobberStrategy();
-            case EXPLOSIVE -> "Squash".equalsIgnoreCase(config.name)
-                    ? new SquashStrategy()
-                    : new ExplodeStrategy();
+            case EXPLOSIVE -> {
+                if ("Squash".equalsIgnoreCase(config.name)) yield new SquashStrategy();
+                if ("Tangle Kelp".equalsIgnoreCase(config.name)) yield new TangleKelpStrategy();
+                yield new ExplodeStrategy();
+            }
             case MELEE -> new MeleeStrategy();
             case WALL_NUT -> new WallNutStrategy();
             case MODIFIER -> new ModifyStrategy();
@@ -258,9 +260,11 @@ public class PlantFactory {
             }
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
             case KNOCKBACK_BLAST -> new KnockBackBlast(value, 2.0);
-            case PULL_UNDERWATER -> "Chomper".equalsIgnoreCase(config.name)
-                    ? new ChomperPlantFood()
-                    : new PullUnderWater(Math.max(1, value));
+            case PULL_UNDERWATER -> {
+                if ("Chomper".equalsIgnoreCase(config.name)) yield new ChomperPlantFood();
+                if ("Tangle Kelp".equalsIgnoreCase(config.name)) yield new TangleKelpPlantFood(Math.max(1, value));
+                yield new PullUnderWater(Math.max(1, value));
+            }
             case MAP_WIDE_FREEZE -> new MapWideFreeze(plantFoodValue);
             case MAP_WIDE_BUTTER -> new MapWideButter(plantFoodValue);
             case SELF_BOOST -> new SelfBoost(plantFoodValue);
