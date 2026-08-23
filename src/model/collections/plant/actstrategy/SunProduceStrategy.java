@@ -19,9 +19,9 @@ public class SunProduceStrategy implements ActStrategy {
     // on top of it per-drop so repeated productions don't look mechanically identical.
     private static final Position[] SUN_DROP_OFFSETS = {
             new Position(0.0, 0.0),
-            new Position(0.22, -0.15),
-            new Position(-0.20, 0.13),
-            new Position(0.12, 0.20)
+            new Position(0.22, 0.0),
+            new Position(-0.22, 0.0),
+            new Position(0.18, 0.0)
     };
     private static final double DROP_JITTER = 0.06;
     // How close an existing, uncollected sun has to be to the plant to be treated as
@@ -62,7 +62,7 @@ public class SunProduceStrategy implements ActStrategy {
         int[] shares = splitSunValue(sunValue, sunCount);
         for (int i = 0; i < sunCount; i++) {
             Position dropPosition = dropOffsetPosition(location, i);
-            session.getItems().add(new GroundSun(dropPosition, shares[i]));
+            session.getItems().add(new GroundSun(dropPosition, shares[i], true));
         }
         GeneralPrinter.print("plant " + user.getName() + " produced " + sunCount
                 + " sun(s) near (" + ((int) location.x() + 1) + ", " + ((int) location.y() + 1) + ").");

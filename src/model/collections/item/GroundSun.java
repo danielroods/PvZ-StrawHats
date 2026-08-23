@@ -74,13 +74,19 @@ public class GroundSun extends GroundItem {
 
     private SunDropType dropType;
     private final int sunValue;
+    private final boolean plantProduced;
     private double fallDurationSeconds;
     private double fallSecondsRemaining;
 
     public GroundSun(Position position, int sunValue) {
+        this(position, sunValue, false);
+    }
+
+    public GroundSun(Position position, int sunValue, boolean plantProduced) {
         super(ItemType.SUN, position, 0, 0.6);
         this.dropType = SunDropType.REGULAR;
         this.sunValue = sunValue;
+        this.plantProduced = plantProduced;
         this.fallSecondsRemaining = 0;
     }
 
@@ -88,6 +94,7 @@ public class GroundSun extends GroundItem {
         super(ItemType.SUN, position, GROUND_LIFETIME_SECONDS + getFallDurationSeconds(position), 0.6);
         this.dropType = dropType;
         this.sunValue = dropType.getValue();
+        this.plantProduced = false;
         this.fallDurationSeconds = getFallDurationSeconds(position);
         this.fallSecondsRemaining = fallDurationSeconds;
     }
@@ -170,5 +177,9 @@ public class GroundSun extends GroundItem {
 
     public int getSunValue() {
         return sunValue;
+    }
+
+    public boolean isPlantProduced() {
+        return plantProduced;
     }
 }

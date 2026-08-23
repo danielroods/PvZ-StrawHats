@@ -72,6 +72,7 @@ public class Zombie extends Item implements Attack {
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
+    private int sunBeanCarrierValue = 0;
 
     public Zombie(String name, Position position, int HP, boolean isFacingRight, Armour armour, int speed) {
         super(position, HP);
@@ -194,6 +195,10 @@ public class Zombie extends Item implements Attack {
         zombieState = ZombieState.DEAD;
         this.firedDeath = firedDeath;
         setHP(0);
+        if (sunBeanCarrierValue > 0 && session != null && getPosition() != null) {
+            session.getItems().add(new model.collections.item.GroundSun(getPosition(), sunBeanCarrierValue));
+            sunBeanCarrierValue = 0;
+        }
         if (isGlowing) plantFoodPending = true;
         if (zombieEffectStatus != null) zombieEffectStatus.onDeath(this, session);
         if (session != null) session.notifyZombieDied(this, killerName);
@@ -410,6 +415,20 @@ public class Zombie extends Item implements Attack {
     public DefenseBehavior getDefenseBehavior() { return defenseBehavior; }
     public void setDefenseBehavior(DefenseBehavior defenseBehavior) { this.defenseBehavior = defenseBehavior; }
 
+    public void markSunBeanCarrier(int sunValue) {
+        if (sunValue > 0 && sunBeanCarrierValue <= 0) {
+            sunBeanCarrierValue = sunValue;
+        }
+    }
+
+    public boolean isSunBeanCarrier() {
+        return sunBeanCarrierValue > 0 && isAlive();
+    }
+
+    public int getSunBeanCarrierValue() {
+        return sunBeanCarrierValue;
+    }
+
     public ZombieEffectStatus getEffectStatus() { return zombieEffectStatus; }
     public void setEffectStatus(ZombieEffectStatus zombieEffectStatus) { this.zombieEffectStatus = zombieEffectStatus; }
 
@@ -448,11 +467,6 @@ public class Zombie extends Item implements Attack {
     public boolean isGlowing() { return isGlowing; }
     public String getAlias() { return name; }
     public Status getStatus() { return this.status; }
-
-    /** True while an ice projectile's five-second chill is active. */
-    public boolean isChilled() {
-        return status == Status.FREEZE;
-    }
     public void setStatus(Status status) {
         double duration = switch (status) {
             case FREEZE, FROZEN -> 5.0;

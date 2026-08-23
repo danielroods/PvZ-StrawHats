@@ -224,24 +224,19 @@ class ZombieRenderer {
                 if (waterClipActive) popWaterClip();
             }
 
-            // Projectile-based ice chill is rendered as a second pass of the exact
-            // zombie animation, not as a rectangle. This keeps the overlay perfectly
-            // aligned with the current walk/eat/action frame while giving it the
-            // requested faint translucent light-blue appearance.
-            if (zombie.isAlive() && zombie.getStatus() == Zombie.Status.FREEZE) {
-                screen.batch.setColor(0.55f, 0.82f, 1.0f, 0.24f);
-                boolean overlayDrawn = screen.drawPam(path, preferred, animationTime,
-                        x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight(), elementVisibility);
-                screen.batch.setColor(Color.WHITE);
-                if (!overlayDrawn) {
-                    // If a PAM clip is unavailable, do not draw a square fallback; the
-                    // normal zombie remains visible and no malformed overlay is shown.
-                }
-            }
-
             if (waterRipple != null && (waterRipple.inWater || waterRipple.exiting)) {
                 drawWaterRipple(zombie.getAlias(), rippleDrawX, rippleDrawY,
                         zombie.isFacingRight(), waterRipple);
+            }
+
+            if (zombie.isSunBeanCarrier()) {
+                final String SUN_BEAN_CARRIER_PAM =
+                        "768/FULL/EFFECTS/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1.PAM";
+                float haloTime = t;
+                float haloDuration = AnimationFactory.clipDurationForPath(SUN_BEAN_CARRIER_PAM, "animation");
+                if (haloDuration > 0f) haloTime %= haloDuration;
+                screen.drawPam(SUN_BEAN_CARRIER_PAM, "animation", haloTime,
+                        x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight());
             }
 
             if (screen.session.isZombieInSandStorm(zombie)) {
