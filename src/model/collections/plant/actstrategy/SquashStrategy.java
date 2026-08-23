@@ -5,10 +5,8 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class SquashStrategy implements ActStrategy {
@@ -16,7 +14,6 @@ public class SquashStrategy implements ActStrategy {
     private static final double LANDING_RADIUS = 0.52;
     private static final double JUMP_UP_DURATION = 0.80;
     private static final double JUMP_DOWN_DURATION = 0.80;
-    private static final double JUMP_DOWN_FALL_DURATION = 0.20;
     private static final double TURN_DURATION = 1.20;
 
     private final Map<Plant, Action> actions = new IdentityHashMap<>();
@@ -25,16 +22,17 @@ public class SquashStrategy implements ActStrategy {
 
     private static final class Action {
         final Position origin;
-        Zombie targetZombie;
-        int remainingSmashes;
+        final Zombie targetZombie;
         Position target;
+        int remainingSmashes;
         Phase phase;
         boolean facingLeft;
 
-        Action(Position origin, Position target, Zombie targetZombie, int remainingSmashes, boolean facingLeft) {
+        Action(Position origin, Position target, Zombie targetZombie,
+               int remainingSmashes, boolean facingLeft) {
             this.origin = origin;
-            this.targetZombie = targetZombie;
             this.target = target;
+            this.targetZombie = targetZombie;
             this.remainingSmashes = remainingSmashes;
             this.facingLeft = facingLeft;
             this.phase = Phase.JUMP_UP;
@@ -46,6 +44,7 @@ public class SquashStrategy implements ActStrategy {
         if (session == null || user.getPosition() == null || !user.isAlive()) return;
 
         Action action = actions.get(user);
+
         if (action != null) {
             if (user.getVisualAnimationRemaining() > 0.0) return;
             advanceAction(user, session, action);
@@ -60,122 +59,139 @@ public class SquashStrategy implements ActStrategy {
         Position origin = user.getPosition();
         Position targetPosition = snapToBoardCell(target.getPosition());
         boolean left = targetPosition.x() < origin.x();
-        int smashCount = 1 + Math.max(0, (int) Math.round(
-                user.getSpecialUpgrade("BONUS_SMASH_CHARGES", 0)));
 
-        Action newAction = new Action(origin, targetPosition, target, smashCount, left);
+        int smashCount = 1 + Math.max(0,
+                (int) Math.round(user.getSpecialUpgrade("BONUS_SMASH_CHARGES", 0)));
+
+        Action newAction = new Action(
+                origin,
+                targetPosition,
+                target,
+                smashCount,
+                left
+        );
+
         actions.put(user, newAction);
         startJumpUp(user, newAction);
     }
 
     private void advanceAction(Plant user, GameSession session, Action action) {
-        if (action.phase == Phase.JUMP_UP) {
-            action.phase = Phase.JUMP_DOWN;
-            startJumpDown(user, action);
-            return;
-        }
+        switch (action.phase) {
+            case JUMP_UP -> {
+                action.phase = Phase.JUMP_DOWN;
+                startJumpDown(user, action);
+            }
 
-        if (action.phase == Phase.JUMP_DOWN) {
-            double elapsed = user.getVisualAnimationElapsed();
-            if (elapsed >= JUMP_DOWN_FALL_DURATION - 0.0001) {
-                smashLandingTarget(user, session, action);
+            case JUMP_DOWN -> {
+                // The whole jump-down clip has finished. Land NOW.
+                smashLanding(user, session, action);
                 action.remainingSmashes--;
+
+                // Keep the squash visually on the landing cell for the renderer,
+                // but do not leave an animation state running after the landing.
                 user.setSquashVisualPosition(action.target);
+                user.clearVisualAnimationState();
+
+                if (action.remainingSmashes <= 0) {
+                    finish(user);
+                    actions.remove(user);
+                    return;
+                }
+
                 action.phase = Phase.LANDED_STEADY;
-            }
-            return;
-        }
-
-        if (action.phase == Phase.LANDED_STEADY) {
-            if (user.getVisualAnimationRemaining() > 0.0) return;
-
-            if (action.remainingSmashes <= 0) {
-                finish(user);
-                actions.remove(user);
-                return;
+                user.setInternalTimer(0.0);
             }
 
+            case LANDED_STEADY -> {
+                Zombie next = findNearestTarget(user, session, action.origin);
 
-            Zombie next = findNearestTarget(user, session, action.origin);
-            if (next == null) {
-                finish(user);
-                actions.remove(user);
-                return;
-            }
+                if (next == null) {
+                    finish(user);
+                    actions.remove(user);
+                    return;
+                }
 
-            Position nextTarget = snapToBoardCell(next.getPosition());
-            boolean nextLeft = nextTarget.x() < action.origin.x();
-            if (nextLeft != action.facingLeft) {
-                action.facingLeft = nextLeft;
-                action.phase = Phase.TURNING;
+                Position nextTarget = snapToBoardCell(next.getPosition());
+                boolean nextLeft = nextTarget.x() < action.origin.x();
+
                 action.target = nextTarget;
-                // Keep the actual Zombie reference so landing damage does not depend
-                // on the Zombie still being exactly on the snapped board cell.
-                startTurn(user);
-            } else {
-                action.target = nextTarget;
+
+                if (nextLeft != action.facingLeft) {
+                    action.facingLeft = nextLeft;
+                    action.phase = Phase.TURNING;
+                    startTurn(user);
+                } else {
+                    action.phase = Phase.JUMP_UP;
+                    startJumpUp(user, action);
+                }
+            }
+
+            case TURNING -> {
                 action.phase = Phase.JUMP_UP;
                 startJumpUp(user, action);
             }
-            return;
         }
-
-        action.phase = Phase.JUMP_UP;
-        user.setMeleeFacingLeft(action.facingLeft);
-        startJumpUp(user, action);
     }
 
     private void startJumpUp(Plant user, Action action) {
         user.setSquashVisualPath(action.origin, action.target);
-        String state = action.facingLeft ? "jump_up_left" : "jump_up_right";
-        double duration = JUMP_UP_DURATION;
-        user.setInternalTimer(0.0);
+        user.setMeleeFacingLeft(action.facingLeft);
         user.setState(Plant.PlantState.PREPPING);
         user.setSpecialInvulnerable(true);
         user.setSquashActionState(true);
-        user.setMeleeFacingLeft(action.facingLeft);
-        user.setVisualAnimationState(state, duration);
+        user.setInternalTimer(0.0);
+
+        String state = action.facingLeft ? "jump_up_left" : "jump_up_right";
+        user.setVisualAnimationState(state, JUMP_UP_DURATION);
     }
 
     private void startJumpDown(Plant user, Action action) {
-        String state = action.facingLeft ? "jump_down_left" : "jump_down_right";
-        double duration = JUMP_DOWN_DURATION;
-        user.setInternalTimer(0.0);
+        user.setMeleeFacingLeft(action.facingLeft);
         user.setState(Plant.PlantState.PREPPING);
         user.setSpecialInvulnerable(true);
         user.setSquashActionState(true);
-        user.setMeleeFacingLeft(action.facingLeft);
-        user.setVisualAnimationState(state, duration);
+        user.setInternalTimer(0.0);
+
+        String state = action.facingLeft ? "jump_down_left" : "jump_down_right";
+        user.setVisualAnimationState(state, JUMP_DOWN_DURATION);
     }
 
     private void startTurn(Plant user) {
-        double duration = TURN_DURATION;
-        user.setInternalTimer(0.0);
         user.setState(Plant.PlantState.PREPPING);
         user.setSpecialInvulnerable(true);
         user.setSquashActionState(true);
-        user.setVisualAnimationState("turn", duration);
+        user.setInternalTimer(0.0);
+        user.setVisualAnimationState("turn", TURN_DURATION);
     }
 
-    private void smashLandingTarget(Plant squash, GameSession session, Action action) {
-        if (action == null || action.target == null) return;
+    private void smashLanding(Plant squash, GameSession session, Action action) {
+        if (session == null || action == null || action.target == null) return;
 
-        // The Zombie selected when Squash started its jump is the primary target.
-        // Use the object reference instead of requiring it to remain exactly on the
-        // snapped landing cell; Zombies keep moving while Squash is in the air.
+        // IMPORTANT: hit the Zombie selected at the beginning of the jump,
+        // not whichever Zombie happens to occupy the cell when Squash lands.
         Zombie primary = action.targetZombie;
         if (primary != null && primary.isAlive()) {
-            primary.takeDamage(Math.max(1, squash.getDamage()), squash);
+            // Squash is an instant-kill plant. Use enough damage to kill through
+            // normal HP while still going through Zombie's normal death pipeline.
+            primary.takeDamage(Math.max(primary.getHP() + 1, squash.getDamage()), squash);
         }
 
-        // Preserve the original landing-area behaviour for any other Zombie that
-        // happens to be underneath the squash when it lands.
+        // Keep the original landing-area behavior for any other Zombie actually
+        // standing on the landing cell.
         for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || zombie == primary || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (zombie == null || zombie == primary || !zombie.isAlive()
+                    || zombie.getPosition() == null) {
+                continue;
+            }
+
             Position p = zombie.getPosition();
+
             if (Math.abs(p.x() - action.target.x()) <= LANDING_RADIUS
                     && Math.abs(p.y() - action.target.y()) <= LANDING_RADIUS) {
-                zombie.takeDamage(Math.max(1, squash.getDamage()), squash);
+                zombie.takeDamage(
+                        Math.max(zombie.getHP() + 1, squash.getDamage()),
+                        squash
+                );
             }
         }
     }
@@ -187,25 +203,35 @@ public class SquashStrategy implements ActStrategy {
         final int plantRow = (int) Math.round(center.y());
 
         return session.getZombies().stream()
-                .filter(z -> z != null && z.isAlive() && !z.isHypnotized() && z.getPosition() != null)
+                .filter(z -> z != null
+                        && z.isAlive()
+                        && !z.isHypnotized()
+                        && z.getPosition() != null)
                 .filter(z -> (int) Math.round(z.getPosition().y()) == plantRow)
-                .filter(z -> Math.abs((int) Math.round(z.getPosition().x()) - plantCol)
-                        <= DETECTION_CELL_RANGE)
+                .filter(z -> Math.abs(
+                        (int) Math.round(z.getPosition().x()) - plantCol
+                ) <= DETECTION_CELL_RANGE)
                 .min(Comparator
-                        .comparingInt((Zombie z) -> Math.abs((int) Math.round(z.getPosition().x()) - plantCol))
-                        .thenComparingDouble(z -> Math.abs(z.getPosition().x() - center.x())))
+                        .comparingInt((Zombie z) ->
+                                Math.abs((int) Math.round(z.getPosition().x()) - plantCol))
+                        .thenComparingDouble(z ->
+                                Math.abs(z.getPosition().x() - center.x())))
                 .orElse(null);
     }
 
     private Position snapToBoardCell(Position position) {
-        return new Position(Math.rint(position.x()), Math.rint(position.y()));
+        return new Position(
+                Math.rint(position.x()),
+                Math.rint(position.y())
+        );
     }
 
     private void finish(Plant user) {
         user.clearSquashVisualPath();
         user.setSquashActionState(false);
-        user.clearVisualAnimationState();
         user.setSpecialInvulnerable(false);
+        user.clearVisualAnimationState();
+        user.setState(Plant.PlantState.DYING);
         user.setAlive(false);
     }
 }
