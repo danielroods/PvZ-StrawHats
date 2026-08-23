@@ -112,6 +112,9 @@ public final class Flood {
             // Lily Pad is also WATER, but it is a platform rather than an
             // aquatic trap; it remains when the tide recedes.
             if (top.getTags().contains(PlantTag.STACK)) return;
+            // Zero HP marks this as an actual death (as opposed to a shovel pickup) so
+            // the renderer knows to play a death animation (e.g. Sea-shroom's "death").
+            top.setHP(0);
             top.setAlive(false);
             cell.setPlant(null);
             return;

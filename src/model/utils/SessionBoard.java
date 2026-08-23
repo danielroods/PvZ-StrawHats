@@ -175,6 +175,9 @@ class SessionBoard {
         if (cell.getTile() != null && cell.getTile().type() == TileType.Slippery) return false;
 
         boolean flooded = cell.getTile() != null && cell.getTile().type() == TileType.Water;
+        // Sea-shroom is only ever planted directly on water (Big Wave Beach); unlike other
+        // WATER-tagged plants it may not be placed on dry land.
+        if (plant.getName().equalsIgnoreCase("Sea-shroom") && !flooded) return false;
         Plant existing = cell.hasPlant() ? cell.getPlant() : null;
         boolean lilySupport = existing != null && existing.getTags().contains(PlantTag.WATER)
                 && existing.getTags().contains(PlantTag.STACK);

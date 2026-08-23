@@ -30,8 +30,31 @@ class PlantRenderer {
 
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
+    private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
 
     private final GameScreen screen;
+
+    /**
+     * A short-lived, position-only playback of a plant's own "death" (Sea-shroom) or
+     * "idle_stage4" (Puff-shroom lifespan-expiry death) clip. The plant itself is already
+     * gone from session.getPlants() by the time this plays - see trackExplodedPlants -
+     * so this is tracked independently of any live Plant instance, the same way
+     * EffectRenderer's exploding-plant effects are.
+     */
+    private static final class DyingShroomEffect {
+        final String path;
+        final String state;
+        final Position position;
+        float elapsed;
+
+        DyingShroomEffect(String path, String state, Position position) {
+            this.path = path;
+            this.state = state;
+            this.position = position;
+        }
+    }
+
+    private final List<DyingShroomEffect> dyingShroomEffects = new ArrayList<>();
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
@@ -220,10 +243,11 @@ class PlantRenderer {
             } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
                 preferredState = "idle";
                 animTime = t;
-            } else if (isSunProducerFamily(plant) && plant.isPlantFoodActive()) {
-                // Sunflower, Twin Sunflower, Primal Sunflower, Sun-shroom and Sun Bean all
-                // show the "plantfood" clip for their entire Plant Food duration, not just
-                // during the brief fire-event window handled above.
+            } else if (showsPlantFoodLoopForFullDuration(plant) && plant.isPlantFoodActive()) {
+                // Sunflower, Twin Sunflower, Primal Sunflower, Sun-shroom, Sun Bean,
+                // Sea-shroom, Puff-shroom and Fume-shroom all show their "plantfood"/"pf"
+                // clip for their entire Plant Food duration, not just during the brief
+                // fire-event window handled above.
                 preferredState = plantFoodClipState(plant);
                 animTime = t;
             } else if (growing) {
@@ -380,6 +404,20 @@ class PlantRenderer {
         plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+
+        drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
+    }
+
+    /** Plays the brief "death"/"idle_stage4" clip queued up by trackExplodedPlants. */
+    private void drawDyingShroomEffects(float delta, float boardTileWidth, float boardTileHeight) {
+        if (dyingShroomEffects.isEmpty()) return;
+        for (DyingShroomEffect effect : dyingShroomEffects) {
+            effect.elapsed += delta;
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth + 30f;
+            float y = screen.cellY((int) effect.position.y()) + 40f;
+            screen.drawPam(effect.path, effect.state, effect.elapsed, x, y, 0.55f, false);
+        }
+        dyingShroomEffects.removeIf(e -> e.elapsed >= SHROOM_DEATH_HOLD_SECONDS);
     }
 
     private float squashJumpArcOffset(Plant plant, float boardTileHeight) {
@@ -497,11 +535,45 @@ class PlantRenderer {
                 default -> "idle_stage1";
             };
         }
+        if (isPuffShroom(plant)) {
+            return switch (puffShroomStage(plant)) {
+                case 2 -> "idle_stage2";
+                case 3 -> "idle_stage3";
+                default -> "idle_stage1";
+            };
+        }
         return plantStackState(plant, "idle");
     }
 
     private boolean isSunShroom(Plant plant) {
         return plant != null && "Sun-shroom".equalsIgnoreCase(plant.getName());
+    }
+
+    private boolean isSeaShroom(Plant plant) {
+        return plant != null && "Sea-shroom".equalsIgnoreCase(plant.getName());
+    }
+
+    private boolean isPuffShroom(Plant plant) {
+        return plant != null && "Puff-shroom".equalsIgnoreCase(plant.getName());
+    }
+
+    private boolean isFumeShroom(Plant plant) {
+        return plant != null && "Fume-shroom".equalsIgnoreCase(plant.getName());
+    }
+
+    /**
+     * Puff-shroom counts up through 3 stages over its lifespan (30s each, {@link
+     * #puffShroomStage} derives the stage purely from elapsed lifespan time so it needs no
+     * extra state). Plant Food resets its lifespan back to 0 elapsed (see {@link
+     * Plant#activatePlant}), which naturally drops this back to stage 1 too.
+     */
+    private int puffShroomStage(Plant plant) {
+        if (!isPuffShroom(plant)) return 1;
+        double lifespan = plant.getLifespanSeconds();
+        if (lifespan <= 0) return 1;
+        double elapsed = lifespan - plant.getRemainingLifeSeconds();
+        int stage = 1 + (int) Math.floor(elapsed / 30.0);
+        return Math.max(1, Math.min(3, stage));
     }
 
     /**
@@ -536,7 +608,11 @@ class PlantRenderer {
         return "special";
     }
 
-    /** Stage-aware "plantfood" clip name; only Sun-shroom actually has per-stage variants. */
+    /**
+     * Stage-aware "plantfood" clip name; Sun-shroom has per-stage variants, Sea-shroom uses
+     * its own "pf" clip name, and everything else (including Puff-shroom and Fume-shroom)
+     * just uses the plain "plantfood" clip for its whole Plant Food duration.
+     */
     private String plantFoodClipState(Plant plant) {
         if (isSunShroom(plant)) {
             return switch (plant.getGrowthStage()) {
@@ -545,7 +621,19 @@ class PlantRenderer {
                 default -> "plantfood_stage1";
             };
         }
+        if (isSeaShroom(plant)) {
+            return "pf";
+        }
         return "plantfood";
+    }
+
+    /**
+     * The family of plants that show their Plant Food clip ({@link #plantFoodClipState})
+     * for the entire Plant Food duration rather than just the brief fire-event window
+     * handled by the "attacking" branch above.
+     */
+    private boolean showsPlantFoodLoopForFullDuration(Plant plant) {
+        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant);
     }
 
     private String resolvePumpkinPlantFoodState(Plant plant) {
@@ -610,6 +698,16 @@ class PlantRenderer {
         }
         if (plant != null && "Chomper".equalsIgnoreCase(plant.getName())) {
             return "bite_end";
+        }
+        if (isFumeShroom(plant)) {
+            return "special";
+        }
+        if (isPuffShroom(plant)) {
+            return switch (puffShroomStage(plant)) {
+                case 2 -> "special_stage2";
+                case 3 -> "special_stage3";
+                default -> "special_stage1";
+            };
         }
         if (isSunProducingPlant(plant)) {
             return sunProducerSpecialState(plant);
@@ -679,6 +777,34 @@ class PlantRenderer {
             screen.effects().addExplodingPlantEffect(entry, loop, position, EXPLODING_PLANT_EFFECT_DURATION);
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
+        }
+        trackDyingShrooms(alivePlantsBeforeTick, stillAlive);
+    }
+
+    /**
+     * Sea-shroom plays "death" however it dies (eaten by a zombie or washed away by the
+     * tide - both zero its HP, the latter via Flood.removeAquaticPlant). Puff-shroom plays
+     * "idle_stage4" only when its own 30s-per-stage countdown runs out without Plant Food
+     * (Plant.tick sets PlantState.DYING for that case specifically, without touching HP;
+     * a zombie kill also sets DYING but zeroes HP first, so the HP check tells them apart).
+     * Both plants are already gone from stillAlive by the time this runs, so the clip is
+     * queued as a position-only overlay - see DyingShroomEffect/drawDyingShroomEffects.
+     */
+    private void trackDyingShrooms(List<Plant> alivePlantsBeforeTick, List<Plant> stillAlive) {
+        for (Plant plant : alivePlantsBeforeTick) {
+            if (stillAlive.contains(plant) || plant.getPosition() == null) continue;
+
+            boolean seaShroomDeath = isSeaShroom(plant)
+                    && (plant.getHP() <= 0 || plant.getPlantState() == Plant.PlantState.DYING);
+            boolean puffShroomDeath = isPuffShroom(plant)
+                    && plant.getHP() > 0
+                    && plant.getPlantState() == Plant.PlantState.DYING;
+            if (!seaShroomDeath && !puffShroomDeath) continue;
+
+            String path = AnimationFactory.pathForDisplayName(plant.getName());
+            if (path == null) continue;
+            String state = seaShroomDeath ? "death" : "idle_stage4";
+            dyingShroomEffects.add(new DyingShroomEffect(path, state, plant.getPosition()));
         }
     }
 }

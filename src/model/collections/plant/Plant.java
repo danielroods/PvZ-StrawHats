@@ -215,6 +215,21 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.plantFoodEffect.applyStatusModifiers(this);
         this.plantFoodEffect.triggerSuperpower(this, session);
         this.plantFoodTimer = Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
+
+        // Puff-shroom: feeding any one of them applies the full Plant Food boost (burst +
+        // "plantfood" animation), not just the lifespan reset every shroom already gets
+        // above, to every other live Puff-shroom currently on the field.
+        if ("Puff-shroom".equalsIgnoreCase(name)) {
+            for (Plant sibling : session.getPlants()) {
+                if (sibling == this || sibling == null || !sibling.isAlive()) continue;
+                if (sibling.getId() != this.id || sibling.plantFoodEffect == null) continue;
+                if (sibling.plantFoodTimer > 0) continue;
+                sibling.plantFoodEffect.reset();
+                sibling.plantFoodEffect.applyStatusModifiers(sibling);
+                sibling.plantFoodEffect.triggerSuperpower(sibling, session);
+                sibling.plantFoodTimer = Math.max(0.0, sibling.plantFoodEffect.getDurationSeconds());
+            }
+        }
         return true;
     }
     public boolean canUsePlantFood() {

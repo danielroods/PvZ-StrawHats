@@ -193,7 +193,9 @@ public class PlantFactory {
         return switch (config.plantFoodType) {
             case NONE -> null;
             case SPAWN_SUN_ITEMS -> new SpawnSun(value);
-            case PROJECTILE_BURST -> new TimedProjectileBurst(projectileBurstCount(config, plantFoodValue));
+            case PROJECTILE_BURST -> // Fume-shroom's Plant Food window is a fixed 5.33s "plantfood" loop
+                // (not the usual burst-count-derived duration) with a larger burst of shots.
+                    new TimedProjectileBurst(projectileBurstCount(config, plantFoodValue));
             case SPAWN_CLONES -> new SpawnClones(Math.max(1, value));
             case LOCAL_AOE_ATTACK -> {
                 if ("Bonk Choy".equalsIgnoreCase(config.name)) {
