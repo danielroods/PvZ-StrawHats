@@ -39,6 +39,14 @@ class ZombieRenderer {
             "768/INITIAL/EFFECTS/HYPNO_ZOMBIE_EFFECT/HYPNO_ZOMBIE_EFFECT.PAM";
 
     private static final String ZOMBIE_BEACH_FISHERMAN_ALIAS = "ZombieBeachFisherman";
+    private static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
+    // Standalone prop PAM (idle/play/damage/die), drawn in front of the pianist's own body.
+    private static final String PIANO_PROP_PAM = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
+    private static final float DEFAULT_PIANO_DAMAGE_DURATION = 0.4f;
+    // Piano sits just in front of (below/ahead of) the pianist's own body origin.
+    private static final float PIANO_OFFSET_X = 46f;
+    private static final float PIANO_OFFSET_Y = -6f;
+    private static final float PIANO_SCALE = 0.52f;
     // Named element inside every zombie's own PAM for the butter-stun face
     // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
@@ -87,6 +95,8 @@ class ZombieRenderer {
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> zombieWaterRipples = new IdentityHashMap<>();
     private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
+    private final Map<Zombie, Integer> zombieLastHp = new IdentityHashMap<>();
+    private final Map<Zombie, Float> pianoDamageAnimTimes = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -215,6 +225,9 @@ class ZombieRenderer {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
                 }
+                if (pamDrawn) {
+                    drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
+                }
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
@@ -254,6 +267,8 @@ class ZombieRenderer {
         zombieSpawnEffects.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieGyratingLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        zombieLastHp.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {
@@ -320,6 +335,9 @@ class ZombieRenderer {
             } else {
                 screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
             }
+            if (ZOMBIE_PIANO_ALIAS.equals(dz.alias)) {
+                drawPianoDying(dieTime, x - 10f, zombieOffsetY, dz.facingRight);
+            }
         }
         dyingZombies.removeIf(dz -> dz.time > dz.duration);
     }
@@ -337,6 +355,60 @@ class ZombieRenderer {
         if (duration > 0f) headTime = time % duration;
         screen.drawPamMirrored(head.pam(), "idle", headTime, headX, headY,
                 bodyScale * head.scale());
+    }
+
+    // Pianist's piano prop: same "idle"/"walk"->eat resolution as the zombie body, plus a
+    // one-shot "damage" beat (mirrors OctopusThrow's toss trick, but driven off HP deltas
+    // since a piano hit isn't its own attack/effect) and its own "die" clip.
+    private void drawZombiePiano(Zombie zombie, String preferred, float t, float delta, float x, float zombieDrawY,
+                                 boolean facingRight) {
+        if (!ZOMBIE_PIANO_ALIAS.equals(zombie.getAlias())) return;
+
+        Integer lastHp = zombieLastHp.put(zombie, zombie.getHP());
+        if (lastHp != null && zombie.getHP() < lastHp) {
+            pianoDamageAnimTimes.put(zombie, 0f);
+        }
+
+        Float damageTime = pianoDamageAnimTimes.get(zombie);
+        if (damageTime != null) {
+            float damageDuration = AnimationFactory.exactClipDurationForPath(PIANO_PROP_PAM, "damage");
+            if (damageDuration <= 0f) damageDuration = DEFAULT_PIANO_DAMAGE_DURATION;
+            if (damageTime >= damageDuration) {
+                pianoDamageAnimTimes.remove(zombie);
+                damageTime = null;
+            } else {
+                pianoDamageAnimTimes.put(zombie, damageTime + delta);
+            }
+        }
+
+        String pianoState;
+        float pianoTime;
+        if (damageTime != null) {
+            pianoState = "damage";
+            pianoTime = damageTime;
+        } else if ("eat".equals(preferred)) {
+            pianoState = "play";
+            pianoTime = t;
+        } else {
+            pianoState = "idle";
+            pianoTime = t;
+        }
+        float duration = AnimationFactory.exactClipDurationForPath(PIANO_PROP_PAM, pianoState);
+        if (duration > 0f) pianoTime %= duration;
+
+        float direction = facingRight ? 1f : -1f;
+        float pianoX = x + PIANO_OFFSET_X * direction;
+        float pianoY = zombieDrawY + PIANO_OFFSET_Y;
+        screen.pam().drawPamExact(PIANO_PROP_PAM, pianoState, pianoTime, pianoX, pianoY, PIANO_SCALE, facingRight);
+    }
+
+    private void drawPianoDying(float dieTime, float x, float zombieDrawY, boolean facingRight) {
+        float duration = AnimationFactory.exactClipDurationForPath(PIANO_PROP_PAM, "die");
+        float pianoTime = duration > 0f ? Math.min(dieTime, duration) : dieTime;
+        float direction = facingRight ? 1f : -1f;
+        float pianoX = x + PIANO_OFFSET_X * direction;
+        float pianoY = zombieDrawY + PIANO_OFFSET_Y;
+        screen.pam().drawPamExact(PIANO_PROP_PAM, "die", pianoTime, pianoX, pianoY, PIANO_SCALE, facingRight);
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
