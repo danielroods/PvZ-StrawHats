@@ -11,8 +11,8 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     private static final String FIREBALL_PAM =
             "768/FULL/EFFECTS/ZOMBOSS_DARK_FIREBALL/ZOMBOSS_DARK_FIREBALL.PAM";
-    public static final String FIRE_TILE_PAM = "768/FULL/BACKGROUNDS/FIRETILE/FIRETILE.PAM";
-    public static final String FIRE_TILE_CLIP = "firetile_up";
+    public static final String FIRE_TILE_PAM = "768/FULL/EFFECTS/SNAPDRAGON_PLANTFOOD_FIREBALLS/SNAPDRAGON_PLANTFOOD_FIREBALLS.PAM";
+    public static final String FIRE_TILE_CLIP = "animation";
 
     private static final ZombossSkyStrike.Config FIRE_BOMB = new ZombossSkyStrike.Config(
             null, null,
