@@ -175,6 +175,11 @@ public class PlantFactory {
     }
 
     private static double resolveFuseSeconds(PlantJsonParser.PlantConfig config) {
+        // Doom-shroom deliberately has a long fuse so its three GrowthTracker stages
+        // can actually be reached before the explosion. Its visual explosion state is
+        // selected separately by PlantRenderer/EffectRenderer.
+        if ("Doom-shroom".equalsIgnoreCase(config.name)) return 20.0;
+
         String clipState = switch (config.abilityType) {
             case INSTANT_EXPLOSIVE -> AnimationFactory.firstAvailableClipState(
                     config.name, "explode", "attack");

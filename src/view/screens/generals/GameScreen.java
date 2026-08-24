@@ -275,6 +275,7 @@ public class GameScreen extends UiScreen {
         frostbite.drawFrostbiteTileArt();
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
+        effects.drawScorchedTileEffects(delta);
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
         zombies.drawZombies(delta, bw, bh);

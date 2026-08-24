@@ -7,12 +7,14 @@ import model.match_mechanisms.vector.Position;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.pitches.Cell;
 import model.pitches.TileType;
-import model.pitches.obstacles.Crater;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import model.collections.plant.PlantFactory;
 
 public class ExplodeStrategy implements ActStrategy {
     private static final double TRAP_ACTIVATION_RADIUS = 0.3;
@@ -21,6 +23,11 @@ public class ExplodeStrategy implements ActStrategy {
     @Override
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0 || user.getPosition() == null) return;
+
+        if (user.getName().equalsIgnoreCase("Doom-shroom")) {
+            explodeDoomShroom(user, session);
+            return;
+        }
 
         ArrayList<Zombie> targets;
         switch ((int) user.getAbilityValue()) {
@@ -44,19 +51,68 @@ public class ExplodeStrategy implements ActStrategy {
             int mode = (int) user.getAbilityValue();
             FrostbiteFreezing.damageAdjacentIceBlocks(session, user.getPosition(), mode, user.getDamage(), true);
         }
-        if (user.getName().equalsIgnoreCase("Doom-shroom")) {
-            leaveCrater(user, session);
-        }
         user.setAlive(false);
     }
 
-    private void leaveCrater(Plant user, GameSession session) {
-        Position pos = user.getPosition();
-        if (pos == null || session.getEnvironment() == null) return;
-        int row = (int) Math.round(pos.y());
-        int col = (int) Math.round(pos.x());
-        Cell cell = session.getEnvironment().getCell(row, col);
-        if (cell != null) cell.setObstacle(new Crater());
+    private void explodeDoomShroom(Plant user, GameSession session) {
+        Position center = user.getPosition();
+        if (center == null || session.getEnvironment() == null) return;
+
+        int stage = Math.max(1, Math.min(3, user.getGrowthStage()));
+        int radius = stage;
+        int damage = Math.max(1, user.getDamage());
+
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            double dx = Math.abs(zombie.getPosition().x() - center.x());
+            double dy = Math.abs(zombie.getPosition().y() - center.y());
+            if (Math.max(dx, dy) <= radius) {
+                zombie.takeDamage(damage, user);
+            }
+        }
+
+        for (model.collections.zombie.zombie_pushing_item.PushableStructure structure
+                : session.getPushableStructures()) {
+            if (structure == null || !structure.isAlive() || structure.getPosition() == null) continue;
+            double dx = Math.abs(structure.getPosition().x() - center.x());
+            double dy = Math.abs(structure.getPosition().y() - center.y());
+            if (Math.max(dx, dy) <= radius) {
+                structure.takeDamage(damage, user, session);
+            }
+        }
+
+        int row = (int) Math.round(center.y());
+        int col = (int) Math.round(center.x());
+        session.scorchTile(row, col, 10.0);
+
+        if (stage > 1) {
+            List<Position> candidates = new ArrayList<>();
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int nr = row + dy;
+                    int nc = col + dx;
+                    if (nr < 0 || nr >= session.getEnvironment().getRows()
+                            || nc < 0 || nc >= session.getEnvironment().getCols()) continue;
+                    if (session.isScorchedTile(nr, nc)) continue;
+                    Cell neighbor = session.getEnvironment().getCell(nr, nc);
+                    if (neighbor == null || neighbor.hasPlant() || neighbor.getObstacle() != null) continue;
+                    if (neighbor.getTile() != null && neighbor.getTile().type() == TileType.Slippery) continue;
+                    candidates.add(new Position(nc, nr));
+                }
+            }
+            java.util.Collections.shuffle(candidates, ThreadLocalRandom.current());
+            int spawnCount = Math.min(candidates.size(), ThreadLocalRandom.current().nextInt(1, 3));
+            for (int i = 0; i < spawnCount; i++) {
+                Position spawn = candidates.get(i);
+                Plant clone = PlantFactory.createPlantByName("Doom-shroom", user.getLevel(), spawn);
+                if (!session.plantAt((int) spawn.y(), (int) spawn.x(), clone)) {
+                    clone.setAlive(false);
+                }
+            }
+        }
+
+        user.setAlive(false);
     }
     private boolean actsWithoutTouch(Plant user) {
         return user.getName().equalsIgnoreCase("Hot Potato")
