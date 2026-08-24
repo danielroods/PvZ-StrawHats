@@ -18,7 +18,7 @@ import model.match.main.season.travellog.cave.IceWind;
  * {@link #getBlockedColumnStart()}, which {@code SessionBoard} consults before it lets a
  * plant go down.
  */
-public class FrostbiteCaveZombossBehavior extends ZombossBehavior {
+public class IceAgeZombossBehavior extends ZombossBehavior {
 
     private static final String ICE_PAM =
             "768/FULL/EFFECTS/ZOMBOSS_MISSILE_EXPLOSION_ICEAGE/"
@@ -41,7 +41,7 @@ public class FrostbiteCaveZombossBehavior extends ZombossBehavior {
     private double chillTimer;
     private boolean slingshotFired;
 
-    public FrostbiteCaveZombossBehavior(ZombossFight fight) {
+    public IceAgeZombossBehavior(ZombossFight fight) {
         super(fight);
     }
 
