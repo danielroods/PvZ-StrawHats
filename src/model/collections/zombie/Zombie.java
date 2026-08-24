@@ -55,6 +55,13 @@ public class Zombie extends Item implements Attack {
     private List<String> damageWhileSubmerged;
     private List<String> damageWhileSubmergedPlantfoodOnly;
 
+    // Tangle Kelp drag-under-water visual state (cosmetic only - the water ripple itself
+    // never moves; the zombie's draw position is pushed further down under the fixed
+    // clip line as this climbs from 0 to 1). Driven by TangleKelpStrategy/TangleKelpPlantFood
+    // over the grab's duration, then the zombie is killed once fully submerged.
+    private double dragUnderWaterProgress = 0.0;
+    private boolean dragUnderWaterDeath = false;
+
     // Optional visual-only animation override (e.g. "toss", "push", "cast",
     // "cast_loop", "reel") on top of the coarse WALKING/EATING/DEAD state.
     // Does not affect gameplay logic, only what the renderer prefers to show.
@@ -308,9 +315,15 @@ public class Zombie extends Item implements Attack {
             }
         } else {
             zombieState = ZombieState.WALKING;
-            if (status != Status.BUTTER) {
+            // FROZEN (and BUTTER) halt movement entirely; FREEZE only slows it. This has to
+            // be handled here rather than inside move(double) below, since that method is a
+            // dead-code fallback - moveBehavior is set for effectively every zombie, so
+            // NormalWalk/PusherMove/etc. are what actually run, and none of them look at
+            // status on their own.
+            if (status != Status.BUTTER && status != Status.FROZEN) {
                 if (moveBehavior != null) {
-                    moveBehavior.move(this, deltaTimeSeconds, session);
+                    double scaledDeltaTime = status == Status.FREEZE ? deltaTimeSeconds * 0.5 : deltaTimeSeconds;
+                    moveBehavior.move(this, scaledDeltaTime, session);
                 } else {
                     move(deltaTimeSeconds);
                 }
@@ -372,6 +385,23 @@ public class Zombie extends Item implements Attack {
     public boolean isBeingKnockedBack() {
         return knockbackRemaining > 0.0;
     }
+
+    /** 0 = not being dragged under, 1 = fully sunk beneath the water ripple. */
+    public double getDragUnderWaterProgress() { return dragUnderWaterProgress; }
+
+    /** Cosmetic only: pushes the renderer's draw position further under the fixed water
+     * clip line without moving the zombie's actual grid position (or the ripple, which is
+     * drawn off that grid position and so stays put). */
+    public void setDragUnderWaterProgress(double progress) {
+        this.dragUnderWaterProgress = Math.max(0.0, Math.min(1.0, progress));
+    }
+
+    /** Marks that this zombie's upcoming death was a Tangle Kelp drag-under-water kill, so
+     * the renderer skips the normal splash/particle "die" playback - the zombie has already
+     * visually vanished beneath the ripple by the time it actually dies. */
+    public void markDragUnderWaterDeath() { this.dragUnderWaterDeath = true; }
+
+    public boolean diedFromDragUnderWater() { return dragUnderWaterDeath; }
 
     public void move(double deltaTimeSeconds) {
         Position pos = getPosition();

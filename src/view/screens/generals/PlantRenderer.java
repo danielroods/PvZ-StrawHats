@@ -11,6 +11,7 @@ import model.collections.plant.AbilityType;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.plant.PlantType;
+import model.collections.plant.plantfood.TangleKelpPlantFood;
 import model.collections.zombie.Zombie;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
@@ -417,6 +418,10 @@ class PlantRenderer {
                     screen.batch.setColor(Color.WHITE);
                 }
             }
+
+            if (plant.getPlantFoodEffect() instanceof TangleKelpPlantFood tangleKelpPlantFood) {
+                drawTangleKelpRemoteAttacks(tangleKelpPlantFood, boardTileWidth);
+            }
         }
         plantAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
@@ -429,6 +434,27 @@ class PlantRenderer {
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
+    }
+
+    /**
+     * Tangle Kelp's Plant Food can drag zombies under on tiles other than its own - there's
+     * no real plant standing there, so each such tile borrows a plain "attack" clip of the
+     * same PAM for as long as {@link TangleKelpPlantFood#remoteAttackTiles()} reports it.
+     */
+    private void drawTangleKelpRemoteAttacks(TangleKelpPlantFood effect, float boardTileWidth) {
+        List<Position> tiles = effect.remoteAttackTiles();
+        if (tiles.isEmpty()) return;
+
+        String path = AnimationFactory.pathForDisplayName("Tangle Kelp");
+        float clipDuration = screen.pam().resolvePlantClipDuration("Tangle Kelp", "attack");
+        float rawTime = (float) effect.remoteAttackElapsed();
+        float time = clipDuration > 0f ? rawTime % clipDuration : rawTime;
+
+        for (Position tile : tiles) {
+            float tileX = GameScreen.BOARD_X + (float) tile.x() * boardTileWidth + 30f;
+            float tileY = screen.cellY((int) tile.y()) + 40f;
+            screen.drawPam(path, "attack", time, tileX, tileY, 0.55f, false);
+        }
     }
 
     /** Plays the brief "death"/"idle_stage4" clip queued up by trackExplodedPlants. */
@@ -608,8 +634,10 @@ class PlantRenderer {
     /**
      * Sunflower, Twin Sunflower, Primal Sunflower and Sun-shroom all use the "special"
      * clip (Sun-shroom's staged "special_stageN" variant) while they're actively producing
-     * a sun. Sun Bean doesn't produce sun this way (it grants sun on taking damage instead),
-     * so it's excluded here even though it's still part of {@link #isSunProducerFamily}
+     * a sun. Sun Bean doesn't produce sun this way (biting it marks the zombie as a sun-bean
+     * carrier - halo overlay until that zombie dies, then it drops sun - see Plant#takeDamage
+     * and Zombie#markSunBeanCarrier), so it's excluded here even though it's still part of
+     * {@link #isSunProducerFamily}
      * for Plant Food purposes.
      */
     private boolean isSunProducingPlant(Plant plant) {

@@ -50,8 +50,17 @@ class ZombieRenderer {
     // Named element inside every zombie's own PAM for the butter-stun face
     // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
+    // Multiply-tint applied to a zombie's sprite while it's iced (Status.FREEZE/FROZEN),
+    // matching the frosty blue look of the real game - see drawZombies.
+    private static final Color ICE_STATUS_TINT = new Color(0.55f, 0.75f, 1f, 1f);
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
+    // Extra downward draw offset applied on top of the normal "waist-deep" submerged
+    // offset while a zombie is being dragged under by Tangle Kelp, scaled by
+    // Zombie#getDragUnderWaterProgress() (0 = untouched, 1 = fully sunk beneath the fixed
+    // water clip line). The ripple itself is drawn off the zombie's actual grid position,
+    // which this never changes, so it stays put while the zombie sinks.
+    private static final float DRAG_UNDER_WATER_MAX_OFFSET = 90f;
     private static final String WATER_GARGANTUAR_RIPPLE_PAM =
             "768/FULL/BACKGROUNDS/WATER_GARGANTUAR_RIPPLE/WATER_GARGANTUAR_RIPPLE.PAM";
     private static final String WATER_IMP_RIPPLE_PAM =
@@ -126,13 +135,16 @@ class ZombieRenderer {
                     && !ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias());
             ZombieWaterRipple waterRipple = waterRippleEligible
                     ? updateZombieWaterRipple(zombie, delta) : null;
-            boolean submerged = waterRipple != null && waterRipple.inWater;
+            float dragUnderProgress = (float) zombie.getDragUnderWaterProgress();
+            boolean beingDraggedUnder = dragUnderProgress > 0f;
+            boolean submerged = (waterRipple != null && waterRipple.inWater) || beingDraggedUnder;
 
             float clipWaterY = y + 15f;
             float rippleDrawX = (x + boardTileWidth * 0.5f) + RIPPLE_OFFSET_X;
             float rippleDrawY = clipWaterY + RIPPLE_OFFSET_Y;
 
-            float zombieDrawY = submerged ? zombieOffsetY - 20f : zombieOffsetY;
+            float zombieDrawY = (submerged ? zombieOffsetY - 20f : zombieOffsetY)
+                    - dragUnderProgress * DRAG_UNDER_WATER_MAX_OFFSET;
 
             if (zombie.isFromNecromancy()) {
                 zombieSpawnEffects.put(zombie, 0f);
@@ -217,10 +229,13 @@ class ZombieRenderer {
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
+            boolean iced = zombie.getStatus() == Zombie.Status.FREEZE || zombie.getStatus() == Zombie.Status.FROZEN;
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
+                if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
+                if (iced) screen.batch.setColor(Color.WHITE);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
@@ -230,8 +245,11 @@ class ZombieRenderer {
                 }
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
+                    if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
-                            new Color(0.55f, 0.5f, 0.45f, 1f), GameScreenGraphics.initials(zombie.getAlias()));
+                            iced ? ICE_STATUS_TINT : new Color(0.55f, 0.5f, 0.45f, 1f),
+                            GameScreenGraphics.initials(zombie.getAlias()));
+                    if (iced) screen.batch.setColor(Color.WHITE);
                 }
             } finally {
                 if (waterClipActive) popWaterClip();
@@ -277,6 +295,15 @@ class ZombieRenderer {
             if (stillAlive.contains(zombie)) continue;
             if (zombie.getPosition() == null) continue;
             if (zombie.getZombieState() != ZombieState.DEAD) continue;
+
+            if (zombie.diedFromDragUnderWater()) {
+                // Tangle Kelp already dragged this zombie fully out of view beneath the
+                // (stationary) water ripple - no splash/particle "die" playback needed on
+                // top of that, it would just pop back into view for one frame.
+                zombieAnimTimes.remove(zombie);
+                screen.onZombieDied(zombie);
+                continue;
+            }
 
             String ashPath = zombie.diedFromFire() ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
             float dieDuration;
