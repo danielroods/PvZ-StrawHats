@@ -75,6 +75,26 @@ class EffectRenderer {
         }
     }
 
+    // Hot Potato: melting the ice block/frozen plant it's planted on plays a three-phase
+    // ground puddle - see addHotPotatoMeltEffect/drawHotPotatoMeltEffects.
+    private static final String HOTPOTATO_ICEBLOCK_PUDDLE_PAM =
+            "768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/HOTPOTATO_ICEBLOCK_PUDDLE.PAM";
+    private static final float HOTPOTATO_PUDDLE_HOLD_SECONDS = 3.0f;
+    private static final float HOTPOTATO_PUDDLE_SCALE = 0.65f;
+    private static final float HOTPOTATO_PUDDLE_OFFSET_X = 0.45f;
+    private static final float HOTPOTATO_PUDDLE_OFFSET_Y = 0.50f;
+
+    /** Tracks one Hot Potato melt puddle through animation (intro) -> animation2 (hold) -> animation3 (outro). */
+    private static final class HotPotatoMeltEffect {
+        final Position position;
+        String phase = "animation";
+        float phaseTime;
+
+        HotPotatoMeltEffect(Position position) {
+            this.position = position;
+        }
+    }
+
     private static final class IceShroomZone {
         final Plant plant;
         final List<Position> tiles;
@@ -106,6 +126,7 @@ class EffectRenderer {
     private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
+    private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
@@ -153,6 +174,13 @@ class EffectRenderer {
     void addScorchedTileEffect(Position position) {
         if (position == null) return;
         scorchedTileEffects.add(new ScorchedTileEffect(
+                new Position(position.x(), position.y())));
+    }
+
+    /** Starts the melting-ice-puddle sequence on Hot Potato's own tile (its ice block/frozen plant). */
+    void addHotPotatoMeltEffect(Position position) {
+        if (position == null) return;
+        hotPotatoMeltEffects.add(new HotPotatoMeltEffect(
                 new Position(position.x(), position.y())));
     }
 
@@ -258,6 +286,56 @@ class EffectRenderer {
         float finalEndDuration = endDuration;
         scorchedTileEffects.removeIf(e -> "animation3".equals(e.phase)
                 && e.phaseTime >= finalEndDuration);
+    }
+
+    /**
+     * Renders the Hot Potato melting-ice puddle before plants are drawn, so it sits
+     * underneath the plant/ice block it's melting rather than on top of it.
+     * GameScreen calls this as part of the board background layer, alongside
+     * {@link #drawScorchedTileEffects}.
+     */
+    void drawHotPotatoMeltEffects(float delta) {
+        if (hotPotatoMeltEffects.isEmpty()) return;
+
+        float tileW = screen.getBoardTileWidth();
+        float tileH = screen.getBoardTileHeight();
+        float introDuration = AnimationFactory.clipDurationForPath(
+                HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation");
+        float outroDuration = AnimationFactory.clipDurationForPath(
+                HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation3");
+        if (introDuration <= 0f) introDuration = 0.5f;
+        if (outroDuration <= 0f) outroDuration = 0.5f;
+
+        for (HotPotatoMeltEffect effect : hotPotatoMeltEffects) {
+            effect.phaseTime += delta;
+
+            if ("animation".equals(effect.phase) && effect.phaseTime >= introDuration) {
+                effect.phase = "animation2";
+                effect.phaseTime = 0f;
+            }
+            if ("animation2".equals(effect.phase) && effect.phaseTime >= HOTPOTATO_PUDDLE_HOLD_SECONDS) {
+                effect.phase = "animation3";
+                effect.phaseTime = 0f;
+            }
+
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * tileW
+                    + tileW * HOTPOTATO_PUDDLE_OFFSET_X;
+            float y = screen.cellY((int) effect.position.y())
+                    + tileH * HOTPOTATO_PUDDLE_OFFSET_Y;
+            boolean loop = "animation2".equals(effect.phase);
+            float time = effect.phaseTime;
+            if (loop) {
+                float duration = AnimationFactory.clipDurationForPath(
+                        HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation2");
+                if (duration > 0f) time %= duration;
+            }
+            screen.drawPam(HOTPOTATO_ICEBLOCK_PUDDLE_PAM, effect.phase, time,
+                    x, y, HOTPOTATO_PUDDLE_SCALE, loop);
+        }
+
+        float finalOutroDuration = outroDuration;
+        hotPotatoMeltEffects.removeIf(e -> "animation3".equals(e.phase)
+                && e.phaseTime >= finalOutroDuration);
     }
 
     private void drawTimedEffects(List<TimedPamEffect> effects, float delta) {

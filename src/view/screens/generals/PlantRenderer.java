@@ -908,6 +908,18 @@ class PlantRenderer {
                 continue;
             }
 
+            if ("Hot Potato".equalsIgnoreCase(plant.getName())) {
+                // Plays the full intro -> hold -> outro melting-puddle sequence on the
+                // ice block/frozen plant's tile, underneath it - see
+                // EffectRenderer.addHotPotatoMeltEffect/drawHotPotatoMeltEffects. This
+                // replaces the generic single-shot EXPLOSIVE effect handling below so the
+                // puddle isn't cut short at EXPLODING_PLANT_EFFECT_DURATION.
+                screen.effects().addHotPotatoMeltEffect(plant.getPosition());
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
             if ("Torchwood".equalsIgnoreCase(plant.getName())) {
                 String path = AnimationFactory.pathForDisplayName(plant.getName());
                 if (path != null) {
