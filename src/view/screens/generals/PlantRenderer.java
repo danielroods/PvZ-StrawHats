@@ -950,6 +950,14 @@ class PlantRenderer {
                 continue;
             }
 
+            if ("Jalapeno".equalsIgnoreCase(plant.getName())) {
+                screen.effects().addJalapenoRowFireEffect(
+                        (int) Math.round(plant.getPosition().y()));
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
             boolean delayedExplosiveDeath = plant.isPotatoMine()
                     || "Cherry Bomb".equalsIgnoreCase(plant.getName());
             if (plant.isPotatoMine() && plant.wasPotatoMineEatenByZombie()) continue;

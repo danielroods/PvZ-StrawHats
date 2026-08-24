@@ -271,7 +271,8 @@ public class ExplodeStrategy implements ActStrategy {
             } else if (user.getTags().contains(PlantTag.FIRE)) {
                 zombie.setStatus(Zombie.Status.FIRED);
             }
-            if ("Cherry Bomb".equalsIgnoreCase(user.getName())) {
+            if ("Cherry Bomb".equalsIgnoreCase(user.getName())
+                    || "Jalapeno".equalsIgnoreCase(user.getName())) {
                 zombie.takeDamageWithAsh(damage, user);
             } else {
                 zombie.takeDamage(damage, user);

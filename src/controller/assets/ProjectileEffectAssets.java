@@ -569,8 +569,8 @@ public final class ProjectileEffectAssets {
     private static void registerJalapeno() {
         register("Jalapeno",
                 rowEntry("768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM",
-                        "idle", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "single-tile fire line on explosion (no separate blast asset given)")
+                        "idle2", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "Jalapeno lane fire tile effect; idle2 is the PvZ2 burn clip")
         );
     }
 

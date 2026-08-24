@@ -169,6 +169,9 @@ public class PlantFactory {
         } else if ("Cherry Bomb".equalsIgnoreCase(config.name)) {
             plant.setInternalTimer(0.70);
             plant.setState(Plant.PlantState.PREPPING);
+        } else if ("Jalapeno".equalsIgnoreCase(config.name)) {
+            plant.setInternalTimer(0.67);
+            plant.setState(Plant.PlantState.PREPPING);
         } else if (plant.getTags().contains(PlantTag.CHARGE)) {
             plant.setInternalTimer(plant.getActionInterval());
         }
@@ -184,6 +187,10 @@ public class PlantFactory {
     }
 
     private static double resolveFuseSeconds(PlantJsonParser.PlantConfig config) {
+        if ("Jalapeno".equalsIgnoreCase(config.name)) {
+            return 0.67;
+        }
+
         // Doom-shroom deliberately has a long fuse so its three GrowthTracker stages
         // can actually be reached before the explosion. Its visual explosion state is
         // selected separately by PlantRenderer/EffectRenderer.

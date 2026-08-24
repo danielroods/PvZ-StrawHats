@@ -240,6 +240,18 @@ class EffectRenderer {
         }
     }
 
+    void addJalapenoRowFireEffect(int row) {
+        if (screen.session.getEnvironment() == null) return;
+
+        final String path = "768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM";
+        final float duration = 0.90f;
+        for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+            impactEffects.add(new TimedPamEffect(
+                    path, "idle2", false, false,
+                    new Position(col+0.15f, row), duration, 0.565f));
+        }
+    }
+
     void addDeflectSparkEffect(Position position) {
         impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
                 false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
