@@ -35,6 +35,7 @@ public class LawnMower {
 
             if (session != null) {
                 for (Zombie zombie : session.getZombies()) {
+                    if (zombie.isBoss()) continue;
                     if (zombie.isAlive() && zombie.getPosition() != null && Math.round(zombie.getPosition().y()) == rowNumber) {
                         if (zombie.getPosition().x() <= xPosition + 0.6 && zombie.getPosition().x() >= xPosition - 1.0) {
                             zombie.setHp(0);
