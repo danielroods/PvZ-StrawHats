@@ -309,6 +309,7 @@ public class GameScreen extends UiScreen {
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
         effects.drawScorchedTileEffects(delta);
+        effects.drawHotPotatoMeltEffects(delta);
         zomboss.drawBackdrop();
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);

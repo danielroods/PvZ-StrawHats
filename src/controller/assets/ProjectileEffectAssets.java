@@ -709,10 +709,23 @@ public final class ProjectileEffectAssets {
 
     private static void registerHotPotato() {
         register("Hot Potato",
+                // Melting ice puddle synergy fx, played on the ice block/frozen plant's own
+                // tile - see EffectRenderer.addHotPotatoMeltEffect/drawHotPotatoMeltEffects.
+                // Three-phase clip: "animation" intro (ice cracking/starting to melt),
+                // "animation2" the puddle sitting there for a few seconds, "animation3" the
+                // outro as the puddle fades/dries up.
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
                                 + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
-                        "melting ice puddle (synergy fx when melting an ice block)"),
+                        "melting ice puddle, intro (synergy fx when melting an ice block)"),
+                entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
+                                + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
+                        "animation2", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
+                        "melting ice puddle, holds for a few seconds"),
+                entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
+                                + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
+                        "animation3", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "melting ice puddle, outro"),
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_STEAMFX/"
                                 + "HOTPOTATO_ICEBLOCK_STEAMFX.PAM",
                         "animation", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
