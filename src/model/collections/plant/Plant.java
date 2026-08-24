@@ -114,6 +114,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
             remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
             if (GameClock.isZero(remainingLifeSeconds)) {
                 setState(PlantState.DYING);
+                if (name != null && name.equalsIgnoreCase("Torchwood")) {
+                    executeTorchwoodDeathExplosion();
+                }
                 setAlive(false);
                 return;
             }
@@ -183,6 +186,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 setHP(0);
                 this.state = PlantState.DYING;
                 if (name.equalsIgnoreCase("Explode-o-nut")) executeArmorExplosion();
+                if (name.equalsIgnoreCase("Torchwood")) executeTorchwoodDeathExplosion();
                 Position position = getLocation();
                 if (position != null) {
                     GeneralPrinter.print("Plant " + name + " at (" + ((int) position.x() + 1)
@@ -190,6 +194,22 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 }
             } else {
                 setHP(newHp);
+            }
+        }
+    }
+
+    private void executeTorchwoodDeathExplosion() {
+        GameSession session = GameSession.peekInstance();
+        Position center = getPosition();
+        if (session == null || center == null) return;
+
+        // Torchwood's death explosion only affects zombies in/around its tile.
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            if (Math.abs(zp.x() - center.x()) <= 1
+                    && Math.abs(zp.y() - center.y()) <= 1) {
+                zombie.takeDamage(Math.max(1, zombie.getHP()), this);
             }
         }
     }
@@ -221,7 +241,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
         }
         this.plantFoodEffect.applyStatusModifiers(this);
         this.plantFoodEffect.triggerSuperpower(this, session);
-        this.plantFoodTimer = Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
+        this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
+                ? Double.POSITIVE_INFINITY
+                : Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
+
+        if ("Torchwood".equalsIgnoreCase(name)) {
+            setVisualAnimationState("plantfood", Double.POSITIVE_INFINITY);
+        }
 
         if ("Sweet Potato".equalsIgnoreCase(name) && this.plantFoodTimer > 0.0) {
             this.specialInvulnerable = true;

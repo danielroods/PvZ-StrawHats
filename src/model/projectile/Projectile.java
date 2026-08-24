@@ -24,6 +24,10 @@ public class Projectile extends Item {
     private Plant sourcePlant;
     private boolean isStunning;
     private int assetVariant;
+    private double damageOverride = Double.NaN;
+    private String displayPath;
+    private String displayState;
+    private boolean torchwoodTransformed;
     private double maxTravelDistance;
     private double travelledDistance;
     private Position previousPosition;
@@ -135,6 +139,9 @@ public class Projectile extends Item {
         return assetVariant;
     }
 
+    public String getDisplayPath() { return displayPath; }
+    public String getDisplayState() { return displayState; }
+
     public void setAssetVariant(int assetVariant) {
         this.assetVariant = Math.max(0, assetVariant);
     }
@@ -177,6 +184,8 @@ public class Projectile extends Item {
             hitOriginalTarget(previousPosition);
             return;
         }
+
+        applyTorchwoodTransform(session, previousPosition, currentPosition);
 
         if (lobberTargetOnly) {
             // Normal Lobber shots are target-only.
@@ -330,7 +339,63 @@ public class Projectile extends Item {
         }
     }
 
+    private void applyTorchwoodTransform(GameSession session, Position start, Position end) {
+        if (torchwoodTransformed || sourcePlant == null || sourcePlant.getPosition() == null
+                || sourcePlant.getTags() == null || !sourcePlant.getTags().contains(model.collections.plant.PlantTag.PEA)
+                || start == null || end == null) return;
+
+        Position best = null;
+        double bestProjection = Double.MAX_VALUE;
+        for (Plant plant : session.getPlants()) {
+            if (plant == null || !plant.isAlive() || !"Torchwood".equalsIgnoreCase(plant.getName())
+                    || plant.getPosition() == null) continue;
+            Position torch = plant.getPosition();
+            double projection = collisionProjection(torch, start, end);
+            if (projection >= 0 && projection < bestProjection) {
+                bestProjection = projection;
+                best = torch;
+            }
+        }
+        if (best == null) return;
+
+        torchwoodTransformed = true;
+        boolean torchwoodPlantFood = false;
+        for (Plant plant : session.getPlants()) {
+            if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
+            if (!"Torchwood".equalsIgnoreCase(plant.getName())) continue;
+            if (plant.getPosition().distanceTo(best) <= 0.01) {
+                torchwoodPlantFood = plant.isPlantFoodActive();
+                break;
+            }
+        }
+
+        if (torchwoodPlantFood) {
+            displayPath = "768/INITIAL/EFFECTS/T_FIRE_PEA_BLUE/T_FIRE_PEA_BLUE.PAM";
+            displayState = "animation2";
+            damageOverride = 40.0;
+            hitEffectStrategy = new model.projectile.hit.FireHit(1, 1.0);
+            remainingHits = Integer.MIN_VALUE;
+            return;
+        }
+
+        if ("Snow Pea".equalsIgnoreCase(sourcePlant.getName())) {
+            displayPath = "768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM";
+            displayState = "animation";
+            damageOverride = 20.0;
+            hitEffectStrategy = new model.projectile.hit.NormalHit(1);
+            remainingHits = Integer.MIN_VALUE;
+        } else if (sourcePlant.getTags().contains(model.collections.plant.PlantTag.PEA)
+                && !"Fire Peashooter".equalsIgnoreCase(sourcePlant.getName())) {
+            displayPath = "768/INITIAL/EFFECTS/T_FIRE_PEA/T_FIRE_PEA.PAM";
+            displayState = "animation";
+            damageOverride = 40.0;
+            hitEffectStrategy = new model.projectile.hit.FireHit(1, 1.0);
+            remainingHits = Integer.MIN_VALUE;
+        }
+    }
+
     private int getEffectiveDamage() {
+        if (!Double.isNaN(damageOverride)) return Math.max(0, (int) Math.round(damageOverride));
         double multiplier = hitEffectStrategy == null ? 1.0 : hitEffectStrategy.getDamageMultiplier();
         return Math.max(0, (int) Math.round(damage * multiplier));
     }

@@ -644,7 +644,10 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/TORCHWOOD_HIT_EFFECTS/"
                                 + "TORCHWOOD_HIT_EFFECTS.PAM",
                         "hit_power", PlayMode.ONCE, Kind.HIT, Variant.PLANT_FOOD,
-                        "pea passing through fire, empowered hit (variant guessed)")
+                        "pea passing through fire, plant-food hit"),
+                rowEntry("768/INITIAL/EFFECTS/FIREPEASHOOTER_FIRE/FIREPEASHOOTER_FIRE.PAM",
+                        "idle", PlayMode.LOOP, Kind.EFFECT, Variant.PLANT_FOOD,
+                        "plant-food fire across the whole row")
         );
     }
 

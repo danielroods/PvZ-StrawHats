@@ -120,6 +120,15 @@ class EffectRenderer {
                 PROJECTILE_PAM_SCALE));
     }
 
+    void addTorchwoodRowFireEffect(int row, float duration) {
+        if (screen.session.getEnvironment() == null) return;
+        final String path = "768/INITIAL/EFFECTS/FIREPEASHOOTER_FIRE/FIREPEASHOOTER_FIRE.PAM";
+        for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+            impactEffects.add(new TimedPamEffect(path, "idle", true, false,
+                    new Position(col, row), duration, PROJECTILE_PAM_SCALE));
+        }
+    }
+
     void addDeflectSparkEffect(Position position) {
         impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
                 false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
@@ -554,6 +563,15 @@ class EffectRenderer {
         ProjectileEffectAssets.Variant variant = source.isPlantFoodActive()
                 ? ProjectileEffectAssets.Variant.PLANT_FOOD
                 : ProjectileEffectAssets.Variant.NORMAL;
+        if (projectile.getDisplayPath() != null && projectile.getDisplayState() != null) {
+            boolean loop = true;
+            screen.drawPam(projectile.getDisplayPath(), projectile.getDisplayState(), age,
+                    GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                            + screen.getBoardTileWidth() * 0.41f,
+                    screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.36f,
+                    PROJECTILE_PAM_SCALE, false);
+            return true;
+        }
         List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
                 source.getName(), ProjectileEffectAssets.Kind.PROJECTILE, variant);
         if (entries.isEmpty() && variant == ProjectileEffectAssets.Variant.PLANT_FOOD) {
