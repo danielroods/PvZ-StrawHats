@@ -228,10 +228,20 @@ public class ExplodeStrategy implements ActStrategy {
     private ArrayList<Zombie> areaDetect(Plant user, GameSession session) {
         ArrayList<Zombie> targets = new ArrayList<>();
         Position center = user.getPosition();
+        boolean cherryBomb = "Cherry Bomb".equalsIgnoreCase(user.getName());
+
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
             Position pos = zombie.getPosition();
-            if (Math.abs(pos.y() - center.y()) <= 1 && Math.abs(pos.x() - center.x()) <= 1) {
+
+            if (cherryBomb) {
+                 if (Math.abs(pos.y() - center.y()) <= 1
+                        && pos.x() >= center.x() - 1
+                        && pos.x() <= center.x() + 2) {
+                    targets.add(zombie);
+                }
+            } else if (Math.abs(pos.y() - center.y()) <= 1
+                    && Math.abs(pos.x() - center.x()) <= 1) {
                 targets.add(zombie);
             }
         }
@@ -261,7 +271,11 @@ public class ExplodeStrategy implements ActStrategy {
             } else if (user.getTags().contains(PlantTag.FIRE)) {
                 zombie.setStatus(Zombie.Status.FIRED);
             }
-            zombie.takeDamage(damage, user);
+            if ("Cherry Bomb".equalsIgnoreCase(user.getName())) {
+                zombie.takeDamageWithAsh(damage, user);
+            } else {
+                zombie.takeDamage(damage, user);
+            }
         }
     }
 

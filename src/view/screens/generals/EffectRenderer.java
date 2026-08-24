@@ -29,6 +29,11 @@ class EffectRenderer {
             "768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM";
     private static final String PRIMAL_POTATO_MINE_EXPLOSION_PAM =
             "768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/PRIMAL_POTATOMINE_EXPLOSION.PAM";
+    private static final String CHERRY_BOMB_EXPLOSION_PAM =
+            "768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_TOP/CHERRYBOMB_EXPLOSION_TOP.PAM";
+    private static final float CHERRY_BOMB_EXPLOSION_SCALE = 0.55f;
+    private static final float CHERRY_BOMB_EXPLOSION_OFFSET_X = 0.43f;
+    private static final float CHERRY_BOMB_EXPLOSION_OFFSET_Y = 1.3f;
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
@@ -172,6 +177,18 @@ class EffectRenderer {
                     return new ProjectileEffectAssets.AssetEntry(
                             entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
                             entry.scope(), entry.purpose());
+                }
+            }
+            if ("Cherry Bomb".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(CHERRY_BOMB_EXPLOSION_PAM, "explosion3");
+                if (exact != null) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            CHERRY_BOMB_EXPLOSION_PAM, exact,
+                            ProjectileEffectAssets.PlayMode.ONCE,
+                            ProjectileEffectAssets.Kind.HIT,
+                            ProjectileEffectAssets.Variant.NORMAL,
+                            ProjectileEffectAssets.Scope.SELF,
+                            "Cherry Bomb main explosion");
                 }
             }
             return entry;
@@ -376,13 +393,16 @@ class EffectRenderer {
             effect.time += delta;
             boolean potatoMineExplosion = POTATO_MINE_EXPLOSION_PAM.equals(effect.path)
                     || PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path);
+            boolean cherryBombExplosion = CHERRY_BOMB_EXPLOSION_PAM.equals(effect.path);
             float offsetX = potatoMineExplosion
-                    ? POTATO_MINE_EXPLOSION_OFFSET_X : 0.30f;
+                    ? POTATO_MINE_EXPLOSION_OFFSET_X
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_OFFSET_X : 0.30f;
             float offsetY = potatoMineExplosion
-                    ? POTATO_MINE_EXPLOSION_OFFSET_Y : 0.30f;
+                    ? POTATO_MINE_EXPLOSION_OFFSET_Y
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_OFFSET_Y : 0.30f;
             float drawScale = potatoMineExplosion
                     ? effect.scale * POTATO_MINE_EXPLOSION_SCALE_MULTIPLIER
-                    : effect.scale;
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_SCALE : effect.scale;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
                     + boardTileWidth * offsetX;
             float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY;

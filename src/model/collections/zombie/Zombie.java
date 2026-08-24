@@ -216,7 +216,7 @@ public class Zombie extends Item implements Attack {
 
         if (newHp <= 0) {
             boolean diedFromFire = isFireDamageSource(damageSource) || status == Status.FIRED;
-            handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire);
+            handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire, ashDeath);
         }
     }
 
@@ -236,10 +236,15 @@ public class Zombie extends Item implements Attack {
     }
 
     private void handleDeath(GameSession session, String killerName, boolean firedDeath) {
+        handleDeath(session, killerName, firedDeath, false);
+    }
+
+    private void handleDeath(GameSession session, String killerName, boolean firedDeath, boolean ashDeath) {
         if (deathHandled) return;
         deathHandled = true;
         zombieState = ZombieState.DEAD;
         this.firedDeath = firedDeath;
+        this.ashDeath = this.ashDeath || ashDeath;
         setHP(0);
         if (sunBeanCarrierValue > 0 && session != null && getPosition() != null) {
             session.getItems().add(new model.collections.item.GroundSun(getPosition(), sunBeanCarrierValue));

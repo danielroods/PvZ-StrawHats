@@ -166,6 +166,9 @@ public class PlantFactory {
             double armReduction = specialValues.getOrDefault("ARM_TIME_REDUCTION", 0.0);
             plant.setInternalTimer(Math.max(0.1, baseArmTime - armReduction));
             plant.setState(Plant.PlantState.PREPPING);
+        } else if ("Cherry Bomb".equalsIgnoreCase(config.name)) {
+            plant.setInternalTimer(0.70);
+            plant.setState(Plant.PlantState.PREPPING);
         } else if (plant.getTags().contains(PlantTag.CHARGE)) {
             plant.setInternalTimer(plant.getActionInterval());
         }

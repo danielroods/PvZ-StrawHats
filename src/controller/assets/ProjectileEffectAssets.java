@@ -544,14 +544,10 @@ public final class ProjectileEffectAssets {
 
     private static void registerCherryBomb() {
         register("Cherry Bomb",
-                entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_REAR/"
-                                + "CHERRYBOMB_EXPLOSION_REAR.PAM",
-                        "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "rear/background explosion layer"),
                 entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_TOP/"
                                 + "CHERRYBOMB_EXPLOSION_TOP.PAM",
-                        "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "top explosion layer")
+                        "explosion3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "Cherry Bomb's main explosion layer")
         );
     }
 

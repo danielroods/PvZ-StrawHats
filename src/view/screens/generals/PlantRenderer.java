@@ -313,9 +313,11 @@ class PlantRenderer {
                 preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
                 animTime = t;
             } else if (prepping) {
-                preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
-                        ? "intro"
-                        : screen.pam().resolveFuseClipState(plant.getName());
+                preferredState = "Cherry Bomb".equalsIgnoreCase(plant.getName())
+                        ? "attack"
+                        : (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
+                            ? "intro"
+                            : screen.pam().resolveFuseClipState(plant.getName()));
                 animTime = t;
             } else if (attacking) {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
@@ -929,18 +931,6 @@ class PlantRenderer {
                 continue;
             }
 
-            if ("Hot Potato".equalsIgnoreCase(plant.getName())) {
-                // Plays the full intro -> hold -> outro melting-puddle sequence on the
-                // ice block/frozen plant's tile, underneath it - see
-                // EffectRenderer.addHotPotatoMeltEffect/drawHotPotatoMeltEffects. This
-                // replaces the generic single-shot EXPLOSIVE effect handling below so the
-                // puddle isn't cut short at EXPLODING_PLANT_EFFECT_DURATION.
-                screen.effects().addHotPotatoMeltEffect(plant.getPosition());
-                plantAnimTimes.remove(plant);
-                plantAttackAnimTimes.remove(plant);
-                continue;
-            }
-
             if ("Torchwood".equalsIgnoreCase(plant.getName())) {
                 String path = AnimationFactory.pathForDisplayName(plant.getName());
                 if (path != null) {
@@ -960,9 +950,10 @@ class PlantRenderer {
                 continue;
             }
 
+            boolean delayedExplosiveDeath = plant.isPotatoMine()
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName());
             if (plant.isPotatoMine() && plant.wasPotatoMineEatenByZombie()) continue;
-
-            if (!plant.isPotatoMine() && plant.getHP() <= 0) continue;
+            if (!delayedExplosiveDeath && plant.getHP() <= 0) continue;
             if (plant.getType() != PlantType.EXPLOSIVE) continue;
 
             ProjectileEffectAssets.AssetEntry entry = screen.effects().resolveExplosionEntry(plant.getName());
@@ -971,7 +962,9 @@ class PlantRenderer {
             boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
             Position position = plant.getPosition();
             float effectDuration = EXPLODING_PLANT_EFFECT_DURATION;
-            if ("Potato Mine".equalsIgnoreCase(plant.getName())) {
+            if ("Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Primal Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName())) {
                 float resolved = AnimationFactory.exactClipDurationForPath(entry.path(), entry.state());
                 if (resolved > 0f) effectDuration = resolved;
             }
