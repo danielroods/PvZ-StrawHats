@@ -27,6 +27,8 @@ class EffectRenderer {
     static final float POTATO_MINE_EXPLOSION_OFFSET_Y = 1f;
     private static final String POTATO_MINE_EXPLOSION_PAM =
             "768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM";
+    private static final String PRIMAL_POTATO_MINE_EXPLOSION_PAM =
+            "768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/PRIMAL_POTATOMINE_EXPLOSION.PAM";
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
@@ -137,6 +139,14 @@ class EffectRenderer {
                 if (exact == null) {
                     exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation2");
                 }
+                if (exact != null && !exact.equals(entry.state())) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
+                            entry.scope(), entry.purpose());
+                }
+            }
+            if ("Primal Potato Mine".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation3");
                 if (exact != null && !exact.equals(entry.state())) {
                     return new ProjectileEffectAssets.AssetEntry(
                             entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
@@ -286,7 +296,8 @@ class EffectRenderer {
         float boardTileHeight = screen.getBoardTileHeight();
         for (TimedPamEffect effect : effects) {
             effect.time += delta;
-            boolean potatoMineExplosion = POTATO_MINE_EXPLOSION_PAM.equals(effect.path);
+            boolean potatoMineExplosion = POTATO_MINE_EXPLOSION_PAM.equals(effect.path)
+                    || PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path);
             float offsetX = potatoMineExplosion
                     ? POTATO_MINE_EXPLOSION_OFFSET_X : 0.30f;
             float offsetY = potatoMineExplosion
@@ -302,9 +313,13 @@ class EffectRenderer {
             } else {
                 boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
                         x, y, drawScale, effect.loop);
-                if (!drawn
-                        && POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
-                    String fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
+                if (!drawn && potatoMineExplosion) {
+                    String fallback;
+                    if (PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
+                        fallback = "animation";
+                    } else {
+                        fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
+                    }
                     screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
                 }
             }

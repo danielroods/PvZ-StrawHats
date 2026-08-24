@@ -54,6 +54,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     private boolean potatoMineArmed = false;
     private boolean potatoMineDetonationPending = false;
+    // Set only when a zombie's eating/chomping attack actually kills a potato mine.
+    // Such a death must not trigger the mine's explosion effect.
+    private boolean potatoMineEatenByZombie = false;
     private boolean chomperSpecialActive = false;
     private boolean chomperSpecialPending = false;
     private boolean chomperDigestIdlePending = false;
@@ -274,6 +277,21 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return potatoMineDetonationPending;
     }
 
+    public void markPotatoMineEatenByZombie() {
+        if (isPotatoMine()) {
+            potatoMineEatenByZombie = true;
+            potatoMineDetonationPending = false;
+            potatoMineArmed = false;
+            visualAnimationState = null;
+            visualAnimationRemaining = 0.0;
+            visualAnimationElapsed = 0.0;
+        }
+    }
+
+    public boolean wasPotatoMineEatenByZombie() {
+        return potatoMineEatenByZombie;
+    }
+
     public void finishPotatoMineAttack() {
         potatoMineDetonationPending = false;
     }
@@ -292,7 +310,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.plantFoodEffect.triggerSuperpower(this, session);
         if (isPotatoMine()) {
             this.plantFoodTimer = 0.0;
-            setVisualAnimationState("plantfood2", 0.37);
+            setVisualAnimationState("plantfood2", 0.67);
         } else {
             this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
                     ? Double.POSITIVE_INFINITY

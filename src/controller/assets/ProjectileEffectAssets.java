@@ -537,8 +537,8 @@ public final class ProjectileEffectAssets {
         register("Primal Potato Mine",
                 entry("768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/"
                                 + "PRIMAL_POTATOMINE_EXPLOSION.PAM",
-                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "mine explosion")
+                        "animation3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "mine explosion; animation3 is the actual Primal Potato Mine explosion state")
         );
     }
 

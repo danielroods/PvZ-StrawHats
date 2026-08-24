@@ -948,8 +948,8 @@ class PlantRenderer {
                 continue;
             }
 
-            // Potato Mine is removed with HP still above zero when its 0.67s attack fuse
-            // completes, so do not apply the generic HP<=0 filter to its explosion effect.
+            if (plant.isPotatoMine() && plant.wasPotatoMineEatenByZombie()) continue;
+
             if (!plant.isPotatoMine() && plant.getHP() <= 0) continue;
             if (plant.getType() != PlantType.EXPLOSIVE) continue;
 
