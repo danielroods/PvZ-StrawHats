@@ -22,6 +22,12 @@ class EffectRenderer {
 
     static final float PROJECTILE_PAM_SCALE = 0.35f;
 
+    static final float POTATO_MINE_EXPLOSION_SCALE_MULTIPLIER = 1.8f;
+    static final float POTATO_MINE_EXPLOSION_OFFSET_X = 0.43f;
+    static final float POTATO_MINE_EXPLOSION_OFFSET_Y = 1f;
+    private static final String POTATO_MINE_EXPLOSION_PAM =
+            "768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM";
+
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
     private static final String ZOMBIE_PEA_PAM =
@@ -124,7 +130,21 @@ class EffectRenderer {
         ProjectileEffectAssets.Variant normal = ProjectileEffectAssets.Variant.NORMAL;
         List<ProjectileEffectAssets.AssetEntry> hitEntries =
                 ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.HIT, normal);
-        if (!hitEntries.isEmpty()) return hitEntries.get(0);
+        if (!hitEntries.isEmpty()) {
+            ProjectileEffectAssets.AssetEntry entry = hitEntries.get(0);
+            if ("Potato Mine".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation");
+                if (exact == null) {
+                    exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation2");
+                }
+                if (exact != null && !exact.equals(entry.state())) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
+                            entry.scope(), entry.purpose());
+                }
+            }
+            return entry;
+        }
 
         List<ProjectileEffectAssets.AssetEntry> effectEntries =
                 ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.EFFECT, normal);
@@ -266,13 +286,27 @@ class EffectRenderer {
         float boardTileHeight = screen.getBoardTileHeight();
         for (TimedPamEffect effect : effects) {
             effect.time += delta;
+            boolean potatoMineExplosion = POTATO_MINE_EXPLOSION_PAM.equals(effect.path);
+            float offsetX = potatoMineExplosion
+                    ? POTATO_MINE_EXPLOSION_OFFSET_X : 0.30f;
+            float offsetY = potatoMineExplosion
+                    ? POTATO_MINE_EXPLOSION_OFFSET_Y : 0.30f;
+            float drawScale = potatoMineExplosion
+                    ? effect.scale * POTATO_MINE_EXPLOSION_SCALE_MULTIPLIER
+                    : effect.scale;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
-                    + boardTileWidth * 0.3f;
-            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * 0.3f;
+                    + boardTileWidth * offsetX;
+            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY;
             if (effect.staticImage) {
-                screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
+                screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
             } else {
-                screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
+                boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
+                        x, y, drawScale, effect.loop);
+                if (!drawn
+                        && POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
+                    String fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
+                    screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
+                }
             }
         }
         effects.removeIf(e -> e.time > e.duration);

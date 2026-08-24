@@ -529,7 +529,7 @@ public final class ProjectileEffectAssets {
         register("Potato Mine",
                 entry("768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "mine explosion (no projectile; melee trap)")
+                        "preferred mine explosion clip; renderer falls back to animation2")
         );
     }
 

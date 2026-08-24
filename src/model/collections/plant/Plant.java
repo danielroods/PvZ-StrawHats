@@ -47,12 +47,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private GrowthTracker growthTracker;
     private double plantFoodTimer = 0.0;
 
-    // Melee/Chomper visual state. These fields are presentation hints only and
-    // do not alter the plant's gameplay state.
     private boolean meleeFacingLeft = false;
     private String visualAnimationState;
     private double visualAnimationRemaining = 0.0;
     private double visualAnimationElapsed = 0.0;
+
+    private boolean potatoMineArmed = false;
+    private boolean potatoMineDetonationPending = false;
     private boolean chomperSpecialActive = false;
     private boolean chomperSpecialPending = false;
     private boolean chomperDigestIdlePending = false;
@@ -142,6 +143,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
         internalTimer = GameClock.countDown(internalTimer, deltaTimeSeconds);
         if (state == PlantState.PREPPING && GameClock.isZero(internalTimer)) {
             state = PlantState.ACTIVE;
+            if (isPotatoMine() && !potatoMineArmed && !potatoMineDetonationPending) {
+                potatoMineArmed = true;
+                float recoverDuration = model.collections.animations.AnimationFactory
+                        .clipDurationForDisplayName(name, "recover");
+                setVisualAnimationState("recover", recoverDuration > 0f ? recoverDuration : 0.4);
+            }
         }
 
         actStrategy.act(this, session);
@@ -235,6 +242,42 @@ public abstract class Plant extends Item implements Pluck, Attack {
     }
 
     @Override public void dealDamage(Item target) { if (target != null) target.setHP(target.getHP() - getDamage()); }
+    public boolean isPotatoMine() {
+        return name != null && (name.equalsIgnoreCase("Potato Mine")
+                || name.equalsIgnoreCase("Primal Potato Mine"));
+    }
+
+    public boolean isPotatoMineArmed() {
+        return potatoMineArmed;
+    }
+
+    public void armPotatoMine() {
+        if (!isPotatoMine() || !isAlive()) return;
+        potatoMineArmed = true;
+        potatoMineDetonationPending = false;
+        internalTimer = 0.0;
+        state = PlantState.ACTIVE;
+        clearVisualAnimationState();
+    }
+
+    public boolean startPotatoMineAttack() {
+        if (!isPotatoMine() || !potatoMineArmed || potatoMineDetonationPending || !isAlive()) return false;
+        potatoMineArmed = false;
+        potatoMineDetonationPending = true;
+        internalTimer = 0.67;
+        state = PlantState.PREPPING;
+        setVisualAnimationState("attack", 0.67);
+        return true;
+    }
+
+    public boolean isPotatoMineDetonationPending() {
+        return potatoMineDetonationPending;
+    }
+
+    public void finishPotatoMineAttack() {
+        potatoMineDetonationPending = false;
+    }
+
     public boolean activatePlant(GameSession session) {
         if (this.plantFoodEffect == null || this.plantFoodTimer > 0 || session == null || !isAlive()) return false;
         this.plantFoodEffect.reset();
@@ -247,9 +290,14 @@ public abstract class Plant extends Item implements Pluck, Attack {
         }
         this.plantFoodEffect.applyStatusModifiers(this);
         this.plantFoodEffect.triggerSuperpower(this, session);
-        this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
-                ? Double.POSITIVE_INFINITY
-                : Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
+        if (isPotatoMine()) {
+            this.plantFoodTimer = 0.0;
+            setVisualAnimationState("plantfood2", 0.37);
+        } else {
+            this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
+                    ? Double.POSITIVE_INFINITY
+                    : Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
+        }
 
         if ("Torchwood".equalsIgnoreCase(name)) {
             setVisualAnimationState("plantfood", Double.POSITIVE_INFINITY);

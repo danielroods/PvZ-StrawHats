@@ -77,6 +77,7 @@ public class Zombie extends Item implements Attack {
     private double statusDamageAccumulator = 0;
     private boolean deathHandled = false;
     private boolean firedDeath = false;
+    private boolean ashDeath = false;
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
@@ -222,6 +223,16 @@ public class Zombie extends Item implements Attack {
     private int capBossHit(int damage) {
         int cap = Math.max(1, (int) Math.round(maxHp * BOSS_MAX_SINGLE_HIT_FRACTION));
         return Math.min(damage, cap);
+    }
+
+    public void takeDamageWithAsh(int damage, Object damageSource) {
+        if (!isAlive() || vulnerabilityState == VulnerabilityType.INVULNERABLE) return;
+        ashDeath = true;
+        try {
+            takeDamage(damage, damageSource);
+        } finally {
+            if (isAlive()) ashDeath = false;
+        }
     }
 
     private void handleDeath(GameSession session, String killerName, boolean firedDeath) {
@@ -522,6 +533,7 @@ public class Zombie extends Item implements Attack {
     public ZombieState getZombieState() { return zombieState; }
     /** True when this zombie's death was caused by fire (fire pea hit, or dying while ablaze). */
     public boolean diedFromFire() { return firedDeath; }
+    public boolean diedFromAsh() { return ashDeath; }
     public Armour getArmor() { return armour; }
     public void setArmor(Armour armour) { this.armour = armour; }
     public Armour getArmour() { return armour; }

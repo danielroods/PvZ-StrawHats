@@ -160,7 +160,11 @@ public class PlantFactory {
         if (config.category == PlantType.SHOOTER && plant.getTags().contains(PlantTag.STACK)) {
             plant.setMaxStackNumber((int) runtimeAbility);
         }
-        if (plant.getTags().contains(PlantTag.CHARGE)) {
+        if ("Potato Mine".equalsIgnoreCase(config.name)
+                || "Primal Potato Mine".equalsIgnoreCase(config.name)) {
+            plant.setInternalTimer(14.0);
+            plant.setState(Plant.PlantState.PREPPING);
+        } else if (plant.getTags().contains(PlantTag.CHARGE)) {
             plant.setInternalTimer(plant.getActionInterval());
         }
 
