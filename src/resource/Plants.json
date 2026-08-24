@@ -1317,7 +1317,12 @@
     "actionInterval": 0.0,
     "recharge": 15.0,
     "abilityType": "INSTANT_EXPLOSIVE",
-    "abilityValue": 4.0,
+    "abilityValue": 1.0,
+    "wramp-up": [
+      { "stage": 1, "time": 0.0, "damage": 1800.0, "abilityValue": 1.0 },
+      { "stage": 2, "time": 8.0, "damage": 2700.0, "abilityValue": 2.0 },
+      { "stage": 3, "time": 16.0, "damage": 3600.0, "abilityValue": 3.0 }
+    ],
     "plantFoodType": "NONE",
     "plantFoodValue": 0.0,
     "upgrades": [

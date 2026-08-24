@@ -185,6 +185,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (newHp <= 0) {
                 setHP(0);
                 this.state = PlantState.DYING;
+                if (name.equalsIgnoreCase("Doom-shroom")) {
+                    // A Doom-shroom can also be killed by a zombie before its fuse ends;
+                    // that death must detonate it at its current growth stage.
+                    this.internalTimer = 0.0;
+                    if (this.actStrategy != null) this.actStrategy.act(this, frostSession);
+                }
                 if (name.equalsIgnoreCase("Explode-o-nut")) executeArmorExplosion();
                 if (name.equalsIgnoreCase("Torchwood")) executeTorchwoodDeathExplosion();
                 Position position = getLocation();

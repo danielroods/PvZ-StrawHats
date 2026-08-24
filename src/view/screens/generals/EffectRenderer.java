@@ -28,6 +28,12 @@ class EffectRenderer {
             "768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM";
     private static final String ZOMBIE_PEA_SPLAT_PAM =
             "768/INITIAL/EFFECTS/SPLAT_PEA/SPLAT_PEA.PAM";
+    private static final String SCORCHED_EARTH_TILE_PAM =
+            "768/FULL/EFFECTS/SCORCHED_EARTH_TILE/SCORCHED_EARTH_TILE.PAM";
+    private static final float SCORCHED_TILE_SCALE = 0.65f;
+    private static final float SCORCHED_TILE_OFFSET_X = 0.45f;
+    private static final float SCORCHED_TILE_OFFSET_Y = 0.50f;
+    private static final float SCORCHED_TILE_LOCK_SECONDS = 10.0f;
 
     private static final class TimedPamEffect {
         final String path;
@@ -58,6 +64,17 @@ class EffectRenderer {
     private static final String ICE_SHROOM = "Ice-shroom";
 
     /** Tracks one Ice-shroom's 3x3 ground frost patch through spawn -> animation_loop -> end. */
+    private static final class ScorchedTileEffect {
+        final Position position;
+        float age;
+        String phase = "animation";
+        float phaseTime;
+
+        ScorchedTileEffect(Position position) {
+            this.position = position;
+        }
+    }
+
     private static final class IceShroomZone {
         final Plant plant;
         final List<Position> tiles;
@@ -88,6 +105,7 @@ class EffectRenderer {
 
     private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
+    private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
@@ -118,6 +136,24 @@ class EffectRenderer {
         explodingPlantEffects.add(new TimedPamEffect(entry.path(), entry.state(), loop,
                 entry.isStaticImage(), position, duration,
                 PROJECTILE_PAM_SCALE));
+    }
+
+    void addDoomExplosion(Position position, int stage) {
+        if (position == null) return;
+        int safeStage = Math.max(1, Math.min(3, stage));
+        String state = "stage" + safeStage + "_explode";
+        String path = AnimationFactory.pathForDisplayName("Doom-shroom");
+        if (path == null) return;
+        float duration = AnimationFactory.clipDurationForPath(path, state);
+        if (duration <= 0f) duration = 0.7f;
+        explodingPlantEffects.add(new TimedPamEffect(path, state, false, false,
+                position, duration, PROJECTILE_PAM_SCALE));
+    }
+
+    void addScorchedTileEffect(Position position) {
+        if (position == null) return;
+        scorchedTileEffects.add(new ScorchedTileEffect(
+                new Position(position.x(), position.y())));
     }
 
     void addTorchwoodRowFireEffect(int row, float duration) {
@@ -172,6 +208,56 @@ class EffectRenderer {
                 }
             }
         }
+    }
+
+    /**
+     * Renders the scorched-earth tile before plants are drawn.
+     * GameScreen calls this as part of the board background layer.
+     */
+    void drawScorchedTileEffects(float delta) {
+        if (scorchedTileEffects.isEmpty()) return;
+
+        float tileW = screen.getBoardTileWidth();
+        float tileH = screen.getBoardTileHeight();
+        float spawnDuration = AnimationFactory.clipDurationForPath(
+                SCORCHED_EARTH_TILE_PAM, "animation");
+        float endDuration = AnimationFactory.clipDurationForPath(
+                SCORCHED_EARTH_TILE_PAM, "animation3");
+        if (spawnDuration <= 0f) spawnDuration = 0.35f;
+        if (endDuration <= 0f) endDuration = 0.35f;
+
+        for (ScorchedTileEffect effect : scorchedTileEffects) {
+            effect.age += delta;
+            effect.phaseTime += delta;
+
+            if ("animation".equals(effect.phase) && effect.phaseTime >= spawnDuration) {
+                effect.phase = "animation2";
+                effect.phaseTime = 0f;
+            }
+            if (effect.age >= SCORCHED_TILE_LOCK_SECONDS
+                    && !"animation3".equals(effect.phase)) {
+                effect.phase = "animation3";
+                effect.phaseTime = 0f;
+            }
+
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * tileW
+                    + tileW * SCORCHED_TILE_OFFSET_X;
+            float y = screen.cellY((int) effect.position.y())
+                    + tileH * SCORCHED_TILE_OFFSET_Y;
+            boolean loop = "animation2".equals(effect.phase);
+            float time = effect.phaseTime;
+            if (loop) {
+                float duration = AnimationFactory.clipDurationForPath(
+                        SCORCHED_EARTH_TILE_PAM, "animation2");
+                if (duration > 0f) time %= duration;
+            }
+            screen.drawPam(SCORCHED_EARTH_TILE_PAM, effect.phase, time,
+                    x, y, SCORCHED_TILE_SCALE, loop);
+        }
+
+        float finalEndDuration = endDuration;
+        scorchedTileEffects.removeIf(e -> "animation3".equals(e.phase)
+                && e.phaseTime >= finalEndDuration);
     }
 
     private void drawTimedEffects(List<TimedPamEffect> effects, float delta) {
