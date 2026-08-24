@@ -135,7 +135,7 @@ public class ZombieFactory {
             throw new IllegalArgumentException("Unknown zombie alias: " + alias);
         }
 
-        Map<String, Object> data = new java.util.HashMap<>(blueprint);
+        Map<String, Object> data = new HashMap<>(blueprint);
         Zombie zombie = buildBaseZombie(alias, data, row, col);
 
         Object moveSpec = data.getOrDefault("move", "NormalWalk");
@@ -186,7 +186,13 @@ public class ZombieFactory {
 
         Position spawnPos = Position.of(col, row);
         zombie.setPosition(spawnPos);
-        zombie.setSpeed(Position.of(-speed, 0));
+        // RunningSpeedScale (All-Star Zombie): "Speed" in the blueprint is the
+        // slower post-tackle pace, so the zombie starts boosted by the inverse
+        // of the scale and SmashAttack's speedScaleAfter brings it back down
+        // to the base "Speed" the instant it lands its tackle.
+        double runningSpeedScale = ((Number) data.getOrDefault("RunningSpeedScale", 1.0)).doubleValue();
+        double initialSpeed = runningSpeedScale > 0 ? speed / runningSpeedScale : speed;
+        zombie.setSpeed(Position.of(-initialSpeed, 0));
 
         applyDifficultyScaling(zombie, data);
 

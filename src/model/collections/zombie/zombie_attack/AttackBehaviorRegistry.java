@@ -23,7 +23,9 @@ public final class AttackBehaviorRegistry {
             double windup = BehaviorSpec.getDouble(params, "windupDuration", 0.0);
             boolean singleUse = BehaviorSpec.getBoolean(params, "isOneTime", false);
             double postSpeedScale = BehaviorSpec.getDouble(params, "speedScaleAfter", 1.0);
-            return new SmashAttack(finalDamage, windup, singleUse, postSpeedScale);
+            String actionState = BehaviorSpec.getString(params, "actionState", null);
+            double actionStateDuration = BehaviorSpec.getDouble(params, "actionStateDuration", 0.6);
+            return new SmashAttack(finalDamage, windup, singleUse, postSpeedScale, actionState, actionStateDuration);
         });
 
         register("KamikazeAttack", (params, data) -> {

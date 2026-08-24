@@ -1931,7 +1931,8 @@
       "attack": {
         "type": "SmashAttack",
         "isOneTime": true,
-        "speedScaleAfter": 0.5
+        "speedScaleAfter": 0.5,
+        "actionState": "tackle"
       }
     }
   },

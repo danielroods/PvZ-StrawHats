@@ -14,6 +14,7 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
+import model.collections.zombie.zombie_attack.SmashAttack;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match.main.season.travellog.egypt.SandStorm;
 import model.match_mechanisms.vector.Position;
@@ -49,6 +50,7 @@ class ZombieRenderer {
     private static final float PIANO_OFFSET_Y = -6f;
     private static final float PIANO_SCALE = 0.52f;
     private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    private static final String ZOMBIE_MODERN_ALLSTAR_ALIAS = "ZombieModernAllStar";
     // Standalone prop PAM (idle/active/death), drawn at the pushed structure's own position.
     private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
     private static final float DEFAULT_ARCADE_DEATH_DURATION = 0.6f;
@@ -193,7 +195,9 @@ class ZombieRenderer {
                 // reuses its "toss" animation for chomping instead.
                 preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss" : "eat";
             } else {
-                preferred = gyratingNow ? "spin" : "walk";
+                boolean stillRunning = ZOMBIE_MODERN_ALLSTAR_ALIAS.equals(zombie.getAlias())
+                        && zombie.getAttackBehavior() instanceof SmashAttack;
+                preferred = gyratingNow ? "spin" : stillRunning ? "run" : "walk";
             }
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
@@ -207,7 +211,8 @@ class ZombieRenderer {
                     // instead of looping/glitching once it finishes.
                     animationTime = duration > 0f ? Math.min(elapsed, duration) : elapsed;
                 }
-            } else if (("walk".equals(preferred) || "eat".equals(preferred) || "toss".equals(preferred) || "spin".equals(preferred)) && path != null) {
+            } else if (("walk".equals(preferred) || "eat".equals(preferred) || "toss".equals(preferred)
+                    || "spin".equals(preferred) || "run".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
                     animationTime = t % duration;
@@ -226,15 +231,16 @@ class ZombieRenderer {
 
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
-                drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
-                drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
                 }
-
+                if (pamDrawn) {
+                    drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
+                    drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
+                }
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
@@ -451,7 +457,7 @@ class ZombieRenderer {
         if (duration > 0f && deathTime == null) arcadeTime %= duration;
 
         Position pos = structure.getPosition();
-        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 25;
+        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
         float arcadeY = screen.cellY(pos.y()) + 40f;
         screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
     }
