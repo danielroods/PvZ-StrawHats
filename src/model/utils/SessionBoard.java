@@ -164,6 +164,7 @@ class SessionBoard {
         SessionEconomy economy = session.economy();
         Cell cell = environment().getCell(row, col);
         if (cell == null || plant == null) return false;
+        if (session.isScorchedTile(row, col)) return false;
 
         boolean handlesIceBlock = plant.getName().equalsIgnoreCase("Hot Potato")
                 && cell.getObstacle() instanceof IceBlock;

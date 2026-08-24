@@ -79,6 +79,15 @@ class PlantRenderer {
     private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
 
+    // Doom-shroom has its own three-stage visual lifecycle: spawn -> stage idle ->
+    // stage transform -> next stage idle. These are tracked per instance because the
+    // plant can create new stage-1 Doom-shrooms when a higher-stage Doom explodes.
+    private final Map<Plant, Float> doomSpawnAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomSpawnWindows = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomTransformAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomTransformWindows = new IdentityHashMap<>();
+    private final Map<Plant, Integer> doomLastGrowthStage = new IdentityHashMap<>();
+
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
     }
@@ -137,7 +146,8 @@ class PlantRenderer {
             // for plantAttackAnimTimes/plantAttackWindow to ride out.
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
-            if (!frozenInIce && lastCooldown != null && cooldown > lastCooldown + 0.05) {
+            if (!frozenInIce && !"Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && lastCooldown != null && cooldown > lastCooldown + 0.05) {
                 boolean boosted = plant.isPlantFoodActive();
                 String baseAttackState = resolveAttackBaseState(plant);
                 String durationState = boosted ? plantFoodClipState(plant) : baseAttackState;
@@ -165,6 +175,50 @@ class PlantRenderer {
 
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
+
+            // Doom-shroom has explicit stage clips supplied by its PAM. A newly planted
+            // Doom starts with stage1_spawn; each GrowthTracker transition plays the
+            // corresponding transform clip once before settling into the new stage idle.
+            if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
+                Integer lastStage = doomLastGrowthStage.put(plant, stage);
+                if (!frozenInIce && lastStage == null) {
+                    float duration = screen.pam().resolvePlantClipDuration(plant.getName(), "stage1_spawn");
+                    if (duration <= 0f) duration = DEFAULT_PLANT_ATTACK_DURATION;
+                    doomSpawnAnimTimes.put(plant, 0f);
+                    doomSpawnWindows.put(plant, duration);
+                } else if (!frozenInIce && lastStage != null && stage > lastStage) {
+                    String transformState = "stage" + lastStage + "_transform";
+                    float duration = screen.pam().resolvePlantClipDuration(plant.getName(), transformState);
+                    if (duration <= 0f) duration = DEFAULT_PLANT_ATTACK_DURATION;
+                    doomTransformAnimTimes.put(plant, 0f);
+                    doomTransformWindows.put(plant, duration);
+                }
+            }
+
+            Float doomSpawnTime = doomSpawnAnimTimes.get(plant);
+            if (doomSpawnTime != null && !frozenInIce) {
+                doomSpawnTime += delta;
+                float window = doomSpawnWindows.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (doomSpawnTime >= window) {
+                    doomSpawnAnimTimes.remove(plant);
+                    doomSpawnWindows.remove(plant);
+                } else {
+                    doomSpawnAnimTimes.put(plant, doomSpawnTime);
+                }
+            }
+
+            Float doomTransformTime = doomTransformAnimTimes.get(plant);
+            if (doomTransformTime != null && !frozenInIce) {
+                doomTransformTime += delta;
+                float window = doomTransformWindows.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (doomTransformTime >= window) {
+                    doomTransformAnimTimes.remove(plant);
+                    doomTransformWindows.remove(plant);
+                } else {
+                    doomTransformAnimTimes.put(plant, doomTransformTime);
+                }
+            }
 
             // Sun-shroom grows through 3 stages over time (GrowthTracker). Every time it
             // steps up a stage, briefly play the matching one-shot "growth_stageN" clip
@@ -234,6 +288,18 @@ class PlantRenderer {
                     float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                     if (clipDuration > 0f) animTime %= clipDuration;
                 }
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && doomSpawnAnimTimes.containsKey(plant)) {
+                preferredState = "stage1_spawn";
+                animTime = doomSpawnAnimTimes.get(plant);
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && doomTransformAnimTimes.containsKey(plant)) {
+                int transformFrom = Math.max(1, plant.getGrowthStage() - 1);
+                preferredState = "stage" + transformFrom + "_transform";
+                animTime = doomTransformAnimTimes.get(plant);
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
+                animTime = t;
             } else if (prepping) {
                 preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
                         ? "intro"
@@ -827,6 +893,20 @@ class PlantRenderer {
         for (Plant plant : alivePlantsBeforeTick) {
             if (stillAlive.contains(plant)) continue;
             if (plant.getPosition() == null) continue;
+
+            if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
+                screen.effects().addDoomExplosion(plant.getPosition(), stage);
+                screen.effects().addScorchedTileEffect(plant.getPosition());
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                doomSpawnAnimTimes.remove(plant);
+                doomSpawnWindows.remove(plant);
+                doomTransformAnimTimes.remove(plant);
+                doomTransformWindows.remove(plant);
+                doomLastGrowthStage.remove(plant);
+                continue;
+            }
 
             if ("Torchwood".equalsIgnoreCase(plant.getName())) {
                 String path = AnimationFactory.pathForDisplayName(plant.getName());

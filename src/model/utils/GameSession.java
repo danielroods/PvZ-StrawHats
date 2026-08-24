@@ -51,6 +51,7 @@ public class GameSession {
     private final SessionDrops drops = new SessionDrops(this);
     private final SessionReporter reporter = new SessionReporter(this);
     private final WaveScheduler waves = new WaveScheduler(this);
+    private final Map<Integer, Double> scorchedTiles = new HashMap<>();
     private final SessionTicker ticker = new SessionTicker(this);
 
     public GameSession() {
@@ -95,6 +96,7 @@ public class GameSession {
     }
 
     public void setGridSize(int rows, int cols) {
+        scorchedTiles.clear();
         this.environment = new Environment(rows, cols);
         this.lawnMowers = new LawnMower[rows];
         for (int r = 0; r < rows; r++) {
@@ -231,6 +233,28 @@ public class GameSession {
     public void startPlantCooldown(int plantId, double seconds) { economy.startPlantCooldown(plantId, seconds); }
 
     public boolean plantAt(int row, int col, Plant plant) { return board.plantAt(row, col, plant); }
+
+    public void scorchTile(int row, int col, double durationSeconds) {
+        if (environment == null || row < 0 || row >= environment.getRows()
+                || col < 0 || col >= environment.getCols()) return;
+        scorchedTiles.put(row * environment.getCols() + col, Math.max(0.0, durationSeconds));
+    }
+
+    public boolean isScorchedTile(int row, int col) {
+        if (environment == null) return false;
+        return scorchedTiles.getOrDefault(row * environment.getCols() + col, 0.0) > 0.0;
+    }
+
+    public void tickScorchedTiles(double deltaSeconds) {
+        if (scorchedTiles.isEmpty()) return;
+        scorchedTiles.replaceAll((key, value) -> Math.max(0.0, value - deltaSeconds));
+        scorchedTiles.entrySet().removeIf(e -> e.getValue() <= 0.0);
+    }
+
+    public double getScorchedTileRemaining(int row, int col) {
+        if (environment == null) return 0.0;
+        return scorchedTiles.getOrDefault(row * environment.getCols() + col, 0.0);
+    }
 
     public Plant getPlantAt(int row, int col) { return board.findPlantAt(row, col); }
 

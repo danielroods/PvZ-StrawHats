@@ -154,7 +154,6 @@ public class GameScreen extends UiScreen {
 
     @Override
     public void render(float delta) {
-        adoptRestartedBossSession();
         if (textureBank != null) {
             try {
                 textureBank.update();
@@ -192,13 +191,6 @@ public class GameScreen extends UiScreen {
         stage.draw();
     }
 
-    private void adoptRestartedBossSession() {
-        GameSession current = GameSession.peekInstance();
-        if (current != null && current != session && current.getZombossFight() != null) {
-            session = current;
-        }
-    }
-
     /**
      * Advances the simulation by one fixed tick (see GameClock.SECONDS_PER_TICK).
      * Default: ticks the shared GameSession directly, exactly as before. A screen
@@ -224,24 +216,7 @@ public class GameScreen extends UiScreen {
         hud.setSelectedPlant(interaction.selectedPlant());
         hud.setTools(interaction.activeTool() == BoardInteraction.Tool.SHOVEL,
                 interaction.activeTool() == BoardInteraction.Tool.FOOD);
-        refreshZomboss();
         hud.update(session, loadout);
-    }
-
-    private void refreshZomboss() {
-        model.match.boss.ZombossFight fight = session.getZombossFight();
-        if (fight == null) return;
-        hud.setObjectiveOverride("DEFEAT DR. ZOMBOSS");
-        if (fight.getPhase().isBeforeBattle()) {
-            hud.setProgressOverride("ZOMBOSS INCOMING", 0f);
-        } else {
-            float health = (float) fight.getBossHealthFraction();
-            hud.setProgressOverride("ZOMBOSS " + Math.round(health * 100f) + "%", health);
-        }
-        if (zombossDialogue != null) {
-            zombossDialogue.showLine(fight.getDialogueLine(), fight.getDialogueIndex(),
-                    fight.getDialogueCount());
-        }
     }
 
     protected void selectPlant(String plantName) {
@@ -317,6 +292,7 @@ public class GameScreen extends UiScreen {
         frostbite.drawFrostbiteTileArt();
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
+        effects.drawScorchedTileEffects(delta);
         zomboss.drawBackdrop();
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
@@ -331,7 +307,6 @@ public class GameScreen extends UiScreen {
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         interaction.drawDragPreview(delta);
-        zomboss.drawNpc();
         matchEnd.drawMatchEndOverlay();
 
         batch.end();

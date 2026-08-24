@@ -35,6 +35,7 @@ class SessionTicker {
 
         session.clock().tick();
         double deltaTimeSeconds = GameClock.SECONDS_PER_TICK;
+        session.tickScorchedTiles(deltaTimeSeconds);
 
         model.match.boss.ZombossFight bossFight = session.getZombossFight();
         if (bossFight != null) {
