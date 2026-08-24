@@ -13,6 +13,7 @@ import model.collections.animations.ZombieAshAnimationRegistry;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
+import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match.main.season.travellog.egypt.SandStorm;
 import model.match_mechanisms.vector.Position;
@@ -47,20 +48,16 @@ class ZombieRenderer {
     private static final float PIANO_OFFSET_X = 46f;
     private static final float PIANO_OFFSET_Y = -6f;
     private static final float PIANO_SCALE = 0.52f;
+    private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    // Standalone prop PAM (idle/active/death), drawn at the pushed structure's own position.
+    private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
+    private static final float DEFAULT_ARCADE_DEATH_DURATION = 0.6f;
+    private static final float ARCADE_SCALE = 0.6f;
     // Named element inside every zombie's own PAM for the butter-stun face
     // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
-    // Multiply-tint applied to a zombie's sprite while it's iced (Status.FREEZE/FROZEN),
-    // matching the frosty blue look of the real game - see drawZombies.
-    private static final Color ICE_STATUS_TINT = new Color(0.55f, 0.75f, 1f, 1f);
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
-    // Extra downward draw offset applied on top of the normal "waist-deep" submerged
-    // offset while a zombie is being dragged under by Tangle Kelp, scaled by
-    // Zombie#getDragUnderWaterProgress() (0 = untouched, 1 = fully sunk beneath the fixed
-    // water clip line). The ripple itself is drawn off the zombie's actual grid position,
-    // which this never changes, so it stays put while the zombie sinks.
-    private static final float DRAG_UNDER_WATER_MAX_OFFSET = 90f;
     private static final String WATER_GARGANTUAR_RIPPLE_PAM =
             "768/FULL/BACKGROUNDS/WATER_GARGANTUAR_RIPPLE/WATER_GARGANTUAR_RIPPLE.PAM";
     private static final String WATER_IMP_RIPPLE_PAM =
@@ -106,6 +103,7 @@ class ZombieRenderer {
     private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
     private final Map<Zombie, Integer> zombieLastHp = new IdentityHashMap<>();
     private final Map<Zombie, Float> pianoDamageAnimTimes = new IdentityHashMap<>();
+    private final Map<Zombie, Float> arcadeDeathAnimTimes = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -135,16 +133,13 @@ class ZombieRenderer {
                     && !ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias());
             ZombieWaterRipple waterRipple = waterRippleEligible
                     ? updateZombieWaterRipple(zombie, delta) : null;
-            float dragUnderProgress = (float) zombie.getDragUnderWaterProgress();
-            boolean beingDraggedUnder = dragUnderProgress > 0f;
-            boolean submerged = (waterRipple != null && waterRipple.inWater) || beingDraggedUnder;
+            boolean submerged = waterRipple != null && waterRipple.inWater;
 
             float clipWaterY = y + 15f;
             float rippleDrawX = (x + boardTileWidth * 0.5f) + RIPPLE_OFFSET_X;
             float rippleDrawY = clipWaterY + RIPPLE_OFFSET_Y;
 
-            float zombieDrawY = (submerged ? zombieOffsetY - 20f : zombieOffsetY)
-                    - dragUnderProgress * DRAG_UNDER_WATER_MAX_OFFSET;
+            float zombieDrawY = submerged ? zombieOffsetY - 20f : zombieOffsetY;
 
             if (zombie.isFromNecromancy()) {
                 zombieSpawnEffects.put(zombie, 0f);
@@ -229,27 +224,22 @@ class ZombieRenderer {
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
-            boolean iced = zombie.getStatus() == Zombie.Status.FREEZE || zombie.getStatus() == Zombie.Status.FROZEN;
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
-                if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
-                if (iced) screen.batch.setColor(Color.WHITE);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
                 }
                 if (pamDrawn) {
                     drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
+                    drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
                 }
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
-                    if (iced) screen.batch.setColor(ICE_STATUS_TINT);
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
-                            iced ? ICE_STATUS_TINT : new Color(0.55f, 0.5f, 0.45f, 1f),
-                            GameScreenGraphics.initials(zombie.getAlias()));
-                    if (iced) screen.batch.setColor(Color.WHITE);
+                            new Color(0.55f, 0.5f, 0.45f, 1f), GameScreenGraphics.initials(zombie.getAlias()));
                 }
             } finally {
                 if (waterClipActive) popWaterClip();
@@ -287,6 +277,7 @@ class ZombieRenderer {
         zombieGyratingLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieLastHp.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {
@@ -295,15 +286,6 @@ class ZombieRenderer {
             if (stillAlive.contains(zombie)) continue;
             if (zombie.getPosition() == null) continue;
             if (zombie.getZombieState() != ZombieState.DEAD) continue;
-
-            if (zombie.diedFromDragUnderWater()) {
-                // Tangle Kelp already dragged this zombie fully out of view beneath the
-                // (stationary) water ripple - no splash/particle "die" playback needed on
-                // top of that, it would just pop back into view for one frame.
-                zombieAnimTimes.remove(zombie);
-                screen.onZombieDied(zombie);
-                continue;
-            }
 
             String ashPath = zombie.diedFromFire() ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
             float dieDuration;
@@ -436,6 +418,43 @@ class ZombieRenderer {
         float pianoX = x + PIANO_OFFSET_X * direction;
         float pianoY = zombieDrawY + PIANO_OFFSET_Y;
         screen.pam().drawPamExact(PIANO_PROP_PAM, "die", pianoTime, pianoX, pianoY, PIANO_SCALE, facingRight);
+    }
+
+    // Arcade cabinet the ZombieArcade pushes ahead of itself: idle while intact and not
+    // being pushed, active while the zombie's own "push" beat is running (see PusherMove),
+    // and a one-shot death clip the moment the structure's HP hits zero. Positioned from the
+    // structure's own board Position rather than the zombie's, since the cabinet leads the
+    // zombie by PusherMove.PUSH_GAP and can lag behind on destruction.
+    private void drawZombieArcade(Zombie zombie, float delta, float boardTileWidth, boolean facingRight) {
+        if (!ZOMBIE_ARCADE_ALIAS.equals(zombie.getAlias())) return;
+        PushableStructure structure = zombie.getPushedStructure();
+        if (structure == null || structure.getPosition() == null) return;
+
+        if (!structure.isAlive() && !arcadeDeathAnimTimes.containsKey(zombie)) {
+            arcadeDeathAnimTimes.put(zombie, 0f);
+        }
+
+        Float deathTime = arcadeDeathAnimTimes.get(zombie);
+        if (deathTime != null) {
+            float deathDuration = AnimationFactory.exactClipDurationForPath(ARCADE_PROP_PAM, "death");
+            if (deathDuration <= 0f) deathDuration = DEFAULT_ARCADE_DEATH_DURATION;
+            if (deathTime >= deathDuration) {
+                arcadeDeathAnimTimes.remove(zombie);
+                return;
+            }
+            arcadeDeathAnimTimes.put(zombie, deathTime + delta);
+        }
+
+        String arcadeState = deathTime != null ? "death"
+                : "push".equals(zombie.getActionAnimationState()) ? "active" : "idle";
+        float arcadeTime = deathTime != null ? deathTime : zombieAnimTimes.getOrDefault(zombie, 0f);
+        float duration = AnimationFactory.exactClipDurationForPath(ARCADE_PROP_PAM, arcadeState);
+        if (duration > 0f && deathTime == null) arcadeTime %= duration;
+
+        Position pos = structure.getPosition();
+        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
+        float arcadeY = screen.cellY(pos.y()) + 40f;
+        screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
