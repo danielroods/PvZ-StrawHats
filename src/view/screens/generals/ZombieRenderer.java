@@ -226,16 +226,15 @@ class ZombieRenderer {
 
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             try {
+                drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
+                drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
                 }
-                if (pamDrawn) {
-                    drawZombiePiano(zombie, preferred, t, delta, x - 10f, zombieDrawY, zombie.isFacingRight());
-                    drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
-                }
+
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
@@ -452,7 +451,7 @@ class ZombieRenderer {
         if (duration > 0f && deathTime == null) arcadeTime %= duration;
 
         Position pos = structure.getPosition();
-        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
+        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 25;
         float arcadeY = screen.cellY(pos.y()) + 40f;
         screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
     }
