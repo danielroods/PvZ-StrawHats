@@ -2639,5 +2639,97 @@
         { "Type": "speed", "Value": "speed0" }
       ]
     }
+  },
+ {
+  "aliases": [
+   "ZombieEgyptZomboss"
+  ],
+  "objclass": "ZombiePropertySheet",
+  "objdata": {
+   "ArtCenter": {
+    "x": 195,
+    "y": 195
+   },
+   "CanSpawnPlantFood": false,
+   "Cost": 0,
+   "EatDPS": 0,
+   "Hitpoints": 24000,
+   "Size": "large",
+   "Speed": 0.0,
+   "WavePointCost": 5000,
+   "Weight": 100000,
+   "move": "StationaryMove",
+   "attack": "ChompAttack",
+   "defense": "NormalDefense"
   }
+ },
+ {
+  "aliases": [
+   "ZombieIceAgeZomboss"
+  ],
+  "objclass": "ZombiePropertySheet",
+  "objdata": {
+   "ArtCenter": {
+    "x": 195,
+    "y": 195
+   },
+   "CanSpawnPlantFood": false,
+   "Cost": 0,
+   "EatDPS": 0,
+   "Hitpoints": 26000,
+   "Size": "large",
+   "Speed": 0.0,
+   "WavePointCost": 5000,
+   "Weight": 100000,
+   "move": "StationaryMove",
+   "attack": "ChompAttack",
+   "defense": "NormalDefense"
+  }
+ },
+ {
+  "aliases": [
+   "ZombieBeachZomboss"
+  ],
+  "objclass": "ZombiePropertySheet",
+  "objdata": {
+   "ArtCenter": {
+    "x": 195,
+    "y": 195
+   },
+   "CanSpawnPlantFood": false,
+   "Cost": 0,
+   "EatDPS": 0,
+   "Hitpoints": 28000,
+   "Size": "large",
+   "Speed": 0.0,
+   "WavePointCost": 5000,
+   "Weight": 100000,
+   "move": "StationaryMove",
+   "attack": "ChompAttack",
+   "defense": "NormalDefense"
+  }
+ },
+ {
+  "aliases": [
+   "ZombieDarkZomboss"
+  ],
+  "objclass": "ZombiePropertySheet",
+  "objdata": {
+   "ArtCenter": {
+    "x": 195,
+    "y": 195
+   },
+   "CanSpawnPlantFood": false,
+   "Cost": 0,
+   "EatDPS": 0,
+   "Hitpoints": 30000,
+   "Size": "large",
+   "Speed": 0.0,
+   "WavePointCost": 5000,
+   "Weight": 100000,
+   "move": "StationaryMove",
+   "attack": "ChompAttack",
+   "defense": "NormalDefense"
+  }
+ }
 ]

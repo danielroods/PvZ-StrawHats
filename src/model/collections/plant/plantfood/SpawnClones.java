@@ -18,6 +18,12 @@ public class SpawnClones implements PlantFoodEffect {
         Position position = plant.getPosition();
         if (position == null) return;
 
+        if (plant.isPotatoMine()) {
+            plant.armPotatoMine();
+            spawnPotatoMineCopies(plant, session);
+            return;
+        }
+
         int row = (int) position.y();
         int col = (int) position.x();
         int spawned = 0;
@@ -26,6 +32,30 @@ public class SpawnClones implements PlantFoodEffect {
             spawned += trySpawnAt(session, plant, row, col + offset);
             if (spawned >= count) break;
             spawned += trySpawnAt(session, plant, row, col - offset);
+        }
+    }
+
+    private void spawnPotatoMineCopies(Plant plant, GameSession session) {
+        int target = Math.min(2, count);
+        java.util.List<Position> candidates = new java.util.ArrayList<>();
+        for (int row = 0; row < session.getRows(); row++) {
+            for (int col = 0; col < session.getCols(); col++) {
+                if (session.getEnvironment().getCell(row, col) == null) continue;
+                if (session.getEnvironment().getCell(row, col).hasPlant()) continue;
+                candidates.add(new Position(col, row));
+            }
+        }
+        java.util.Collections.shuffle(candidates, java.util.concurrent.ThreadLocalRandom.current());
+        int spawned = 0;
+        for (Position candidate : candidates) {
+            if (spawned >= target) break;
+            Plant clone = PlantFactory.createPlant(plant.getId(), plant.getLevel(), candidate);
+            if (session.plantAt((int) candidate.y(), (int) candidate.x(), clone)) {
+                clone.armPotatoMine();
+                spawned++;
+            } else {
+                clone.setAlive(false);
+            }
         }
     }
 

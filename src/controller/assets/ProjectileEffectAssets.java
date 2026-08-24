@@ -529,7 +529,7 @@ public final class ProjectileEffectAssets {
         register("Potato Mine",
                 entry("768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "mine explosion (no projectile; melee trap)")
+                        "preferred mine explosion clip; renderer falls back to animation2")
         );
     }
 
@@ -537,21 +537,17 @@ public final class ProjectileEffectAssets {
         register("Primal Potato Mine",
                 entry("768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/"
                                 + "PRIMAL_POTATOMINE_EXPLOSION.PAM",
-                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "mine explosion")
+                        "animation3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "mine explosion; animation3 is the actual Primal Potato Mine explosion state")
         );
     }
 
     private static void registerCherryBomb() {
         register("Cherry Bomb",
-                entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_REAR/"
-                                + "CHERRYBOMB_EXPLOSION_REAR.PAM",
-                        "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "rear/background explosion layer"),
                 entry("768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_TOP/"
                                 + "CHERRYBOMB_EXPLOSION_TOP.PAM",
-                        "explosion", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "top explosion layer")
+                        "explosion3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "Cherry Bomb's main explosion layer")
         );
     }
 
@@ -573,8 +569,8 @@ public final class ProjectileEffectAssets {
     private static void registerJalapeno() {
         register("Jalapeno",
                 rowEntry("768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM",
-                        "idle", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "single-tile fire line on explosion (no separate blast asset given)")
+                        "idle2", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "Jalapeno lane fire tile effect; idle2 is the PvZ2 burn clip")
         );
     }
 
@@ -709,10 +705,23 @@ public final class ProjectileEffectAssets {
 
     private static void registerHotPotato() {
         register("Hot Potato",
+                // Melting ice puddle synergy fx, played on the ice block/frozen plant's own
+                // tile - see EffectRenderer.addHotPotatoMeltEffect/drawHotPotatoMeltEffects.
+                // Three-phase clip: "animation" intro (ice cracking/starting to melt),
+                // "animation2" the puddle sitting there for a few seconds, "animation3" the
+                // outro as the puddle fades/dries up.
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
                                 + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
-                        "melting ice puddle (synergy fx when melting an ice block)"),
+                        "melting ice puddle, intro (synergy fx when melting an ice block)"),
+                entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
+                                + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
+                        "animation2", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
+                        "melting ice puddle, holds for a few seconds"),
+                entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
+                                + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
+                        "animation3", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "melting ice puddle, outro"),
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_STEAMFX/"
                                 + "HOTPOTATO_ICEBLOCK_STEAMFX.PAM",
                         "animation", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,

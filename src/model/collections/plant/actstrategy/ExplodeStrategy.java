@@ -22,7 +22,14 @@ public class ExplodeStrategy implements ActStrategy {
 
     @Override
     public void act(Plant user, GameSession session) {
-        if (user.getIntervalTimer() > 0 || user.getPosition() == null) return;
+        if (user.getPosition() == null) return;
+
+        if (user.isPotatoMine()) {
+            actPotatoMine(user, session);
+            return;
+        }
+
+        if (user.getIntervalTimer() > 0) return;
 
         if (user.getName().equalsIgnoreCase("Doom-shroom")) {
             explodeDoomShroom(user, session);
@@ -52,6 +59,48 @@ public class ExplodeStrategy implements ActStrategy {
             FrostbiteFreezing.damageAdjacentIceBlocks(session, user.getPosition(), mode, user.getDamage(), true);
         }
         user.setAlive(false);
+    }
+
+    private void actPotatoMine(Plant user, GameSession session) {
+        if (user.isPotatoMineDetonationPending()) {
+            if (user.getIntervalTimer() > 0.0001) return;
+
+            Position center = user.getPosition();
+            int row = (int) Math.round(center.y());
+            int col = (int) Math.round(center.x());
+            int damage = Math.max(1, user.getDamage());
+            int tileRadius = "Primal Potato Mine".equalsIgnoreCase(user.getName()) ? 1 : 0;
+
+            for (Zombie zombie : session.getZombies()) {
+                if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+                int zr = (int) Math.round(zombie.getPosition().y());
+                int zc = (int) Math.round(zombie.getPosition().x());
+                if (Math.abs(zr - row) <= tileRadius && Math.abs(zc - col) <= tileRadius) {
+                    zombie.takeDamageWithAsh(damage, user);
+                }
+            }
+
+            damageStructures(user, session);
+            user.finishPotatoMineAttack();
+            user.setAlive(false);
+            return;
+        }
+
+        if (!user.isPotatoMineArmed()) return;
+        if ("recover".equals(user.getVisualAnimationState())
+                || "plantfood2".equals(user.getVisualAnimationState())) return;
+        Position center = user.getPosition();
+        int row = (int) Math.round(center.y());
+        int col = (int) Math.round(center.x());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            int zr = (int) Math.round(zombie.getPosition().y());
+            int zc = (int) Math.round(zombie.getPosition().x());
+            if (zr == row && zc == col) {
+                user.startPotatoMineAttack();
+                return;
+            }
+        }
     }
 
     private void explodeDoomShroom(Plant user, GameSession session) {
@@ -179,10 +228,20 @@ public class ExplodeStrategy implements ActStrategy {
     private ArrayList<Zombie> areaDetect(Plant user, GameSession session) {
         ArrayList<Zombie> targets = new ArrayList<>();
         Position center = user.getPosition();
+        boolean cherryBomb = "Cherry Bomb".equalsIgnoreCase(user.getName());
+
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
             Position pos = zombie.getPosition();
-            if (Math.abs(pos.y() - center.y()) <= 1 && Math.abs(pos.x() - center.x()) <= 1) {
+
+            if (cherryBomb) {
+                 if (Math.abs(pos.y() - center.y()) <= 1
+                        && pos.x() >= center.x() - 1
+                        && pos.x() <= center.x() + 2) {
+                    targets.add(zombie);
+                }
+            } else if (Math.abs(pos.y() - center.y()) <= 1
+                    && Math.abs(pos.x() - center.x()) <= 1) {
                 targets.add(zombie);
             }
         }
@@ -212,7 +271,12 @@ public class ExplodeStrategy implements ActStrategy {
             } else if (user.getTags().contains(PlantTag.FIRE)) {
                 zombie.setStatus(Zombie.Status.FIRED);
             }
-            zombie.takeDamage(damage, user);
+            if ("Cherry Bomb".equalsIgnoreCase(user.getName())
+                    || "Jalapeno".equalsIgnoreCase(user.getName())) {
+                zombie.takeDamageWithAsh(damage, user);
+            } else {
+                zombie.takeDamage(damage, user);
+            }
         }
     }
 

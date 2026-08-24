@@ -248,6 +248,7 @@ class PlantRenderer {
             boolean growing = plantGrowthAnimTimes.containsKey(plant) && !plant.isPlantFoodActive();
             String preferredState;
             float animTime = t;
+            boolean potatoMine = plant.isPotatoMine();
             boolean pumpkinHasArmor = plant.isPumpkin()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
@@ -281,6 +282,9 @@ class PlantRenderer {
                 animTime = (float) plant.getVisualAnimationElapsed();
                 float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                 if (clipDuration > 0f) animTime %= clipDuration;
+            } else if (potatoMine && plant.getVisualAnimationState() != null) {
+                preferredState = plant.getVisualAnimationState();
+                animTime = (float) plant.getVisualAnimationElapsed();
             } else if (plant.getVisualAnimationState() != null) {
                 preferredState = plant.getVisualAnimationState();
                 animTime = (float) plant.getVisualAnimationElapsed();
@@ -288,6 +292,14 @@ class PlantRenderer {
                     float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                     if (clipDuration > 0f) animTime %= clipDuration;
                 }
+            } else if (potatoMine && !plant.isPotatoMineArmed()) {
+                preferredState = "plant_idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if (potatoMine) {
+                preferredState = "idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
             } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
                     && doomSpawnAnimTimes.containsKey(plant)) {
                 preferredState = "stage1_spawn";
@@ -301,9 +313,11 @@ class PlantRenderer {
                 preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
                 animTime = t;
             } else if (prepping) {
-                preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
-                        ? "intro"
-                        : screen.pam().resolveFuseClipState(plant.getName());
+                preferredState = "Cherry Bomb".equalsIgnoreCase(plant.getName())
+                        ? "attack"
+                        : (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
+                            ? "intro"
+                            : screen.pam().resolveFuseClipState(plant.getName()));
                 animTime = t;
             } else if (attacking) {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
@@ -396,7 +410,16 @@ class PlantRenderer {
                     || "idle_damage3".equals(preferredState)
                     || "idle2_damage3".equals(preferredState)
                     || "plantfood".equals(preferredState));
-            if (squashExactState) {
+            boolean potatoMineExactState = potatoMine
+                    && ("plant_idle".equals(preferredState)
+                    || "recover".equals(preferredState)
+                    || "idle".equals(preferredState)
+                    || "attack".equals(preferredState)
+                    || "plantfood2".equals(preferredState));
+            if (potatoMineExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, squashMirror);
@@ -927,7 +950,18 @@ class PlantRenderer {
                 continue;
             }
 
-            if (plant.getHP() <= 0) continue;
+            if ("Jalapeno".equalsIgnoreCase(plant.getName())) {
+                screen.effects().addJalapenoRowFireEffect(
+                        (int) Math.round(plant.getPosition().y()));
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            boolean delayedExplosiveDeath = plant.isPotatoMine()
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName());
+            if (plant.isPotatoMine() && plant.wasPotatoMineEatenByZombie()) continue;
+            if (!delayedExplosiveDeath && plant.getHP() <= 0) continue;
             if (plant.getType() != PlantType.EXPLOSIVE) continue;
 
             ProjectileEffectAssets.AssetEntry entry = screen.effects().resolveExplosionEntry(plant.getName());
@@ -935,7 +969,14 @@ class PlantRenderer {
 
             boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
             Position position = plant.getPosition();
-            screen.effects().addExplodingPlantEffect(entry, loop, position, EXPLODING_PLANT_EFFECT_DURATION);
+            float effectDuration = EXPLODING_PLANT_EFFECT_DURATION;
+            if ("Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Primal Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName())) {
+                float resolved = AnimationFactory.exactClipDurationForPath(entry.path(), entry.state());
+                if (resolved > 0f) effectDuration = resolved;
+            }
+            screen.effects().addExplodingPlantEffect(entry, loop, position, effectDuration);
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
         }

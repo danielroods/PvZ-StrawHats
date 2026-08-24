@@ -38,7 +38,12 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombieArmor4", "ZOMBIE_TUTORIAL"),
 
             Map.entry("ZombieDarkArmor3", "ZOMBIE_DARK_BASIC"),
-            Map.entry("ZombieDarkJuggler", "ZOMBIE_DARK_JESTER")
+            Map.entry("ZombieDarkJuggler", "ZOMBIE_DARK_JESTER"),
+
+            Map.entry("ZombieEgyptZomboss", "ZOMBIE_EGYPT_ZOMBOSS"),
+            Map.entry("ZombieIceAgeZomboss", "ZOMBIE_ICEAGE_ZOMBOSS"),
+            Map.entry("ZombieBeachZomboss", "ZOMBIE_BEACH_ZOMBOSS"),
+            Map.entry("ZombieDarkZomboss", "ZOMBIE_DARK_ZOMBOSS")
     );
 
     private static final Map<String, String> BEST_GUESS = Map.of(

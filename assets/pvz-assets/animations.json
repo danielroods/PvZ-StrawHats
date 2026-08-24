@@ -9,7 +9,7 @@
     {"name":"BACKGROUND_EIGHTIES_ENVIRONMENTAL_EFFECTS_TOP","path":"768/FULL/BACKGROUNDS/BACKGROUND_EIGHTIES_ENVIRONMENTAL_EFFECTS_TOP/BACKGROUND_EIGHTIES_ENVIRONMENTAL_EFFECTS_TOP.PAM","canvas":[-1276.8,900],"clips":{"transition":1,"animation_loop":4}},
     {"name":"BOULDERTILE","path":"768/FULL/BACKGROUNDS/BOULDERTILE/BOULDERTILE.PAM","canvas":[390,390],"clips":{"bouldertile_up":0.0333,"bouldertile_down":0.0333}},
     {"name":"CARNIVAL_BG_LIGHT","path":"768/FULL/BACKGROUNDS/CARNIVAL_BG_LIGHT/CARNIVAL_BG_LIGHT.PAM","canvas":[672.2,1536],"clips":{"light":1.25}},
-    {"name":"FIRETILE","path":"768/FULL/BACKGROUNDS/FIRETILE/FIRETILE.PAM","canvas":[390,390],"clips":{"firetile_up":0.0333,"firetile_down":0.0333}},
+    {"name":"FIRETILE","path":"768/FULL/EFFECTS/SNAPDRAGON_PLANTFOOD_FIREBALLS/SNAPDRAGON_PLANTFOOD_FIREBALLS.PAM","canvas":[390,390],"clips":{"animation":1.46}},
     {"name":"GOLDTILE","path":"768/FULL/BACKGROUNDS/GOLDTILE/GOLDTILE.PAM","canvas":[390,390],"clips":{"inactive_unused":0.2333,"inactive_unused2":0.8,"inactive_used":0.2333,"inactive_used2":0.8,"active_idle":1.6667,"active":1.6333,"inactive_unused_submerged":0.2333}},
     {"name":"TILE_PLANTFOOD","path":"768/FULL/BACKGROUNDS/TILE_PLANTFOOD/TILE_PLANTFOOD.PAM","canvas":[390,390],"clips":{"inactive_unused":0.7667,"inactive_used":0.5667,"active_idle":0.7,"active":1}},
     {"name":"WATER_GARGANTUAR_RIPPLE","path":"768/FULL/BACKGROUNDS/WATER_GARGANTUAR_RIPPLE/WATER_GARGANTUAR_RIPPLE.PAM","canvas":[390,390],"clips":{"ripple":1.9667,"ripple_exit":0.5667}},

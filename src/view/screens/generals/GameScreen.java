@@ -57,6 +57,9 @@ public class GameScreen extends UiScreen {
     private final GroundItemRenderer groundItems = new GroundItemRenderer(this);
     private final MowerRenderer mowers = new MowerRenderer(this);
     private final MatchEndSequence matchEnd = new MatchEndSequence(this);
+    private final ZombossRenderer zomboss = new ZombossRenderer(this);
+
+    private view.hud.ZombossDialogueBox zombossDialogue;
 
     double tickAccumulator;
     boolean paused;
@@ -82,6 +85,20 @@ public class GameScreen extends UiScreen {
         initParticles();
         assets.initShovelTexture();
         assets.initFrostbiteTextures();
+        zomboss.reset();
+        zomboss.preload();
+        createZombossDialogue();
+    }
+
+    private void createZombossDialogue() {
+        if (session == null || session.getZombossFight() == null) return;
+        zombossDialogue = new view.hud.ZombossDialogueBox(skin);
+        zombossDialogue.setAdvanceAction(() -> {
+            model.match.boss.ZombossFight fight = session.getZombossFight();
+            if (fight != null) fight.advanceDialogue();
+        });
+        zombossDialogue.showLine(null, 0, 0);
+        addBeforeModal(zombossDialogue);
     }
 
     protected String getSeasonGameplayFolder() {
@@ -168,6 +185,7 @@ public class GameScreen extends UiScreen {
         if (matchFinished) return;
 
         refreshHud(delta);
+        refreshZombossDialogue();
         drawBoard(delta);
         stage.act(delta);
         if (controller.ScreenManager.getScreen() != this) return;
@@ -187,6 +205,21 @@ public class GameScreen extends UiScreen {
 
     protected List<String> loadoutPlants() {
         return new ArrayList<>(BeforeMenu.selectedPlants);
+    }
+
+    private void refreshZombossDialogue() {
+        if (zombossDialogue == null || session == null) return;
+
+        model.match.boss.ZombossFight fight = session.getZombossFight();
+        if (fight == null || fight.getPhase() != model.match.boss.ZombossPhase.NPC_TALK) {
+            zombossDialogue.showLine(null, 0, 0);
+            return;
+        }
+
+        zombossDialogue.showLine(
+                fight.getDialogueLine(),
+                fight.getDialogueIndex(),
+                fight.getDialogueCount());
     }
 
     protected void refreshHud(float delta) {
@@ -276,12 +309,17 @@ public class GameScreen extends UiScreen {
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
         effects.drawScorchedTileEffects(delta);
+        effects.drawHotPotatoMeltEffects(delta);
+        zomboss.drawBackdrop();
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
+        zomboss.drawBoss();
+        zomboss.drawNpc();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
         groundItems.drawGroundItems(delta, bw, bh);
         effects.drawProjectiles(delta, bw, bh);
+        zomboss.drawEffects(delta);
         mowers.drawMowers(bw, bh);
         frostbite.drawFrostbiteIceBlocks(delta);
         interaction.drawHover(bw, bh);
@@ -399,6 +437,7 @@ public class GameScreen extends UiScreen {
 
     @Override public void dispose() {
         if (hud != null) hud.dispose();
+        if (zombossDialogue != null) zombossDialogue.dispose();
         if (textureBank != null) {
             try { textureBank.dispose(); } catch (Throwable ignored) {}
         }

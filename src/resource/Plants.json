@@ -1166,7 +1166,7 @@
     "category": "EXPLOSIVE",
     "tags": [],
     "cost": 150,
-    "baseHp": 0,
+    "baseHp": 200,
     "damage": 1800,
     "actionInterval": 0.0,
     "recharge": 35.0,
@@ -1275,7 +1275,7 @@
       "FIRE"
     ],
     "cost": 125,
-    "baseHp": 0,
+    "baseHp": 200,
     "damage": 1800,
     "actionInterval": 0.0,
     "recharge": 35.0,

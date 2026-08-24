@@ -12,6 +12,7 @@ import java.util.Random;
 
 public class SunProduceStrategy implements ActStrategy {
     private static final double DOUBLE_SUN_PROBABILITY = 0.5;
+    private static final double BOSS_LEVEL_INTERVAL_SCALE = 0.5;
 
     // Suns produced together by the same plant are nudged away from the plant's tile
     // center (and from each other) so they never render stacked exactly on top of one
@@ -67,7 +68,8 @@ public class SunProduceStrategy implements ActStrategy {
         GeneralPrinter.print("plant " + user.getName() + " produced " + sunCount
                 + " sun(s) near (" + ((int) location.x() + 1) + ", " + ((int) location.y() + 1) + ").");
 
-        user.setInternalTimer(user.getActionInterval());
+        user.setInternalTimer(user.getActionInterval()
+                * (session.isDoubleSunRate() ? BOSS_LEVEL_INTERVAL_SCALE : 1.0));
     }
 
     /**

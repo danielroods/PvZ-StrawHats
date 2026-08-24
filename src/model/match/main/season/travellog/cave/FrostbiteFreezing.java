@@ -80,6 +80,7 @@ public final class FrostbiteFreezing {
 
     public static boolean freezeZombieInIce(GameSession session, Zombie zombie, int row, int col) {
         if (session == null || session.getEnvironment() == null || zombie == null || !zombie.isAlive()) return false;
+        if (zombie.isBoss()) return false;
         Cell cell = session.getEnvironment().getCell(row, col);
         if (cell == null || cell.getObstacle() != null || cell.getPlant() != null) return false;
         zombie.setPosition(new Position(col, row));

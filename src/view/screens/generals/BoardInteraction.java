@@ -48,6 +48,10 @@ class BoardInteraction {
         return activeTool;
     }
 
+    private boolean isCutscene() {
+        return screen.session != null && screen.session.isCutsceneActive();
+    }
+
     void createBoardInput() {
         boardInput = new Actor();
         boardInput.setTouchable(Touchable.enabled);
@@ -73,6 +77,7 @@ class BoardInteraction {
 
     void handlePlantDragRelease(Vector2 stagePosition) {
         if (screen.paused || screen.matchFinished || stagePosition == null) return;
+        if (isCutscene()) return;
 
         float x = stagePosition.x;
         float y = stagePosition.y;
@@ -121,7 +126,7 @@ class BoardInteraction {
     }
 
     private void handleBoardClick(float x, float y) {
-        if (screen.paused || screen.matchFinished) return;
+        if (screen.paused || screen.matchFinished || isCutscene()) return;
         if (x < GameScreen.BOARD_X || y < GameScreen.BOARD_Y
                 || x >= GameScreen.BOARD_X + screen.boardWidth()
                 || y >= GameScreen.BOARD_Y + screen.boardHeight()) return;
@@ -176,6 +181,7 @@ class BoardInteraction {
 
     boolean collectUnderMouse(Vector2 click) {
         if (screen.paused || screen.matchFinished || click == null) return false;
+        if (isCutscene()) return false;
 
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();

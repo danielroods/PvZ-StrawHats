@@ -118,6 +118,20 @@ public class GameSession {
         return level == null || level.isSkySunEnabled();
     }
 
+    public model.match.boss.ZombossFight getZombossFight() {
+        return level instanceof model.match.main.levels.special_levels.BossLevel bossLevel
+                ? bossLevel.getFight() : null;
+    }
+
+    public boolean isCutsceneActive() {
+        model.match.boss.ZombossFight fight = getZombossFight();
+        return fight != null && fight.isCutscene();
+    }
+
+    public boolean isDoubleSunRate() {
+        return level instanceof model.match.main.levels.special_levels.BossLevel;
+    }
+
     public boolean isSandStormActive() { return hazards.isSandStormActive(); }
 
     public double getSandStormRemainingSeconds() { return hazards.getSandStormRemainingSeconds(); }

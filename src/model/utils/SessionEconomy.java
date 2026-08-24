@@ -21,6 +21,7 @@ class SessionEconomy {
     private static final double MIN_SKY_SUN_INTERVAL = 12.0;
     private static final double SKY_SUN_INTERVAL_START = 6.0;
     private static final double SKY_SUN_INTERVAL_GROWTH = 0.05;
+    private static final double BOSS_SUN_RATE_SCALE = 0.5;
 
     private final GameSession session;
 
@@ -44,8 +45,10 @@ class SessionEconomy {
         double elapsed = session.getElapsedSecondsSinceWavesStarted();
         double baseInterval = Math.max(SKY_SUN_INTERVAL_START
                 + SKY_SUN_INTERVAL_GROWTH * elapsed, MIN_SKY_SUN_INTERVAL);
-        if (session.getDifficultyLevel() <= 0) return baseInterval;
-        return baseInterval * (session.getDifficultyLevel() / 3.0);
+        if (session.getDifficultyLevel() > 0) {
+            baseInterval *= session.getDifficultyLevel() / 3.0;
+        }
+        return session.isDoubleSunRate() ? baseInterval * BOSS_SUN_RATE_SCALE : baseInterval;
     }
 
     double advanceSkySunTimer(double deltaTimeSeconds) {

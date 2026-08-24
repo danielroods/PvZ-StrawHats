@@ -22,6 +22,19 @@ class EffectRenderer {
 
     static final float PROJECTILE_PAM_SCALE = 0.35f;
 
+    static final float POTATO_MINE_EXPLOSION_SCALE_MULTIPLIER = 1.8f;
+    static final float POTATO_MINE_EXPLOSION_OFFSET_X = 0.43f;
+    static final float POTATO_MINE_EXPLOSION_OFFSET_Y = 1f;
+    private static final String POTATO_MINE_EXPLOSION_PAM =
+            "768/INITIAL/EFFECTS/POTATOMINE_EXPLOSION/POTATOMINE_EXPLOSION.PAM";
+    private static final String PRIMAL_POTATO_MINE_EXPLOSION_PAM =
+            "768/INITIAL/EFFECTS/PRIMAL_POTATOMINE_EXPLOSION/PRIMAL_POTATOMINE_EXPLOSION.PAM";
+    private static final String CHERRY_BOMB_EXPLOSION_PAM =
+            "768/FULL/EFFECTS/CHERRYBOMB_EXPLOSION_TOP/CHERRYBOMB_EXPLOSION_TOP.PAM";
+    private static final float CHERRY_BOMB_EXPLOSION_SCALE = 0.55f;
+    private static final float CHERRY_BOMB_EXPLOSION_OFFSET_X = 0.43f;
+    private static final float CHERRY_BOMB_EXPLOSION_OFFSET_Y = 1.3f;
+
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
     private static final String ZOMBIE_PEA_PAM =
@@ -75,6 +88,26 @@ class EffectRenderer {
         }
     }
 
+    // Hot Potato: melting the ice block/frozen plant it's planted on plays a three-phase
+    // ground puddle - see addHotPotatoMeltEffect/drawHotPotatoMeltEffects.
+    private static final String HOTPOTATO_ICEBLOCK_PUDDLE_PAM =
+            "768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/HOTPOTATO_ICEBLOCK_PUDDLE.PAM";
+    private static final float HOTPOTATO_PUDDLE_HOLD_SECONDS = 3.0f;
+    private static final float HOTPOTATO_PUDDLE_SCALE = 0.65f;
+    private static final float HOTPOTATO_PUDDLE_OFFSET_X = 0.45f;
+    private static final float HOTPOTATO_PUDDLE_OFFSET_Y = 0.50f;
+
+    /** Tracks one Hot Potato melt puddle through animation (intro) -> animation2 (hold) -> animation3 (outro). */
+    private static final class HotPotatoMeltEffect {
+        final Position position;
+        String phase = "animation";
+        float phaseTime;
+
+        HotPotatoMeltEffect(Position position) {
+            this.position = position;
+        }
+    }
+
     private static final class IceShroomZone {
         final Plant plant;
         final List<Position> tiles;
@@ -106,6 +139,7 @@ class EffectRenderer {
     private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
+    private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
@@ -124,7 +158,41 @@ class EffectRenderer {
         ProjectileEffectAssets.Variant normal = ProjectileEffectAssets.Variant.NORMAL;
         List<ProjectileEffectAssets.AssetEntry> hitEntries =
                 ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.HIT, normal);
-        if (!hitEntries.isEmpty()) return hitEntries.get(0);
+        if (!hitEntries.isEmpty()) {
+            ProjectileEffectAssets.AssetEntry entry = hitEntries.get(0);
+            if ("Potato Mine".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation");
+                if (exact == null) {
+                    exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation2");
+                }
+                if (exact != null && !exact.equals(entry.state())) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
+                            entry.scope(), entry.purpose());
+                }
+            }
+            if ("Primal Potato Mine".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(entry.path(), "animation3");
+                if (exact != null && !exact.equals(entry.state())) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            entry.path(), exact, entry.playMode(), entry.kind(), entry.variant(),
+                            entry.scope(), entry.purpose());
+                }
+            }
+            if ("Cherry Bomb".equalsIgnoreCase(plantName)) {
+                String exact = AnimationFactory.exactClipNameForPath(CHERRY_BOMB_EXPLOSION_PAM, "explosion3");
+                if (exact != null) {
+                    return new ProjectileEffectAssets.AssetEntry(
+                            CHERRY_BOMB_EXPLOSION_PAM, exact,
+                            ProjectileEffectAssets.PlayMode.ONCE,
+                            ProjectileEffectAssets.Kind.HIT,
+                            ProjectileEffectAssets.Variant.NORMAL,
+                            ProjectileEffectAssets.Scope.SELF,
+                            "Cherry Bomb main explosion");
+                }
+            }
+            return entry;
+        }
 
         List<ProjectileEffectAssets.AssetEntry> effectEntries =
                 ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.EFFECT, normal);
@@ -156,12 +224,31 @@ class EffectRenderer {
                 new Position(position.x(), position.y())));
     }
 
+    /** Starts the melting-ice-puddle sequence on Hot Potato's own tile (its ice block/frozen plant). */
+    void addHotPotatoMeltEffect(Position position) {
+        if (position == null) return;
+        hotPotatoMeltEffects.add(new HotPotatoMeltEffect(
+                new Position(position.x(), position.y())));
+    }
+
     void addTorchwoodRowFireEffect(int row, float duration) {
         if (screen.session.getEnvironment() == null) return;
         final String path = "768/INITIAL/EFFECTS/FIREPEASHOOTER_FIRE/FIREPEASHOOTER_FIRE.PAM";
         for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
             impactEffects.add(new TimedPamEffect(path, "idle", true, false,
                     new Position(col, row), duration, PROJECTILE_PAM_SCALE));
+        }
+    }
+
+    void addJalapenoRowFireEffect(int row) {
+        if (screen.session.getEnvironment() == null) return;
+
+        final String path = "768/INITIAL/EFFECTS/JALAPENO_FIRE/JALAPENO_FIRE.PAM";
+        final float duration = 0.90f;
+        for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+            impactEffects.add(new TimedPamEffect(
+                    path, "idle2", false, false,
+                    new Position(col+0.15f, row), duration, 0.565f));
         }
     }
 
@@ -260,19 +347,91 @@ class EffectRenderer {
                 && e.phaseTime >= finalEndDuration);
     }
 
+    /**
+     * Renders the Hot Potato melting-ice puddle before plants are drawn, so it sits
+     * underneath the plant/ice block it's melting rather than on top of it.
+     * GameScreen calls this as part of the board background layer, alongside
+     * {@link #drawScorchedTileEffects}.
+     */
+    void drawHotPotatoMeltEffects(float delta) {
+        if (hotPotatoMeltEffects.isEmpty()) return;
+
+        float tileW = screen.getBoardTileWidth();
+        float tileH = screen.getBoardTileHeight();
+        float introDuration = AnimationFactory.clipDurationForPath(
+                HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation");
+        float outroDuration = AnimationFactory.clipDurationForPath(
+                HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation3");
+        if (introDuration <= 0f) introDuration = 0.5f;
+        if (outroDuration <= 0f) outroDuration = 0.5f;
+
+        for (HotPotatoMeltEffect effect : hotPotatoMeltEffects) {
+            effect.phaseTime += delta;
+
+            if ("animation".equals(effect.phase) && effect.phaseTime >= introDuration) {
+                effect.phase = "animation2";
+                effect.phaseTime = 0f;
+            }
+            if ("animation2".equals(effect.phase) && effect.phaseTime >= HOTPOTATO_PUDDLE_HOLD_SECONDS) {
+                effect.phase = "animation3";
+                effect.phaseTime = 0f;
+            }
+
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * tileW
+                    + tileW * HOTPOTATO_PUDDLE_OFFSET_X;
+            float y = screen.cellY((int) effect.position.y())
+                    + tileH * HOTPOTATO_PUDDLE_OFFSET_Y;
+            boolean loop = "animation2".equals(effect.phase);
+            float time = effect.phaseTime;
+            if (loop) {
+                float duration = AnimationFactory.clipDurationForPath(
+                        HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation2");
+                if (duration > 0f) time %= duration;
+            }
+            screen.drawPam(HOTPOTATO_ICEBLOCK_PUDDLE_PAM, effect.phase, time,
+                    x, y, HOTPOTATO_PUDDLE_SCALE, loop);
+        }
+
+        float finalOutroDuration = outroDuration;
+        hotPotatoMeltEffects.removeIf(e -> "animation3".equals(e.phase)
+                && e.phaseTime >= finalOutroDuration);
+    }
+
     private void drawTimedEffects(List<TimedPamEffect> effects, float delta) {
         if (effects.isEmpty()) return;
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
         for (TimedPamEffect effect : effects) {
             effect.time += delta;
+            boolean potatoMineExplosion = POTATO_MINE_EXPLOSION_PAM.equals(effect.path)
+                    || PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path);
+            boolean cherryBombExplosion = CHERRY_BOMB_EXPLOSION_PAM.equals(effect.path);
+            float offsetX = potatoMineExplosion
+                    ? POTATO_MINE_EXPLOSION_OFFSET_X
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_OFFSET_X : 0.30f;
+            float offsetY = potatoMineExplosion
+                    ? POTATO_MINE_EXPLOSION_OFFSET_Y
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_OFFSET_Y : 0.30f;
+            float drawScale = potatoMineExplosion
+                    ? effect.scale * POTATO_MINE_EXPLOSION_SCALE_MULTIPLIER
+                    : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_SCALE : effect.scale;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
-                    + boardTileWidth * 0.3f;
-            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * 0.3f;
+                    + boardTileWidth * offsetX;
+            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY;
             if (effect.staticImage) {
-                screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
+                screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
             } else {
-                screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
+                boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
+                        x, y, drawScale, effect.loop);
+                if (!drawn && potatoMineExplosion) {
+                    String fallback;
+                    if (PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
+                        fallback = "animation";
+                    } else {
+                        fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
+                    }
+                    screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
+                }
             }
         }
         effects.removeIf(e -> e.time > e.duration);
