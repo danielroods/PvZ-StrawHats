@@ -36,6 +36,12 @@ class SessionTicker {
         session.clock().tick();
         double deltaTimeSeconds = GameClock.SECONDS_PER_TICK;
 
+        model.match.boss.ZombossFight bossFight = session.getZombossFight();
+        if (bossFight != null) {
+            bossFight.tick(deltaTimeSeconds);
+            if (bossFight.isCutscene()) return;
+        }
+
         economy.tickPlantCooldowns(deltaTimeSeconds);
 
         if (session.getLevel() != null) {

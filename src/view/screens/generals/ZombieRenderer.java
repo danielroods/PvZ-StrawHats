@@ -118,6 +118,7 @@ class ZombieRenderer {
         zombies.sort(Comparator.comparingDouble(z -> z.getPosition() == null ? 0 : z.getPosition().y()));
         for (Zombie zombie : zombies) {
             if (zombie == null || zombie.getPosition() == null) continue;
+            if (zombie.isBoss()) continue;
             boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(screen.session, zombie);
             float t = zombieAnimTimes.getOrDefault(zombie, 0f);
             if (!frozenInIce) {
@@ -284,6 +285,7 @@ class ZombieRenderer {
         List<Zombie> stillAlive = screen.session.getZombies();
         for (Zombie zombie : aliveBeforeTick) {
             if (stillAlive.contains(zombie)) continue;
+            if (zombie.isBoss()) continue;
             if (zombie.getPosition() == null) continue;
             if (zombie.getZombieState() != ZombieState.DEAD) continue;
 

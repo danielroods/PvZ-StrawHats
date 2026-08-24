@@ -26,6 +26,7 @@ import java.util.Random;
 
 public class Zombie extends Item implements Attack {
     private static final Random RAND = new Random();
+    private static final double BOSS_MAX_SINGLE_HIT_FRACTION = 0.10;
 
     private String name;
     private Armour armour;
@@ -81,6 +82,9 @@ public class Zombie extends Item implements Attack {
     private boolean fromNecromancy;
     private int sunBeanCarrierValue = 0;
 
+    private boolean boss;
+    private double damageTakenMultiplier = 1.0;
+
     public Zombie(String name, Position position, int HP, boolean isFacingRight, Armour armour, int speed) {
         super(position, HP);
         this.name = name;
@@ -106,6 +110,22 @@ public class Zombie extends Item implements Attack {
 
     public boolean chanceToHavePlantFood() {
         return RAND.nextInt(100) < 5;
+    }
+
+    public void markAsBoss() {
+        this.boss = true;
+    }
+
+    public boolean isBoss() {
+        return boss;
+    }
+
+    public void setDamageTakenMultiplier(double multiplier) {
+        this.damageTakenMultiplier = Math.max(0.0, multiplier);
+    }
+
+    public double getDamageTakenMultiplier() {
+        return damageTakenMultiplier;
     }
 
     @Override
@@ -184,7 +204,10 @@ public class Zombie extends Item implements Attack {
     }
 
     private void applyDamageCalculations(int damage, Object damageSource) {
-        int remaining = (armour != null && armour.getHP() > 0) ? armour.absorbDamage(damage) : damage;
+        int scaled = damageTakenMultiplier == 1.0
+                ? damage : (int) Math.round(damage * damageTakenMultiplier);
+        if (boss) scaled = capBossHit(scaled);
+        int remaining = (armour != null && armour.getHP() > 0) ? armour.absorbDamage(scaled) : scaled;
         if (remaining <= 0) return;
 
         int newHp = Math.max(0, getHP() - remaining);
@@ -194,6 +217,11 @@ public class Zombie extends Item implements Attack {
             boolean diedFromFire = isFireDamageSource(damageSource) || status == Status.FIRED;
             handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire);
         }
+    }
+
+    private int capBossHit(int damage) {
+        int cap = Math.max(1, (int) Math.round(maxHp * BOSS_MAX_SINGLE_HIT_FRACTION));
+        return Math.min(damage, cap);
     }
 
     private void handleDeath(GameSession session, String killerName, boolean firedDeath) {
@@ -298,6 +326,10 @@ public class Zombie extends Item implements Attack {
             return;
         }
 
+        // A boss never eats or walks on its own: ZombossFight owns its position and its
+        // whole moveset, so the ordinary target/attack/move pass is skipped for it.
+        if (boss) return;
+
         Item target = acquireTarget(session);
         if (target != null && target.isAlive()) {
             zombieState = ZombieState.EATING;
@@ -377,7 +409,7 @@ public class Zombie extends Item implements Attack {
     public boolean isActionAnimationLoop() { return actionAnimationLoop; }
 
     public void startKnockback(double distance, double durationSeconds) {
-        if (durationSeconds <= 0.0 || Math.abs(distance) < 0.0001) return;
+        if (boss || durationSeconds <= 0.0 || Math.abs(distance) < 0.0001) return;
         this.knockbackVelocityX = distance / durationSeconds;
         this.knockbackRemaining = durationSeconds;
     }
@@ -421,7 +453,7 @@ public class Zombie extends Item implements Attack {
     }
 
     public void hypnotize() {
-        if (faction == Faction.PLANTS || !isAlive()) return;
+        if (boss || faction == Faction.PLANTS || !isAlive()) return;
         this.faction = Faction.PLANTS;
         this.status = Status.HYPNOTIZED;
         this.statusTimer = 0;
@@ -509,6 +541,10 @@ public class Zombie extends Item implements Attack {
     }
     public void applyStatus(Status status, double duration) {
         if (status == null || !isAlive()) return;
+        if (boss && (status == Status.HYPNOTIZED || status == Status.BUTTER
+                || status == Status.FREEZE || status == Status.FROZEN)) {
+            return;
+        }
         if (status == Status.HYPNOTIZED) {
             hypnotize();
             return;

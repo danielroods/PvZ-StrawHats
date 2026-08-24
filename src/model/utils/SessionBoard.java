@@ -174,6 +174,8 @@ class SessionBoard {
 
         if (cell.getTile() != null && cell.getTile().type() == TileType.Slippery) return false;
 
+        if (isBlockedByZombossGlacier(col)) return false;
+
         boolean flooded = cell.getTile() != null && cell.getTile().type() == TileType.Water;
         // Sea-shroom is only ever planted directly on water (Big Wave Beach); unlike other
         // WATER-tagged plants it may not be placed on dry land.
@@ -252,6 +254,16 @@ class SessionBoard {
         }
 
         return true;
+    }
+
+    boolean isBlockedByZombossGlacier(int col) {
+        model.match.boss.ZombossFight fight = session.getZombossFight();
+        if (fight == null) return false;
+        if (!(fight.getBehavior()
+                instanceof model.match.boss.behavior.IceAgeZombossBehavior ice)) {
+            return false;
+        }
+        return col >= ice.getBlockedColumnStart();
     }
 
     boolean removePlantAt(int row, int col) {

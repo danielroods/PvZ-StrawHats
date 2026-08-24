@@ -10,6 +10,7 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
 import model.match.main.levels.Level;
 import model.match.main.levels.normal_levels.NormalLevel;
+import model.match.boss.ZombossChapter;
 import model.match.main.levels.special_levels.*;
 import model.match.main.season.SeasonFactory;
 import model.match_mechanisms.Time;
@@ -185,22 +186,17 @@ public class LevelLoader {
             ((LoveYourPlantsLevel) level).setMaxPlantLoss(maxLoss);
         } else if (level instanceof PlantWhatYouGetLevel) {
             ((PlantWhatYouGetLevel) level).setPrimarySun(initialSun);
-        } else if (level instanceof BossLevel) {
-            String bossType = raw.get("bossType").getAsString();
-            validateAdventureZombie(level, bossType);
-            Zombie boss = ZombieFactory.create(bossType, 0, level.getCols());
-            ((BossLevel) level).setBossZombie(boss);
-            List<Zombie> bossWave = new ArrayList<>();
-            bossWave.add(boss);
-            if (raw.has("bossEscorts")) {
-                raw.get("bossEscorts").getAsJsonArray().forEach(element -> {
-                    String escortType = element.getAsString();
-                    validateAdventureZombie(level, escortType);
-                    bossWave.add(ZombieFactory.create(escortType, 0, level.getCols()));
-                });
+        } else if (level instanceof BossLevel bossLevel) {
+            String chapterKey = raw.has("chapter")
+                    ? raw.get("chapter").getAsString() : seasonName;
+            ZombossChapter chapter = ZombossChapter.fromSeason(chapterKey);
+            if (chapter == null) {
+                throw new IllegalArgumentException(
+                        "No Zomboss chapter is defined for season " + seasonName + ".");
             }
-            double bossDelay = raw.has("bossDelay") ? raw.get("bossDelay").getAsDouble() : 5;
-            level.getWaves().add(new ZombieWave(bossDelay, bossWave));
+            bossLevel.setChapter(chapter);
+            bossLevel.setBossZombie(ZombieFactory.create(chapter.getAlias(), 0, level.getCols()));
+            level.setWaves(new ArrayList<>());
         }
 
         for (ZombieWave wave : level.getWaves()) wave.setFinalWave(false);
