@@ -185,6 +185,7 @@ public class GameScreen extends UiScreen {
         if (matchFinished) return;
 
         refreshHud(delta);
+        refreshZombossDialogue();
         drawBoard(delta);
         stage.act(delta);
         if (controller.ScreenManager.getScreen() != this) return;
@@ -204,6 +205,21 @@ public class GameScreen extends UiScreen {
 
     protected List<String> loadoutPlants() {
         return new ArrayList<>(BeforeMenu.selectedPlants);
+    }
+
+    private void refreshZombossDialogue() {
+        if (zombossDialogue == null || session == null) return;
+
+        model.match.boss.ZombossFight fight = session.getZombossFight();
+        if (fight == null || fight.getPhase() != model.match.boss.ZombossPhase.NPC_TALK) {
+            zombossDialogue.showLine(null, 0, 0);
+            return;
+        }
+
+        zombossDialogue.showLine(
+                fight.getDialogueLine(),
+                fight.getDialogueIndex(),
+                fight.getDialogueCount());
     }
 
     protected void refreshHud(float delta) {
@@ -297,6 +313,7 @@ public class GameScreen extends UiScreen {
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
         zomboss.drawBoss();
+        zomboss.drawNpc();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
         groundItems.drawGroundItems(delta, bw, bh);
