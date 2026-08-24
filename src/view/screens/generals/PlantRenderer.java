@@ -243,6 +243,9 @@ class PlantRenderer {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
+            } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
+                preferredState = "plantfood";
+                animTime = t;
             } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
                 preferredState = "idle_plantfood";
                 animTime = (float) plant.getVisualAnimationElapsed();
@@ -823,7 +826,28 @@ class PlantRenderer {
         List<Plant> stillAlive = screen.session.getPlants();
         for (Plant plant : alivePlantsBeforeTick) {
             if (stillAlive.contains(plant)) continue;
-            if (plant.getPosition() == null || plant.getHP() <= 0) continue;
+            if (plant.getPosition() == null) continue;
+
+            if ("Torchwood".equalsIgnoreCase(plant.getName())) {
+                String path = AnimationFactory.pathForDisplayName(plant.getName());
+                if (path != null) {
+                    screen.effects().addExplodingPlantEffect(
+                            new ProjectileEffectAssets.AssetEntry(path, "explosion",
+                                    ProjectileEffectAssets.PlayMode.ONCE,
+                                    ProjectileEffectAssets.Kind.EFFECT,
+                                    ProjectileEffectAssets.Variant.NORMAL,
+                                    ProjectileEffectAssets.Scope.SELF,
+                                    "Torchwood death explosion"),
+                            false, plant.getPosition(), EXPLODING_PLANT_EFFECT_DURATION);
+                }
+                screen.effects().addTorchwoodRowFireEffect((int) Math.round(plant.getPosition().y()),
+                        EXPLODING_PLANT_EFFECT_DURATION);
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if (plant.getHP() <= 0) continue;
             if (plant.getType() != PlantType.EXPLOSIVE) continue;
 
             ProjectileEffectAssets.AssetEntry entry = screen.effects().resolveExplosionEntry(plant.getName());
