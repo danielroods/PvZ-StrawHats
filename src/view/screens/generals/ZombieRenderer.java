@@ -10,6 +10,7 @@ import controller.assets.GameAssetManager;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.animations.ZombieAshAnimationRegistry;
+import model.collections.armour.ZombieArmour;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
@@ -51,6 +52,7 @@ class ZombieRenderer {
     private static final float PIANO_SCALE = 0.52f;
     private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
     private static final String ZOMBIE_MODERN_ALLSTAR_ALIAS = "ZombieModernAllStar";
+    private static final String ZOMBIE_NEWSPAPER_ALIAS = "ZombieNewspaper";
     // Standalone prop PAM (idle/active/death), drawn at the pushed structure's own position.
     private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
     private static final float DEFAULT_ARCADE_DEATH_DURATION = 0.6f;
@@ -194,11 +196,18 @@ class ZombieRenderer {
             } else if (zombie.getZombieState() == ZombieState.EATING) {
                 // ZombieBeachFisherman's PAM has no dedicated "eat" clip; it
                 // reuses its "toss" animation for chomping instead.
-                preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss" : "eat";
+                boolean hasNewspaper = ZOMBIE_NEWSPAPER_ALIAS.equals(zombie.getAlias())
+                        && zombie.getArmour() instanceof ZombieArmour armour
+                        && !armour.isDestroyed();
+                preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss"
+                        : hasNewspaper ? "eat_newspaper" : "eat";
             } else {
                 boolean stillRunning = ZOMBIE_MODERN_ALLSTAR_ALIAS.equals(zombie.getAlias())
                         && zombie.getAttackBehavior() instanceof SmashAttack;
-                preferred = gyratingNow ? "spin" : stillRunning ? "run" : "walk";
+                boolean hasNewspaper = ZOMBIE_NEWSPAPER_ALIAS.equals(zombie.getAlias())
+                        && zombie.getArmour() instanceof ZombieArmour armour
+                        && !armour.isDestroyed();
+                preferred = gyratingNow ? "spin" : stillRunning ? "run" : hasNewspaper ? "walk_newspaper" : "walk";
             }
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
             float animationTime = t;
@@ -213,7 +222,8 @@ class ZombieRenderer {
                     animationTime = duration > 0f ? Math.min(elapsed, duration) : elapsed;
                 }
             } else if (("walk".equals(preferred) || "eat".equals(preferred) || "toss".equals(preferred)
-                    || "spin".equals(preferred) || "run".equals(preferred)) && path != null) {
+                    || "spin".equals(preferred) || "run".equals(preferred) || "walk_newspaper".equals(preferred)
+                    || "eat_newspaper".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
                     animationTime = t % duration;

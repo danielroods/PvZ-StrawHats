@@ -135,7 +135,7 @@ public class ZombieFactory {
             throw new IllegalArgumentException("Unknown zombie alias: " + alias);
         }
 
-        Map<String, Object> data = new HashMap<>(blueprint);
+        Map<String, Object> data = new java.util.HashMap<>(blueprint);
         Zombie zombie = buildBaseZombie(alias, data, row, col);
 
         Object moveSpec = data.getOrDefault("move", "NormalWalk");
@@ -164,7 +164,11 @@ public class ZombieFactory {
         double eatDps = ((Number) data.getOrDefault("EatDPS", 60)).doubleValue();
 
         String sizeStr = data.containsKey("Size") ? (String) data.get("Size") : "default";
-        ZombieRace race = raceFor(sizeStr);
+        ZombieRace race = switch (sizeStr.toLowerCase()) {
+            case "imp" -> ZombieRace.IMP;
+            case "large" -> ZombieRace.GARGANTUAR;
+            default -> ZombieRace.DEFAULT;
+        };
 
         boolean canSpawnPlantFood = !data.containsKey("CanSpawnPlantFood") || (Boolean) data.get("CanSpawnPlantFood");
         Armour armour = resolveArmor(data);
@@ -186,13 +190,8 @@ public class ZombieFactory {
 
         Position spawnPos = Position.of(col, row);
         zombie.setPosition(spawnPos);
-        // RunningSpeedScale (All-Star Zombie): "Speed" in the blueprint is the
-        // slower post-tackle pace, so the zombie starts boosted by the inverse
-        // of the scale and SmashAttack's speedScaleAfter brings it back down
-        // to the base "Speed" the instant it lands its tackle.
-        double runningSpeedScale = ((Number) data.getOrDefault("RunningSpeedScale", 1.0)).doubleValue();
-        double initialSpeed = runningSpeedScale > 0 ? speed / runningSpeedScale : speed;
-        zombie.setSpeed(Position.of(-initialSpeed, 0));
+        double runningSpeedScale = ((Number) data.getOrDefault("RunningSpeedScale", 1)).doubleValue();
+        zombie.setSpeed(Position.of(-speed * runningSpeedScale, 0));
 
         applyDifficultyScaling(zombie, data);
 
@@ -287,13 +286,23 @@ public class ZombieFactory {
             ArmourType resolvedType = resolveArmorType(armorAlias);
             if (resolvedType != null) {
                 primaryType = resolvedType;
-                int hpValue = armorBaseHp.getOrDefault(armorAlias, resolvedType.getArmorHp());
+                int hpValue = "NewspaperDefault".equals(armorAlias)
+                        ? ordinaryZombieHp()
+                        : armorBaseHp.getOrDefault(armorAlias, resolvedType.getArmorHp());
                 accumulatedArmorHp += hpValue;
             }
         }
 
         if (primaryType == null || accumulatedArmorHp <= 0) return null;
         return new ZombieArmour(primaryType, accumulatedArmorHp);
+    }
+
+    private static int ordinaryZombieHp() {
+        Map<String, Object> defaultBlueprint = blueprints.get("ZombieDefault");
+        if (defaultBlueprint != null && defaultBlueprint.get("Hitpoints") instanceof Number hp) {
+            return hp.intValue();
+        }
+        return ArmourType.NEWSPAPER.getArmorHp();
     }
 
     public static Armour createKnightArmor() {
