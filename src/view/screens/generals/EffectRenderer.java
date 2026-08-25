@@ -8,6 +8,7 @@ import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.projectile.GrapeshotProjectile;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
@@ -36,6 +37,8 @@ class EffectRenderer {
     private static final float CHERRY_BOMB_EXPLOSION_OFFSET_Y = 1.3f;
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
+    private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
+    private static final String GRAPESHOT = "Grapeshot";
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
     private static final String ZOMBIE_PEA_PAM =
             "768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM";
@@ -776,9 +779,14 @@ class EffectRenderer {
 
             ProjectileEffectAssets.AssetEntry entry = resolveImpactEntry(trace);
             if (entry == null) continue;
+            float duration = IMPACT_EFFECT_DURATION;
+            if (GRAPESHOT.equalsIgnoreCase(trace.plantName)) {
+                float exact = AnimationFactory.exactClipDurationForPath(entry.path(), entry.state());
+                if (exact > 0f) duration = exact;
+            }
             impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
                     entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
-                    entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
+                    entry.isStaticImage(), trace.position, duration,
                     PROJECTILE_PAM_SCALE));
         }
     }
@@ -829,10 +837,12 @@ class EffectRenderer {
                 entries.get(Math.min(projectile.getAssetVariant(), entries.size() - 1));
         boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
 
+        boolean freeFlying = projectile instanceof GrapeshotProjectile;
         float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
                 + screen.getBoardTileWidth() * 0.41f;
-        float y = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.42f;
-        float scaleFactor = 2.0f;
+        float y = (freeFlying ? screen.cellY(position.y()) : screen.cellY((int) position.y()))
+                + screen.getBoardTileHeight() * 0.42f;
+        float scaleFactor = freeFlying ? GRAPE_PROJECTILE_SCALE_FACTOR : 2.0f;
 
         if (entry.isStaticImage()) {
             return screen.assets().drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE);

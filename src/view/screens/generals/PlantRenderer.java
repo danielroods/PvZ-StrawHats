@@ -32,6 +32,7 @@ class PlantRenderer {
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
     private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
+    private static final String GRAPESHOT_ATTACK_STATE = "attack_t2";
 
     private final GameScreen screen;
 
@@ -313,11 +314,15 @@ class PlantRenderer {
                 preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
                 animTime = t;
             } else if (prepping) {
-                preferredState = "Cherry Bomb".equalsIgnoreCase(plant.getName())
-                        ? "attack"
-                        : (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
-                            ? "intro"
-                            : screen.pam().resolveFuseClipState(plant.getName()));
+                if ("Cherry Bomb".equalsIgnoreCase(plant.getName())) {
+                    preferredState = "attack";
+                } else if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
+                    preferredState = GRAPESHOT_ATTACK_STATE;
+                } else if (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST) {
+                    preferredState = "intro";
+                } else {
+                    preferredState = screen.pam().resolveFuseClipState(plant.getName());
+                }
                 animTime = t;
             } else if (attacking) {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
@@ -953,6 +958,12 @@ class PlantRenderer {
             if ("Jalapeno".equalsIgnoreCase(plant.getName())) {
                 screen.effects().addJalapenoRowFireEffect(
                         (int) Math.round(plant.getPosition().y()));
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
                 continue;
