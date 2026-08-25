@@ -12,6 +12,9 @@ import service.GameClock;
 
 public class SunThief implements ZombieEffectStatus {
     private static final double GRAB_PERIOD = 5.0;
+    // How long Ra's one-shot "power_up" beat plays before the looping
+    // "power" clip takes over for the rest of the grab window.
+    private static final double POWER_UP_DURATION = 0.5;
 
     private final boolean directBankStealer;
     private final int lootLimit;
@@ -52,7 +55,7 @@ public class SunThief implements ZombieEffectStatus {
         if (directBankStealer) {
             handleVaultBreaker(target, session);
         } else {
-            handleScavengerBehavior(session);
+            handleScavengerBehavior(target, session);
         }
     }
 
@@ -64,18 +67,24 @@ public class SunThief implements ZombieEffectStatus {
         refundDispensedOnDeath = true;
     }
 
-    private void handleScavengerBehavior(GameSession session) {
+    private void handleScavengerBehavior(Zombie raider, GameSession session) {
         if (collectedSuns >= lootLimit) return;
 
         if (designatedTarget != null && (!designatedTarget.isAlive() || designatedTarget.getItemType() != ItemType.SUN)) {
             designatedTarget = null;
             lockOnTimer = 0;
+            raider.clearActionAnimationState();
         }
 
         if (designatedTarget == null) {
             designatedTarget = scanForFallenSun(session);
             lockOnTimer = 0;
             if (designatedTarget == null) return;
+            // Just locked on: play the one-shot power-up beat, then the
+            // looping power beat carries the rest of the GRAB_PERIOD window.
+            raider.setActionAnimationState("power_up", POWER_UP_DURATION, false);
+        } else if (lockOnTimer >= POWER_UP_DURATION && !"power".equals(raider.getActionAnimationState())) {
+            raider.setActionAnimationState("power", GRAB_PERIOD - POWER_UP_DURATION, true);
         }
 
         lockOnTimer += GameClock.SECONDS_PER_TICK;
@@ -84,6 +93,7 @@ public class SunThief implements ZombieEffectStatus {
             consumeGroundSun(designatedTarget);
             designatedTarget = null;
             lockOnTimer = 0;
+            raider.clearActionAnimationState();
         }
     }
 

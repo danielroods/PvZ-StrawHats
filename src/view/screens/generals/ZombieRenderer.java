@@ -459,9 +459,9 @@ class ZombieRenderer {
         if (duration > 0f && deathTime == null) arcadeTime %= duration;
 
         Position pos = structure.getPosition();
-        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
+        float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 25;
         float arcadeY = screen.cellY(pos.y()) + 40f;
-        screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX+25, arcadeY, ARCADE_SCALE, facingRight);
+        screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
