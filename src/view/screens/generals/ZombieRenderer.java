@@ -72,6 +72,22 @@ class ZombieRenderer {
     private static final float RIPPLE_OFFSET_X = -50f;
     private static final float RIPPLE_OFFSET_Y = -18f;
 
+    // Swimmer (snorkel) zombie sits noticeably deeper than other beach zombies while
+    // submerged - only its head should poke out above the water clip line. The ripple
+    // itself is drawn from the zombie's own board position (see rippleDrawX/rippleDrawY
+    // below), which is untouched by this offset, so it stays in the same place as any
+    // other zombie's ripple.
+    private static final String ZOMBIE_BEACH_SNORKEL_ALIAS = "ZombieBeachSnorkel";
+    private static final float SWIMMER_SUBMERGE_OFFSET_Y = 58f;
+    private static final float DEFAULT_SUBMERGE_OFFSET_Y = 20f;
+
+    // Tints a zombie's own PAM draw blue while it's chilled (Status.FREEZE), applied via
+    // SpriteBatch color multiplication so the tint rides along with the actual animation
+    // frames (transparent pixels stay transparent) instead of drawing a flat colored shape
+    // over it.
+    private static final Color FREEZE_TINT = new Color(0.55f, 0.78f, 1f, 1f);
+    private static final Color FREEZE_FALLBACK_TINT = new Color(0.35f, 0.55f, 0.85f, 1f);
+
     private static final class ZombieWaterRipple {
         boolean inWater;
         float rippleLoopTime;
@@ -108,6 +124,7 @@ class ZombieRenderer {
     private final Map<Zombie, Integer> zombieLastHp = new IdentityHashMap<>();
     private final Map<Zombie, Float> pianoDamageAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> arcadeDeathAnimTimes = new IdentityHashMap<>();
+    private final Map<Zombie, ZombieWaterRipple> arcadeWaterRipples = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -144,7 +161,9 @@ class ZombieRenderer {
             float rippleDrawX = (x + boardTileWidth * 0.5f) + RIPPLE_OFFSET_X;
             float rippleDrawY = clipWaterY + RIPPLE_OFFSET_Y;
 
-            float zombieDrawY = submerged ? zombieOffsetY - 20f : zombieOffsetY;
+            float submergeOffset = ZOMBIE_BEACH_SNORKEL_ALIAS.equals(zombie.getAlias())
+                    ? SWIMMER_SUBMERGE_OFFSET_Y : DEFAULT_SUBMERGE_OFFSET_Y;
+            float zombieDrawY = submerged ? zombieOffsetY - submergeOffset : zombieOffsetY;
 
             if (zombie.isFromNecromancy()) {
                 zombieSpawnEffects.put(zombie, 0f);
@@ -241,11 +260,14 @@ class ZombieRenderer {
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
+            boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE;
             try {
                 drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
                 drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
+                if (chilled) screen.batch.setColor(FREEZE_TINT);
                 boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
                         0.52f, zombie.isFacingRight(), elementVisibility);
+                if (chilled) screen.batch.setColor(Color.WHITE);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
@@ -253,8 +275,9 @@ class ZombieRenderer {
 
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
+                    Color fallbackTint = chilled ? FREEZE_FALLBACK_TINT : new Color(0.55f, 0.5f, 0.45f, 1f);
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
-                            new Color(0.55f, 0.5f, 0.45f, 1f), GameScreenGraphics.initials(zombie.getAlias()));
+                            fallbackTint, GameScreenGraphics.initials(zombie.getAlias()));
                 }
             } finally {
                 if (waterClipActive) popWaterClip();
@@ -293,6 +316,7 @@ class ZombieRenderer {
         zombieLastHp.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        arcadeWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {
@@ -473,6 +497,21 @@ class ZombieRenderer {
         float arcadeX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 25;
         float arcadeY = screen.cellY(pos.y()) + 40f;
         screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
+
+        // Same water ripple treatment as any zombie standing in the surf, but driven off
+        // the cabinet's own board position (it leads the zombie by PusherMove.PUSH_GAP)
+        // rather than the pushing zombie's.
+        if (screen.isBeach()) {
+            String arcadeRipplePam = ripplePamFor(zombie.getAlias());
+            ZombieWaterRipple arcadeRipple = updateWaterRipple(arcadeWaterRipples, zombie, pos, delta, arcadeRipplePam);
+            if (arcadeRipple.inWater || arcadeRipple.exiting) {
+                float tileX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
+                float tileY = screen.cellY(pos.y());
+                float rippleX = (tileX + boardTileWidth * 0.5f) + RIPPLE_OFFSET_X;
+                float rippleY = (tileY + 15f) + RIPPLE_OFFSET_Y;
+                drawWaterRipple(zombie.getAlias(), rippleX, rippleY, facingRight, arcadeRipple);
+            }
+        }
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
@@ -531,8 +570,18 @@ class ZombieRenderer {
     }
 
     private ZombieWaterRipple updateZombieWaterRipple(Zombie zombie, float delta) {
-        ZombieWaterRipple ripple = zombieWaterRipples.computeIfAbsent(zombie, z -> new ZombieWaterRipple());
-        boolean inWaterNow = isZombieOnFloodedTile(zombie);
+        return updateWaterRipple(zombieWaterRipples, zombie, zombie.getPosition(), delta,
+                ripplePamFor(zombie.getAlias()));
+    }
+
+    // Shared ripple state machine, keyed by whatever owns the ripple (a zombie for its own
+    // ripple, or the zombie that pushes an arcade cabinet for the cabinet's ripple) so the
+    // arcade box can get the same "in water / exiting" water ripple as any other zombie
+    // without duplicating this logic.
+    private ZombieWaterRipple updateWaterRipple(Map<Zombie, ZombieWaterRipple> rippleMap, Zombie key,
+                                                Position position, float delta, String ripplePam) {
+        ZombieWaterRipple ripple = rippleMap.computeIfAbsent(key, z -> new ZombieWaterRipple());
+        boolean inWaterNow = isPositionOnFloodedTile(position);
         if (inWaterNow) {
             ripple.inWater = true;
             ripple.exiting = false;
@@ -544,7 +593,7 @@ class ZombieRenderer {
             ripple.exitElapsed = 0f;
         } else if (ripple.exiting) {
             ripple.exitElapsed += delta;
-            float duration = AnimationFactory.clipDurationForPath(ripplePamFor(zombie.getAlias()), "ripple_exit");
+            float duration = AnimationFactory.clipDurationForPath(ripplePam, "ripple_exit");
             if (duration <= 0f) duration = DEFAULT_RIPPLE_EXIT_DURATION;
             if (ripple.exitElapsed > duration) {
                 ripple.exiting = false;
@@ -554,11 +603,15 @@ class ZombieRenderer {
     }
 
     private boolean isZombieOnFloodedTile(Zombie zombie) {
-        if (zombie.getPosition() == null || screen.session == null) return false;
+        return zombie.getPosition() != null && isPositionOnFloodedTile(zombie.getPosition());
+    }
+
+    private boolean isPositionOnFloodedTile(Position position) {
+        if (position == null || screen.session == null) return false;
         Environment environment = screen.session.getEnvironment();
         if (environment == null) return false;
-        int row = (int) Math.round(zombie.getPosition().y());
-        int col = (int) Math.floor(zombie.getPosition().x());
+        int row = (int) Math.round(position.y());
+        int col = (int) Math.floor(position.x());
         if (col >= environment.getCols()) {
             return true;
         }
