@@ -41,6 +41,15 @@ class EffectRenderer {
     private static final float CHERRY_BOMB_EXPLOSION_OFFSET_X = 0.43f;
     private static final float CHERRY_BOMB_EXPLOSION_OFFSET_Y = 1.3f;
 
+    private static final String GENERIC_EXPLOSION_BACK_PAM =
+            "768/INITIAL/EFFECTS/GENERIC_EXPLOSION_BACK/GENERIC_EXPLOSION_BACK.PAM";
+    private static final String GENERIC_EXPLOSION_FRONT_PAM =
+            "768/INITIAL/EFFECTS/GENERIC_EXPLOSION_FRONT/GENERIC_EXPLOSION_FRONT.PAM";
+    private static final String GENERIC_EXPLOSION_STATE = "animation2";
+    private static final float GENERIC_EXPLOSION_SCALE = 0.78f;
+    private static final float GENERIC_EXPLOSION_OFFSET_X = 30f;
+    private static final float GENERIC_EXPLOSION_OFFSET_Y = 40f;
+
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
     private static final String GRAPESHOT = "Grapeshot";
@@ -79,6 +88,28 @@ class EffectRenderer {
             this.position = position;
             this.duration = duration;
             this.scale = scale;
+        }
+    }
+
+    private static final class PlacedPamEffect {
+        final String path;
+        final String state;
+        final Position position;
+        final float duration;
+        final float scale;
+        final float offsetX;
+        final float offsetY;
+        float time;
+
+        PlacedPamEffect(String path, String state, Position position, float duration,
+                        float scale, float offsetX, float offsetY) {
+            this.path = path;
+            this.state = state;
+            this.position = position;
+            this.duration = duration;
+            this.scale = scale;
+            this.offsetX = offsetX;
+            this.offsetY = offsetY;
         }
     }
 
@@ -150,6 +181,8 @@ class EffectRenderer {
 
     private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
+    private final List<PlacedPamEffect> behindZombieEffects = new ArrayList<>();
+    private final List<PlacedPamEffect> foregroundEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
     private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
@@ -232,6 +265,23 @@ class EffectRenderer {
                 position, duration, PROJECTILE_PAM_SCALE));
     }
 
+    void addExplodeONutExplosion(Position position) {
+        if (position == null) return;
+        Position at = new Position(position.x(), position.y());
+        float back = AnimationFactory.exactClipDurationForPath(
+                GENERIC_EXPLOSION_BACK_PAM, GENERIC_EXPLOSION_STATE);
+        float front = AnimationFactory.exactClipDurationForPath(
+                GENERIC_EXPLOSION_FRONT_PAM, GENERIC_EXPLOSION_STATE);
+        if (back <= 0f) back = 3f;
+        if (front <= 0f) front = 3f;
+        behindZombieEffects.add(new PlacedPamEffect(
+                GENERIC_EXPLOSION_BACK_PAM, GENERIC_EXPLOSION_STATE, at, back,
+                GENERIC_EXPLOSION_SCALE, GENERIC_EXPLOSION_OFFSET_X, GENERIC_EXPLOSION_OFFSET_Y));
+        foregroundEffects.add(new PlacedPamEffect(
+                GENERIC_EXPLOSION_FRONT_PAM, GENERIC_EXPLOSION_STATE, at, front,
+                GENERIC_EXPLOSION_SCALE, GENERIC_EXPLOSION_OFFSET_X, GENERIC_EXPLOSION_OFFSET_Y));
+    }
+
     void addScorchedTileEffect(Position position) {
         if (position == null) return;
         scorchedTileEffects.add(new ScorchedTileEffect(
@@ -277,8 +327,26 @@ class EffectRenderer {
         updateIceShroomZones(delta);
         drawTimedEffects(explodingPlantEffects, delta);
         drawTimedEffects(impactEffects, delta);
+        drawPlacedEffects(behindZombieEffects, delta);
         drawPlantFoodEffects();
         drawGarlicPlantFoodProjectiles();
+    }
+
+    void drawForegroundEffects(float delta) {
+        drawPlacedEffects(foregroundEffects, delta);
+    }
+
+    private void drawPlacedEffects(List<PlacedPamEffect> effects, float delta) {
+        if (effects.isEmpty()) return;
+        float boardTileWidth = screen.getBoardTileWidth();
+        for (PlacedPamEffect effect : effects) {
+            effect.time += delta;
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
+                    + effect.offsetX;
+            float y = screen.cellY((int) effect.position.y()) + effect.offsetY;
+            screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, false);
+        }
+        effects.removeIf(e -> e.time > e.duration);
     }
 
     private void drawPlantFoodEffects() {

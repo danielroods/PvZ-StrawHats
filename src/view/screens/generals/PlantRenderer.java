@@ -36,6 +36,11 @@ class PlantRenderer {
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
     private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
     private static final String GRAPESHOT_ATTACK_STATE = "attack_t2";
+    private static final String EXPLODE_O_NUT_BLINK_PAM =
+            "768/INITIAL/EFFECTS/EXPLODEONUT_BLINK/EXPLODEONUT_BLINK.PAM";
+    private static final float EXPLODE_O_NUT_BLINK_SCALE = 0.55f;
+    private static final Color EXPLODE_O_NUT_BLINK_TINT = new Color(1f, 0.55f, 0.30f, 0.55f);
+    private static final float EXPLODE_O_NUT_PLANTFOOD_OFF_HOLD = 0.2667f;
 
     private final GameScreen screen;
 
@@ -96,6 +101,10 @@ class PlantRenderer {
     private final Map<Plant, Integer> endurianAttackPhases = new IdentityHashMap<>();
     private final Map<Plant, Float> endurianAttackTimes = new IdentityHashMap<>();
 
+    private final Map<Plant, Float> explodeONutBlinkTimes = new IdentityHashMap<>();
+    private final Map<Plant, Boolean> explodeONutHadArmor = new IdentityHashMap<>();
+    private final Map<Plant, Float> explodeONutArmorOffTimes = new IdentityHashMap<>();
+
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
     }
@@ -120,6 +129,7 @@ class PlantRenderer {
                 if (!prepping) {
                     String loopState;
                     if (plant.isWallNut()) loopState = plant.getWallNutHealthAnimationState();
+                    else if (plant.isExplodeONut()) loopState = resolveExplodeONutIdleState(plant);
                     else if (plant.isTallNut()) loopState = plant.getTallNutHealthAnimationState();
                     else if (plant.isGarlic()) loopState = plant.getGarlicHealthAnimationState();
                     else if (plant.isEndurian()) loopState = resolveEndurianIdleState(plant);
@@ -260,6 +270,9 @@ class PlantRenderer {
             if (endurian && !frozenInIce) advanceEndurianAttack(plant, delta);
             int endurianPhase = endurian ? endurianAttackPhases.getOrDefault(plant, 0) : 0;
 
+            boolean explodeONut = plant.isExplodeONut();
+            if (explodeONut && !frozenInIce) advanceExplodeONutTimers(plant, delta);
+
             String preferredState;
             float animTime = t;
             boolean potatoMine = plant.isPotatoMine();
@@ -272,7 +285,10 @@ class PlantRenderer {
             boolean tallNutHasPlantFoodArmor = plant.isTallNut()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
-            if (endurian) {
+            if (explodeONut) {
+                preferredState = resolveExplodeONutState(plant);
+                animTime = explodeONutAnimTime(plant, preferredState, t);
+            } else if (endurian) {
                 if ("plantfood_on".equals(plant.getVisualAnimationState())) {
                     preferredState = "plantfood_on";
                     animTime = (float) plant.getVisualAnimationElapsed();
@@ -412,6 +428,12 @@ class PlantRenderer {
                     && ("idle".equals(preferredState)
                     || "idle2".equals(preferredState)
                     || "idle3".equals(preferredState));
+            boolean explodeONutArmorState = explodeONut
+                    && ("plantfood".equals(preferredState)
+                    || "plantfood2".equals(preferredState)
+                    || "plantfood3".equals(preferredState)
+                    || "plantfood_on".equals(preferredState));
+            boolean explodeONutExactState = explodeONut && !explodeONutArmorState;
             boolean wallNutPlantFoodState = plant.isWallNut()
                     && ("plantfood".equals(preferredState)
                     || "plantfood2".equals(preferredState)
@@ -445,7 +467,14 @@ class PlantRenderer {
                     || "idle".equals(preferredState)
                     || "attack".equals(preferredState)
                     || "plantfood2".equals(preferredState));
-            if (potatoMineExactState) {
+            if (explodeONutArmorState) {
+                drawn = screen.drawPam(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false,
+                        explodeONutArmorVisibility(preferredState));
+            } else if (explodeONutExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (potatoMineExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
             } else if (squashExactState) {
@@ -516,6 +545,10 @@ class PlantRenderer {
                         new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
             }
 
+            if (explodeONut && !frozenInIce) {
+                drawExplodeONutBlink(plant, plantOffsetX, plantOffsetY);
+            }
+
             if (plant.isPumpkin() && plant.getArmor() != null && plant.getArmor().getHP() > 0
                     && !pumpkinPlantFoodState) {
                 drawPumpkinArmorOverlay(plant, plantOffsetX, plantOffsetY);
@@ -565,6 +598,9 @@ class PlantRenderer {
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackPhases.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutBlinkTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutHadArmor.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutArmorOffTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
         drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
@@ -735,6 +771,9 @@ class PlantRenderer {
     private String resolveIdleState(Plant plant) {
         if (plant != null && plant.isWallNut()) {
             return plant.getWallNutHealthAnimationState();
+        }
+        if (plant != null && plant.isExplodeONut()) {
+            return resolveExplodeONutIdleState(plant);
         }
         if (plant != null && plant.isTallNut()) {
             return plant.getTallNutHealthAnimationState();
@@ -980,6 +1019,82 @@ class PlantRenderer {
         return visibility;
     }
 
+    private void advanceExplodeONutTimers(Plant plant, float delta) {
+        explodeONutBlinkTimes.put(plant, explodeONutBlinkTimes.getOrDefault(plant, 0f) + delta);
+
+        boolean armored = plant.isExplodeONutArmored();
+        boolean hadArmor = Boolean.TRUE.equals(explodeONutHadArmor.put(plant, armored));
+        if (hadArmor && !armored) {
+            explodeONutArmorOffTimes.put(plant, 0f);
+        } else if (armored) {
+            explodeONutArmorOffTimes.remove(plant);
+        }
+
+        Float offTime = explodeONutArmorOffTimes.get(plant);
+        if (offTime != null) {
+            offTime += delta;
+            if (offTime >= EXPLODE_O_NUT_PLANTFOOD_OFF_HOLD) explodeONutArmorOffTimes.remove(plant);
+            else explodeONutArmorOffTimes.put(plant, offTime);
+        }
+    }
+
+    private float explodeONutAnimTime(Plant plant, String state, float loopTime) {
+        if ("plantfood_on".equals(state)) return (float) plant.getVisualAnimationElapsed();
+        if ("plantfood_off".equals(state)) return explodeONutArmorOffTimes.getOrDefault(plant, 0f);
+        float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), state);
+        return clipDuration > 0f ? loopTime % clipDuration : loopTime;
+    }
+
+    private String resolveExplodeONutIdleState(Plant plant) {
+        if (plant.getExplodeONutDamageTier() == 0 && isOnWaterTile(plant)) return "water";
+        return plant.getExplodeONutHealthAnimationState();
+    }
+
+    private String resolveExplodeONutState(Plant plant) {
+        if (plant.isExplodeONutArmored()) {
+            if ("plantfood_on".equals(plant.getVisualAnimationState())) return "plantfood_on";
+            return switch (plant.getExplodeONutPlantFoodArmorStage()) {
+                case 2 -> "plantfood2";
+                case 3 -> "plantfood3";
+                default -> "plantfood";
+            };
+        }
+        if (explodeONutArmorOffTimes.containsKey(plant)) return "plantfood_off";
+        return resolveExplodeONutIdleState(plant);
+    }
+
+    private Map<String, Boolean> explodeONutArmorVisibility(String state) {
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        visibility.put("wallnut_plantfood_armor_01",
+                "plantfood".equals(state) || "plantfood_on".equals(state));
+        visibility.put("wallnut_plantfood_armor_02", "plantfood2".equals(state));
+        visibility.put("wallnut_plantfood_armor_03", "plantfood3".equals(state));
+        return visibility;
+    }
+
+    private void drawExplodeONutBlink(Plant plant, float plantOffsetX, float plantOffsetY) {
+        float clip = AnimationFactory.exactClipDurationForPath(
+                EXPLODE_O_NUT_BLINK_PAM, "animation");
+        if (clip <= 0f) clip = 0.3f;
+
+        float period = switch (plant.getExplodeONutDamageTier()) {
+            case 1 -> 1.5f;
+            case 2 -> 1.0f;
+            case 3 -> 0.55f;
+            default -> 2.2f;
+        };
+        if (plant.isExplodeONutArmored()) period = 1.2f;
+        period = Math.max(period, clip);
+
+        float phase = explodeONutBlinkTimes.getOrDefault(plant, 0f) % period;
+        if (phase > clip) return;
+
+        screen.batch.setColor(EXPLODE_O_NUT_BLINK_TINT);
+        screen.drawPam(EXPLODE_O_NUT_BLINK_PAM, "animation", phase,
+                plantOffsetX, plantOffsetY, EXPLODE_O_NUT_BLINK_SCALE, false);
+        screen.batch.setColor(Color.WHITE);
+    }
+
     private String resolveWallNutPlantFoodState(Plant plant) {
         int stage = plant.getWallNutPlantFoodArmorStage();
         return switch (stage) {
@@ -1131,6 +1246,18 @@ class PlantRenderer {
                         EXPLODING_PLANT_EFFECT_DURATION);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if (plant.isExplodeONut()) {
+                if (plant.isExplodeONutDetonated()) {
+                    screen.effects().addExplodeONutExplosion(plant.getPosition());
+                }
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                explodeONutBlinkTimes.remove(plant);
+                explodeONutHadArmor.remove(plant);
+                explodeONutArmorOffTimes.remove(plant);
                 continue;
             }
 

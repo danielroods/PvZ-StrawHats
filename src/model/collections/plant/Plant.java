@@ -21,6 +21,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private static final double ENDURIAN_ATTACK_VISUAL_HOLD = 0.3;
     private static final double ENDURIAN_CONTACT_RANGE_X = 1.0;
     private static final double ENDURIAN_CONTACT_RANGE_Y = 0.75;
+    private static final double EXPLODE_O_NUT_BLAST_RADIUS = 1.0;
 
     private int id;
     private String name;
@@ -58,6 +59,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     private double endurianSpikeCooldown = 0.0;
     private double endurianAttackVisualTimer = 0.0;
+
+    private boolean explodeONutDetonated = false;
 
     private boolean potatoMineArmed = false;
     private boolean potatoMineDetonationPending = false;
@@ -211,7 +214,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
                     this.internalTimer = 0.0;
                     if (this.actStrategy != null) this.actStrategy.act(this, frostSession);
                 }
-                if (name.equalsIgnoreCase("Explode-o-nut")) executeArmorExplosion();
+                if (isExplodeONut()) detonateExplodeONut();
                 if (name.equalsIgnoreCase("Torchwood")) executeTorchwoodDeathExplosion();
                 Position position = getLocation();
                 if (position != null) {
@@ -236,6 +239,44 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (Math.abs(zp.x() - center.x()) <= 1
                     && Math.abs(zp.y() - center.y()) <= 1) {
                 zombie.takeDamage(Math.max(1, zombie.getHP()), this);
+            }
+        }
+    }
+
+    public boolean isExplodeONut() {
+        return name != null && name.equalsIgnoreCase("Explode-o-nut");
+    }
+
+    public boolean isExplodeONutDetonated() {
+        return explodeONutDetonated;
+    }
+
+    private void detonateExplodeONut() {
+        if (explodeONutDetonated) return;
+        explodeONutDetonated = true;
+
+        GameSession session = GameSession.peekInstance();
+        Position center = getPosition();
+        if (session == null || center == null) return;
+
+        int damage = Math.max(1, getDamage());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            if (Math.abs(zp.x() - center.x()) <= EXPLODE_O_NUT_BLAST_RADIUS
+                    && Math.abs(zp.y() - center.y()) <= EXPLODE_O_NUT_BLAST_RADIUS) {
+                zombie.takeDamageWithAsh(damage, this);
+            }
+        }
+
+        for (model.collections.zombie.zombie_pushing_item.PushableStructure structure
+                : session.getPushableStructures()) {
+            if (structure == null || !structure.isAlive()) continue;
+            Position sp = structure.getPosition();
+            if (sp == null) continue;
+            if (Math.abs(sp.x() - center.x()) <= EXPLODE_O_NUT_BLAST_RADIUS
+                    && Math.abs(sp.y() - center.y()) <= EXPLODE_O_NUT_BLAST_RADIUS) {
+                structure.takeDamage(damage, this, session);
             }
         }
     }
@@ -593,6 +634,37 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isEndurian() {
         return name != null && name.equalsIgnoreCase("Endurian");
+    }
+
+    public boolean isExplodeONutArmored() {
+        return isExplodeONut() && armor != null && armor.getHP() > 0;
+    }
+
+    public int getExplodeONutDamageTier() {
+        if (!isExplodeONut()) return 0;
+        double ratio = getHealthRatio();
+        if (ratio > 0.80) return 0;
+        if (ratio > 0.50) return 1;
+        if (ratio > 0.20) return 2;
+        return 3;
+    }
+
+    public String getExplodeONutHealthAnimationState() {
+        return switch (getExplodeONutDamageTier()) {
+            case 1 -> "damage";
+            case 2 -> "damage2";
+            case 3 -> "damage3";
+            default -> "idle";
+        };
+    }
+
+    public int getExplodeONutPlantFoodArmorStage() {
+        if (!isExplodeONutArmored()) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
+        return 3;
     }
 
     public boolean isEndurianPlantFoodArmored() {

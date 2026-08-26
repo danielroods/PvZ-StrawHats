@@ -20,12 +20,14 @@ public class GrantArmor implements PlantFoodEffect {
     public void triggerSuperpower(Plant plant, GameSession session) {
         if (plant == null) return;
 
-        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()) {
+        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()
+                || plant.isExplodeONut()) {
             String initialState = resolveInitialState(plant);
             float clipDuration = AnimationFactory.clipDurationForDisplayName(
                     plant.getName(), initialState);
             if (clipDuration > 0f) runtimeDuration = Math.max(2.5, clipDuration);
-            double visualDuration = plant.isEndurian() && clipDuration > 0f
+            boolean clipTimedIntro = plant.isEndurian() || plant.isExplodeONut();
+            double visualDuration = clipTimedIntro && clipDuration > 0f
                     ? clipDuration : runtimeDuration;
             plant.setVisualAnimationState(initialState, visualDuration);
 
@@ -40,7 +42,7 @@ public class GrantArmor implements PlantFoodEffect {
     private static String resolveInitialState(Plant plant) {
         if (plant.isPumpkin()) return "idle_plantfood";
         if (plant.isWallNut()) return "plantfood";
-        if (plant.isEndurian()) return "plantfood_on";
+        if (plant.isEndurian() || plant.isExplodeONut()) return "plantfood_on";
         return "idle";
     }
 
@@ -51,7 +53,8 @@ public class GrantArmor implements PlantFoodEffect {
     @Override
     public void applyStatusModifiers(Plant plant) {
         if (plant == null) return;
-        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()) {
+        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()
+                || plant.isExplodeONut()) {
             plant.setHP(plant.getMaxHp());
         }
         plant.setArmor((PlantArmour) ArmourFactory.createArmour(ArmourType.PLANT_SHIELD, hp, 0, false));

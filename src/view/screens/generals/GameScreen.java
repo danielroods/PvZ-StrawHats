@@ -317,6 +317,7 @@ public class GameScreen extends UiScreen {
         zomboss.drawNpc();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
+        effects.drawForegroundEffects(delta);
         groundItems.drawGroundItems(delta, bw, bh);
         effects.drawProjectiles(delta, bw, bh);
         zomboss.drawEffects(delta);

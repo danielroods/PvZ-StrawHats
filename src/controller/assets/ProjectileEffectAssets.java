@@ -627,9 +627,15 @@ public final class ProjectileEffectAssets {
 
     private static void registerExplodeOnut() {
         register("Explode-o-nut",
+                entry("768/INITIAL/EFFECTS/GENERIC_EXPLOSION_BACK/GENERIC_EXPLOSION_BACK.PAM",
+                        "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "death explosion, rear layer (cloud + ground scorch)"),
+                entry("768/INITIAL/EFFECTS/GENERIC_EXPLOSION_FRONT/GENERIC_EXPLOSION_FRONT.PAM",
+                        "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "death explosion, front layer (blast + debris)"),
                 entry("768/INITIAL/EFFECTS/EXPLODEONUT_BLINK/EXPLODEONUT_BLINK.PAM",
-                        "animation", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "pre-explosion warning blink (no separate explosion asset given)")
+                        "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "warning-light blink glow on the fuse")
         );
     }
 
