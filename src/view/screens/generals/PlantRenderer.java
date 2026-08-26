@@ -36,6 +36,7 @@ class PlantRenderer {
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
     private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
     private static final String GRAPESHOT_ATTACK_STATE = "attack_t2";
+    private static final String BOWLING_BULB_NAME = "Bowling Bulb";
     private static final String EXPLODE_O_NUT_BLINK_PAM =
             "768/INITIAL/EFFECTS/EXPLODEONUT_BLINK/EXPLODEONUT_BLINK.PAM";
     private static final float EXPLODE_O_NUT_BLINK_SCALE = 0.55f;
@@ -88,6 +89,14 @@ class PlantRenderer {
     private final Map<Plant, Integer> plantLastGrowthStage = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
+
+    // Bowling Bulb cycles through 3 different balls (light/medium/heavy) each shot, both on
+    // a normal attack and on every shot of its Plant Food burst - see BowlingBulbStrategy's
+    // own ammoIndex. This mirrors that same 0/1/2 cycle here, advanced once per fire event
+    // (the same cooldown-reset detection used for plantAttackAnimTimes above), so the right
+    // "special"/"specialN" (attack), "plantfoodN" (Plant Food) and "reloadN" (post-attack
+    // cooldown, non-Plant-Food only) clip can be picked for whichever ball just fired.
+    private final Map<Plant, Integer> bowlingBulbShotIndex = new IdentityHashMap<>();
 
     // Doom-shroom has its own three-stage visual lifecycle: spawn -> stage idle ->
     // stage transform -> next stage idle. These are tracked per instance because the
@@ -167,6 +176,10 @@ class PlantRenderer {
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
             if (!frozenInIce && !"Doom-shroom".equalsIgnoreCase(plant.getName())
                     && lastCooldown != null && cooldown > lastCooldown + 0.05) {
+                if (isBowlingBulb(plant)) {
+                    int nextShotIndex = (bowlingBulbShotIndex.getOrDefault(plant, -1) + 1) % 3;
+                    bowlingBulbShotIndex.put(plant, nextShotIndex);
+                }
                 boolean boosted = plant.isPlantFoodActive();
                 String baseAttackState = resolveAttackBaseState(plant);
                 String durationState = boosted ? plantFoodClipState(plant) : baseAttackState;
@@ -368,6 +381,20 @@ class PlantRenderer {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
+            } else if (isBowlingBulb(plant) && plant.isPlantFoodActive()) {
+                // Between the individual balls of a Plant Food burst (and before the very
+                // first one), Bowling Bulb has no reload beat - it just idles in its
+                // Plant-Food pose until the next ball fires.
+                preferredState = "plantfood_idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if (isBowlingBulb(plant) && plant.getIntervalTimer() > 0.001) {
+                // A normal (non-Plant-Food) shot: after its "special"/"specialN" attack clip
+                // finishes, play the matching "reload"/"reloadN" clip for the rest of the
+                // real cooldown, until it's ready to fire again.
+                preferredState = bowlingBulbReloadState(plant);
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
             } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
                 preferredState = "plantfood";
                 animTime = t;
@@ -596,6 +623,7 @@ class PlantRenderer {
         plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        bowlingBulbShotIndex.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackPhases.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         explodeONutBlinkTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
@@ -898,6 +926,9 @@ class PlantRenderer {
         if (isSeaShroom(plant)) {
             return "pf";
         }
+        if (isBowlingBulb(plant)) {
+            return bowlingBulbPlantFoodState(plant);
+        }
         return "plantfood";
     }
 
@@ -1160,7 +1191,42 @@ class PlantRenderer {
         if (isSunProducingPlant(plant)) {
             return sunProducerSpecialState(plant);
         }
+        if (isBowlingBulb(plant)) {
+            return bowlingBulbSpecialState(plant);
+        }
         return plantStackState(plant, "attack");
+    }
+
+    private boolean isBowlingBulb(Plant plant) {
+        return plant != null && BOWLING_BULB_NAME.equalsIgnoreCase(plant.getName());
+    }
+
+    private int bowlingBulbAmmoIndex(Plant plant) {
+        return bowlingBulbShotIndex.getOrDefault(plant, 0);
+    }
+
+    private String bowlingBulbSpecialState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "special2";
+            case 2 -> "special3";
+            default -> "special";
+        };
+    }
+
+    private String bowlingBulbReloadState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "reload2";
+            case 2 -> "reload3";
+            default -> "reload";
+        };
+    }
+
+    private String bowlingBulbPlantFoodState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "plantfood2";
+            case 2 -> "plantfood3";
+            default -> "plantfood";
+        };
     }
 
     /**
