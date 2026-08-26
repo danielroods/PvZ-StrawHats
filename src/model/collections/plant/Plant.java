@@ -74,6 +74,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private boolean squashActionState = false;
     private boolean specialInvulnerable = false;
 
+    // Magnet-shroom: whether it is currently holding a caught metal item (the PAM's
+    // "Magnet_Item" element). False = nothing caught yet, element must stay hidden.
+    // Set true once a "catch" animation completes, and set false again once Plant Food
+    // throws the held items at zombies - see ModifyStrategy and DisarmBlast.
+    private boolean magnetItemVisible = false;
+
     private PlantArmour armor;
 
     public enum PlantState {
@@ -655,6 +661,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public boolean isSquashActionState() { return squashActionState; }
     public void setSquashActionState(boolean active) { this.squashActionState = active; }
 
+    public boolean isMagnetItemVisible() { return magnetItemVisible; }
+    public void setMagnetItemVisible(boolean visible) { this.magnetItemVisible = visible; }
+
     public boolean isSpecialInvulnerable() { return specialInvulnerable; }
     public void setSpecialInvulnerable(boolean value) { this.specialInvulnerable = value; }
 
@@ -732,7 +741,20 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (visualAnimationRemaining <= 0) return;
         visualAnimationElapsed += deltaTimeSeconds;
         visualAnimationRemaining = Math.max(0.0, visualAnimationRemaining - deltaTimeSeconds);
-        if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
+        if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
+                && "special".equals(visualAnimationState)) {
+            // The metal item has finished travelling to the plant - switch to the
+            // "catch" clip that shows it actually grabbing hold of it.
+            float catchDuration = model.collections.animations.AnimationFactory
+                    .clipDurationForDisplayName(name, "catch");
+            setVisualAnimationState("catch", catchDuration > 0f ? catchDuration : 0.5);
+        } else if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
+                && "catch".equals(visualAnimationState)) {
+            // Caught for good - the Magnet_Item element stays visible from here on,
+            // through idle, until Plant Food throws it away (see DisarmBlast).
+            magnetItemVisible = true;
+            clearVisualAnimationState();
+        } else if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
             if (chomperDigestIdlePending) {
                 chomperDigestIdlePending = false;
                 setVisualAnimationState("special_idle", 10.0);

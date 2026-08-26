@@ -473,6 +473,13 @@ class PlantRenderer {
             } else if (tallNutExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (isMagnetShroom(plant)) {
+                // Magnet_Item is invisible until a "catch" completes (or Plant Food
+                // grabs a batch); it stays visible from then on until it's thrown away.
+                Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
+                magnetVisibility.put("Magnet_Item", plant.isMagnetItemVisible());
+                drawn = screen.drawPam(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
             } else {
                 drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
             }
@@ -787,7 +794,12 @@ class PlantRenderer {
      * handled by the "attacking" branch above.
      */
     private boolean showsPlantFoodLoopForFullDuration(Plant plant) {
-        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant);
+        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant)
+                || isMagnetShroom(plant);
+    }
+
+    private boolean isMagnetShroom(Plant plant) {
+        return plant != null && "Magnet-shroom".equalsIgnoreCase(plant.getName());
     }
 
     private String resolvePumpkinPlantFoodState(Plant plant) {

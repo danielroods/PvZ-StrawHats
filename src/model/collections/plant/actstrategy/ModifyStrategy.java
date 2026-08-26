@@ -127,7 +127,7 @@ public class ModifyStrategy implements ActStrategy {
         double shortest = Double.MAX_VALUE;
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
-                    || zombie.getPosition() == null || zombie.getArmour() == null || zombie.getArmour().getHP() <= 0) continue;
+                    || zombie.getPosition() == null || !hasMetalArmour(zombie)) continue;
             double distance = zombie.getPosition().distanceTo(user.getPosition());
             if (distance < shortest) {
                 shortest = distance;
@@ -135,9 +135,31 @@ public class ModifyStrategy implements ActStrategy {
             }
         }
         if (nearest != null) {
+            // Strips the armor object outright (not just zeroing its HP) so the zombie
+            // is left exactly like a basic zombie - see ZombieArmorMask, which now
+            // explicitly hides every armor element whenever a zombie has no live
+            // Armour, instead of leaving it to whatever the PAM's clip defaults to.
             nearest.setArmour(null);
             user.setInternalTimer(user.getActionInterval());
+            startMagnetPullAnimation(user);
         }
+    }
+
+    /** Only bucket and crown armor (Dark Ages basic zombie's crown+shoulder set) are
+     * flagged metallic in the armor data - anything else (cone, brick, newspaper,
+     * shoulder armor on its own) is not something Magnet-shroom can pull off. */
+    private boolean hasMetalArmour(Zombie zombie) {
+        return zombie.getArmour() instanceof model.collections.armour.ZombieArmour armour
+                && armour.getHP() > 0 && armour.isMetal();
+    }
+
+    /** Kicks off the "special" clip: the caught item travels to the plant over that
+     * clip's own duration. Plant#tickVisualAnimation carries it on to "catch" and then
+     * back to idle (with the Magnet_Item element left visible) once it lands. */
+    private void startMagnetPullAnimation(Plant user) {
+        float specialDuration = model.collections.animations.AnimationFactory
+                .clipDurationForDisplayName(user.getName(), "special");
+        user.setVisualAnimationState("special", specialDuration > 0f ? specialDuration : 0.9);
     }
 
     private void hypnotizeTouchingZombie(Plant user, GameSession session) {

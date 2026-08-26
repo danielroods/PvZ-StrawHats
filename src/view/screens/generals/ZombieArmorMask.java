@@ -47,7 +47,14 @@ class ZombieArmorMask {
     Map<String, Boolean> basicZombieArmorVisibility(Zombie zombie) {
         if (zombie == null) return null;
         Armour armour = zombie.getArmour();
-        if (!(armour instanceof ZombieArmour zombieArmour)) return null;
+        if (!(armour instanceof ZombieArmour zombieArmour)) {
+            // No live Armour object - either this zombie never had any, or something
+            // (Magnet-shroom's pull, its Plant Food throw, armor being fully broken,
+            // etc.) just took it away. Either way it must now read as a bare basic
+            // zombie, so every known armor/container element is explicitly hidden
+            // instead of leaving it to whatever the clip happens to default to.
+            return hideAllArmorElements();
+        }
 
         ArmourType type = zombieArmour.getArmorType();
         String[] elements = ARMOUR_ELEMENTS.get(type);
@@ -69,6 +76,21 @@ class ZombieArmorMask {
             String[] shoulder = ARMOUR_ELEMENTS.get(ArmourType.SHOULDER_ARMOR);
             for (int i = 0; i < shoulder.length; i++) {
                 visibility.put(shoulder[i], !destroyed && i == layer);
+            }
+        }
+        return visibility;
+    }
+
+    private Map<String, Boolean> hideAllArmorElements() {
+        Map<String, Boolean> visibility = new HashMap<>();
+        for (String[] elements : ARMOUR_ELEMENTS.values()) {
+            for (String element : elements) {
+                visibility.put(element, false);
+            }
+        }
+        for (String[] containers : ARMOUR_CONTAINERS.values()) {
+            for (String container : containers) {
+                visibility.put(container, false);
             }
         }
         return visibility;
