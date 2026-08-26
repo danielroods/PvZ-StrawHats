@@ -16,6 +16,7 @@ import model.collections.zombie.Zombie;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.TileType;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -89,6 +90,9 @@ class PlantRenderer {
     private final Map<Plant, Float> doomTransformWindows = new IdentityHashMap<>();
     private final Map<Plant, Integer> doomLastGrowthStage = new IdentityHashMap<>();
 
+    private final Map<Plant, Integer> endurianAttackPhases = new IdentityHashMap<>();
+    private final Map<Plant, Float> endurianAttackTimes = new IdentityHashMap<>();
+
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
     }
@@ -115,6 +119,7 @@ class PlantRenderer {
                     if (plant.isWallNut()) loopState = plant.getWallNutHealthAnimationState();
                     else if (plant.isTallNut()) loopState = plant.getTallNutHealthAnimationState();
                     else if (plant.isGarlic()) loopState = plant.getGarlicHealthAnimationState();
+                    else if (plant.isEndurian()) loopState = resolveEndurianIdleState(plant);
                     else loopState = plantStackState(plant, "idle");
                     float idleDuration = screen.pam().resolvePlantClipDuration(plant.getName(), loopState);
                     if (idleDuration > 0f) t %= idleDuration;
@@ -247,6 +252,11 @@ class PlantRenderer {
                 }
             }
             boolean growing = plantGrowthAnimTimes.containsKey(plant) && !plant.isPlantFoodActive();
+
+            boolean endurian = plant.isEndurian();
+            if (endurian && !frozenInIce) advanceEndurianAttack(plant, delta);
+            int endurianPhase = endurian ? endurianAttackPhases.getOrDefault(plant, 0) : 0;
+
             String preferredState;
             float animTime = t;
             boolean potatoMine = plant.isPotatoMine();
@@ -259,7 +269,18 @@ class PlantRenderer {
             boolean tallNutHasPlantFoodArmor = plant.isTallNut()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
-            if (pumpkinHasArmor) {
+            if (endurian) {
+                if ("plantfood_on".equals(plant.getVisualAnimationState())) {
+                    preferredState = "plantfood_on";
+                    animTime = (float) plant.getVisualAnimationElapsed();
+                } else if (endurianPhase > 0) {
+                    preferredState = endurianAttackClip(plant, endurianPhase);
+                    animTime = endurianAttackTimes.getOrDefault(plant, 0f);
+                } else {
+                    preferredState = resolveEndurianIdleState(plant);
+                    animTime = t;
+                }
+            } else if (pumpkinHasArmor) {
                 preferredState = resolvePumpkinPlantFoodState(plant);
                 animTime = plant.isPlantFoodActive()
                         ? (float) plant.getVisualAnimationElapsed()
@@ -473,6 +494,9 @@ class PlantRenderer {
             } else if (tallNutExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (endurian) {
+                drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
+                        0.55f, false, endurianVisibility(plant, preferredState));
             } else if (isMagnetShroom(plant)) {
                 // Magnet_Item is invisible until a "catch" completes (or Plant Food
                 // grabs a batch); it stays visible from then on until it's thrown away.
@@ -536,6 +560,8 @@ class PlantRenderer {
         plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        endurianAttackPhases.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        endurianAttackTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
     }
@@ -674,6 +700,9 @@ class PlantRenderer {
         if (plant != null && plant.isSweetPotato()) {
             return plant.getSweetPotatoHealthAnimationState();
         }
+        if (plant != null && plant.isEndurian()) {
+            return resolveEndurianIdleState(plant);
+        }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();
             if (ratio > 0.60) return "idle";
@@ -811,6 +840,99 @@ class PlantRenderer {
             case 4 -> "idle_plantfood4";
             default -> resolveIdleState(plant);
         };
+    }
+
+    private String resolveEndurianIdleState(Plant plant) {
+        if (plant.getEndurianDamageTier() == 0 && isOnWaterTile(plant)) return "water";
+        return plant.getEndurianHealthAnimationState();
+    }
+
+    private boolean isOnWaterTile(Plant plant) {
+        Position position = plant.getPosition();
+        if (position == null || screen.session == null || screen.session.getEnvironment() == null) {
+            return false;
+        }
+        Cell cell = screen.session.getEnvironment().getCell(
+                (int) Math.round(position.y()), (int) Math.round(position.x()));
+        return cell != null && cell.getTile() != null && cell.getTile().type() == TileType.Water;
+    }
+
+    private String endurianTierSuffix(Plant plant) {
+        return switch (plant.getEndurianDamageTier()) {
+            case 1 -> "_damage";
+            case 2 -> "_damage2";
+            case 3 -> "_damage3";
+            default -> "";
+        };
+    }
+
+    private String endurianAttackClip(Plant plant, int phase) {
+        String base = switch (phase) {
+            case 1 -> "attack_start";
+            case 2 -> "attack_loop";
+            default -> "attack_end";
+        };
+        return base + endurianTierSuffix(plant);
+    }
+
+    private float endurianClipDuration(Plant plant, String base) {
+        float duration = screen.pam().resolvePlantClipDuration(plant.getName(),
+                base + endurianTierSuffix(plant));
+        return duration > 0f ? duration : DEFAULT_PLANT_ATTACK_DURATION;
+    }
+
+    private void advanceEndurianAttack(Plant plant, float delta) {
+        int phase = endurianAttackPhases.getOrDefault(plant, 0);
+        float time = endurianAttackTimes.getOrDefault(plant, 0f);
+        boolean underAttack = plant.isEndurianUnderAttack();
+
+        if (phase != 0) time += delta;
+        if (underAttack && (phase == 0 || phase == 3)) {
+            phase = 1;
+            time = 0f;
+        }
+        if (phase == 0) return;
+
+        if (phase == 1 && time >= endurianClipDuration(plant, "attack_start")) {
+            phase = underAttack ? 2 : 3;
+            time = 0f;
+        }
+        if (phase == 2) {
+            if (!underAttack) {
+                phase = 3;
+                time = 0f;
+            } else {
+                float loop = endurianClipDuration(plant, "attack_loop");
+                if (loop > 0f && time >= loop) time %= loop;
+            }
+        }
+        if (phase == 3 && time >= endurianClipDuration(plant, "attack_end")) {
+            endurianAttackPhases.remove(plant);
+            endurianAttackTimes.remove(plant);
+            return;
+        }
+        endurianAttackPhases.put(plant, phase);
+        endurianAttackTimes.put(plant, time);
+    }
+
+    private Map<String, Boolean> endurianVisibility(Plant plant, String state) {
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        for (int i = 1; i <= 8; i++) {
+            visibility.put("PF_spike" + i, false);
+        }
+        visibility.put("PF_armor_1", false);
+        visibility.put("armor2", false);
+        visibility.put("armor_3", false);
+
+        int stage = plant.getEndurianPlantFoodArmorStage();
+        boolean armored = stage > 0;
+        boolean attackState = state != null && state.startsWith("attack_");
+        for (int i = 1; i <= 3; i++) {
+            visibility.put("armor_damage_" + i, armored && !attackState && stage == i);
+            visibility.put("armor_damage_" + i + "_attack", armored && attackState && stage == i);
+        }
+        visibility.put("endurian_plantfood_armor", armored);
+        return visibility;
     }
 
     private String resolveWallNutPlantFoodState(Plant plant) {

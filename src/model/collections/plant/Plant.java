@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class Plant extends Item implements Pluck, Attack {
+    private static final double ENDURIAN_ATTACK_VISUAL_HOLD = 0.3;
+    private static final double ENDURIAN_CONTACT_RANGE_X = 1.0;
+    private static final double ENDURIAN_CONTACT_RANGE_Y = 0.75;
+
     private int id;
     private String name;
     private int level = 1;
@@ -51,6 +55,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private String visualAnimationState;
     private double visualAnimationRemaining = 0.0;
     private double visualAnimationElapsed = 0.0;
+
+    private double endurianSpikeCooldown = 0.0;
+    private double endurianAttackVisualTimer = 0.0;
 
     private boolean potatoMineArmed = false;
     private boolean potatoMineDetonationPending = false;
@@ -119,6 +126,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (state == PlantState.INCAPACITATED) return;
 
         tickVisualAnimation(deltaTimeSeconds);
+        tickEndurianTimers(deltaTimeSeconds);
 
         if (lifespanSeconds > 0) {
             remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
@@ -171,11 +179,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
             FrostbiteFreezing.damageFrozenPlantIfInIce(frostSession, this, damageAmount, false);
             return;
         }
-        if (dealer != null && name.equalsIgnoreCase("Endurian") && getDamage() > 0) {
-            int baseReflect = getDamage() + (int) getSpecialUpgrade("REFLECT_DAMAGE_BUFF", 0);
-            int reflectDamage = isPlantFoodActive() ? baseReflect * 2 : baseReflect;
-            dealer.takeDamage(reflectDamage, this);
-        }
+        if (isEndurian()) reflectEndurianSpikes(dealer);
         if (dealer != null && name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
             int sunValue = (int) abilityValue;
             if (isPlantFoodActive()) sunValue *= 2;
@@ -585,6 +589,80 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (ratio > 0.60) return 1;
         if (ratio > 0.25) return 2;
         return 3;
+    }
+
+    public boolean isEndurian() {
+        return name != null && name.equalsIgnoreCase("Endurian");
+    }
+
+    public boolean isEndurianPlantFoodArmored() {
+        return isEndurian() && armor != null && armor.getHP() > 0;
+    }
+
+    public int getEndurianSpikeDamage() {
+        if (!isEndurian()) return 0;
+        int base = getDamage() + (int) getSpecialUpgrade("REFLECT_DAMAGE_BUFF", 0);
+        if (base <= 0) return 0;
+        return (isPlantFoodActive() || isEndurianPlantFoodArmored()) ? base * 2 : base;
+    }
+
+    public boolean isEndurianUnderAttack() {
+        return isEndurian() && endurianAttackVisualTimer > 0;
+    }
+
+    public int getEndurianDamageTier() {
+        if (!isEndurian()) return 0;
+        double ratio = getHealthRatio();
+        if (ratio > 0.80) return 0;
+        if (ratio > 0.50) return 1;
+        if (ratio > 0.20) return 2;
+        return 3;
+    }
+
+    public String getEndurianHealthAnimationState() {
+        return switch (getEndurianDamageTier()) {
+            case 1 -> "damage";
+            case 2 -> "damage2";
+            case 3 -> "damage3";
+            default -> "idle";
+        };
+    }
+
+    public int getEndurianPlantFoodArmorStage() {
+        if (!isEndurianPlantFoodArmored()) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
+        return 3;
+    }
+
+    private void tickEndurianTimers(double deltaTimeSeconds) {
+        if (!isEndurian()) return;
+        if (endurianSpikeCooldown > 0) {
+            endurianSpikeCooldown = GameClock.countDown(endurianSpikeCooldown, deltaTimeSeconds);
+        }
+        if (endurianAttackVisualTimer > 0) {
+            endurianAttackVisualTimer = GameClock.countDown(endurianAttackVisualTimer, deltaTimeSeconds);
+        }
+    }
+
+    private void reflectEndurianSpikes(Zombie dealer) {
+        if (dealer == null || !dealer.isAlive() || !isEndurianSpikeContact(dealer)) return;
+        endurianAttackVisualTimer = ENDURIAN_ATTACK_VISUAL_HOLD;
+        if (endurianSpikeCooldown > 0) return;
+        int spikeDamage = getEndurianSpikeDamage();
+        if (spikeDamage <= 0) return;
+        endurianSpikeCooldown = Math.max(GameClock.SECONDS_PER_TICK, getActionInterval());
+        dealer.takeDamage(spikeDamage, this);
+    }
+
+    private boolean isEndurianSpikeContact(Zombie dealer) {
+        Position self = getLocation();
+        Position other = dealer.getPosition();
+        if (self == null || other == null) return false;
+        return Math.abs(other.x() - self.x()) <= ENDURIAN_CONTACT_RANGE_X
+                && Math.abs(other.y() - self.y()) <= ENDURIAN_CONTACT_RANGE_Y;
     }
 
     public double getHealthRatio() {
