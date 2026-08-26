@@ -7,6 +7,7 @@ import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.IceBlock;
+import model.pitches.obstacles.OctopusWrap;
 import model.pitches.obstacles.Grave;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.projectile.hit.HitEffectStrategy;
@@ -223,6 +224,17 @@ public class Projectile extends Item {
                     return;
                 }
 
+                OctopusCollision octopusCollisionOnRow = findFirstOctopusCollisionOnRow(
+                        session, previousPosition, currentPosition);
+                if (octopusCollisionOnRow != null) {
+                    if (octopusCollisionOnRow.cell().getObstacle() instanceof OctopusWrap wrap
+                            && wrap.takeDamage(getEffectiveDamage())) {
+                        octopusCollisionOnRow.cell().setObstacle(null);
+                    }
+                    setAlive(false);
+                    return;
+                }
+
                 PushableStructure structure = findFirstStructureCollisionOnRow(
                         session, previousPosition, currentPosition);
                 if (structure != null) {
@@ -251,6 +263,16 @@ public class Projectile extends Item {
                     || (sourcePlant != null && sourcePlant.getTags() != null
                     && sourcePlant.getTags().contains(model.collections.plant.PlantTag.FIRE));
             FrostbiteFreezing.damageIce(iceCollision.cell(), getEffectiveDamage(), fireDamage);
+            setAlive(false);
+            return;
+        }
+
+        OctopusCollision octopusCollision = findFirstOctopusCollision(session, previousPosition, currentPosition);
+        if (octopusCollision != null) {
+            if (octopusCollision.cell().getObstacle() instanceof OctopusWrap wrap
+                    && wrap.takeDamage(getEffectiveDamage())) {
+                octopusCollision.cell().setObstacle(null);
+            }
             setAlive(false);
             return;
         }
@@ -442,6 +464,25 @@ public class Projectile extends Item {
         return best;
     }
 
+    private record OctopusCollision(Cell cell, double projection) {}
+
+    private OctopusCollision findFirstOctopusCollision(GameSession session, Position start, Position end) {
+        OctopusCollision best = null;
+        double bestProjection = Double.MAX_VALUE;
+        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+                Cell cell = session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof OctopusWrap)) continue;
+                double projection = collisionProjection(new Position(col, row), start, end);
+                if (projection >= 0 && projection < bestProjection) {
+                    bestProjection = projection;
+                    best = new OctopusCollision(cell, projection);
+                }
+            }
+        }
+        return best;
+    }
+
     private PushableStructure findFirstStructureCollision(GameSession session, Position start, Position end) {
         PushableStructure best = null;
         double bestProjection = Double.MAX_VALUE;
@@ -508,6 +549,23 @@ public class Projectile extends Item {
             if (projection >= 0 && projection < bestProjection) {
                 bestProjection = projection;
                 best = new IceCollision(cell, projection);
+            }
+        }
+        return best;
+    }
+
+    private OctopusCollision findFirstOctopusCollisionOnRow(GameSession session, Position start, Position end) {
+        int row = getLobberSourceRow();
+        if (row == Integer.MIN_VALUE) return null;
+        OctopusCollision best = null;
+        double bestProjection = Double.MAX_VALUE;
+        for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+            Cell cell = session.getEnvironment().getCell(row, col);
+            if (cell == null || !(cell.getObstacle() instanceof OctopusWrap)) continue;
+            double projection = collisionProjection(new Position(col, row), start, end);
+            if (projection >= 0 && projection < bestProjection) {
+                bestProjection = projection;
+                best = new OctopusCollision(cell, projection);
             }
         }
         return best;

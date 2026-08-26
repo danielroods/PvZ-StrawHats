@@ -11,6 +11,7 @@ import model.match_mechanisms.vector.Position;
 import model.projectile.GrapeshotProjectile;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
+import model.projectile.zombie_projectile.OctopusProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 
@@ -50,6 +51,8 @@ class EffectRenderer {
     private static final float SCORCHED_TILE_OFFSET_X = 0.45f;
     private static final float SCORCHED_TILE_OFFSET_Y = 0.50f;
     private static final float SCORCHED_TILE_LOCK_SECONDS = 10.0f;
+    private static final String OCTOPUS_PROJECTILE_PAM =
+            "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
 
     private static final class TimedPamEffect {
         final String path;
@@ -196,6 +199,7 @@ class EffectRenderer {
             }
             return entry;
         }
+        if (!hitEntries.isEmpty()) return hitEntries.get(0);
 
         List<ProjectileEffectAssets.AssetEntry> effectEntries =
                 ProjectileEffectAssets.get(plantName, ProjectileEffectAssets.Kind.EFFECT, normal);
@@ -420,9 +424,11 @@ class EffectRenderer {
                     : cherryBombExplosion ? CHERRY_BOMB_EXPLOSION_SCALE : effect.scale;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
                     + boardTileWidth * offsetX;
-            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY;
+            float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY
+                    + boardTileWidth * 0.3f;
             if (effect.staticImage) {
                 screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
+                screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
             } else {
                 boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
                         x, y, drawScale, effect.loop);
@@ -435,6 +441,7 @@ class EffectRenderer {
                     }
                     screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
                 }
+                screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
             }
         }
         effects.removeIf(e -> e.time > e.duration);
@@ -752,6 +759,14 @@ class EffectRenderer {
                         PROJECTILE_PAM_SCALE * 2.0f, true)) {
                     drawSmallDot(position, new Color(0.55f, 0.85f, 0.25f, 1f));
                 }
+            } else if (projectile instanceof OctopusProjectile) {
+                float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                        + screen.getBoardTileWidth() * 0.41f;
+                float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.42f;
+                if (!screen.drawPam(OCTOPUS_PROJECTILE_PAM, "toss", age, x, y,
+                        PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                    drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
+                }
             } else {
                 drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
             }
@@ -786,7 +801,7 @@ class EffectRenderer {
             }
             impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
                     entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
-                    entry.isStaticImage(), trace.position, duration,
+                    entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
                     PROJECTILE_PAM_SCALE));
         }
     }
