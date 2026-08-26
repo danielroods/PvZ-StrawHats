@@ -6,6 +6,7 @@ import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
 import model.collections.item.ItemType;
 import model.collections.zombie.Zombie;
+import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.utils.GameSession;
 import service.GameClock;
@@ -31,6 +32,7 @@ public class SunThief implements ZombieEffectStatus {
 
     private GroundItem designatedTarget;
     private double lockOnTimer = 0;
+    private Position groundedTargetOrigin;
 
     public SunThief(boolean isBankThief, int maxSunsToSteal, double dropRatioOnDeath, double chargingTime, int laserDamage) {
         this.directBankStealer = isBankThief;
@@ -72,6 +74,7 @@ public class SunThief implements ZombieEffectStatus {
 
         if (designatedTarget != null && (!designatedTarget.isAlive() || designatedTarget.getItemType() != ItemType.SUN)) {
             designatedTarget = null;
+            groundedTargetOrigin = null;
             lockOnTimer = 0;
             raider.clearActionAnimationState();
         }
@@ -82,6 +85,7 @@ public class SunThief implements ZombieEffectStatus {
             if (designatedTarget == null) return;
             // Just locked on: play the one-shot power-up beat, then the
             // looping power beat carries the rest of the GRAB_PERIOD window.
+            groundedTargetOrigin = designatedTarget.getPosition();
             raider.setActionAnimationState("power_up", POWER_UP_DURATION, false);
         } else if (lockOnTimer >= POWER_UP_DURATION && !"power".equals(raider.getActionAnimationState())) {
             raider.setActionAnimationState("power", GRAB_PERIOD - POWER_UP_DURATION, true);
@@ -89,9 +93,19 @@ public class SunThief implements ZombieEffectStatus {
 
         lockOnTimer += GameClock.SECONDS_PER_TICK;
 
+        // Drag the sun across the lawn toward Ra for the rest of the grab
+        // window, rather than leaving it sitting still until it vanishes.
+        if (groundedTargetOrigin != null && raider.getPosition() != null) {
+            double progress = Math.min(1.0, lockOnTimer / GRAB_PERIOD);
+            Position pulled = groundedTargetOrigin.add(
+                    raider.getPosition().sub(groundedTargetOrigin).scale(progress));
+            designatedTarget.setPosition(pulled);
+        }
+
         if (lockOnTimer >= GRAB_PERIOD) {
             consumeGroundSun(designatedTarget);
             designatedTarget = null;
+            groundedTargetOrigin = null;
             lockOnTimer = 0;
             raider.clearActionAnimationState();
         }
@@ -102,7 +116,8 @@ public class SunThief implements ZombieEffectStatus {
             if (entry instanceof GroundItem groundLoot
                     && groundLoot.isAlive()
                     && !groundLoot.isCollected()
-                    && groundLoot.getItemType() == ItemType.SUN) {
+                    && groundLoot.getItemType() == ItemType.SUN
+                    && !(groundLoot instanceof GroundSun fallingSun && fallingSun.isFalling())) {
                 return groundLoot;
             }
         }
