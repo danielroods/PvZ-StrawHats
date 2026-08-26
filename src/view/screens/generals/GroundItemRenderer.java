@@ -20,6 +20,7 @@ class GroundItemRenderer {
 
     private static final float SUN_PAM_SCALE_MULTIPLIER = 1.35f;
     private static final float SUN_PAM_LOOP_SECONDS = 1.0f;
+    private static final float SUN_RED_TRANSITION_SECONDS = 0.24f;
 
     private final GameScreen screen;
 
@@ -67,6 +68,17 @@ class GroundItemRenderer {
             if (item instanceof GroundSun sun) {
                 String pamPath = GroundSun.getPamAnimationPath(sun.getDropType());
                 String clipName = GroundSun.getPamAnimationClip(sun.getDropType());
+                if (sun.isRedStealAnimation()) {
+                    float redTime = (float) sun.getRedStealAnimationTime();
+                    if (redTime < SUN_RED_TRANSITION_SECONDS) {
+                        clipName = "transition_red";
+                        age = redTime;
+                    } else {
+                        clipName = "red";
+                        age = (redTime - SUN_RED_TRANSITION_SECONDS) % SUN_PAM_LOOP_SECONDS;
+                    }
+                    pamPath = GroundSun.NORMAL_SUN_PAM_PATH;
+                }
                 float loopingPamTime = age % SUN_PAM_LOOP_SECONDS;
                 float pamScale = (size / 100f) * SUN_PAM_SCALE_MULTIPLIER;
 

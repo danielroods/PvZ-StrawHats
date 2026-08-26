@@ -12,6 +12,10 @@ public class OctopusWrap implements Obstacle {
     }
 
 
+    public boolean isDead() {
+        return hp <= 0;
+    }
+
     public boolean takeDamage(int amount) {
         if (hp <= 0) return false;
         hp -= amount;

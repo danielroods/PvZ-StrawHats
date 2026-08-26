@@ -77,6 +77,8 @@ public class GroundSun extends GroundItem {
     private final boolean plantProduced;
     private double fallDurationSeconds;
     private double fallSecondsRemaining;
+    private boolean redStealAnimation;
+    private double redStealAnimationTime;
 
     public GroundSun(Position position, int sunValue) {
         this(position, sunValue, false);
@@ -113,6 +115,9 @@ public class GroundSun extends GroundItem {
 
     @Override
     public void tick() {
+        if (redStealAnimation) {
+            redStealAnimationTime += GameClock.SECONDS_PER_TICK;
+        }
         boolean wasFalling = isFalling();
         super.tick();
         if (wasFalling) {
@@ -177,6 +182,24 @@ public class GroundSun extends GroundItem {
 
     public int getSunValue() {
         return sunValue;
+    }
+
+    public void beginRedStealAnimation() {
+        redStealAnimation = true;
+        redStealAnimationTime = 0;
+    }
+
+    public void endRedStealAnimation() {
+        redStealAnimation = false;
+        redStealAnimationTime = 0;
+    }
+
+    public boolean isRedStealAnimation() {
+        return redStealAnimation;
+    }
+
+    public double getRedStealAnimationTime() {
+        return redStealAnimationTime;
     }
 
     public boolean isPlantProduced() {

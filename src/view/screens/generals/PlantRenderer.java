@@ -16,6 +16,8 @@ import model.collections.zombie.Zombie;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.obstacles.OctopusWrap;
+import model.collections.animations.ZombieAnimationRegistry;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -59,6 +61,7 @@ class PlantRenderer {
     private final List<DyingShroomEffect> dyingShroomEffects = new ArrayList<>();
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
+    private final Map<Cell, Float> octopusWrapAnimTimes = new IdentityHashMap<>();
     // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
     private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
@@ -538,6 +541,48 @@ class PlantRenderer {
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
+        drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
+    }
+
+
+    private void drawOctopusWraps(float delta, float boardTileWidth, float boardTileHeight) {
+        if (screen.session.getEnvironment() == null) return;
+
+        String path = "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
+        if (path == null) return;
+
+        for (int row = 0; row < screen.session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+                Cell cell = screen.session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof OctopusWrap wrap)) continue;
+
+                float time = octopusWrapAnimTimes.getOrDefault(cell, 0f) + delta;
+                octopusWrapAnimTimes.put(cell, time);
+
+                Position pos = wrap.getWrappedPlant() != null
+                        ? wrap.getWrappedPlant().getPosition()
+                        : new Position(col, row);
+                if (pos == null) pos = new Position(col, row);
+
+                float x = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 10f;
+                float y = screen.cellY(pos.y()) + 40f;
+
+                if (!wrap.isDead()) {
+                    float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "animation3");
+                    float animTime = duration > 0f ? time % duration : time;
+                    screen.drawPam(path, "animation3", animTime, x, y, 0.52f, false);
+                } else {
+                    float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "die");
+                    float animTime = duration > 0f ? Math.min(time, duration) : time;
+                    screen.drawPam(path, "die", animTime, x, y, 0.52f, false);
+                    if (duration <= 0f || time >= duration) {
+                        cell.setObstacle(null);
+                        octopusWrapAnimTimes.remove(cell);
+                    }
+                }
+            }
+        }
+        octopusWrapAnimTimes.keySet().removeIf(cell -> cell == null || cell.getObstacle() == null);
     }
 
     /**

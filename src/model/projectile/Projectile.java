@@ -227,9 +227,8 @@ public class Projectile extends Item {
                 OctopusCollision octopusCollisionOnRow = findFirstOctopusCollisionOnRow(
                         session, previousPosition, currentPosition);
                 if (octopusCollisionOnRow != null) {
-                    if (octopusCollisionOnRow.cell().getObstacle() instanceof OctopusWrap wrap
-                            && wrap.takeDamage(getEffectiveDamage())) {
-                        octopusCollisionOnRow.cell().setObstacle(null);
+                    if (octopusCollisionOnRow.cell().getObstacle() instanceof OctopusWrap wrap) {
+                        wrap.takeDamage(getEffectiveDamage());
                     }
                     setAlive(false);
                     return;
@@ -269,9 +268,8 @@ public class Projectile extends Item {
 
         OctopusCollision octopusCollision = findFirstOctopusCollision(session, previousPosition, currentPosition);
         if (octopusCollision != null) {
-            if (octopusCollision.cell().getObstacle() instanceof OctopusWrap wrap
-                    && wrap.takeDamage(getEffectiveDamage())) {
-                octopusCollision.cell().setObstacle(null);
+            if (octopusCollision.cell().getObstacle() instanceof OctopusWrap wrap) {
+                wrap.takeDamage(getEffectiveDamage());
             }
             setAlive(false);
             return;
