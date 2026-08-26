@@ -19,6 +19,7 @@ import java.util.Map;
 public class PlantFactory {
 
     private static final double DEFAULT_FUSE_SECONDS = 1.0;
+    private static final double GRAPESHOT_FUSE_SECONDS = 1.67;
     private static final double MIN_FUSE_SECONDS = 0.7;
     private static final double MAX_FUSE_SECONDS = 2.5;
 
@@ -191,6 +192,10 @@ public class PlantFactory {
             return 0.67;
         }
 
+        if ("Grapeshot".equalsIgnoreCase(config.name)) {
+            return GRAPESHOT_FUSE_SECONDS;
+        }
+
         // Doom-shroom deliberately has a long fuse so its three GrowthTracker stages
         // can actually be reached before the explosion. Its visual explosion state is
         // selected separately by PlantRenderer/EffectRenderer.
@@ -228,6 +233,7 @@ public class PlantFactory {
             case EXPLOSIVE -> {
                 if ("Squash".equalsIgnoreCase(config.name)) yield new SquashStrategy();
                 if ("Tangle Kelp".equalsIgnoreCase(config.name)) yield new TangleKelpStrategy();
+                if ("Grapeshot".equalsIgnoreCase(config.name)) yield new GrapeshotStrategy();
                 yield new ExplodeStrategy();
             }
             case MELEE -> new MeleeStrategy();

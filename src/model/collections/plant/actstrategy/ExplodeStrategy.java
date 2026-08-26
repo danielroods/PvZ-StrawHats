@@ -10,9 +10,7 @@ import model.pitches.TileType;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import model.collections.plant.PlantFactory;
 
@@ -50,9 +48,6 @@ public class ExplodeStrategy implements ActStrategy {
         }
 
         userAct(user, targets);
-        if (user.getName().equalsIgnoreCase("Grapeshot")) {
-            applyGrapeBounces(user, session, targets);
-        }
         damageStructures(user,session);
         if (user.getTags().contains(PlantTag.FIRE)) {
             int mode = (int) user.getAbilityValue();
@@ -276,23 +271,6 @@ public class ExplodeStrategy implements ActStrategy {
                 zombie.takeDamageWithAsh(damage, user);
             } else {
                 zombie.takeDamage(damage, user);
-            }
-        }
-    }
-
-    private void applyGrapeBounces(Plant user, GameSession session, ArrayList<Zombie> primaryTargets) {
-        Position center = user.getPosition();
-        int range = user.getRawUpgrades().contains("GRAPE_BOUNCE_EXT") ? 6 : 4;
-        int bounceDamage = Math.max(1, user.getDamage() / 4);
-        Set<Zombie> primary = new HashSet<>(primaryTargets);
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || primary.contains(zombie) || zombie.getPosition() == null) continue;
-            double dx = zombie.getPosition().x() - center.x();
-            double dy = zombie.getPosition().y() - center.y();
-            boolean onGrapePath = Math.abs(dy) < 0.5 || Math.abs(dx) < 0.5
-                    || Math.abs(Math.abs(dx) - Math.abs(dy)) < 0.5;
-            if (onGrapePath && Math.max(Math.abs(dx), Math.abs(dy)) <= range) {
-                zombie.takeDamage(bounceDamage, user);
             }
         }
     }

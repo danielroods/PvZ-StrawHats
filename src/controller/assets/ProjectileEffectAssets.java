@@ -553,16 +553,18 @@ public final class ProjectileEffectAssets {
 
     private static void registerGrapeshot() {
         register("Grapeshot",
-                entry("768/INITIAL/EFFECTS/ESCAPEROOT_EXPLOSION_GRAPESHOT/"
-                                + "ESCAPEROOT_EXPLOSION_GRAPESHOT.PAM",
-                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "explosion (internal name mismatch: ESCAPEROOT)"),
-                entry("768/INITIAL/EFFECTS/GRAPESHOT_HIT/GRAPESHOT_HIT.PAM",
-                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
-                        "impact hit effect"),
                 entry("768/INITIAL/EFFECTS/GRAPESHOT_PROJECTILE/GRAPESHOT_PROJECTILE.PAM",
                         "animation_forward", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
-                        "forward-flying grapeshot projectile")
+                        "grape shrapnel in flight; loops for the projectile's whole lifetime"),
+                entry("768/INITIAL/EFFECTS/GRAPESHOT_HIT/GRAPESHOT_HIT.PAM",
+                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "grape impact splat"),
+                entry("768/INITIAL/EFFECTS/GRAPESHOT_HIT/GRAPESHOT_HIT.PAM",
+                        "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "grape impact splat variant 2"),
+                entry("768/INITIAL/EFFECTS/GRAPESHOT_HIT/GRAPESHOT_HIT.PAM",
+                        "animation3", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "grape impact splat variant 3")
         );
     }
 
