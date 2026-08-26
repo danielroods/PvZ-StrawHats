@@ -44,6 +44,7 @@ public class IceAgeHunterEffect implements ZombieEffectStatus {
                 if (gridCell != null && gridCell.getPlant() != null && gridCell.getPlant().isAlive()) {
                     Position destination = new Position(gridCell.getPlant().getLocation().x(), gridCell.getPlant().getLocation().y());
                     session.addZombieProjectile(new SnowballProjectile(spawnOrigin, destination, 0.8, session));
+                    actor.setActionAnimationState("throw", 0.6, false);
                     return true;
                 }
             }
@@ -52,6 +53,7 @@ public class IceAgeHunterEffect implements ZombieEffectStatus {
                 if (foe.isAlive() && foe.getFaction() == Faction.ZOMBIES
                         && (int) foe.getPosition().y() == r && foe.getPosition().x() > currentX) {
                     session.addZombieProjectile(new SnowballProjectile(spawnOrigin, foe.getPosition(), 0.8, session));
+                    actor.setActionAnimationState("throw", 0.6, false);
                     return true;
                 }
             }

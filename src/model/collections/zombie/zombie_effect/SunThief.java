@@ -73,6 +73,9 @@ public class SunThief implements ZombieEffectStatus {
         if (collectedSuns >= lootLimit) return;
 
         if (designatedTarget != null && (!designatedTarget.isAlive() || designatedTarget.getItemType() != ItemType.SUN)) {
+            if (designatedTarget instanceof GroundSun groundSun) {
+                groundSun.endRedStealAnimation();
+            }
             designatedTarget = null;
             groundedTargetOrigin = null;
             lockOnTimer = 0;
@@ -86,6 +89,9 @@ public class SunThief implements ZombieEffectStatus {
             // Just locked on: play the one-shot power-up beat, then the
             // looping power beat carries the rest of the GRAB_PERIOD window.
             groundedTargetOrigin = designatedTarget.getPosition();
+            if (designatedTarget instanceof GroundSun groundSun) {
+                groundSun.beginRedStealAnimation();
+            }
             raider.setActionAnimationState("power_up", POWER_UP_DURATION, false);
         } else if (lockOnTimer >= POWER_UP_DURATION && !"power".equals(raider.getActionAnimationState())) {
             raider.setActionAnimationState("power", GRAB_PERIOD - POWER_UP_DURATION, true);
@@ -103,6 +109,9 @@ public class SunThief implements ZombieEffectStatus {
         }
 
         if (lockOnTimer >= GRAB_PERIOD) {
+            if (designatedTarget instanceof GroundSun groundSun) {
+                groundSun.endRedStealAnimation();
+            }
             consumeGroundSun(designatedTarget);
             designatedTarget = null;
             groundedTargetOrigin = null;

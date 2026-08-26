@@ -1,6 +1,8 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
 
 import controller.assets.ProjectileEffectAssets;
 import model.collections.animations.AnimationFactory;
@@ -12,6 +14,8 @@ import model.projectile.GrapeshotProjectile;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.OctopusProjectile;
+import model.projectile.zombie_projectile.SnowballProjectile;
+import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 
@@ -51,6 +55,8 @@ class EffectRenderer {
     private static final float SCORCHED_TILE_OFFSET_X = 0.45f;
     private static final float SCORCHED_TILE_OFFSET_Y = 0.50f;
     private static final float SCORCHED_TILE_LOCK_SECONDS = 10.0f;
+    private static final String SNOWBALL_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_hunter_snowball_projectile.png";
+    private static final String BONE_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_egypt_tombraiser_31x62.png";
     private static final String OCTOPUS_PROJECTILE_PAM =
             "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
 
@@ -149,6 +155,7 @@ class EffectRenderer {
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
+    private final Map<String, Texture> zombieProjectileTextures = new java.util.HashMap<>();
     private final Map<ZombieProjectile, Position> zombieProjectileTraces = new IdentityHashMap<>();
     private final Map<Plant, Double> meleeLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Boolean> meleePlantFoodSeen = new IdentityHashMap<>();
@@ -767,6 +774,10 @@ class EffectRenderer {
                         PROJECTILE_PAM_SCALE * 2.0f, true)) {
                     drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
                 }
+            } else if (projectile instanceof SnowballProjectile) {
+                drawZombieProjectileTexture(SNOWBALL_PROJECTILE_TEXTURE, position, 0.34f, 0f);
+            } else if (projectile instanceof BoneProjectile) {
+                drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
             } else {
                 drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
             }
@@ -804,6 +815,28 @@ class EffectRenderer {
                     entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
                     PROJECTILE_PAM_SCALE));
         }
+    }
+
+    private void drawZombieProjectileTexture(String path, Position position, float scale, float rotation) {
+        Texture texture = zombieProjectileTextures.get(path);
+        if (texture == null) {
+            if (!Gdx.files.internal(path).exists()) {
+                drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+                return;
+            }
+            texture = new Texture(Gdx.files.internal(path));
+            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            zombieProjectileTextures.put(path, texture);
+        }
+
+        float base = screen.getBoardTileWidth() * scale;
+        float width = base;
+        float height = base * ((float) texture.getHeight() / Math.max(1, texture.getWidth()));
+        float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                + screen.getBoardTileWidth() * 0.5f - width * 0.5f;
+        float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.5f - height * 0.5f;
+        screen.batch.draw(texture, x, y, width * 0.5f, height * 0.5f,
+                width, height, 1f, 1f, rotation, 0, 0, texture.getWidth(), texture.getHeight(), false, false);
     }
 
     private boolean isOffBoard(Position position) {

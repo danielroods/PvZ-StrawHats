@@ -328,7 +328,8 @@ class ZombieRenderer {
             float y = screen.cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
 
-            if (dz.ashPath != null) {
+            boolean dodoDeath = "ZombieIceAgeDodo".equals(dz.alias);
+            if (dz.ashPath != null && !dodoDeath) {
                 // Ash-death kill (fire or Potato Mine): play the PvZ2 ash burn-down
                 // effect in place of the normal die animation and particles.
                 float ashTime = Math.min(dz.time, dz.duration);
@@ -346,7 +347,7 @@ class ZombieRenderer {
             float particleDrop = 24f * fallEase;
 
             ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
-            if (plantHead == null) {
+            if (plantHead == null && !dodoDeath) {
                 screen.drawPam(path, "particles", dz.time, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
             }
             float dieTime = Math.min(dz.time, dz.duration);
