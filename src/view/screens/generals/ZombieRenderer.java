@@ -10,6 +10,7 @@ import controller.assets.GameAssetManager;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.animations.ZombieAshAnimationRegistry;
+import model.collections.animations.ZombieShockAnimationRegistry;
 import model.collections.armour.ZombieArmour;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
@@ -100,17 +101,25 @@ class ZombieRenderer {
         final Position position;
         final boolean facingRight;
         final float duration;
-        // Non-null when this zombie died from fire: play this ash PAM instead
-        // of the normal die/particles animation.
+        // Shock always plays first when the zombie was killed by Electric Blueberry.
+        final String shockPath;
+        final float shockDuration;
+        // After shock, ash plays when this zombie has an ash-death asset.
         final String ashPath;
+        final float ashDuration;
         float time;
 
-        DyingZombie(String alias, Position position, boolean facingRight, float duration, String ashPath) {
+        DyingZombie(String alias, Position position, boolean facingRight,
+                    float duration, String shockPath, float shockDuration,
+                    String ashPath, float ashDuration) {
             this.alias = alias;
             this.position = position;
             this.facingRight = facingRight;
             this.duration = duration;
+            this.shockPath = shockPath;
+            this.shockDuration = shockDuration;
             this.ashPath = ashPath;
+            this.ashDuration = ashDuration;
         }
     }
 
@@ -327,17 +336,35 @@ class ZombieRenderer {
             if (zombie.getPosition() == null) continue;
             if (zombie.getZombieState() != ZombieState.DEAD) continue;
 
-            String ashPath = (zombie.diedFromFire() || zombie.diedFromAsh())
-                    ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
-            float dieDuration;
-            if (ashPath != null) {
-                dieDuration = AnimationFactory.clipDurationForPath(ashPath, ZombieAshAnimationRegistry.ASH_STATE);
-            } else {
-                dieDuration = screen.pam().resolveClipDuration(zombie.getAlias(), "die");
-            }
-            if (dieDuration <= 0f) dieDuration = DEATH_ANIM_DURATION;
+            String shockPath = zombie.diedFromShock()
+                    ? ZombieShockAnimationRegistry.pathFor(zombie) : null;
+            float shockDuration = shockPath == null ? 0f
+                    : AnimationFactory.clipDurationForPath(
+                    shockPath, ZombieShockAnimationRegistry.SHOCK_STATE);
+            if (shockPath != null && shockDuration <= 0f) shockDuration = DEATH_ANIM_DURATION;
 
-            dyingZombies.add(new DyingZombie(zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(), dieDuration, ashPath));
+            String ashPath = (zombie.diedFromFire() || zombie.diedFromAsh() || zombie.diedFromShock())
+                    ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
+            float ashDuration = ashPath == null ? 0f
+                    : AnimationFactory.clipDurationForPath(
+                    ashPath, ZombieAshAnimationRegistry.ASH_STATE);
+            if (ashPath != null && ashDuration <= 0f) ashDuration = DEATH_ANIM_DURATION;
+
+            boolean playNormalDeathAfterShock = shockPath != null && ashPath == null;
+            float normalDeathDuration = screen.pam().resolveClipDuration(zombie.getAlias(), "die");
+            if (normalDeathDuration <= 0f) normalDeathDuration = DEATH_ANIM_DURATION;
+
+            float deathSequenceDuration = shockDuration;
+            if (shockPath != null) {
+                deathSequenceDuration += ashPath != null ? ashDuration : normalDeathDuration;
+            } else {
+                deathSequenceDuration = ashPath != null ? ashDuration : normalDeathDuration;
+            }
+
+            dyingZombies.add(new DyingZombie(
+                    zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(),
+                    deathSequenceDuration, shockPath, shockDuration,
+                    ashPath, ashDuration));
             zombieAnimTimes.remove(zombie);
             screen.onZombieDied(zombie);
         }
@@ -352,11 +379,19 @@ class ZombieRenderer {
             float y = screen.cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
 
-            boolean dodoDeath = "ZombieIceAgeDodo".equals(dz.alias);
-            if (dz.ashPath != null && !dodoDeath) {
-                // Ash-death kill (fire or Potato Mine): play the PvZ2 ash burn-down
-                // effect in place of the normal die animation and particles.
-                float ashTime = Math.min(dz.time, dz.duration);
+            boolean inShockPhase = dz.shockPath != null && dz.time < dz.shockDuration;
+            if (inShockPhase) {
+                screen.drawPam(dz.shockPath, ZombieShockAnimationRegistry.SHOCK_STATE,
+                        Math.min(dz.time, dz.shockDuration),
+                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+                continue;
+            }
+
+            float postShockTime = dz.shockPath == null ? dz.time : dz.time - dz.shockDuration;
+
+            if (dz.ashPath != null) {
+                // Shock is complete; play the ash-death animation next.
+                float ashTime = Math.min(postShockTime, dz.ashDuration);
                 screen.drawPam(dz.ashPath, ZombieAshAnimationRegistry.ASH_STATE, ashTime,
                         x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
                 continue;
@@ -366,21 +401,23 @@ class ZombieRenderer {
 
             // Particles (head + hand) drop off and settle onto the row's ground
             // over roughly the first half of the death animation.
-            float fallProgress = Math.min(1f, dz.time / (dz.duration * 0.5f));
+            float normalDeathTime = Math.max(0f, postShockTime);
+            float normalDeathDuration = Math.max(0.001f, dz.duration - dz.shockDuration);
+            float fallProgress = Math.min(1f, normalDeathTime / (normalDeathDuration * 0.5f));
             float fallEase = 1f - (1f - fallProgress) * (1f - fallProgress);
             float particleDrop = 24f * fallEase;
 
             ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
-            if (plantHead == null && !dodoDeath) {
-                screen.drawPam(path, "particles", dz.time, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
+            if (plantHead == null) {
+                screen.drawPam(path, "particles", normalDeathTime, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
             }
-            float dieTime = Math.min(dz.time, dz.duration);
+            float dieTime = Math.min(normalDeathTime, normalDeathDuration);
             if (plantHead != null) {
                 screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
                         ZombotanyArt.headlessBodyMask());
-                float fade = Math.max(0f, 1f - dz.time / dz.duration);
+                float fade = Math.max(0f, 1f - normalDeathTime / normalDeathDuration);
                 screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
-                drawPlantHead(plantHead, dz.time, x - 10f, zombieOffsetY - particleDrop,
+                drawPlantHead(plantHead, normalDeathTime, x - 10f, zombieOffsetY - particleDrop,
                         ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
                 screen.batch.setColor(Color.WHITE);
             } else {

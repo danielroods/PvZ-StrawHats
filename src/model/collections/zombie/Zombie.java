@@ -78,6 +78,7 @@ public class Zombie extends Item implements Attack {
     private boolean deathHandled = false;
     private boolean firedDeath = false;
     private boolean ashDeath = false;
+    private boolean shockDeath = false;
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
@@ -216,7 +217,8 @@ public class Zombie extends Item implements Attack {
 
         if (newHp <= 0) {
             boolean diedFromFire = isFireDamageSource(damageSource) || status == Status.FIRED;
-            handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire, ashDeath);
+            boolean diedFromShock = isShockDamageSource(damageSource);
+            handleDeath(GameSession.peekInstance(), resolveKillerName(damageSource), diedFromFire, ashDeath, diedFromShock);
         }
     }
 
@@ -236,15 +238,21 @@ public class Zombie extends Item implements Attack {
     }
 
     private void handleDeath(GameSession session, String killerName, boolean firedDeath) {
-        handleDeath(session, killerName, firedDeath, false);
+        handleDeath(session, killerName, firedDeath, false, false);
     }
 
     private void handleDeath(GameSession session, String killerName, boolean firedDeath, boolean ashDeath) {
+        handleDeath(session, killerName, firedDeath, ashDeath, false);
+    }
+
+    private void handleDeath(GameSession session, String killerName, boolean firedDeath,
+                             boolean ashDeath, boolean shockDeath) {
         if (deathHandled) return;
         deathHandled = true;
         zombieState = ZombieState.DEAD;
         this.firedDeath = firedDeath;
         this.ashDeath = this.ashDeath || ashDeath;
+        this.shockDeath = shockDeath;
         setHP(0);
         if (sunBeanCarrierValue > 0 && session != null && getPosition() != null) {
             session.getItems().add(new model.collections.item.GroundSun(getPosition(), sunBeanCarrierValue));
@@ -268,6 +276,18 @@ public class Zombie extends Item implements Attack {
             return strategy != null && strategy.isFireDamage();
         }
         return false;
+    }
+
+    /**
+     * Whether the killing hit came from Electric Blueberry's electric projectile.
+     * The renderer uses this flag to play the zombie-specific shock death before
+     * falling back to the normal/ash death sequence.
+     */
+    private boolean isShockDamageSource(Object damageSource) {
+        if (!(damageSource instanceof Projectile projectile)) return false;
+        Plant sourcePlant = projectile.getSourcePlant();
+        return sourcePlant != null
+                && "Electric Blueberry".equalsIgnoreCase(sourcePlant.getName());
     }
 
     private void updateStatus(double deltaTimeSeconds) {
@@ -539,6 +559,7 @@ public class Zombie extends Item implements Attack {
     /** True when this zombie's death was caused by fire (fire pea hit, or dying while ablaze). */
     public boolean diedFromFire() { return firedDeath; }
     public boolean diedFromAsh() { return ashDeath; }
+    public boolean diedFromShock() { return shockDeath; }
     public Armour getArmor() { return armour; }
     public void setArmor(Armour armour) { this.armour = armour; }
     public Armour getArmour() { return armour; }
