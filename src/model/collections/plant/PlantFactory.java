@@ -283,6 +283,10 @@ public class PlantFactory {
                     int tallNutArmor = configLevelTallNutPlantFoodArmor(level, plantFoodValue);
                     yield new GrantArmor(tallNutArmor);
                 }
+                if ("Explode-o-nut".equalsIgnoreCase(config.name)) {
+                    int nutArmor = configLevelExplodeONutPlantFoodArmor(level, plantFoodValue);
+                    yield new GrantArmor(nutArmor);
+                }
                 yield new GrantArmor(value);
             }
             case RANDOM_HYPNOTIZE -> new RandomHypnotize(Math.max(1, value));
@@ -320,6 +324,10 @@ public class PlantFactory {
     }
 
     private static int configLevelTallNutPlantFoodArmor(int level, double plantFoodValue) {
+        return Math.max(8000, (int) Math.round(plantFoodValue));
+    }
+
+    private static int configLevelExplodeONutPlantFoodArmor(int level, double plantFoodValue) {
         return Math.max(8000, (int) Math.round(plantFoodValue));
     }
 

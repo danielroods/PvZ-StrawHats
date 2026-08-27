@@ -82,6 +82,7 @@ public final class ProjectileEffectAssets {
         registerHotPotato();
         registerGravebuster();
         registerMintFamily();
+        registerHeadbutterLettuce();
     }
 
     private ProjectileEffectAssets() {
@@ -627,9 +628,15 @@ public final class ProjectileEffectAssets {
 
     private static void registerExplodeOnut() {
         register("Explode-o-nut",
+                entry("768/INITIAL/EFFECTS/GENERIC_EXPLOSION_BACK/GENERIC_EXPLOSION_BACK.PAM",
+                        "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "death explosion, rear layer (cloud + ground scorch)"),
+                entry("768/INITIAL/EFFECTS/GENERIC_EXPLOSION_FRONT/GENERIC_EXPLOSION_FRONT.PAM",
+                        "animation2", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "death explosion, front layer (blast + debris)"),
                 entry("768/INITIAL/EFFECTS/EXPLODEONUT_BLINK/EXPLODEONUT_BLINK.PAM",
-                        "animation", PlayMode.LOOP, Kind.EFFECT, Variant.NORMAL,
-                        "pre-explosion warning blink (no separate explosion asset given)")
+                        "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
+                        "warning-light blink glow on the fuse")
         );
     }
 
@@ -764,5 +771,20 @@ public final class ProjectileEffectAssets {
                             "shared empowermint end fx")
             );
         }
+    }
+
+    private static void registerHeadbutterLettuce() {
+        register("Iceberg Lettuce",
+                // Headbutt impact effect, played on the plant's own tile each time its melee
+                // attack lands - see EffectRenderer.drawMeleePlantProjectiles. "animation" is
+                // the front-facing (right) swing, "animation2" the back-facing (left) swing -
+                // picked per-hit from MeleeStrategy's isMeleeFacingLeft() flag.
+                entry("768/INITIAL/EFFECTS/HEADBUTTERLETTUCE_HITFX/HEADBUTTERLETTUCE_HITFX.PAM",
+                        "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
+                        "headbutt impact effect, attack to the right (front)"),
+                entry("768/INITIAL/EFFECTS/HEADBUTTERLETTUCE_HITFX/HEADBUTTERLETTUCE_HITFX.PAM",
+                        "animation2", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
+                        "headbutt impact effect, attack to the left (back)")
+        );
     }
 }

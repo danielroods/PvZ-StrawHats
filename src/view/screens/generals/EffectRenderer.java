@@ -1,6 +1,8 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
 
 import controller.assets.ProjectileEffectAssets;
 import model.collections.animations.AnimationFactory;
@@ -12,6 +14,8 @@ import model.projectile.GrapeshotProjectile;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.OctopusProjectile;
+import model.projectile.zombie_projectile.SnowballProjectile;
+import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 
@@ -37,6 +41,15 @@ class EffectRenderer {
     private static final float CHERRY_BOMB_EXPLOSION_OFFSET_X = 0.43f;
     private static final float CHERRY_BOMB_EXPLOSION_OFFSET_Y = 1.3f;
 
+    private static final String GENERIC_EXPLOSION_BACK_PAM =
+            "768/INITIAL/EFFECTS/GENERIC_EXPLOSION_BACK/GENERIC_EXPLOSION_BACK.PAM";
+    private static final String GENERIC_EXPLOSION_FRONT_PAM =
+            "768/INITIAL/EFFECTS/GENERIC_EXPLOSION_FRONT/GENERIC_EXPLOSION_FRONT.PAM";
+    private static final String GENERIC_EXPLOSION_STATE = "animation2";
+    private static final float GENERIC_EXPLOSION_SCALE = 0.78f;
+    private static final float GENERIC_EXPLOSION_OFFSET_X = 30f;
+    private static final float GENERIC_EXPLOSION_OFFSET_Y = 40f;
+
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
     private static final String GRAPESHOT = "Grapeshot";
@@ -51,6 +64,8 @@ class EffectRenderer {
     private static final float SCORCHED_TILE_OFFSET_X = 0.45f;
     private static final float SCORCHED_TILE_OFFSET_Y = 0.50f;
     private static final float SCORCHED_TILE_LOCK_SECONDS = 10.0f;
+    private static final String SNOWBALL_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_hunter_snowball_projectile.png";
+    private static final String BONE_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_egypt_tombraiser_31x62.png";
     private static final String OCTOPUS_PROJECTILE_PAM =
             "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
 
@@ -73,6 +88,28 @@ class EffectRenderer {
             this.position = position;
             this.duration = duration;
             this.scale = scale;
+        }
+    }
+
+    private static final class PlacedPamEffect {
+        final String path;
+        final String state;
+        final Position position;
+        final float duration;
+        final float scale;
+        final float offsetX;
+        final float offsetY;
+        float time;
+
+        PlacedPamEffect(String path, String state, Position position, float duration,
+                        float scale, float offsetX, float offsetY) {
+            this.path = path;
+            this.state = state;
+            this.position = position;
+            this.duration = duration;
+            this.scale = scale;
+            this.offsetX = offsetX;
+            this.offsetY = offsetY;
         }
     }
 
@@ -144,11 +181,14 @@ class EffectRenderer {
 
     private final List<TimedPamEffect> explodingPlantEffects = new ArrayList<>();
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
+    private final List<PlacedPamEffect> behindZombieEffects = new ArrayList<>();
+    private final List<PlacedPamEffect> foregroundEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
     private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
+    private final Map<String, Texture> zombieProjectileTextures = new java.util.HashMap<>();
     private final Map<ZombieProjectile, Position> zombieProjectileTraces = new IdentityHashMap<>();
     private final Map<Plant, Double> meleeLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Boolean> meleePlantFoodSeen = new IdentityHashMap<>();
@@ -225,6 +265,23 @@ class EffectRenderer {
                 position, duration, PROJECTILE_PAM_SCALE));
     }
 
+    void addExplodeONutExplosion(Position position) {
+        if (position == null) return;
+        Position at = new Position(position.x(), position.y());
+        float back = AnimationFactory.exactClipDurationForPath(
+                GENERIC_EXPLOSION_BACK_PAM, GENERIC_EXPLOSION_STATE);
+        float front = AnimationFactory.exactClipDurationForPath(
+                GENERIC_EXPLOSION_FRONT_PAM, GENERIC_EXPLOSION_STATE);
+        if (back <= 0f) back = 3f;
+        if (front <= 0f) front = 3f;
+        behindZombieEffects.add(new PlacedPamEffect(
+                GENERIC_EXPLOSION_BACK_PAM, GENERIC_EXPLOSION_STATE, at, back,
+                GENERIC_EXPLOSION_SCALE, GENERIC_EXPLOSION_OFFSET_X, GENERIC_EXPLOSION_OFFSET_Y));
+        foregroundEffects.add(new PlacedPamEffect(
+                GENERIC_EXPLOSION_FRONT_PAM, GENERIC_EXPLOSION_STATE, at, front,
+                GENERIC_EXPLOSION_SCALE, GENERIC_EXPLOSION_OFFSET_X, GENERIC_EXPLOSION_OFFSET_Y));
+    }
+
     void addScorchedTileEffect(Position position) {
         if (position == null) return;
         scorchedTileEffects.add(new ScorchedTileEffect(
@@ -270,8 +327,26 @@ class EffectRenderer {
         updateIceShroomZones(delta);
         drawTimedEffects(explodingPlantEffects, delta);
         drawTimedEffects(impactEffects, delta);
+        drawPlacedEffects(behindZombieEffects, delta);
         drawPlantFoodEffects();
         drawGarlicPlantFoodProjectiles();
+    }
+
+    void drawForegroundEffects(float delta) {
+        drawPlacedEffects(foregroundEffects, delta);
+    }
+
+    private void drawPlacedEffects(List<PlacedPamEffect> effects, float delta) {
+        if (effects.isEmpty()) return;
+        float boardTileWidth = screen.getBoardTileWidth();
+        for (PlacedPamEffect effect : effects) {
+            effect.time += delta;
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
+                    + effect.offsetX;
+            float y = screen.cellY((int) effect.position.y()) + effect.offsetY;
+            screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, false);
+        }
+        effects.removeIf(e -> e.time > e.duration);
     }
 
     private void drawPlantFoodEffects() {
@@ -690,7 +765,9 @@ class EffectRenderer {
         for (Plant plant : screen.session.getPlants()) {
             if (plant == null || plant.getPosition() == null || !plant.isAlive()) continue;
             String name = plant.getName();
-            if (!"Kiwibeast".equalsIgnoreCase(name) && !"Phat Beet".equalsIgnoreCase(name)) continue;
+            boolean headbutterLettuce = "Iceberg Lettuce".equalsIgnoreCase(name);
+            if (!"Kiwibeast".equalsIgnoreCase(name) && !"Phat Beet".equalsIgnoreCase(name)
+                    && !headbutterLettuce) continue;
 
             boolean pf = plant.isPlantFoodActive();
             boolean seenPf = meleePlantFoodSeen.getOrDefault(plant, false);
@@ -716,7 +793,9 @@ class EffectRenderer {
                         name, ProjectileEffectAssets.Kind.PROJECTILE,
                         ProjectileEffectAssets.Variant.NORMAL);
                 if (!entries.isEmpty()) {
-                    ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+                    ProjectileEffectAssets.AssetEntry entry = headbutterLettuce
+                            ? pickMeleeFacingEntry(plant, entries)
+                            : entries.get(0);
                     impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
                             entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
                             entry.isStaticImage(), plant.getPosition(), 0.45f,
@@ -726,6 +805,25 @@ class EffectRenderer {
         }
         meleeLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         meleePlantFoodSeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+    }
+
+    /**
+     * Headbutter Lettuce's HITFX has two clips registered under the same Kind/Variant -
+     * "animation" (front/right swing) and "animation2" (back/left swing) - so unlike
+     * Kiwibeast/Phat Beet (a single entry, always index 0) the right one has to be picked
+     * per-hit from the same facing flag MeleeStrategy set for this attack.
+     */
+    private ProjectileEffectAssets.AssetEntry pickMeleeFacingEntry(
+            Plant plant, List<ProjectileEffectAssets.AssetEntry> entries) {
+        if (plant.isMeleeFacingLeft()) {
+            for (ProjectileEffectAssets.AssetEntry candidate : entries) {
+                if ("animation2".equals(candidate.state())) return candidate;
+            }
+        }
+        for (ProjectileEffectAssets.AssetEntry candidate : entries) {
+            if ("animation".equals(candidate.state())) return candidate;
+        }
+        return entries.get(0);
     }
 
     private void drawZombieProjectiles(float delta) {
@@ -767,6 +865,10 @@ class EffectRenderer {
                         PROJECTILE_PAM_SCALE * 2.0f, true)) {
                     drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
                 }
+            } else if (projectile instanceof SnowballProjectile) {
+                drawZombieProjectileTexture(SNOWBALL_PROJECTILE_TEXTURE, position, 0.34f, 0f);
+            } else if (projectile instanceof BoneProjectile) {
+                drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
             } else {
                 drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
             }
@@ -804,6 +906,28 @@ class EffectRenderer {
                     entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
                     PROJECTILE_PAM_SCALE));
         }
+    }
+
+    private void drawZombieProjectileTexture(String path, Position position, float scale, float rotation) {
+        Texture texture = zombieProjectileTextures.get(path);
+        if (texture == null) {
+            if (!Gdx.files.internal(path).exists()) {
+                drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+                return;
+            }
+            texture = new Texture(Gdx.files.internal(path));
+            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            zombieProjectileTextures.put(path, texture);
+        }
+
+        float base = screen.getBoardTileWidth() * scale;
+        float width = base;
+        float height = base * ((float) texture.getHeight() / Math.max(1, texture.getWidth()));
+        float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                + screen.getBoardTileWidth() * 0.5f - width * 0.5f;
+        float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.5f - height * 0.5f;
+        screen.batch.draw(texture, x, y, width * 0.5f, height * 0.5f,
+                width, height, 1f, 1f, rotation, 0, 0, texture.getWidth(), texture.getHeight(), false, false);
     }
 
     private boolean isOffBoard(Position position) {

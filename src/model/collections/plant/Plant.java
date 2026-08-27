@@ -18,6 +18,11 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class Plant extends Item implements Pluck, Attack {
+    private static final double ENDURIAN_ATTACK_VISUAL_HOLD = 0.3;
+    private static final double ENDURIAN_CONTACT_RANGE_X = 1.0;
+    private static final double ENDURIAN_CONTACT_RANGE_Y = 0.75;
+    private static final double EXPLODE_O_NUT_BLAST_RADIUS = 1.0;
+
     private int id;
     private String name;
     private int level = 1;
@@ -52,6 +57,18 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private double visualAnimationRemaining = 0.0;
     private double visualAnimationElapsed = 0.0;
 
+    private double endurianSpikeCooldown = 0.0;
+    private double endurianAttackVisualTimer = 0.0;
+
+    // Cactus: true while ducked underground because a zombie is standing on its own tile
+    // (down/down_idle/down_attack), and true while popped up on tiptoe to shoot a
+    // Gargantuar (up_stretch/attack_stretch) - see tickCactusPosture(). The two are
+    // mutually exclusive.
+    private boolean cactusUnderground = false;
+    private boolean cactusStretching = false;
+
+    private boolean explodeONutDetonated = false;
+
     private boolean potatoMineArmed = false;
     private boolean potatoMineDetonationPending = false;
     // Set only when a zombie's eating/chomping attack actually kills a potato mine.
@@ -73,6 +90,12 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private Position squashVisualTarget;
     private boolean squashActionState = false;
     private boolean specialInvulnerable = false;
+
+    // Magnet-shroom: whether it is currently holding a caught metal item (the PAM's
+    // "Magnet_Item" element). False = nothing caught yet, element must stay hidden.
+    // Set true once a "catch" animation completes, and set false again once Plant Food
+    // throws the held items at zombies - see ModifyStrategy and DisarmBlast.
+    private boolean magnetItemVisible = false;
 
     private PlantArmour armor;
 
@@ -113,6 +136,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (state == PlantState.INCAPACITATED) return;
 
         tickVisualAnimation(deltaTimeSeconds);
+        tickEndurianTimers(deltaTimeSeconds);
+        tickCactusPosture(session);
 
         if (lifespanSeconds > 0) {
             remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
@@ -139,7 +164,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (previousPlantFoodTimer > 0.0 && plantFoodTimer <= 0.0) {
                 finishPlantFoodVisualState();
             }
-            if (plantFoodEffect == null || plantFoodEffect.drivesActStrategy()) return;
+            boolean cactusBurstFinished = isCactus()
+                    && plantFoodEffect instanceof model.collections.plant.plantfood.TimedProjectileBurst burst
+                    && burst.isBurstFinished();
+            // Cactus's Plant Food timer runs forever (see activatePlant), so once its initial
+            // burst has fired, fall through and let the normal ActStrategy cadence keep it
+            // shooting for the rest of its life instead of freezing on the burst forever.
+            if (!cactusBurstFinished && (plantFoodEffect == null || plantFoodEffect.drivesActStrategy())) return;
         }
 
         if (actStrategy == null) return;
@@ -165,11 +196,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
             FrostbiteFreezing.damageFrozenPlantIfInIce(frostSession, this, damageAmount, false);
             return;
         }
-        if (dealer != null && name.equalsIgnoreCase("Endurian") && getDamage() > 0) {
-            int baseReflect = getDamage() + (int) getSpecialUpgrade("REFLECT_DAMAGE_BUFF", 0);
-            int reflectDamage = isPlantFoodActive() ? baseReflect * 2 : baseReflect;
-            dealer.takeDamage(reflectDamage, this);
-        }
+        if (isEndurian()) reflectEndurianSpikes(dealer);
         if (dealer != null && name.equalsIgnoreCase("Sun Bean") && abilityValue > 0) {
             int sunValue = (int) abilityValue;
             if (isPlantFoodActive()) sunValue *= 2;
@@ -201,7 +228,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
                     this.internalTimer = 0.0;
                     if (this.actStrategy != null) this.actStrategy.act(this, frostSession);
                 }
-                if (name.equalsIgnoreCase("Explode-o-nut")) executeArmorExplosion();
+                if (isExplodeONut()) detonateExplodeONut();
                 if (name.equalsIgnoreCase("Torchwood")) executeTorchwoodDeathExplosion();
                 Position position = getLocation();
                 if (position != null) {
@@ -226,6 +253,44 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (Math.abs(zp.x() - center.x()) <= 1
                     && Math.abs(zp.y() - center.y()) <= 1) {
                 zombie.takeDamage(Math.max(1, zombie.getHP()), this);
+            }
+        }
+    }
+
+    public boolean isExplodeONut() {
+        return name != null && name.equalsIgnoreCase("Explode-o-nut");
+    }
+
+    public boolean isExplodeONutDetonated() {
+        return explodeONutDetonated;
+    }
+
+    private void detonateExplodeONut() {
+        if (explodeONutDetonated) return;
+        explodeONutDetonated = true;
+
+        GameSession session = GameSession.peekInstance();
+        Position center = getPosition();
+        if (session == null || center == null) return;
+
+        int damage = Math.max(1, getDamage());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            if (Math.abs(zp.x() - center.x()) <= EXPLODE_O_NUT_BLAST_RADIUS
+                    && Math.abs(zp.y() - center.y()) <= EXPLODE_O_NUT_BLAST_RADIUS) {
+                zombie.takeDamageWithAsh(damage, this);
+            }
+        }
+
+        for (model.collections.zombie.zombie_pushing_item.PushableStructure structure
+                : session.getPushableStructures()) {
+            if (structure == null || !structure.isAlive()) continue;
+            Position sp = structure.getPosition();
+            if (sp == null) continue;
+            if (Math.abs(sp.x() - center.x()) <= EXPLODE_O_NUT_BLAST_RADIUS
+                    && Math.abs(sp.y() - center.y()) <= EXPLODE_O_NUT_BLAST_RADIUS) {
+                structure.takeDamage(damage, this, session);
             }
         }
     }
@@ -312,7 +377,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
             this.plantFoodTimer = 0.0;
             setVisualAnimationState("plantfood2", 0.67);
         } else {
-            this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
+            this.plantFoodTimer = ("Torchwood".equalsIgnoreCase(name) || isCactus())
                     ? Double.POSITIVE_INFINITY
                     : Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
         }
@@ -376,11 +441,17 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public int getCost() { return cost; }
     public void setCost(int cost) { this.cost = cost; }
     public int getDamage() {
+        int base = this.damage;
         if (growthTracker != null) {
             Double staged = growthTracker.getStageValue("damage");
-            if (staged != null) return staged.intValue();
+            if (staged != null) base = staged.intValue();
         }
-        return this.damage;
+        // Cactus deals reduced damage while ducked underground hiding from a zombie
+        // standing on its tile - see tickCactusPosture().
+        if (isCactus() && cactusUnderground) {
+            base = Math.max(1, (int) Math.round(base * 0.5));
+        }
+        return base;
     }
     public void setDamage(int damage) { this.damage = damage; }
     public PlantType getType() { return type; }
@@ -581,6 +652,191 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return 3;
     }
 
+    public boolean isEndurian() {
+        return name != null && name.equalsIgnoreCase("Endurian");
+    }
+
+    public boolean isCactus() {
+        return name != null && name.equalsIgnoreCase("Cactus");
+    }
+
+    public boolean isCactusUnderground() {
+        return cactusUnderground;
+    }
+
+    public boolean isCactusStretching() {
+        return cactusStretching;
+    }
+
+    /**
+     * Cactus has two situational postures on top of its normal idle/attack:
+     * - it ducks underground (down -> down_idle/down_attack loop -> up) for as long as a
+     *   zombie is standing on its own tile, dealing reduced damage while hidden (see
+     *   getDamage()) instead of eating a melee hit;
+     * - lacking a Balloon Zombie to justify the pose, it instead pops up on its "stretch"
+     *   pose (up_stretch -> attack_stretch -> down_stretch) whenever it's shooting at a
+     *   Gargantuar, so that clip still gets used.
+     * Both transitions are one-shot clips driven through the existing
+     * visualAnimationState mechanism; the looping down/up-stretch clip choice itself is
+     * resolved by PlantRenderer from the booleans this method maintains.
+     */
+    private void tickCactusPosture(GameSession session) {
+        if (!isCactus() || session == null || !isAlive()) return;
+
+        boolean zombieOnTile = isZombieOnCactusTile(session);
+        if (zombieOnTile != cactusUnderground) {
+            cactusUnderground = zombieOnTile;
+            if (zombieOnTile) cactusStretching = false;
+            boolean pf = isPlantFoodActive();
+            String introState = zombieOnTile
+                    ? (pf ? "down_plantfood" : "down")
+                    : (pf ? "up_plantfood" : "up");
+            float duration = model.collections.animations.AnimationFactory
+                    .clipDurationForDisplayName(name, introState);
+            setVisualAnimationState(introState, duration > 0f ? duration : 0.4);
+        }
+
+        if (!cactusUnderground) {
+            boolean targetingGargantuar = isGargantuarInCactusRange(session);
+            if (targetingGargantuar != cactusStretching) {
+                cactusStretching = targetingGargantuar;
+                String stretchState = targetingGargantuar ? "up_stretch" : "down_stretch";
+                float duration = model.collections.animations.AnimationFactory
+                        .clipDurationForDisplayName(name, stretchState);
+                setVisualAnimationState(stretchState, duration > 0f ? duration : 0.4);
+            }
+        }
+    }
+
+    private boolean isZombieOnCactusTile(GameSession session) {
+        Position self = getPosition();
+        if (self == null) return false;
+        long row = Math.round(self.y());
+        long col = Math.round(self.x());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            if (Math.round(zp.y()) == row && Math.round(zp.x()) == col) return true;
+        }
+        return false;
+    }
+
+    private boolean isGargantuarInCactusRange(GameSession session) {
+        Position self = getPosition();
+        if (self == null) return false;
+        long row = Math.round(self.y());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (zombie.getRace() != model.collections.zombie.ZombieRace.GARGANTUAR) continue;
+            Position zp = zombie.getPosition();
+            if (Math.round(zp.y()) != row || zp.x() <= self.x()) continue;
+            if (!isWithinAttackRange(zp)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isExplodeONutArmored() {
+        return isExplodeONut() && armor != null && armor.getHP() > 0;
+    }
+
+    public int getExplodeONutDamageTier() {
+        if (!isExplodeONut()) return 0;
+        double ratio = getHealthRatio();
+        if (ratio > 0.80) return 0;
+        if (ratio > 0.50) return 1;
+        if (ratio > 0.20) return 2;
+        return 3;
+    }
+
+    public String getExplodeONutHealthAnimationState() {
+        return switch (getExplodeONutDamageTier()) {
+            case 1 -> "damage";
+            case 2 -> "damage2";
+            case 3 -> "damage3";
+            default -> "idle";
+        };
+    }
+
+    public int getExplodeONutPlantFoodArmorStage() {
+        if (!isExplodeONutArmored()) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
+        return 3;
+    }
+
+    public boolean isEndurianPlantFoodArmored() {
+        return isEndurian() && armor != null && armor.getHP() > 0;
+    }
+
+    public int getEndurianSpikeDamage() {
+        if (!isEndurian()) return 0;
+        int base = getDamage() + (int) getSpecialUpgrade("REFLECT_DAMAGE_BUFF", 0);
+        if (base <= 0) return 0;
+        return (isPlantFoodActive() || isEndurianPlantFoodArmored()) ? base * 2 : base;
+    }
+
+    public boolean isEndurianUnderAttack() {
+        return isEndurian() && endurianAttackVisualTimer > 0;
+    }
+
+    public int getEndurianDamageTier() {
+        if (!isEndurian()) return 0;
+        double ratio = getHealthRatio();
+        if (ratio > 0.80) return 0;
+        if (ratio > 0.50) return 1;
+        if (ratio > 0.20) return 2;
+        return 3;
+    }
+
+    public String getEndurianHealthAnimationState() {
+        return switch (getEndurianDamageTier()) {
+            case 1 -> "damage";
+            case 2 -> "damage2";
+            case 3 -> "damage3";
+            default -> "idle";
+        };
+    }
+
+    public int getEndurianPlantFoodArmorStage() {
+        if (!isEndurianPlantFoodArmored()) return 0;
+        int max = Math.max(1, armor.getMaxHP());
+        double ratio = armor.getHP() / (double) max;
+        if (ratio > 0.60) return 1;
+        if (ratio > 0.25) return 2;
+        return 3;
+    }
+
+    private void tickEndurianTimers(double deltaTimeSeconds) {
+        if (!isEndurian()) return;
+        if (endurianSpikeCooldown > 0) {
+            endurianSpikeCooldown = GameClock.countDown(endurianSpikeCooldown, deltaTimeSeconds);
+        }
+        if (endurianAttackVisualTimer > 0) {
+            endurianAttackVisualTimer = GameClock.countDown(endurianAttackVisualTimer, deltaTimeSeconds);
+        }
+    }
+
+    private void reflectEndurianSpikes(Zombie dealer) {
+        if (dealer == null || !dealer.isAlive() || !isEndurianSpikeContact(dealer)) return;
+        endurianAttackVisualTimer = ENDURIAN_ATTACK_VISUAL_HOLD;
+        if (endurianSpikeCooldown > 0) return;
+        int spikeDamage = getEndurianSpikeDamage();
+        if (spikeDamage <= 0) return;
+        endurianSpikeCooldown = Math.max(GameClock.SECONDS_PER_TICK, getActionInterval());
+        dealer.takeDamage(spikeDamage, this);
+    }
+
+    private boolean isEndurianSpikeContact(Zombie dealer) {
+        Position self = getLocation();
+        Position other = dealer.getPosition();
+        if (self == null || other == null) return false;
+        return Math.abs(other.x() - self.x()) <= ENDURIAN_CONTACT_RANGE_X
+                && Math.abs(other.y() - self.y()) <= ENDURIAN_CONTACT_RANGE_Y;
+    }
+
     public double getHealthRatio() {
         int max = Math.max(1, getMaxHp());
         return Math.max(0.0, Math.min(1.0, getHP() / (double) max));
@@ -654,6 +910,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isSquashActionState() { return squashActionState; }
     public void setSquashActionState(boolean active) { this.squashActionState = active; }
+
+    public boolean isMagnetItemVisible() { return magnetItemVisible; }
+    public void setMagnetItemVisible(boolean visible) { this.magnetItemVisible = visible; }
 
     public boolean isSpecialInvulnerable() { return specialInvulnerable; }
     public void setSpecialInvulnerable(boolean value) { this.specialInvulnerable = value; }
@@ -732,7 +991,20 @@ public abstract class Plant extends Item implements Pluck, Attack {
         if (visualAnimationRemaining <= 0) return;
         visualAnimationElapsed += deltaTimeSeconds;
         visualAnimationRemaining = Math.max(0.0, visualAnimationRemaining - deltaTimeSeconds);
-        if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
+        if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
+                && "special".equals(visualAnimationState)) {
+            // The metal item has finished travelling to the plant - switch to the
+            // "catch" clip that shows it actually grabbing hold of it.
+            float catchDuration = model.collections.animations.AnimationFactory
+                    .clipDurationForDisplayName(name, "catch");
+            setVisualAnimationState("catch", catchDuration > 0f ? catchDuration : 0.5);
+        } else if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
+                && "catch".equals(visualAnimationState)) {
+            // Caught for good - the Magnet_Item element stays visible from here on,
+            // through idle, until Plant Food throws it away (see DisarmBlast).
+            magnetItemVisible = true;
+            clearVisualAnimationState();
+        } else if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
             if (chomperDigestIdlePending) {
                 chomperDigestIdlePending = false;
                 setVisualAnimationState("special_idle", 10.0);

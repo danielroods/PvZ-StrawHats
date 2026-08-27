@@ -18,6 +18,11 @@ public class JumpMove implements MoveBehavior {
     private double currentChance;
     private double jumpCooldownTimer = 0;
     private double distanceAccumulator = 0;
+    private boolean flying = false;
+    private double flyAnimationTimer = 0;
+    private static final double FLY_START_DURATION = 0.22;
+    private static final double FLY_DURATION = 0.65;
+    private static final double FLY_END_DURATION = 0.22;
 
     public JumpMove(double bonusChance, double cooldown, double initChance, double resetChance, List<String> bypassPlants) {
         this.bonusChancePerCell = bonusChance;
@@ -36,6 +41,16 @@ public class JumpMove implements MoveBehavior {
         Position pos = zombie.getPosition();
         Position speed = zombie.getSpeed();
         if (pos == null || speed == null) return;
+
+        if (flying) {
+            flyAnimationTimer -= deltaTime;
+            if (flyAnimationTimer <= 0) {
+                zombie.setActionAnimationState("fly_end", FLY_END_DURATION, false);
+                flying = false;
+            } else if (flyAnimationTimer <= FLY_DURATION) {
+                zombie.setActionAnimationState("fly_loop", 0, true);
+            }
+        }
 
         double step = Math.abs(speed.x() * deltaTime);
         distanceAccumulator += step;
@@ -56,11 +71,20 @@ public class JumpMove implements MoveBehavior {
                 String plantName = targetPlant.getName().toLowerCase().replace("-", "").replace(" ", "");
                 if (plantName.contains("iceberg")) plantName = "iceburg";
 
-                if (bypassPlants != null && bypassPlants.contains(plantName)) {
-                    if (Math.random() <= currentChance) {
-                        executeJump = true;
-                    }
+                if (bypassPlants != null && bypassPlants.contains(plantName)
+                        && Math.random() <= currentChance) {
+                    executeJump = true;
                 }
+            }
+
+            if (!executeJump && nextCell.getObstacle() != null && Math.random() <= currentChance) {
+                executeJump = true;
+            }
+
+            if (!executeJump && nextCell.getTile() != null
+                    && nextCell.getTile().type() == model.pitches.TileType.Slippery
+                    && Math.random() <= currentChance) {
+                executeJump = true;
             }
         }
 
@@ -71,6 +95,11 @@ public class JumpMove implements MoveBehavior {
             currentChance = resetChanceValue;
             jumpCooldownTimer = cooldownDuration;
             distanceAccumulator = 0;
+            if (zombie.getAlias() != null && zombie.getAlias().equals("ZombieIceAgeDodo")) {
+                flying = true;
+                flyAnimationTimer = FLY_START_DURATION + FLY_DURATION;
+                zombie.setActionAnimationState("fly_start", FLY_START_DURATION, false);
+            }
         } else {
             Position nextPos = new Position(
                     pos.x() + speed.x() * deltaTime,

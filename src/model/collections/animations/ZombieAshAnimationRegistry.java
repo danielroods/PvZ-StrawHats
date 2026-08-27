@@ -37,7 +37,7 @@ public final class ZombieAshAnimationRegistry {
     /** The animation clip/state name every ash PAM uses. */
     public static final String ASH_STATE = "animation";
 
-    private static final Set<String> NO_ASH_DEATH_ALIASES = Set.of("ZombieDarkKing", "ZombiePiano");
+    private static final Set<String> NO_ASH_DEATH_ALIASES = Set.of("ZombieDarkKing", "ZombiePiano", "ZombieIceAgeDodo");
     private static final Set<String> BIG_ASH_ALIASES =
             Set.of("ZombieArcade", "ZombieIceAgeTroglobite", "ZombieBeachOctopus");
     private static final String LOST_CITY_JANE_ALIAS = "ZombieLostCityJane";

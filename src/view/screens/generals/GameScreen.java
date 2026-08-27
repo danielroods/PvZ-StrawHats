@@ -305,7 +305,7 @@ public class GameScreen extends UiScreen {
         float bh = boardHeight();
         overlays.drawBackground(bw, bh);
         overlays.drawTiles(bw, bh);
-        frostbite.drawFrostbiteTileArt();
+        frostbite.drawFrostbiteTileArt(delta);
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
         effects.drawScorchedTileEffects(delta);
@@ -314,9 +314,9 @@ public class GameScreen extends UiScreen {
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
         zomboss.drawBoss();
-        zomboss.drawNpc();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
+        effects.drawForegroundEffects(delta);
         groundItems.drawGroundItems(delta, bw, bh);
         effects.drawProjectiles(delta, bw, bh);
         zomboss.drawEffects(delta);
@@ -324,6 +324,7 @@ public class GameScreen extends UiScreen {
         frostbite.drawFrostbiteIceBlocks(delta);
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
+        zomboss.drawNpc();
         interaction.drawDragPreview(delta);
         matchEnd.drawMatchEndOverlay();
 

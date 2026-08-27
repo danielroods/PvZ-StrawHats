@@ -6,6 +6,7 @@ public class ZombieAnimationRegistry {
 
     private static final Map<String, String> VERIFIED = Map.ofEntries(
             Map.entry("ZombieDefault", "ZOMBIE_TUTORIAL"),
+            Map.entry("ZombieFlag", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieImp", "ZOMBIE_TUTORIAL_IMP"),
             Map.entry("ZombieNewspaper", "ZOMBIE_MODERN_NEWSPAPER"),
             Map.entry("ZombieGargantuar", "GARGANTUAR"),
@@ -100,6 +101,13 @@ public class ZombieAnimationRegistry {
                 if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_IMP_MERMAID/ZOMBIE_BEACH_IMP_MERMAID.PAM";
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_IMP_MONK/ZOMBIE_DARK_IMP_MONK.PAM";
+            }
+
+            if ("ZombieFlag".equalsIgnoreCase(zombieAlias)) {
+                if (isEgypt) return "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_VET_FLAG/ZOMBIE_EGYPT_VET_FLAG.PAM";
+                if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_FLAG/ZOMBIE_BEACH_FLAG.PAM";
+                if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_FLAG/ZOMBIE_ICEAGE_FLAG.PAM";
+                if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_FLAG/ZOMBIE_DARK_FLAG.PAM";
             }
         }
 

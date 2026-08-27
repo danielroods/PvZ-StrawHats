@@ -16,6 +16,16 @@ public class MeleeStrategy implements ActStrategy {
     private static final double PHAT_BEET_RANGE = 2.0;
     private static final double KIWI_RANGE = 1.0;
     private static final double CHOMPER_RANGE = 1.0;
+    // Headbutter Lettuce (Plants.json entry "Iceberg Lettuce" - see AnimationFactory's
+    // ICEBERG_LETTUCE -> HEADBUTTER_LETTUCE override): a plain 2-tile melee headbutt, both
+    // in front of and behind the plant (sameRowTargets doesn't care about direction, only
+    // distance - see act()/attackStructures() below).
+    private static final double HEADBUTTER_LETTUCE_RANGE = 2.0;
+    // Same random chance (plus the same BUTTER_CHANCE_BUFF upgrade) Kernel-pult uses for its
+    // normal (non-Plant-Food) butter shots - see LobberStrategy.BASE_BUTTER_CHANCE - and the
+    // same 5s stun length ButterHit applies.
+    private static final double HEADBUTTER_LETTUCE_BASE_BUTTER_CHANCE = 0.25;
+    private static final double HEADBUTTER_LETTUCE_BUTTER_SECONDS = 5.0;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -35,6 +45,8 @@ public class MeleeStrategy implements ActStrategy {
             targets = sameRowTargets(user, session, PHAT_BEET_RANGE);
         } else if ("Kiwibeast".equalsIgnoreCase(name)) {
             targets = sameRowTargets(user, session, KIWI_RANGE);
+        } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
+            targets = sameRowTargets(user, session, HEADBUTTER_LETTUCE_RANGE);
         } else {
             targets = switch ((int) user.getAbilityValue()) {
                 case 1 -> frontBackDetect(user, session);
@@ -103,6 +115,8 @@ public class MeleeStrategy implements ActStrategy {
             range = KIWI_RANGE;
         } else if ("Chomper".equalsIgnoreCase(name)) {
             range = CHOMPER_RANGE;
+        } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
+            range = HEADBUTTER_LETTUCE_RANGE;
         } else {
             int mode = (int) user.getAbilityValue();
             return attackStructuresLegacy(user, session, mode);
@@ -194,11 +208,23 @@ public class MeleeStrategy implements ActStrategy {
 
     private void userAct(Plant user, ArrayList<Zombie> targets) {
         int userDamage = user.getDamage();
+        boolean headbutterLettuce = "Iceberg Lettuce".equalsIgnoreCase(user.getName());
         for (Zombie zombie : targets) {
             if (user.getTags().contains(PlantTag.FIRE)) zombie.applyStatus(Zombie.Status.FIRED, 3.0);
             if (user.getTags().contains(PlantTag.ICE)) zombie.applyStatus(Zombie.Status.FREEZE, 5.0);
             if (user.getTags().contains(PlantTag.POISON)) zombie.takeDamage(userDamage, true);
             else zombie.takeDamage(userDamage, user);
+
+            // Headbutter Lettuce sometimes butters the zombie it just hit - same chance
+            // (base + BUTTER_CHANCE_BUFF upgrade) and stun length as Kernel-pult's normal
+            // (non-Plant-Food) butter shots.
+            if (headbutterLettuce && zombie.isAlive()) {
+                double butterChance = HEADBUTTER_LETTUCE_BASE_BUTTER_CHANCE
+                        + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
+                if (Math.random() < butterChance) {
+                    zombie.applyStatus(Zombie.Status.BUTTER, HEADBUTTER_LETTUCE_BUTTER_SECONDS);
+                }
+            }
 
             if ("Kiwibeast".equalsIgnoreCase(user.getName()) && zombie.isAlive()) {
                 // Not every Kiwi attack knocks back. Every second successful hit does.

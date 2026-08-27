@@ -20,13 +20,16 @@ public class GrantArmor implements PlantFoodEffect {
     public void triggerSuperpower(Plant plant, GameSession session) {
         if (plant == null) return;
 
-        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut()) {
-            String initialState = plant.isPumpkin() ? "idle_plantfood"
-                    : (plant.isWallNut() ? "plantfood" : "idle");
+        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()
+                || plant.isExplodeONut()) {
+            String initialState = resolveInitialState(plant);
             float clipDuration = AnimationFactory.clipDurationForDisplayName(
                     plant.getName(), initialState);
             if (clipDuration > 0f) runtimeDuration = Math.max(2.5, clipDuration);
-            plant.setVisualAnimationState(initialState, runtimeDuration);
+            boolean clipTimedIntro = plant.isEndurian() || plant.isExplodeONut();
+            double visualDuration = clipTimedIntro && clipDuration > 0f
+                    ? clipDuration : runtimeDuration;
+            plant.setVisualAnimationState(initialState, visualDuration);
 
             Plant bottom = plant.getBottom();
             if (bottom != null && bottom.isAlive() && bottom.getPlantFoodEffect() != null
@@ -36,6 +39,13 @@ public class GrantArmor implements PlantFoodEffect {
         }
     }
 
+    private static String resolveInitialState(Plant plant) {
+        if (plant.isPumpkin()) return "idle_plantfood";
+        if (plant.isWallNut()) return "plantfood";
+        if (plant.isEndurian() || plant.isExplodeONut()) return "plantfood_on";
+        return "idle";
+    }
+
     @Override
     public void tickDurationEffect(Plant plant, double deltaTimeSeconds) {
     }
@@ -43,7 +53,8 @@ public class GrantArmor implements PlantFoodEffect {
     @Override
     public void applyStatusModifiers(Plant plant) {
         if (plant == null) return;
-        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut()) {
+        if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()
+                || plant.isExplodeONut()) {
             plant.setHP(plant.getMaxHp());
         }
         plant.setArmor((PlantArmour) ArmourFactory.createArmour(ArmourType.PLANT_SHIELD, hp, 0, false));

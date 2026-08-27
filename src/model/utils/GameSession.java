@@ -44,6 +44,10 @@ public class GameSession {
     private boolean lawnMowersEnabled = true;
     private Boolean skySunEnabledOverride = null;
     private int difficultyLevel;
+    /// When true, the player is on the zombies' side (e.g. the I, Zombie mini-game) and
+    /// zombie effects that would normally raid the opponent's sun bank (Ra Zombie's
+    /// SunThief effect) instead generate sun for the player.
+    private boolean zombieSunProductionMode = false;
 
     private final SessionHazards hazards = new SessionHazards(this);
     private final SessionEconomy economy = new SessionEconomy(this);
@@ -196,6 +200,14 @@ public class GameSession {
     }
 
     public boolean isFrozenInIceBlock(Zombie zombie) { return board.isFrozenInIceBlock(zombie); }
+
+    public void beginSliderRide(Zombie zombie, double currentX, int fromRow, int toRow) {
+        hazards.beginSliderRide(zombie, currentX, fromRow, toRow);
+    }
+
+    public boolean isRidingSlider(Zombie zombie) {
+        return hazards.isRidingSlider(zombie);
+    }
 
     public int getSunCount() { return economy.getSunCount(); }
 
@@ -415,6 +427,14 @@ public class GameSession {
 
     public boolean isSkySunEnabled() {
         return isSkySunEnabledForSession();
+    }
+
+    public void setZombieSunProductionMode(boolean zombieSunProductionMode) {
+        this.zombieSunProductionMode = zombieSunProductionMode;
+    }
+
+    public boolean isZombieSunProductionMode() {
+        return zombieSunProductionMode;
     }
 
 

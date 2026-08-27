@@ -158,6 +158,7 @@ class WaveScheduler {
         }
 
         beginSeasonHazards(wave, waveIndex, level);
+        spawnCosmeticFlagZombie();
 
         WavePlan plan = planner.plan(entryAliases(wave), waveIndex, waves.size(), type,
                 session.getDifficultyLevel(), laneBag);
@@ -174,6 +175,28 @@ class WaveScheduler {
                 ? WavePlanner.intervalSeconds(waves.get(nextWaveIndex).getDelay(), nextWaveIndex,
                 waves.size(), waveTypeOf(nextWaveIndex), session.getDifficultyLevel())
                 : 0;
+    }
+
+    /**
+     * Purely cosmetic: spawns a single flag zombie at the start of a wave so the
+     * player sees the "wave incoming" banner-carrier. This zombie is NOT part of
+     * the level's authored wave data, is NOT counted in wave cost / difficulty
+     * calculations, and is NOT drawn from the level's zombie pool - it is added
+     * straight to the on-screen zombie list only, so it never touches
+     * registerWaveZombie/currentWaveZombies/currentWaveStartingHp or entryAliases().
+     */
+    private void spawnCosmeticFlagZombie() {
+        try {
+            int cols = session.getCols();
+            int rows = session.getRows();
+            int lane = random.nextInt(Math.max(1, rows));
+            Zombie flag = ZombieFactory.create("ZombieFlag", lane, Math.max(0, cols - 1));
+            flag.setPosition(new Position(SpawnPlacement.entryX(cols), lane));
+            session.spawnZombie(flag);
+        } catch (Exception e) {
+            // Never let the cosmetic flag zombie break wave spawning / level loading.
+            com.badlogic.gdx.Gdx.app.error("GameSession", "Failed to spawn cosmetic flag zombie", e);
+        }
     }
 
     private void beginSeasonHazards(ZombieWave wave, int waveIndex, Level level) {

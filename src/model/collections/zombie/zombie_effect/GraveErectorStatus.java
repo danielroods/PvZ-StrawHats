@@ -37,6 +37,7 @@ public class GraveErectorStatus implements ZombieEffectStatus {
     }
 
     private void launchNecroticSpire(Zombie spellcaster, GameSession session) {
+        spellcaster.setActionAnimationState("power", 0.7, false);
         if (session.getEnvironment() == null) return;
 
         List<Cell> emptyGridSpots = new ArrayList<>();
