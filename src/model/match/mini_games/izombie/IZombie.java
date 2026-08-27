@@ -66,6 +66,9 @@ public class IZombie extends MiniGameMode {
         session.setDifficultyLevel(ZOMBIE_STAT_TIER);
         session.setSkySunEnabled(false);
         session.setZombieBreachesEnabled(false);
+        // The player controls the zombies here, so Ra Zombie's usual sun-stealing
+        // effect is flipped: it produces sun for the player instead of raiding it.
+        session.setZombieSunProductionMode(true);
         this.startingSun = SUN_BUDGET.getOrDefault(getDifficulty(), 1500);
         session.addSun(startingSun);
         this.roster = ROSTERS.getOrDefault(getDifficulty(), ROSTERS.get(1)).stream()
@@ -420,6 +423,7 @@ public class IZombie extends MiniGameMode {
                 new ZombiePacket("ZombieDefault", "Browncoat", 50, 5.0),
                 new ZombiePacket("ZombieArmor1", "Conehead", 75, 7.5),
                 new ZombiePacket("ZombieNewspaper", "Newspaper Zombie", 100, 12.0),
+                new ZombiePacket("ZombieRa", "Ra Zombie", 100, 12.0),
                 new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0)));
         rosters.put(2, List.of(
                 new ZombiePacket("ZombieDefault", "Browncoat", 50, 5.0),
@@ -430,6 +434,7 @@ public class IZombie extends MiniGameMode {
         rosters.put(3, List.of(
                 new ZombiePacket("ZombieImp", "Imp", 25, 5.0),
                 new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0),
+                new ZombiePacket("ZombieRa", "Ra Zombie", 150, 18.0),
                 new ZombiePacket("ZombieArmor4", "Brickhead", 175, 20.0),
                 new ZombiePacket("ZombieModernAllStar", "All-Star Zombie", 175, 25.0),
                 new ZombiePacket("ZombieGargantuar", "Gargantuar", 200, 30.0)));

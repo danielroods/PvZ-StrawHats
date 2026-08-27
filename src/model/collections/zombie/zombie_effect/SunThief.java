@@ -34,6 +34,12 @@ public class SunThief implements ZombieEffectStatus {
     private double lockOnTimer = 0;
     private Position groundedTargetOrigin;
 
+    // Sun-production state, used instead of the raiding behavior above when the
+    // session marks the zombies as being on the player's side (e.g. I, Zombie).
+    private static final int SUN_PRODUCTION_AMOUNT = GroundSun.SunDropType.REGULAR.getValue();
+    private boolean producingSun = false;
+    private double productionCycleTimer = 0;
+
     public SunThief(boolean isBankThief, int maxSunsToSteal, double dropRatioOnDeath, double chargingTime, int laserDamage) {
         this.directBankStealer = isBankThief;
         this.lootLimit = maxSunsToSteal;
@@ -45,6 +51,11 @@ public class SunThief implements ZombieEffectStatus {
     @Override
     public void applyTickEffect(Zombie target, GameSession session) {
         if (!target.isAlive()) return;
+
+        if (session != null && session.isZombieSunProductionMode()) {
+            handleSunProduction(target, session);
+            return;
+        }
 
         if (target.getFaction() == Faction.PLANTS) {
             if (directBankStealer && !beamDischarged) {
@@ -64,9 +75,39 @@ public class SunThief implements ZombieEffectStatus {
     @Override
     public void onDeath(Zombie target, GameSession session) {
         if (refundDispensedOnDeath || session == null) return;
+        // In sun-production mode every sun was already handed to the player the
+        // moment it was produced, so there is nothing left to refund on death.
+        if (session.isZombieSunProductionMode()) {
+            refundDispensedOnDeath = true;
+            return;
+        }
         int refundVal = (int) Math.round(collectedSuns * refundPercentage);
         if (refundVal > 0) session.addSun(refundVal);
         refundDispensedOnDeath = true;
+    }
+
+    /// Ra Zombie fighting for the player (I, Zombie): instead of locking onto a
+    /// fallen sun and dragging it away, Ra channels its own sun and hands it
+    /// straight to the player's bank. Re-uses the exact same "power_up" -> "power"
+    /// animation beats as the theft behavior, just repeated on a loop.
+    private void handleSunProduction(Zombie producer, GameSession session) {
+        if (!producingSun) {
+            producingSun = true;
+            productionCycleTimer = 0;
+            producer.setActionAnimationState("power_up", POWER_UP_DURATION, false);
+        } else if (productionCycleTimer >= POWER_UP_DURATION && !"power".equals(producer.getActionAnimationState())) {
+            producer.setActionAnimationState("power", GRAB_PERIOD - POWER_UP_DURATION, true);
+        }
+
+        productionCycleTimer += GameClock.SECONDS_PER_TICK;
+
+        if (productionCycleTimer >= GRAB_PERIOD) {
+            session.addSun(SUN_PRODUCTION_AMOUNT);
+            collectedSuns += SUN_PRODUCTION_AMOUNT;
+            producer.clearActionAnimationState();
+            producingSun = false;
+            productionCycleTimer = 0;
+        }
     }
 
     private void handleScavengerBehavior(Zombie raider, GameSession session) {
