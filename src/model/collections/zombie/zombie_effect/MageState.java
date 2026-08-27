@@ -17,11 +17,6 @@ public class MageState implements ZombieEffectStatus {
     private final List<Item> hexedTargetsList = new ArrayList<>();
     private boolean isDispellCompleted = false;
 
-    /** Read-only view for the renderer, to tell a wizard-hexed plant apart from other INCAPACITATED causes (e.g. octopus wrap). */
-    public boolean isHexed(Item target) {
-        return hexedTargetsList.contains(target);
-    }
-
     public MageState(double hexCooldown) {
         this.hexCooldown = hexCooldown;
     }
