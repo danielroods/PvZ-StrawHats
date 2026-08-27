@@ -832,6 +832,9 @@ class PlantRenderer {
         if (plant != null && plant.isEndurian()) {
             return resolveEndurianIdleState(plant);
         }
+        if (plant != null && plant.isCactus()) {
+            return cactusIdleState(plant);
+        }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();
             if (ratio > 0.60) return "idle";
@@ -949,6 +952,9 @@ class PlantRenderer {
         if (isBowlingBulb(plant)) {
             return bowlingBulbPlantFoodState(plant);
         }
+        if (plant.isCactus()) {
+            return plant.isCactusUnderground() ? "down_attack_plantfood" : "attack_plantfood";
+        }
         return "plantfood";
     }
 
@@ -975,6 +981,20 @@ class PlantRenderer {
             case 4 -> "idle_plantfood4";
             default -> resolveIdleState(plant);
         };
+    }
+
+    /**
+     * Cactus's idle loop while it isn't mid-transition and isn't in its brief fire-event
+     * attack window (see resolveAttackBaseState/plantFoodClipState for the attack clips,
+     * and Plant#tickCactusPosture for the down/up one-shot transitions handled generically
+     * through the visualAnimationState catch-all above this in the draw-loop if-chain).
+     */
+    private String cactusIdleState(Plant plant) {
+        boolean plantFood = plant.isPlantFoodActive();
+        if (plant.isCactusUnderground()) {
+            return plantFood ? "down_idle_plantfood" : "down_idle";
+        }
+        return plantFood ? "idle_plantfood" : "idle";
     }
 
     private String resolveEndurianIdleState(Plant plant) {
@@ -1272,6 +1292,11 @@ class PlantRenderer {
         }
         if (plant != null && "Chomper".equalsIgnoreCase(plant.getName())) {
             return "bite_end";
+        }
+        if (plant != null && plant.isCactus()) {
+            if (plant.isCactusUnderground()) return "down_attack";
+            if (plant.isCactusStretching()) return "attack_stretch";
+            return "attack";
         }
         if (isFumeShroom(plant)) {
             return "special";

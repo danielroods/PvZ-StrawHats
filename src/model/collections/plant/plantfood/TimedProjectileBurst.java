@@ -58,4 +58,11 @@ public class TimedProjectileBurst implements PlantFoodEffect {
         elapsed = 0;
         fired = 0;
     }
+
+    /** True once every shot of the burst has fired. Used by Cactus, whose Plant Food
+     * timer runs forever, to know when to stop waiting on this burst and let its normal
+     * ActStrategy cadence take back over - see Plant#tick. */
+    public boolean isBurstFinished() {
+        return fired >= burstCount;
+    }
 }

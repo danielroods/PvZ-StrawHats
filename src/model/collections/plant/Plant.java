@@ -60,6 +60,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private double endurianSpikeCooldown = 0.0;
     private double endurianAttackVisualTimer = 0.0;
 
+    // Cactus: true while ducked underground because a zombie is standing on its own tile
+    // (down/down_idle/down_attack), and true while popped up on tiptoe to shoot a
+    // Gargantuar (up_stretch/attack_stretch) - see tickCactusPosture(). The two are
+    // mutually exclusive.
+    private boolean cactusUnderground = false;
+    private boolean cactusStretching = false;
+
     private boolean explodeONutDetonated = false;
 
     private boolean potatoMineArmed = false;
@@ -130,6 +137,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
         tickVisualAnimation(deltaTimeSeconds);
         tickEndurianTimers(deltaTimeSeconds);
+        tickCactusPosture(session);
 
         if (lifespanSeconds > 0) {
             remainingLifeSeconds = GameClock.countDown(remainingLifeSeconds, deltaTimeSeconds);
@@ -156,7 +164,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
             if (previousPlantFoodTimer > 0.0 && plantFoodTimer <= 0.0) {
                 finishPlantFoodVisualState();
             }
-            if (plantFoodEffect == null || plantFoodEffect.drivesActStrategy()) return;
+            boolean cactusBurstFinished = isCactus()
+                    && plantFoodEffect instanceof model.collections.plant.plantfood.TimedProjectileBurst burst
+                    && burst.isBurstFinished();
+            // Cactus's Plant Food timer runs forever (see activatePlant), so once its initial
+            // burst has fired, fall through and let the normal ActStrategy cadence keep it
+            // shooting for the rest of its life instead of freezing on the burst forever.
+            if (!cactusBurstFinished && (plantFoodEffect == null || plantFoodEffect.drivesActStrategy())) return;
         }
 
         if (actStrategy == null) return;
@@ -363,7 +377,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
             this.plantFoodTimer = 0.0;
             setVisualAnimationState("plantfood2", 0.67);
         } else {
-            this.plantFoodTimer = "Torchwood".equalsIgnoreCase(name)
+            this.plantFoodTimer = ("Torchwood".equalsIgnoreCase(name) || isCactus())
                     ? Double.POSITIVE_INFINITY
                     : Math.max(0.0, this.plantFoodEffect.getDurationSeconds());
         }
@@ -427,11 +441,17 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public int getCost() { return cost; }
     public void setCost(int cost) { this.cost = cost; }
     public int getDamage() {
+        int base = this.damage;
         if (growthTracker != null) {
             Double staged = growthTracker.getStageValue("damage");
-            if (staged != null) return staged.intValue();
+            if (staged != null) base = staged.intValue();
         }
-        return this.damage;
+        // Cactus deals reduced damage while ducked underground hiding from a zombie
+        // standing on its tile - see tickCactusPosture().
+        if (isCactus() && cactusUnderground) {
+            base = Math.max(1, (int) Math.round(base * 0.5));
+        }
+        return base;
     }
     public void setDamage(int damage) { this.damage = damage; }
     public PlantType getType() { return type; }
@@ -634,6 +654,86 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isEndurian() {
         return name != null && name.equalsIgnoreCase("Endurian");
+    }
+
+    public boolean isCactus() {
+        return name != null && name.equalsIgnoreCase("Cactus");
+    }
+
+    public boolean isCactusUnderground() {
+        return cactusUnderground;
+    }
+
+    public boolean isCactusStretching() {
+        return cactusStretching;
+    }
+
+    /**
+     * Cactus has two situational postures on top of its normal idle/attack:
+     * - it ducks underground (down -> down_idle/down_attack loop -> up) for as long as a
+     *   zombie is standing on its own tile, dealing reduced damage while hidden (see
+     *   getDamage()) instead of eating a melee hit;
+     * - lacking a Balloon Zombie to justify the pose, it instead pops up on its "stretch"
+     *   pose (up_stretch -> attack_stretch -> down_stretch) whenever it's shooting at a
+     *   Gargantuar, so that clip still gets used.
+     * Both transitions are one-shot clips driven through the existing
+     * visualAnimationState mechanism; the looping down/up-stretch clip choice itself is
+     * resolved by PlantRenderer from the booleans this method maintains.
+     */
+    private void tickCactusPosture(GameSession session) {
+        if (!isCactus() || session == null || !isAlive()) return;
+
+        boolean zombieOnTile = isZombieOnCactusTile(session);
+        if (zombieOnTile != cactusUnderground) {
+            cactusUnderground = zombieOnTile;
+            if (zombieOnTile) cactusStretching = false;
+            boolean pf = isPlantFoodActive();
+            String introState = zombieOnTile
+                    ? (pf ? "down_plantfood" : "down")
+                    : (pf ? "up_plantfood" : "up");
+            float duration = model.collections.animations.AnimationFactory
+                    .clipDurationForDisplayName(name, introState);
+            setVisualAnimationState(introState, duration > 0f ? duration : 0.4);
+        }
+
+        if (!cactusUnderground) {
+            boolean targetingGargantuar = isGargantuarInCactusRange(session);
+            if (targetingGargantuar != cactusStretching) {
+                cactusStretching = targetingGargantuar;
+                String stretchState = targetingGargantuar ? "up_stretch" : "down_stretch";
+                float duration = model.collections.animations.AnimationFactory
+                        .clipDurationForDisplayName(name, stretchState);
+                setVisualAnimationState(stretchState, duration > 0f ? duration : 0.4);
+            }
+        }
+    }
+
+    private boolean isZombieOnCactusTile(GameSession session) {
+        Position self = getPosition();
+        if (self == null) return false;
+        long row = Math.round(self.y());
+        long col = Math.round(self.x());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zp = zombie.getPosition();
+            if (Math.round(zp.y()) == row && Math.round(zp.x()) == col) return true;
+        }
+        return false;
+    }
+
+    private boolean isGargantuarInCactusRange(GameSession session) {
+        Position self = getPosition();
+        if (self == null) return false;
+        long row = Math.round(self.y());
+        for (Zombie zombie : session.getZombies()) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (zombie.getRace() != model.collections.zombie.ZombieRace.GARGANTUAR) continue;
+            Position zp = zombie.getPosition();
+            if (Math.round(zp.y()) != row || zp.x() <= self.x()) continue;
+            if (!isWithinAttackRange(zp)) continue;
+            return true;
+        }
+        return false;
     }
 
     public boolean isExplodeONutArmored() {
