@@ -32,6 +32,7 @@ public interface MoveBehavior {
     default Position applySliderRedirect(Zombie zombie, Position previous, Position next, GameSession session) {
         if (zombie == null || next == null || session == null || session.getLawn() == null) return next;
         if (isFlyingOverSliders(zombie)) return next;
+        if (session.isRidingSlider(zombie)) return next;
 
         Environment lawn = session.getLawn();
         int oldRow = (int) Math.round(previous == null ? next.y() : previous.y());
@@ -48,7 +49,13 @@ public interface MoveBehavior {
 
         int redirectedRow = row + (tile.slipperyDirection() == SlipperyDirection.UP ? -1 : 1);
         if (redirectedRow < 0 || redirectedRow >= lawn.getRows()) return next;
-        return new Position(next.x(), redirectedRow);
+
+        // Instead of snapping the row in a single tick, hand the zombie off to a
+        // short smooth glide (see GameSession/SessionHazards#beginSliderRide) so the
+        // TILESLIDER_ICEAGE_UP/DOWN active_start/active_end animation actually has
+        // time to play while the row visibly changes.
+        session.beginSliderRide(zombie, next.x(), row, redirectedRow);
+        return next;
     }
 
     default boolean isFlyingOverSliders(Zombie zombie) {

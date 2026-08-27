@@ -305,7 +305,7 @@ public class GameScreen extends UiScreen {
         float bh = boardHeight();
         overlays.drawBackground(bw, bh);
         overlays.drawTiles(bw, bh);
-        frostbite.drawFrostbiteTileArt();
+        frostbite.drawFrostbiteTileArt(delta);
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
         effects.drawScorchedTileEffects(delta);

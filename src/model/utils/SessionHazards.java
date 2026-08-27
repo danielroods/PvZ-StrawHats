@@ -23,6 +23,11 @@ class SessionHazards {
     private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 1.35;
     private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 1.05;
 
+    // How long a zombie visibly glides across a tile slider's row shift, so the
+    // TILESLIDER_ICEAGE_UP/DOWN active_start/active_end art has time to actually
+    // play out instead of the zombie's row snapping in a single tick.
+    static final double SLIDER_RIDE_DURATION_SECONDS = 0.55;
+
     private double sandStormTimer = 0.0;
     private boolean sandStormActive = false;
     private int sandStormWaveIndex = -1;
@@ -32,6 +37,8 @@ class SessionHazards {
     private double beachBigWaveTimer = 0.0;
     private int beachBigWaveIndex = -1;
     private final Map<Zombie, BeachBigWaveEntry> beachBigWaveEntries = new IdentityHashMap<>();
+
+    private final Map<Zombie, SliderRideEntry> sliderRideEntries = new IdentityHashMap<>();
 
     private final GameSession session;
 
@@ -80,6 +87,20 @@ class SessionHazards {
             this.startX = startX;
             this.duration = duration;
             this.startDelay = startDelay;
+        }
+    }
+
+    /** A zombie currently being carried sideways by a Frostbite Caves tile slider. */
+    private static final class SliderRideEntry {
+        double startX;
+        final double startRow;
+        final double targetRow;
+        double elapsed;
+
+        SliderRideEntry(double startX, double startRow, double targetRow) {
+            this.startX = startX;
+            this.startRow = startRow;
+            this.targetRow = targetRow;
         }
     }
 
@@ -240,7 +261,59 @@ class SessionHazards {
     }
 
     boolean isEnteringWithHazard(Zombie zombie) {
-        return sandStormEntries.containsKey(zombie) || beachBigWaveEntries.containsKey(zombie);
+        return sandStormEntries.containsKey(zombie) || beachBigWaveEntries.containsKey(zombie)
+                || sliderRideEntries.containsKey(zombie);
+    }
+
+    /**
+     * Starts (or restarts) a smooth row glide for a zombie stepping onto a tile
+     * slider, instead of the row snapping instantly. No-op if the zombie is
+     * already riding this exact slider (so a mover calling this every tick while
+     * still on the same tile doesn't reset the animation each frame).
+     */
+    void beginSliderRide(Zombie zombie, double currentX, int fromRow, int toRow) {
+        if (zombie == null) return;
+        SliderRideEntry existing = sliderRideEntries.get(zombie);
+        if (existing != null && existing.targetRow == toRow) return;
+        sliderRideEntries.put(zombie, new SliderRideEntry(currentX, fromRow, toRow));
+    }
+
+    boolean isRidingSlider(Zombie zombie) {
+        return zombie != null && sliderRideEntries.containsKey(zombie);
+    }
+
+    void updateSliderRide(double deltaTimeSeconds) {
+        if (sliderRideEntries.isEmpty()) return;
+
+        var iterator = sliderRideEntries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Zombie, SliderRideEntry> entry = iterator.next();
+            Zombie zombie = entry.getKey();
+            SliderRideEntry ride = entry.getValue();
+
+            if (zombie == null || !zombie.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            Position speed = zombie.getSpeed();
+            double stepX = speed != null ? speed.x() * deltaTimeSeconds : 0.0;
+
+            ride.elapsed += deltaTimeSeconds;
+            double progress = Math.min(1.0, ride.elapsed / SLIDER_RIDE_DURATION_SECONDS);
+            double smooth = progress * progress * (3.0 - 2.0 * progress);
+            double y = ride.startRow + (ride.targetRow - ride.startRow) * smooth;
+            // The zombie keeps walking forward at its own speed the whole time; only
+            // the row is eased, so the ride's x anchor advances by the same step the
+            // normal walk would have taken this tick.
+            ride.startX = ride.startX + stepX;
+            zombie.setPosition(new Position(ride.startX, y));
+
+            if (progress >= 1.0) {
+                zombie.setPosition(new Position(ride.startX, ride.targetRow));
+                iterator.remove();
+            }
+        }
     }
 
     void addSandStormEntry(Zombie zombie, int startRow, int targetRow, double targetX,
@@ -257,12 +330,17 @@ class SessionHazards {
         sandStormEntries.entrySet().removeIf(entry -> !entry.getKey().isAlive() || !zombies.contains(entry.getKey()));
     }
 
+    void pruneSliderRideEntries(List<Zombie> zombies) {
+        sliderRideEntries.entrySet().removeIf(entry -> !entry.getKey().isAlive() || !zombies.contains(entry.getKey()));
+    }
+
     /** Clears every hazard entry animation, e.g. when a fresh level is loaded. */
     void reset() {
         sandStormEntries.clear();
         sandStormActive = false;
         sandStormTimer = 0.0;
         sandStormWaveIndex = -1;
+        sliderRideEntries.clear();
         resetBeachBigWave();
     }
 

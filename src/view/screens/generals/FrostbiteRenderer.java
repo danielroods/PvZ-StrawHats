@@ -3,10 +3,16 @@ package view.screens.generals;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 
+import model.collections.animations.AnimationFactory;
+import model.collections.zombie.Zombie;
 import model.match.main.season.travellog.cave.IceWind;
+import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.TileType;
 import model.pitches.obstacles.IceBlock;
+
+import java.util.HashMap;
+import java.util.Map;
 
 class FrostbiteRenderer {
 
@@ -17,6 +23,21 @@ class FrostbiteRenderer {
     private static final float ICE_BLOCK_ART_SCALE = 1.8f;
     private static final float ICE_BLOCK_OFFSET_X = -50f;
     private static final float ICE_BLOCK_OFFSET_Y = 30f;
+
+    // Tile slider PAM animations (replace the old static up/down arrow textures).
+    // Scale/offset follow the same "anchor art inside its tile" pattern as the
+    // scorched-earth tile effect (see EffectRenderer.SCORCHED_TILE_SCALE/OFFSET_*).
+    private static final String TILESLIDER_DOWN_PAM =
+            "768/FULL/EFFECTS/TILESLIDER_ICEAGE_DOWN/TILESLIDER_ICEAGE_DOWN.PAM";
+    private static final String TILESLIDER_UP_PAM =
+            "768/FULL/EFFECTS/TILESLIDER_ICEAGE_UP/TILESLIDER_ICEAGE_UP.PAM";
+    private static final String TILESLIDER_STATE_IDLE = "idle";
+    private static final String TILESLIDER_STATE_ACTIVE_START = "active_start";
+    private static final String TILESLIDER_STATE_ACTIVE_END = "active_end";
+    private static final float TILESLIDER_SCALE = 0.65f;
+    private static final float TILESLIDER_OFFSET_X = 0.45f;
+    private static final float TILESLIDER_OFFSET_Y = 0.50f;
+
 
     private static final float PLANT_ICE_SCALE_1 = 0.85f;
     private static final float PLANT_ICE_OFFSET_X_1 = -6f;
@@ -30,6 +51,17 @@ class FrostbiteRenderer {
 
     private final GameScreen screen;
 
+    /** Tracks each slider tile's idle -> active_start -> active_end -> idle cycle,
+     *  keyed by row*cols+col so it survives across frames. */
+    private final Map<Integer, SliderTileEffect> sliderTileEffects = new HashMap<>();
+
+    /** One slider tile's current PAM phase and how long it has been in that phase. */
+    private static final class SliderTileEffect {
+        String phase = TILESLIDER_STATE_IDLE;
+        float phaseTime;
+        boolean zombiePresentLastFrame;
+    }
+
     FrostbiteRenderer(GameScreen screen) {
         this.screen = screen;
     }
@@ -40,11 +72,15 @@ class FrostbiteRenderer {
                 && "Frostbite Caves".equalsIgnoreCase(screen.session.getLevel().getSeason().getName());
     }
 
-    void drawFrostbiteTileArt() {
+    void drawFrostbiteTileArt(float delta) {
         if (!isFrostbite()) return;
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
+        int cols = Math.max(1, screen.session.getCols());
         GameScreenAssets assets = screen.assets();
+
+        java.util.Set<Integer> stillSlippery = new java.util.HashSet<>();
+
         for (int r = 0; r < screen.session.getRows(); r++) {
             for (int c = 0; c < screen.session.getCols(); c++) {
                 Cell cell = screen.session.getEnvironment().getCell(r, c);
@@ -53,29 +89,111 @@ class FrostbiteRenderer {
                 float y = screen.cellY(r);
                 boolean up = cell.getTile().slipperyDirection() == model.pitches.obstacles.SlipperyDirection.UP;
 
-                Texture background = up ? assets.sliderUpBackgroundTexture() : assets.sliderDownBackgroundTexture();
-                if (background == null) background = assets.sliderBackgroundTexture();
-
-                if (background != null) {
-                    screen.batch.setColor(Color.WHITE);
-                    screen.batch.draw(background, x, y, boardTileWidth, boardTileHeight);
-                } else {
-                    screen.batch.setColor(0.72f, 0.86f, 0.96f, 0.20f);
-                    screen.batch.draw(screen.whitePixel, x, y, boardTileWidth, boardTileHeight);
-                }
-
-                Texture arrow = up ? assets.sliderUpTexture() : assets.sliderDownTexture();
-                if (arrow != null) {
-                    screen.batch.setColor(Color.WHITE);
-                    float drawW = boardTileWidth * SLIDER_TILE_ART_SCALE - 10;
-                    float drawH = boardTileHeight * SLIDER_TILE_ART_SCALE + 10;
-                    float drawX = x + (boardTileWidth - drawW) * 0.5f;
-                    float drawY = y + (boardTileHeight - drawH) * 0.5f;
-                    screen.batch.draw(arrow, drawX, drawY, drawW, drawH);
-                } else {
-                    drawSlipperyArrowFallback(x, y, up);
-                }
+                int key = r * cols + c;
+                stillSlippery.add(key);
+                drawSliderTile(key, r, c, x, y, boardTileWidth, boardTileHeight, up, delta, assets);
             }
+        }
+
+        // A tile can stop being slippery mid-match (obstacle destroyed, etc.) - drop
+        // its tracked phase so a stale entry doesn't linger in the map forever.
+        sliderTileEffects.keySet().removeIf(key -> !stillSlippery.contains(key));
+    }
+
+    private void drawSliderTile(int key, int row, int col, float x, float y,
+                                float boardTileWidth, float boardTileHeight,
+                                boolean up, float delta, GameScreenAssets assets) {
+        String pamPath = up ? TILESLIDER_UP_PAM : TILESLIDER_DOWN_PAM;
+
+        SliderTileEffect effect = sliderTileEffects.computeIfAbsent(key, k -> new SliderTileEffect());
+        boolean zombiePresent = isZombieBeingThrown(row, col);
+        advanceSliderPhase(effect, zombiePresent, pamPath, delta);
+
+        float drawX = x + boardTileWidth * TILESLIDER_OFFSET_X;
+        float drawY = y + boardTileHeight * TILESLIDER_OFFSET_Y;
+
+        boolean drawn = screen.drawPam(pamPath, effect.phase, effect.phaseTime,
+                drawX, drawY, TILESLIDER_SCALE, false);
+        if (!drawn) {
+            drawSliderTileFallback(assets, x, y, boardTileWidth, boardTileHeight, up);
+        }
+    }
+
+    /**
+     * Idle by default. When a zombie is currently riding/being thrown by this tile,
+     * plays "active_start" once, then holds on "active_end" for as long as the
+     * zombie is still there, then returns to "idle" the moment no zombie is present -
+     * matching the requested intro/outro behaviour without a separate loop state.
+     */
+    private void advanceSliderPhase(SliderTileEffect effect, boolean zombiePresent, String pamPath, float delta) {
+        effect.phaseTime += delta;
+
+        if (!zombiePresent) {
+            if (!TILESLIDER_STATE_IDLE.equals(effect.phase)) {
+                effect.phase = TILESLIDER_STATE_IDLE;
+                effect.phaseTime = 0f;
+            } else {
+                float idleDuration = AnimationFactory.clipDurationForPath(pamPath, TILESLIDER_STATE_IDLE);
+                if (idleDuration > 0f) effect.phaseTime %= idleDuration;
+            }
+            effect.zombiePresentLastFrame = false;
+            return;
+        }
+
+        boolean justArrived = !effect.zombiePresentLastFrame;
+        if (justArrived) {
+            effect.phase = TILESLIDER_STATE_ACTIVE_START;
+            effect.phaseTime = 0f;
+        } else if (TILESLIDER_STATE_ACTIVE_START.equals(effect.phase)) {
+            float startDuration = AnimationFactory.clipDurationForPath(pamPath, TILESLIDER_STATE_ACTIVE_START);
+            if (startDuration <= 0f) startDuration = 0.35f;
+            if (effect.phaseTime >= startDuration) {
+                effect.phase = TILESLIDER_STATE_ACTIVE_END;
+                effect.phaseTime = 0f;
+            }
+        } else if (TILESLIDER_STATE_ACTIVE_END.equals(effect.phase)) {
+            float endDuration = AnimationFactory.clipDurationForPath(pamPath, TILESLIDER_STATE_ACTIVE_END);
+            if (endDuration > 0f) effect.phaseTime %= endDuration;
+        }
+        effect.zombiePresentLastFrame = true;
+    }
+
+    /** True while any zombie occupies (is being carried across) this slider tile's cell. */
+    private boolean isZombieBeingThrown(int row, int col) {
+        for (Zombie zombie : screen.session.getZombies()) {
+            if (zombie == null || !zombie.isAlive()) continue;
+            Position pos = zombie.getPosition();
+            if (pos == null) continue;
+            int zRow = (int) Math.round(pos.y());
+            int zCol = (int) Math.floor(pos.x());
+            if (zRow == row && zCol == col) return true;
+        }
+        return false;
+    }
+
+    private void drawSliderTileFallback(GameScreenAssets assets, float x, float y,
+                                        float boardTileWidth, float boardTileHeight, boolean up) {
+        Texture background = up ? assets.sliderUpBackgroundTexture() : assets.sliderDownBackgroundTexture();
+        if (background == null) background = assets.sliderBackgroundTexture();
+
+        if (background != null) {
+            screen.batch.setColor(Color.WHITE);
+            screen.batch.draw(background, x, y, boardTileWidth, boardTileHeight);
+        } else {
+            screen.batch.setColor(0.72f, 0.86f, 0.96f, 0.20f);
+            screen.batch.draw(screen.whitePixel, x, y, boardTileWidth, boardTileHeight);
+        }
+
+        Texture arrow = up ? assets.sliderUpTexture() : assets.sliderDownTexture();
+        if (arrow != null) {
+            screen.batch.setColor(Color.WHITE);
+            float drawW = boardTileWidth * SLIDER_TILE_ART_SCALE - 10;
+            float drawH = boardTileHeight * SLIDER_TILE_ART_SCALE + 10;
+            float drawX = x + (boardTileWidth - drawW) * 0.5f;
+            float drawY = y + (boardTileHeight - drawH) * 0.5f;
+            screen.batch.draw(arrow, drawX, drawY, drawW, drawH);
+        } else {
+            drawSlipperyArrowFallback(x, y, up);
         }
     }
 

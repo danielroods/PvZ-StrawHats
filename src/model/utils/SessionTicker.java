@@ -55,6 +55,7 @@ class SessionTicker {
         hazards.updateSandStorm(deltaTimeSeconds);
         IceWind.tick(session, deltaTimeSeconds);
         hazards.updateBeachBigWave(deltaTimeSeconds);
+        hazards.updateSliderRide(deltaTimeSeconds);
 
         List<Plant> plants = session.getPlants();
         for (int i = plants.size() - 1; i >= 0; i--) {
@@ -117,6 +118,7 @@ class SessionTicker {
         }
 
         hazards.pruneSandStormEntries(session.getZombies());
+        hazards.pruneSliderRideEntries(session.getZombies());
         board.clearDeadPlantsFromGrid();
         board.clearDeadStructuresFromGrid();
         board.refreshZombieOccupancy();

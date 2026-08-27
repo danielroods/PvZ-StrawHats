@@ -201,6 +201,14 @@ public class GameSession {
 
     public boolean isFrozenInIceBlock(Zombie zombie) { return board.isFrozenInIceBlock(zombie); }
 
+    public void beginSliderRide(Zombie zombie, double currentX, int fromRow, int toRow) {
+        hazards.beginSliderRide(zombie, currentX, fromRow, toRow);
+    }
+
+    public boolean isRidingSlider(Zombie zombie) {
+        return hazards.isRidingSlider(zombie);
+    }
+
     public int getSunCount() { return economy.getSunCount(); }
 
     public void addSun(int amount) { economy.addSun(amount); }
