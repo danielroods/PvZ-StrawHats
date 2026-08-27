@@ -106,7 +106,7 @@ class ZombossRenderer {
         if (clip == null) return;
         float viewW = screen.stage.getViewport().getWorldWidth();
         screen.drawPam(ZombossChapter.NPC_PAM, clip, (float) fight.getNpcClipTime(),
-                viewW - NPC_MARGIN_X, NPC_MARGIN_Y, NPC_SCALE, false);
+                viewW - NPC_MARGIN_X, NPC_MARGIN_Y + 90f, NPC_SCALE, false);
     }
 
     private void drawGlacier(int sealedColumnStart) {

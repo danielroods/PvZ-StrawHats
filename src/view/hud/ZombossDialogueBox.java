@@ -19,7 +19,7 @@ public class ZombossDialogueBox extends Table implements Disposable {
     private static final float BOX_HEIGHT = 148f;
     private static final float SIDE_PAD = 60f;
     private static final float NPC_GUTTER = 330f;
-    private static final float BOTTOM_PAD = 36f;
+    private static final float BOTTOM_PAD = 105f;
 
     private final Label speaker;
     private final Label body;
@@ -94,6 +94,7 @@ public class ZombossDialogueBox extends Table implements Disposable {
         }
         setVisible(true);
         setTouchable(Touchable.enabled);
+        toFront();
         body.setText(line);
         hint.setText(total > 1 ? (index + 1) + " / " + total + "   click to continue"
                 : "click to continue");

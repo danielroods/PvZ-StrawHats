@@ -314,7 +314,6 @@ public class GameScreen extends UiScreen {
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
         zomboss.drawBoss();
-        zomboss.drawNpc();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
         effects.drawForegroundEffects(delta);
@@ -325,6 +324,7 @@ public class GameScreen extends UiScreen {
         frostbite.drawFrostbiteIceBlocks(delta);
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
+        zomboss.drawNpc();
         interaction.drawDragPreview(delta);
         matchEnd.drawMatchEndOverlay();
 
