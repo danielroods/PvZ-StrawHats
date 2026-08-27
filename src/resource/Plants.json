@@ -1387,37 +1387,37 @@
   {
     "id": 38,
     "name": "Iceberg Lettuce",
-    "category": "EXPLOSIVE",
+    "category": "MELEE",
     "tags": [
-      "TRAP",
-      "ICE"
+      "MELEE",
+      "BUTTER"
     ],
-    "cost": 0,
+    "cost": 175,
     "baseHp": 300,
-    "damage": 0,
-    "actionInterval": 0.0,
-    "recharge": 20.0,
-    "abilityType": "DELAYED_EXPLOSIVE",
+    "damage": 20,
+    "actionInterval": 1.5,
+    "recharge": 5.0,
+    "abilityType": "MELEE_ATTACK",
     "abilityValue": 1.0,
-    "plantFoodType": "MAP_WIDE_FREEZE",
-    "plantFoodValue": 10.0,
+    "plantFoodType": "MAP_WIDE_BUTTER",
+    "plantFoodValue": 5.0,
     "upgrades": [
       {
         "level": 2,
-        "type": "BUFF_RECHARGE",
-        "value": -2.0,
+        "type": "BUFF_DAMAGE",
+        "value": 10.0,
         "specialTag": ""
       },
       {
         "level": 3,
         "type": "SPECIAL_MECHANIC",
-        "value": 2.0,
-        "specialTag": "FREEZE_DURATION_EXT"
+        "value": 0.05,
+        "specialTag": "BUTTER_CHANCE_BUFF"
       },
       {
         "level": 4,
-        "type": "BUFF_COST",
-        "value": 0.0,
+        "type": "BUFF_HP",
+        "value": 200.0,
         "specialTag": ""
       }
     ]

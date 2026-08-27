@@ -114,6 +114,14 @@ class PlantRenderer {
     private final Map<Plant, Boolean> explodeONutHadArmor = new IdentityHashMap<>();
     private final Map<Plant, Float> explodeONutArmorOffTimes = new IdentityHashMap<>();
 
+    // Headbutter Lettuce (Plants.json "Iceberg Lettuce") Plant Food: a three-phase
+    // "plantfood_on" (intro, once) -> "plantfood_loop" (holds for the rest of the Plant
+    // Food window) -> "plantfood_off" (outro, once, played after the Plant Food window
+    // closes) sequence - see advanceHeadbutterLettuceTimers/headbutterLettuceState below.
+    private final Map<Plant, Boolean> headbutterLettucePfWasActive = new IdentityHashMap<>();
+    private final Map<Plant, Float> headbutterLettucePfOnTime = new IdentityHashMap<>();
+    private final Map<Plant, Float> headbutterLettucePfOffTime = new IdentityHashMap<>();
+
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
     }
@@ -286,6 +294,9 @@ class PlantRenderer {
             boolean explodeONut = plant.isExplodeONut();
             if (explodeONut && !frozenInIce) advanceExplodeONutTimers(plant, delta);
 
+            boolean headbutterLettuce = isHeadbutterLettuce(plant);
+            if (headbutterLettuce && !frozenInIce) advanceHeadbutterLettuceTimers(plant, delta);
+
             String preferredState;
             float animTime = t;
             boolean potatoMine = plant.isPotatoMine();
@@ -398,6 +409,10 @@ class PlantRenderer {
             } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
                 preferredState = "plantfood";
                 animTime = t;
+            } else if (headbutterLettuce
+                    && (plant.isPlantFoodActive() || headbutterLettucePfOffTime.containsKey(plant))) {
+                preferredState = headbutterLettuceState(plant);
+                animTime = headbutterLettuceAnimTime(plant, preferredState, t);
             } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
                 preferredState = "idle_plantfood";
                 animTime = (float) plant.getVisualAnimationElapsed();
@@ -423,8 +438,7 @@ class PlantRenderer {
                 plantOffsetY += squashJumpArcOffset(plant, boardTileHeight);
             }
 
-            boolean meleePlant = "Bonk Choy".equalsIgnoreCase(plant.getName())
-                    || "Wasabi Whip".equalsIgnoreCase(plant.getName())
+            boolean meleePlant = "Wasabi Whip".equalsIgnoreCase(plant.getName())
                     || "Chomper".equalsIgnoreCase(plant.getName())
                     || "Squash".equalsIgnoreCase(plant.getName());
 
@@ -629,6 +643,9 @@ class PlantRenderer {
         explodeONutBlinkTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         explodeONutHadArmor.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         explodeONutArmorOffTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfWasActive.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfOnTime.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfOffTime.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
         drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
@@ -916,6 +933,9 @@ class PlantRenderer {
      * just uses the plain "plantfood" clip for its whole Plant Food duration.
      */
     private String plantFoodClipState(Plant plant) {
+        if (isHeadbutterLettuce(plant)) {
+            return "plantfood_loop";
+        }
         if (isSunShroom(plant)) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "plantfood_stage2";
@@ -1076,6 +1096,67 @@ class PlantRenderer {
         return clipDuration > 0f ? loopTime % clipDuration : loopTime;
     }
 
+    private boolean isHeadbutterLettuce(Plant plant) {
+        return plant != null && "Iceberg Lettuce".equalsIgnoreCase(plant.getName());
+    }
+
+    /**
+     * Drives Headbutter Lettuce's three-phase Plant Food sequence: "plantfood_on" (intro,
+     * played once as soon as Plant Food activates), "plantfood_loop" (holds for whatever
+     * remains of the Plant Food window), then "plantfood_off" (outro, played once - note
+     * this runs *after* isPlantFoodActive() has already gone false, the same idiom
+     * advanceExplodeONutTimers uses for its own "plantfood_off").
+     */
+    private void advanceHeadbutterLettuceTimers(Plant plant, float delta) {
+        boolean active = plant.isPlantFoodActive();
+        boolean wasActive = Boolean.TRUE.equals(headbutterLettucePfWasActive.put(plant, active));
+
+        if (active && !wasActive) {
+            headbutterLettucePfOnTime.put(plant, 0f);
+            headbutterLettucePfOffTime.remove(plant);
+        } else if (!active && wasActive) {
+            headbutterLettucePfOffTime.put(plant, 0f);
+            headbutterLettucePfOnTime.remove(plant);
+        }
+
+        Float onTime = headbutterLettucePfOnTime.get(plant);
+        if (active && onTime != null) {
+            headbutterLettucePfOnTime.put(plant, onTime + delta);
+        }
+
+        Float offTime = headbutterLettucePfOffTime.get(plant);
+        if (offTime != null) {
+            float offDuration = headbutterLettuceClipDuration(plant, "plantfood_off");
+            offTime += delta;
+            if (offTime >= offDuration) headbutterLettucePfOffTime.remove(plant);
+            else headbutterLettucePfOffTime.put(plant, offTime);
+        }
+    }
+
+    /** "plantfood_on" while its intro clip is still playing, then "plantfood_loop" for the
+     *  rest of the Plant Food window, then "plantfood_off" once Plant Food has ended. */
+    private String headbutterLettuceState(Plant plant) {
+        if (plant.isPlantFoodActive()) {
+            float onDuration = headbutterLettuceClipDuration(plant, "plantfood_on");
+            Float onTime = headbutterLettucePfOnTime.get(plant);
+            if (onTime != null && onTime < onDuration) return "plantfood_on";
+            return "plantfood_loop";
+        }
+        return "plantfood_off";
+    }
+
+    private float headbutterLettuceAnimTime(Plant plant, String state, float loopTime) {
+        if ("plantfood_on".equals(state)) return headbutterLettucePfOnTime.getOrDefault(plant, 0f);
+        if ("plantfood_off".equals(state)) return headbutterLettucePfOffTime.getOrDefault(plant, 0f);
+        float clipDuration = headbutterLettuceClipDuration(plant, state);
+        return clipDuration > 0f ? (loopTime % clipDuration) : loopTime;
+    }
+
+    private float headbutterLettuceClipDuration(Plant plant, String state) {
+        float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), state);
+        return clipDuration > 0f ? clipDuration : DEFAULT_PLANT_ATTACK_DURATION;
+    }
+
     private String resolveExplodeONutIdleState(Plant plant) {
         if (plant.getExplodeONutDamageTier() == 0 && isOnWaterTile(plant)) return "water";
         return plant.getExplodeONutHealthAnimationState();
@@ -1165,6 +1246,20 @@ class PlantRenderer {
     }
 
     private String resolveAttackBaseState(Plant plant) {
+        if (isHeadbutterLettuce(plant)) {
+            // Front (right, toward oncoming zombies) uses "attack"; a target caught on the
+            // back tile mirrors MeleeStrategy's facing flag and uses the separate "attack2"
+            // clip instead of a mirrored sprite (unlike Wasabi Whip/Chomper/Squash - see the
+            // meleePlant mirror check in the main draw loop, which this plant is deliberately
+            // not part of).
+            return plant.isMeleeFacingLeft() ? "attack2" : "attack";
+        }
+        if (plant != null && "Bonk Choy".equalsIgnoreCase(plant.getName())) {
+            // Same idea as Headbutter Lettuce above: Bonk Choy has its own real "attack2"
+            // clip for a back-tile hit, so it's also excluded from the meleePlant mirror
+            // check rather than mirroring the plain "attack" sprite.
+            return plant.isMeleeFacingLeft() ? "attack2" : "attack";
+        }
         if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "attack_stage2";

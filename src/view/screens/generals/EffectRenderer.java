@@ -765,7 +765,9 @@ class EffectRenderer {
         for (Plant plant : screen.session.getPlants()) {
             if (plant == null || plant.getPosition() == null || !plant.isAlive()) continue;
             String name = plant.getName();
-            if (!"Kiwibeast".equalsIgnoreCase(name) && !"Phat Beet".equalsIgnoreCase(name)) continue;
+            boolean headbutterLettuce = "Iceberg Lettuce".equalsIgnoreCase(name);
+            if (!"Kiwibeast".equalsIgnoreCase(name) && !"Phat Beet".equalsIgnoreCase(name)
+                    && !headbutterLettuce) continue;
 
             boolean pf = plant.isPlantFoodActive();
             boolean seenPf = meleePlantFoodSeen.getOrDefault(plant, false);
@@ -791,7 +793,9 @@ class EffectRenderer {
                         name, ProjectileEffectAssets.Kind.PROJECTILE,
                         ProjectileEffectAssets.Variant.NORMAL);
                 if (!entries.isEmpty()) {
-                    ProjectileEffectAssets.AssetEntry entry = entries.get(0);
+                    ProjectileEffectAssets.AssetEntry entry = headbutterLettuce
+                            ? pickMeleeFacingEntry(plant, entries)
+                            : entries.get(0);
                     impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
                             entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
                             entry.isStaticImage(), plant.getPosition(), 0.45f,
@@ -801,6 +805,25 @@ class EffectRenderer {
         }
         meleeLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         meleePlantFoodSeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+    }
+
+    /**
+     * Headbutter Lettuce's HITFX has two clips registered under the same Kind/Variant -
+     * "animation" (front/right swing) and "animation2" (back/left swing) - so unlike
+     * Kiwibeast/Phat Beet (a single entry, always index 0) the right one has to be picked
+     * per-hit from the same facing flag MeleeStrategy set for this attack.
+     */
+    private ProjectileEffectAssets.AssetEntry pickMeleeFacingEntry(
+            Plant plant, List<ProjectileEffectAssets.AssetEntry> entries) {
+        if (plant.isMeleeFacingLeft()) {
+            for (ProjectileEffectAssets.AssetEntry candidate : entries) {
+                if ("animation2".equals(candidate.state())) return candidate;
+            }
+        }
+        for (ProjectileEffectAssets.AssetEntry candidate : entries) {
+            if ("animation".equals(candidate.state())) return candidate;
+        }
+        return entries.get(0);
     }
 
     private void drawZombieProjectiles(float delta) {

@@ -82,6 +82,7 @@ public final class ProjectileEffectAssets {
         registerHotPotato();
         registerGravebuster();
         registerMintFamily();
+        registerHeadbutterLettuce();
     }
 
     private ProjectileEffectAssets() {
@@ -770,5 +771,20 @@ public final class ProjectileEffectAssets {
                             "shared empowermint end fx")
             );
         }
+    }
+
+    private static void registerHeadbutterLettuce() {
+        register("Iceberg Lettuce",
+                // Headbutt impact effect, played on the plant's own tile each time its melee
+                // attack lands - see EffectRenderer.drawMeleePlantProjectiles. "animation" is
+                // the front-facing (right) swing, "animation2" the back-facing (left) swing -
+                // picked per-hit from MeleeStrategy's isMeleeFacingLeft() flag.
+                entry("768/INITIAL/EFFECTS/HEADBUTTERLETTUCE_HITFX/HEADBUTTERLETTUCE_HITFX.PAM",
+                        "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
+                        "headbutt impact effect, attack to the right (front)"),
+                entry("768/INITIAL/EFFECTS/HEADBUTTERLETTUCE_HITFX/HEADBUTTERLETTUCE_HITFX.PAM",
+                        "animation2", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
+                        "headbutt impact effect, attack to the left (back)")
+        );
     }
 }
