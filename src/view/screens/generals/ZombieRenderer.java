@@ -142,6 +142,8 @@ class ZombieRenderer {
     }
 
     void drawZombies(float delta, float bw, float bh) {
+        if (screen.isBeforeMatchPreview()) return;
+
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
         List<Zombie> zombies = new ArrayList<>(screen.session.getZombies());

@@ -90,7 +90,7 @@ public class GameScreen extends UiScreen {
         createZombossDialogue();
     }
 
-    private void createZombossDialogue() {
+    protected void createZombossDialogue() {
         if (session == null || session.getZombossFight() == null) return;
         zombossDialogue = new view.hud.ZombossDialogueBox(skin);
         zombossDialogue.setAdvanceAction(() -> {
@@ -205,6 +205,11 @@ public class GameScreen extends UiScreen {
 
     protected List<String> loadoutPlants() {
         return new ArrayList<>(BeforeMenu.selectedPlants);
+    }
+
+    /** True only for the loadout screen that renders the match board before waves begin. */
+    protected boolean isBeforeMatchPreview() {
+        return false;
     }
 
     private void refreshZombossDialogue() {
