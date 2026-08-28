@@ -187,16 +187,19 @@ class BoardInteraction {
         float boardTileHeight = screen.getBoardTileHeight();
 
         Vector2 world = click;
-        int col = (int) ((world.x - GameScreen.BOARD_X) / boardTileWidth);
 
         for (model.collections.Item raw : screen.session.getItems()) {
             if (!(raw instanceof GroundItem item) || !item.isAlive() || item.isCollected()
                     || item.getPosition() == null) continue;
 
             Position p = item.getPosition();
-            int itemCol = (int) p.x();
+            // Use the item's own (possibly off-tile-center) position for both the hit
+            // test and the collect target, so a sun that renders nudged away from its
+            // producer's tile - e.g. a sunflower's second sun, or a sun-shroom's drop -
+            // is only picked up by clicking where it's actually drawn, matching the
+            // original game instead of the plant's tile underneath it.
             float itemX = GameScreen.BOARD_X + (float) p.x() * boardTileWidth + boardTileWidth * 0.28f;
-            float itemY = screen.cellY((int) p.y()) + boardTileHeight * 0.25f;
+            float itemY = screen.cellY((int) Math.round(p.y())) + boardTileHeight * 0.25f;
 
             if (item instanceof GroundSun sun && sun.isFalling()) {
                 float progress = sun.getFallProgress();
@@ -205,27 +208,20 @@ class BoardInteraction {
 
                 float age = screen.groundItems().animTimeFor(item);
                 itemY += (float) Math.sin(age * 3.0f) * 3f;
+            }
 
-                float size = boardTileWidth * 0.45f;
-                float drawX = itemX + (boardTileWidth * 0.45f - size) * 0.5f;
-                float drawY = itemY + (boardTileHeight * 0.45f - size) * 0.5f;
-                float radius = Math.max(size, boardTileHeight * 0.45f) * 0.5f;
-                float centerX = drawX + size * 0.5f;
-                float centerY = drawY + size * 0.5f;
+            // Hitbox is centered on the sprite but deliberately more generous than the
+            // sprite itself (fixed size, not tied to the pulse animation) so collecting
+            // doesn't require pixel-precise clicks - matching how forgiving the original
+            // game's sun/coin/food clicking feels.
+            float spriteSize = boardTileWidth * 0.45f;
+            float centerX = itemX + spriteSize * 0.5f;
+            float centerY = itemY + boardTileHeight * 0.45f * 0.5f;
+            float radius = Math.max(boardTileWidth, boardTileHeight) * 0.55f;
 
-                if (Math.abs(world.x - centerX) <= radius
-                        && Math.abs(world.y - centerY) <= radius) {
-                    screen.session.collectItemsNear(new Position(itemCol, (int) p.y()));
-                    return true;
-                }
-            } else {
-                int row = screen.session.getRows() - 1 - (int) ((world.y - GameScreen.BOARD_Y) / boardTileHeight);
-                if (row >= 0 && row < screen.session.getRows()
-                        && Math.abs(p.x() - col) <= item.getCollectRadius()
-                        && Math.abs(p.y() - row) <= item.getCollectRadius()) {
-                    screen.session.collectItemsNear(new Position(col, row));
-                    return true;
-                }
+            if (Math.abs(world.x - centerX) <= radius && Math.abs(world.y - centerY) <= radius) {
+                screen.session.collectItemsNear(p);
+                return true;
             }
         }
 
