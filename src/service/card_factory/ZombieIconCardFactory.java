@@ -102,18 +102,30 @@ public class ZombieIconCardFactory implements Disposable {
     }
 
     public ZombieIconCard buildCardForAlias(String alias) {
+        return buildCardForAlias(alias, CARD_WIDTH, CARD_HEIGHT);
+    }
+
+    /**
+     * Same as {@link #buildCardForAlias(String)}, but builds the card (frame + icon
+     * together) at the given size instead of the default {@link #CARD_WIDTH}x
+     * {@link #CARD_HEIGHT}. Use this instead of calling {@code setSize(...)} on the
+     * returned card afterward - {@link ZombieIconCard}'s icon inset is fixed at
+     * construction time, so resizing it later leaves the icon at its original pixel
+     * size while the frame/clip shrink, cropping it.
+     */
+    public ZombieIconCard buildCardForAlias(String alias, float cardWidth, float cardHeight) {
         try {
             String iconFile = resolveIconFile(alias);
             if (iconFile != null) {
-                ZombieIconCard card = buildCard(alias, iconFile);
+                ZombieIconCard card = buildCard(alias, iconFile, cardWidth, cardHeight);
                 if (card != null) {
                     return card;
                 }
             }
-            return buildPlaceholderCard(alias);
+            return buildPlaceholderCard(alias, cardWidth, cardHeight);
         } catch (Throwable t) {
             Gdx.app.error("ZombieIconCardFactory", "Failed to build card for '" + alias + "'", t);
-            return buildPlaceholderCard(alias);
+            return buildPlaceholderCard(alias, cardWidth, cardHeight);
         }
     }
 
@@ -150,6 +162,10 @@ public class ZombieIconCardFactory implements Disposable {
     }
 
     private ZombieIconCard buildPlaceholderCard(String alias) {
+        return buildPlaceholderCard(alias, CARD_WIDTH, CARD_HEIGHT);
+    }
+
+    private ZombieIconCard buildPlaceholderCard(String alias, float cardWidth, float cardHeight) {
         String name = (alias == null || alias.isBlank()) ? "unknown" : alias;
         Gdx.app.error("ZombieIconCardFactory", "No zombies_ui icon found for '" + name
                 + "' - showing a placeholder card.");
@@ -158,7 +174,7 @@ public class ZombieIconCardFactory implements Disposable {
         if (placeholderTexture == null) {
             return null;
         }
-        return new ZombieIconCard(name, "(placeholder)", cardBackground(), placeholderTexture, CARD_WIDTH, CARD_HEIGHT);
+        return new ZombieIconCard(name, "(placeholder)", cardBackground(), placeholderTexture, cardWidth, cardHeight);
     }
 
     private Texture placeholderIconTexture(String alias) {
@@ -182,6 +198,10 @@ public class ZombieIconCardFactory implements Disposable {
     }
 
     public ZombieIconCard buildCard(String alias, String iconFile) {
+        return buildCard(alias, iconFile, CARD_WIDTH, CARD_HEIGHT);
+    }
+
+    public ZombieIconCard buildCard(String alias, String iconFile, float cardWidth, float cardHeight) {
         if (iconFile == null || iconFile.isEmpty()) {
             return null;
         }
@@ -191,7 +211,7 @@ public class ZombieIconCardFactory implements Disposable {
                     + "' - missing icon texture at " + ZOMBIES_UI_DIR + iconFile);
             return null;
         }
-        return new ZombieIconCard(alias, iconFile, cardBackground(), iconTexture, CARD_WIDTH, CARD_HEIGHT);
+        return new ZombieIconCard(alias, iconFile, cardBackground(), iconTexture, cardWidth, cardHeight);
     }
 
     private String stripExtension(String fileName) {
