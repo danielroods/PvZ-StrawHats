@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 
+import model.resoures.CurrencyType;
 import model.user_data.User;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
@@ -29,6 +30,11 @@ public class MainMenuScreen extends UiScreen {
         setBackground("assets/images/backg/mainmenu_background.png");
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
         super.show();
+        build();
+    }
+
+    @Override
+    protected void refreshContent() {
         build();
     }
 
@@ -50,8 +56,8 @@ public class MainMenuScreen extends UiScreen {
         int coins = (user != null && user.userState != null) ? user.userState.coins : 0;
         int diamonds = (user != null && user.userState != null) ? user.userState.diamonds : 0;
 
-        topRight.add(createResourceWidget("assets/images/ui/buttons_coin_buy_normal.png", String.valueOf(coins))).padRight(15);
-        topRight.add(createResourceWidget("assets/images/ui/buttons_premium_normal.png", String.valueOf(diamonds)));
+        topRight.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15);
+        topRight.add(currencyWidget(CurrencyType.DIAMOND, diamonds));
 
         topBar.add(topLeft).left().expandX();
         topBar.add(topRight).right();

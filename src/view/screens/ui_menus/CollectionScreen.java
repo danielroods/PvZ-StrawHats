@@ -28,6 +28,7 @@ import com.badlogic.gdx.utils.Align;
 
 import controller.CollectionManager;
 import model.collections.animations.AnimationFactory;
+import model.resoures.CurrencyType;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.armour.Armour;
 import model.collections.plant.PlantJsonParser;
@@ -234,6 +235,11 @@ public class CollectionScreen extends UiScreen {
         build();
     }
 
+    @Override
+    protected void refreshContent() {
+        build();
+    }
+
     private Table buildTopBar() {
         ImageButton backBtn = createIconButton(BACK_ICON, 54, 54, () -> runCommand("menu exit"));
 
@@ -248,8 +254,8 @@ public class CollectionScreen extends UiScreen {
 
         Table topRight = new Table();
         topRight.right();
-        topRight.add(createResourceWidget(COIN_ICON, String.valueOf(coins))).padRight(15).padTop(-70);
-        topRight.add(createResourceWidget(GEM_ICON, String.valueOf(diamonds))).padTop(-70);
+        topRight.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15).padTop(-70);
+        topRight.add(currencyWidget(CurrencyType.DIAMOND, diamonds)).padTop(-70);
 
         Table topBar = new Table();
         topBar.add(topLeft).left().expandX();
@@ -905,22 +911,6 @@ public class CollectionScreen extends UiScreen {
             }
         });
         return button;
-    }
-
-    protected Table createResourceWidget(String iconPath, String value) {
-        Stack stack = new Stack();
-        Table bgTable = new Table();
-        bgTable.setBackground(new TextureRegionDrawable(loadTextureSafe(iconPath)));
-
-        Table textTable = new Table();
-        textTable.add(new Label(value, skin, "title")).center().expand();
-
-        stack.add(bgTable);
-        stack.add(textTable);
-
-        Table outer = new Table();
-        outer.add(stack).size(130, 42);
-        return outer;
     }
 
     protected Texture loadTextureSafe(String path) {
