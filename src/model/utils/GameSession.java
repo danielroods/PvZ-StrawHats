@@ -79,6 +79,10 @@ public class GameSession {
         return instance;
     }
 
+    public static void setCurrent(GameSession session) {
+        instance = session;
+    }
+
     SessionHazards hazards() {
         return hazards;
     }
@@ -212,6 +216,10 @@ public class GameSession {
     public int getSunCount() { return economy.getSunCount(); }
 
     public void addSun(int amount) { economy.addSun(amount); }
+
+    public void setSunCount(int amount) { economy.setSunCount(amount); }
+
+    public void setPlantFoodCount(int amount) { economy.setPlantFoodCount(amount); }
 
     public int getPlantsLostThisMatch() { return economy.getPlantsLostThisMatch(); }
 

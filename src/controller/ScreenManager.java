@@ -91,6 +91,15 @@ public final class ScreenManager {
         if (menu instanceof CollectionMenu) {
             return new CollectionScreen();
         }
+        if (menu instanceof controller.ui_menus.network.NetworkMenu) {
+            return new view.screens.ui_menus.NetworkScreen();
+        }
+        if (menu instanceof controller.match.mini_games.CouchIZombieController) {
+            return new view.screens.match.gameplay.mini_games.CouchIZombieGameScreen();
+        }
+        if (menu instanceof controller.match.mini_games.NetIZombieController) {
+            return new view.screens.match.gameplay.mini_games.NetIZombieGameScreen();
+        }
 
         if (menu instanceof BeforeMenu) {
             return new BeforeMatchScreen();

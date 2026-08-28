@@ -1,13 +1,5 @@
 package model.user_data;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import model.greenhouse.Greenhouse;
-import view.GeneralPrinter;
-
-import java.io.*;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,9 +7,6 @@ import java.util.ArrayList;
 
 /// authentication and holds a reference to userState
 public class User {
-
-    private static final String SAVE_FILE = "Data.json";
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static ArrayList<User> users = new ArrayList<>();
     public static User currentUser = null;
@@ -71,56 +60,46 @@ public class User {
         return this.securityAnswerHash.equals(hashPassword(answer.toLowerCase().trim()));
     }
 
-    public static User findByUsername(String username) {
-        for (User user : users)
-            if (user.username.equals(username)) return user;
-        return null;
+    private static final UserStore LOCAL_STORE = new LocalUserStore();
+    private static UserStore activeStore = LOCAL_STORE;
+
+    public static UserStore store() {
+        return activeStore;
     }
 
+    public static void useStore(UserStore store) {
+        activeStore = store == null ? LOCAL_STORE : store;
+    }
 
+    public static void useLocalStore() {
+        activeStore = LOCAL_STORE;
+    }
+
+    public static boolean isRemote() {
+        return activeStore != LOCAL_STORE;
+    }
+
+    public static User findByUsername(String username) {
+        return activeStore.findByUsername(username);
+    }
 
     public static boolean usernameExists(String username) {
-        return findByUsername(username) != null;
+        return activeStore.usernameExists(username);
     }
 
     public static void load() {
-        File file = new File(SAVE_FILE);
-        if (!file.exists()) return;
-        try (Reader reader = new FileReader(file)) {
-            Type listType = new TypeToken<ArrayList<User>>() {}.getType(); // to define the format we're getting from json
-            ArrayList<User> loaded = GSON.fromJson(reader, listType);
-            if (loaded != null) users = loaded;
-            for (User user : users)
-                if (user.stayLoggedIn) setUser(user);
-
-        } catch (IOException e) {
-            GeneralPrinter.print("Could not load users: " + e.getMessage());
-        }
+        activeStore.load();
     }
 
     public static void setUser(User user) {
-        currentUser = user;
-        model.App.currentUser = user;
-        Greenhouse.getInstance()
-                .load(user.userState.greenhousePots);
-        model.quests.QuestLoader.initializeActiveQuestsForUser();
+        activeStore.setUser(user);
     }
 
     public static void save() {
-        if (currentUser != null) {
-            currentUser.userState.greenhousePots =
-                    Greenhouse.getInstance().serialize();
-        }
-
-        try (Writer writer = new FileWriter(SAVE_FILE)) {
-            GSON.toJson(users, writer);
-        } catch (IOException e) {
-            GeneralPrinter.print("Could not save users: " + e.getMessage());
-        }
+        activeStore.save();
     }
 
     public static void addUser(User user) {
-        users.add(user);
-        save();
+        activeStore.addUser(user);
     }
 }

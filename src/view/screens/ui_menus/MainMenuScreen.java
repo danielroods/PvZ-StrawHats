@@ -63,10 +63,12 @@ public class MainMenuScreen extends UiScreen {
         Actor gameBtn = createBannerCard("assets/images/ui/calendar_card_7day_tombtangled.png", "Game", () -> runCommand("menu enter game"));
         Actor travelBtn = createBannerCard("assets/images/ui/calendar_card_7day_bigwavebeach.png", "Travel Log", () -> runCommand("menu enter travellog"));
         Actor leaderboardBtn = createBannerCard("assets/images/ui/calendar_card_7day_lunar_new_year.png", "Leaderboard", () -> runCommand("menu enter leaderboard"));
+        Actor multiplayerBtn = createBannerCard("assets/images/ui/opponentpanel_bg.png", "Multiplayer", () -> runCommand("menu enter network"));
 
         carouselContent.add(gameBtn).size(420, 260).pad(20);
         carouselContent.add(travelBtn).size(420, 260).pad(20);
         carouselContent.add(leaderboardBtn).size(420, 260).pad(20);
+        carouselContent.add(multiplayerBtn).size(420, 260).pad(20);
 
         carouselPane = new ScrollPane(carouselContent);
         carouselPane.setOverscroll(false, false);

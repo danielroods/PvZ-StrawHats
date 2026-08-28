@@ -9,3 +9,5 @@ build/
 Data.json
 *.zip
 project_tree/
+# Multiplayer server data
+server-data/

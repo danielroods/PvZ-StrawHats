@@ -78,6 +78,13 @@ public class Main extends ApplicationAdapter {
         } catch (Exception e) {
         }
 
+        try {
+            net.client.NetworkClient.get().pump();
+            ScreenManager.syncWithCurrentMenu();
+        } catch (Exception e) {
+            Gdx.app.error("Main", "Network pump failed", e);
+        }
+
         ScreenManager.render(Gdx.graphics.getDeltaTime());
     }
 

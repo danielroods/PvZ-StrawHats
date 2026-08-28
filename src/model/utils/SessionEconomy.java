@@ -69,6 +69,14 @@ class SessionEconomy {
         return sunCount;
     }
 
+    void setSunCount(int amount) {
+        sunCount = Math.max(0, amount);
+    }
+
+    void setPlantFoodCount(int amount) {
+        plantFoodCount = Math.max(0, Math.min(MAX_PLANT_FOOD, amount));
+    }
+
     void addSun(int amount) {
         sunCount += amount;
         if (amount > 0) {

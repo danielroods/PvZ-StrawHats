@@ -13,6 +13,11 @@ class ConfirmModal extends Modal {
     private static final float BUTTON_WIDTH = 170f;
 
     ConfirmModal(String title, String message, String confirmLabel, Runnable onConfirm) {
+        this(title, message, confirmLabel, onConfirm, null);
+    }
+
+    ConfirmModal(String title, String message, String confirmLabel, Runnable onConfirm,
+                 Runnable onCancel) {
         content.add(new Label(title, skin, "title")).colspan(2).padBottom(10).row();
 
         Label messageLabel = new Label(message, skin, "muted");
@@ -26,6 +31,7 @@ class ConfirmModal extends Modal {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 hide();
+                if (onCancel != null) onCancel.run();
             }
         });
         confirm.addListener(new ClickListener() {

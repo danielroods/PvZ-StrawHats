@@ -152,7 +152,7 @@ class WaveScheduler {
             try {
                 level.getSeason().onWaveStart(session, waveIndex);
             } catch (Exception e) {
-                com.badlogic.gdx.Gdx.app.error("GameSession",
+                service.Log.error("GameSession",
                         "Season.onWaveStart() failed for wave " + (waveIndex + 1), e);
             }
         }
@@ -195,7 +195,7 @@ class WaveScheduler {
             session.spawnZombie(flag);
         } catch (Exception e) {
             // Never let the cosmetic flag zombie break wave spawning / level loading.
-            com.badlogic.gdx.Gdx.app.error("GameSession", "Failed to spawn cosmetic flag zombie", e);
+            service.Log.error("GameSession", "Failed to spawn cosmetic flag zombie", e);
         }
     }
 
@@ -248,7 +248,7 @@ class WaveScheduler {
         try {
             zombie = ZombieFactory.create(spawn.alias(), lane, Math.max(0, cols - 1));
         } catch (Exception e) {
-            com.badlogic.gdx.Gdx.app.error("GameSession",
+            service.Log.error("GameSession",
                     "Failed to spawn zombie " + spawn.alias() + " for wave " + waveNumber, e);
             return;
         }

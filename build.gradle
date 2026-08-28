@@ -66,6 +66,14 @@ application {
     mainClass = 'DesktopLauncher'
 }
 
+tasks.register('runServer', JavaExec) {
+    group = 'application'
+    description = 'Runs the Plants vs Zombies multiplayer server.'
+    mainClass = 'net.server.ServerLauncher'
+    classpath = sourceSets.main.runtimeClasspath
+    args '--port', '7777', '--data', 'server-data'
+}
+
 run {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
         def iconFile = file('assets/images/ui/icon.png')
