@@ -498,6 +498,9 @@ public class Zombie extends Item implements Attack {
         if (speed != null) {
             setSpeed(new Position(-speed.x(), -speed.y()));
         }
+        // Hypnotized zombies turn around and walk back the other way, so their
+        // sprite needs to face the opposite direction too.
+        this.isFacingRight = !this.isFacingRight;
 
         if (this.moveBehavior != null) {
             this.moveBehavior = new HypnotizedMoveBehavior(this.moveBehavior);

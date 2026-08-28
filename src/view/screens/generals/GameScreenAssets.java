@@ -100,6 +100,7 @@ class GameScreenAssets {
 
     void initBoardTexture() {
         screen.whitePixel = GameScreenGraphics.makeWhitePixel();
+        screen.bubbleTexture = GameScreenGraphics.makeBubbleTexture();
         String path = resolveExistingAssetPath(screen.getGameplayBackgroundPath());
         if (Gdx.files.internal(path).exists()) {
             screen.boardTexture = new Texture(Gdx.files.internal(path));
@@ -191,11 +192,20 @@ class GameScreenAssets {
     }
 
     boolean drawStaticEffect(String path, float x, float y, float scale) {
+        return drawStaticEffect(path, x, y, scale, false);
+    }
+
+    /** Same as {@link #drawStaticEffect(String, float, float, float)} but can mirror the
+     *  texture horizontally, e.g. for a static projectile sprite whose travel direction
+     *  has reversed (Jester Zombie deflection). */
+    boolean drawStaticEffect(String path, float x, float y, float scale, boolean flip) {
         Texture texture = staticEffectTexture(path);
         if (texture == null) return false;
         float width = texture.getWidth() * scale;
         float height = texture.getHeight() * scale;
-        screen.batch.draw(texture, x - width * 0.5f, y - height * 0.5f, width, height);
+        screen.batch.draw(texture, x - width * 0.5f, y - height * 0.5f, width * 0.5f, height * 0.5f,
+                width, height, 1f, 1f, 0f,
+                0, 0, texture.getWidth(), texture.getHeight(), flip, false);
         return true;
     }
 

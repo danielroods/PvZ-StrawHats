@@ -45,6 +45,7 @@ public class GameScreen extends UiScreen {
     protected MatchHud hud;
     protected Texture boardTexture;
     public TextureRegion whitePixel;
+    public TextureRegion bubbleTexture;
 
     protected TextureBank textureBank;
     protected PamPlayer pamPlayer;
@@ -503,6 +504,7 @@ public class GameScreen extends UiScreen {
             try { textureBank.dispose(); } catch (Throwable ignored) {}
         }
         if (whitePixel != null) whitePixel.getTexture().dispose();
+        if (bubbleTexture != null) bubbleTexture.getTexture().dispose();
         if (boardTexture != null) boardTexture.dispose();
         assets.dispose();
         super.dispose();
