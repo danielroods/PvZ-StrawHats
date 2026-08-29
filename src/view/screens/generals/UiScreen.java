@@ -22,6 +22,7 @@ import com.badlogic.gdx.utils.Scaling;
 import controller.ScreenManager;
 import model.App;
 import model.game_exceptions.GameException;
+import model.resoures.CurrencyType;
 import view.GeneralPrinter;
 
 import java.util.function.Consumer;
@@ -199,6 +200,33 @@ public abstract class UiScreen extends BaseScreen {
         Table outer = new Table();
         outer.add(stack).size(130, 42);
         return outer;
+    }
+
+    /**
+     * A coin/diamond top-bar widget that also works as the "generic cheat" trigger:
+     * touching it opens {@link CurrencyCheatModal}, letting the player type an amount
+     * of that currency to add to the current account. Used by every menu that shows
+     * a coin or diamond counter (main, game, stages, greenhouse, collection, shop),
+     * so the cheat behaviour lives in exactly one place.
+     */
+    protected Table currencyWidget(CurrencyType currency, int amount) {
+        Table widget = createResourceWidget(currency.getIconPath(), String.valueOf(amount));
+        widget.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                CurrencyCheatModal.open(UiScreen.this::refreshContent);
+            }
+        });
+        return widget;
+    }
+
+    /**
+     * Called after the currency cheat popup changes the user's coins/diamonds so the
+     * screen can redraw itself with the new values. Screens that display a coin or
+     * diamond widget (via {@link #currencyWidget}) should override this to call their
+     * own rebuild method (usually a private {@code build()}).
+     */
+    protected void refreshContent() {
     }
 
     private Drawable roundedPanel(int tile, int radius, int border, Color fill, Color borderColor) {

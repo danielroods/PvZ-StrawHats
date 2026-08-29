@@ -52,8 +52,11 @@ public class IZombieGameScreen extends GameScreen {
 
     private static final float BRAIN_WIDTH_FACTOR = 0.72f;
     private static final float BRAIN_EATEN_BURST_DURATION = 0.9f;
-    private static final float PACKET_CARD_W = 88f;
-    private static final float PACKET_CARD_H = 112f;
+    // Card + zombie icon shrunk down from the old 88x112, and built directly at this
+    // size (see buildPacketCard) rather than resized afterward - the previous size
+    // made the zombie icon inside each card look oversized next to the tray/HUD.
+    private static final float PACKET_CARD_W = 72f;
+    private static final float PACKET_CARD_H = 92f;
     private static final float PACKET_TRAY_LEFT = 10f;
     private static final float PACKET_TRAY_BOTTOM = 26f;
     private static final Color RED_LINE_COLOR = new Color(0.88f, 0.16f, 0.14f, 0.8f);
@@ -406,12 +409,15 @@ public class IZombieGameScreen extends GameScreen {
 
         ZombieIconCard card = null;
         try {
-            card = cardFactory.buildCardForAlias(packet.getAlias());
+            // Built directly at the smaller tray size (frame + icon together), rather
+            // than building at the default size and resizing afterward - ZombieIconCard
+            // fixes its icon inset at construction time, so a later setSize() would
+            // leave the icon at its original pixel size and get clipped.
+            card = cardFactory.buildCardForAlias(packet.getAlias(), PACKET_CARD_W, PACKET_CARD_H);
         } catch (Throwable ignored) {
             card = null;
         }
         if (card != null) {
-            card.setSize(PACKET_CARD_W, PACKET_CARD_H);
             card.setTouchable(Touchable.disabled);
             stack.add(card);
         } else {

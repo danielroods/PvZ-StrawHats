@@ -24,6 +24,7 @@ import model.collections.animations.AnimationJsonParser;
 import model.greenhouse.Greenhouse;
 import model.greenhouse.Pot;
 import model.greenhouse.PotPlant;
+import model.resoures.CurrencyType;
 import model.user_data.User;
 import model.user_data.UserState;
 import service.resource_manager.AudioEnum;
@@ -187,6 +188,11 @@ public class GreenhouseScreen extends UiScreen {
         if (needsRebuild) {
             build();
         }
+    }
+
+    @Override
+    protected void refreshContent() {
+        build();
     }
 
     private void build() {
@@ -387,8 +393,8 @@ public class GreenhouseScreen extends UiScreen {
         int seedPackets = totalSeedPackets(user);
 
         Table currencyRow = new Table();
-        currencyRow.add(createResourceWidget(COIN_ICON, String.valueOf(coins), 130, 42)).padRight(15);
-        currencyRow.add(createResourceWidget(GEM_ICON, String.valueOf(diamonds), 130, 42));
+        currencyRow.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15);
+        currencyRow.add(currencyWidget(CurrencyType.DIAMOND, diamonds));
 
         Table topRight = new Table();
         topRight.add(currencyRow).right().row();

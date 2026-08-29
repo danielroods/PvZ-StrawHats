@@ -17,6 +17,7 @@ import model.greenhouse.Greenhouse;
 import model.greenhouse.Pot;
 import model.greenhouse.shop.Product;
 import model.greenhouse.shop.Shop;
+import model.resoures.CurrencyType;
 import model.user_data.User;
 import model.user_data.UserState;
 import service.card_factory.SeedPacketCard;
@@ -359,10 +360,8 @@ public class ShopScreen extends UiScreen {
         int seedPackets = totalSeedPackets(user);
 
         Table currencyRow = new Table();
-        currencyRow.add(createResourceWidget("assets/images/ui/buttons_coin_buy_normal.png",
-                String.valueOf(coins))).padRight(15);
-        currencyRow.add(createResourceWidget("assets/images/ui/buttons_premium_normal.png",
-                String.valueOf(diamonds)));
+        currencyRow.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15);
+        currencyRow.add(currencyWidget(CurrencyType.DIAMOND, diamonds));
 
         Table topRight = new Table();
         topRight.add(currencyRow).right().row();
@@ -442,6 +441,11 @@ public class ShopScreen extends UiScreen {
 
     @Override
     protected void onAfterCommand() {
+        build();
+    }
+
+    @Override
+    protected void refreshContent() {
         build();
     }
 

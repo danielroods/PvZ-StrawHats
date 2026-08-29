@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -47,6 +48,7 @@ public final class MatchHud extends Table implements Disposable {
 
     private final Button shovelButton;
     private final Button foodButton;
+    private final Button nukeButton;
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
     private final Table loadoutRow = new Table();
@@ -73,6 +75,7 @@ public final class MatchHud extends Table implements Disposable {
     private Consumer<Vector2> plantDragRelease;
     private Runnable shovelAction;
     private Runnable foodAction;
+    private Runnable nukeAction;
     private Runnable pauseAction;
     private Runnable startWavesAction;
     private Runnable debugAddSunAction;
@@ -130,6 +133,8 @@ public final class MatchHud extends Table implements Disposable {
 
         Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/gameplay/shovel_button.png");
         shovelButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(shovelBtnTex)));
+        Texture nukeBtnTex = loadTexture("assets/images/ui/Notification_Icon.png");
+        nukeButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(nukeBtnTex)));
         Texture foodBtnTex = loadTexture("images/chapters/egypt/gameplay/plantfood.png");
         ImageButton.ImageButtonStyle foodStyle = new ImageButton.ImageButtonStyle();
         foodStyle.imageUp = new TextureRegionDrawable(new TextureRegion(foodBtnTex));
@@ -143,6 +148,10 @@ public final class MatchHud extends Table implements Disposable {
         pauseButton.addListener(click(() -> { if (pauseAction != null) pauseAction.run(); }));
         shovelButton.addListener(click(() -> { if (shovelAction != null) shovelAction.run(); }));
         foodButton.addListener(click(() -> { if (foodAction != null) foodAction.run(); }));
+        nukeButton.addListener(click(() -> {
+            darkenNukeButtonBriefly();
+            if (nukeAction != null) nukeAction.run();
+        }));
         startButton.addListener(click(() -> { if (startWavesAction != null) startWavesAction.run(); }));
         debugAddSunButton.addListener(click(() -> { if (debugAddSunAction != null) debugAddSunAction.run(); }));
         debugAddFoodButton.addListener(click(() -> { if (debugAddFoodAction != null) debugAddFoodAction.run(); }));
@@ -227,10 +236,24 @@ public final class MatchHud extends Table implements Disposable {
 
         rightArea = new Table();
         rightArea.add().expand().fill().row();
-        rightArea.add(shovelButton).size(64, 64).bottom().right().pad(10f);
+        Table toolRow = new Table();
+        toolRow.add(nukeButton).size(64, 64).padRight(10f);
+        toolRow.add(shovelButton).size(64, 64);
+        rightArea.add(toolRow).bottom().right().pad(10f);
 
         add(leftColumn).top().left().expandY().fillY();
         add(rightArea).colspan(2).expand().fill();
+    }
+
+    /** Briefly darkens the nuke button as click feedback, then smoothly restores it. */
+    private void darkenNukeButtonBriefly() {
+        nukeButton.clearActions();
+        nukeButton.setColor(Color.WHITE);
+        nukeButton.addAction(Actions.sequence(
+                Actions.color(new Color(0.45f, 0.45f, 0.45f, 1f), 0.1f),
+                Actions.delay(0.6f),
+                Actions.color(Color.WHITE, 0.3f)
+        ));
     }
 
     private ClickListener click(Runnable action) {
@@ -284,6 +307,7 @@ public final class MatchHud extends Table implements Disposable {
     public void setPlantDragRelease(Consumer<Vector2> callback) { plantDragRelease = callback; }
     public void setShovelAction(Runnable action) { shovelAction = action; }
     public void setFoodAction(Runnable action) { foodAction = action; }
+    public void setNukeAction(Runnable action) { nukeAction = action; }
     public void setPauseAction(Runnable action) { pauseAction = action; }
     public void setStartWavesAction(Runnable action) { startWavesAction = action; }
     public void setDebugAddSunAction(Runnable action) { debugAddSunAction = action; }

@@ -45,8 +45,11 @@ class GroundItemRenderer {
             itemAnimTimes.put(item, age);
 
             Position p = item.getPosition();
+            // Round (not truncate) so a fractionally-jittered position - e.g. a sun
+            // nudged slightly off its producer's tile - always renders on the same
+            // row/column it logically belongs to, never the neighboring one.
             float x = GameScreen.BOARD_X + (float) p.x() * boardTileWidth + boardTileWidth * 0.28f;
-            float y = screen.cellY((int) p.y()) + boardTileHeight * 0.25f;
+            float y = screen.cellY(Math.round(p.y())) + boardTileHeight * 0.25f;
 
             if (item instanceof GroundSun sun) {
                 float progress = sun.getFallProgress();

@@ -66,6 +66,7 @@ class ZombossRenderer {
     }
 
     void drawBackdrop() {
+        if (screen.isBeforeMatchPreview()) return;
         ZombossFight fight = fight();
         if (fight == null || fight.getPhase() == ZombossPhase.SILENCE) return;
         if (fight.getBehavior() instanceof IceAgeZombossBehavior ice) {
@@ -74,6 +75,7 @@ class ZombossRenderer {
     }
 
     void drawBoss() {
+        if (screen.isBeforeMatchPreview()) return;
         ZombossFight fight = fight();
         if (fight == null) return;
         String clip = fight.getBossClip();
@@ -87,6 +89,7 @@ class ZombossRenderer {
     }
 
     void drawEffects(float delta) {
+        if (screen.isBeforeMatchPreview()) return;
         ZombossFight fight = fight();
         if (fight == null) return;
         advance(delta);
@@ -100,6 +103,7 @@ class ZombossRenderer {
     }
 
     void drawNpc() {
+        if (screen.isBeforeMatchPreview()) return;
         ZombossFight fight = fight();
         if (fight == null) return;
         String clip = fight.getNpcClip();

@@ -1,7 +1,6 @@
 package view.screens.match.before;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -9,10 +8,12 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -24,8 +25,11 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 
 import controller.CollectionManager;
+import controller.assets.GameAssetManager;
 import controller.match.BeforeMenu;
+import model.App;
 import model.collections.animations.AnimationFactory;
+import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.plant.PlantJsonParser;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
@@ -35,30 +39,35 @@ import model.user_data.UserState;
 import model.utils.GameSession;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
-import service.resource_manager.AudioManager;
-import view.screens.generals.UiScreen;
+import view.screens.generals.GameScreen;
 
-import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.pam.ClipRef;
-import pvz.libpvz.textures.TextureBank;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public class BeforeMatchScreen extends UiScreen {
+public class BeforeMatchScreen extends GameScreen {
 
-    private static final String BACKGROUND = "assets/images/backg/mainmenu_background.png";
-    private static final String BOARD = "assets/images/backg/wood board.png";
+    private static final float PREVIEW_ZOMBIE_SCALE = 0.46f;
+    private static final float PREVIEW_ZOMBIE_GAP_X = 52f;
+    // Shifts the whole zombie-preview group further right within its reserved area.
+    private static final float PREVIEW_GROUP_SHIFT_X = 40f;
+
+    /** Loadout card size matching MatchHud exactly. */
+    private static final float LOADOUT_CARD_W = 95f;
+    private static final float LOADOUT_CARD_H = 60f;
+
     private static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
     private static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
     private static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
     private static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
 
-    private static final Color YELLOW = new Color(0.95f, 0.80f, 0.15f, 1f);
     private static final Color GREEN = new Color(0.30f, 0.75f, 0.25f, 1f);
     private static final Color GRAY = new Color(0.45f, 0.45f, 0.45f, 1f);
     private static final Color PURPLE = new Color(0.60f, 0.30f, 0.85f, 1f);
@@ -72,45 +81,331 @@ public class BeforeMatchScreen extends UiScreen {
 
     private String previewPlantName = null;
 
-    private TextureBank textureBank;
-    private PamPlayer pamPlayer;
     private Map<String, Boolean> visibility = new HashMap<>();
     private Texture roundedAnimBgTexture;
     private Drawable roundedAnimBgDrawable;
-    private final TextureRegion whitePixel = whitePixelRegion();
+    private Texture rightPreviewTexture;
+    private float previewAnimationTime;
+    private Table startOverlay;
 
     @Override
     public void show() {
-        AudioManager.get().stopMusic();
-        setBackground(BACKGROUND);
-        if (textureBank == null) {
-            try {
-                FileHandle rootHandle = Gdx.files.internal("assets/pvz-assets");
-                textureBank = new TextureBank("atlases", rootHandle);
-                pamPlayer = new PamPlayer(textureBank, rootHandle);
-            } catch (Throwable t) {
-                Gdx.app.error("BeforeMatchScreen", "Failed to initialize PAM System", t);
-            }
-        }
+        configureSeasonFolder();
+        previewAnimationTime = 0f;
         super.show();
+
+        loadRightPreviewTexture();
         build();
     }
 
+    private void configureSeasonFolder() {
+        GameSession gameSession = GameSession.peekInstance();
+        Level level = gameSession == null ? null : gameSession.getLevel();
+        String season = level == null || level.getSeason() == null
+                ? "" : level.getSeason().getName();
+
+        if ("Egypt".equalsIgnoreCase(season)) {
+            seasonFolder = "egypt";
+        } else if ("Big Wave Beach".equalsIgnoreCase(season)) {
+            seasonFolder = "beach";
+        } else if ("Frostbite Caves".equalsIgnoreCase(season)
+                || "Frostbite Cave".equalsIgnoreCase(season)) {
+            seasonFolder = "frostbite_cave";
+        } else if ("Dark Ages".equalsIgnoreCase(season)) {
+            seasonFolder = "darkage";
+        }
+    }
+
     @Override
-    public void render(float delta) {
-        if (textureBank != null) {
-            try {
-                textureBank.update();
-            } catch (Throwable t) {
-                Gdx.app.error("BeforeMatchScreen", "textureBank.update() failed", t);
+    protected void createHud() {
+    }
+
+    @Override
+    protected void createBoardInput() {
+    }
+
+    @Override
+    protected void createZombossDialogue() {
+    }
+
+    @Override
+    protected void tickSession() {
+    }
+
+    @Override
+    protected boolean isBeforeMatchPreview() {
+        return true;
+    }
+
+    @Override
+    protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
+        previewAnimationTime += Math.max(0f, delta);
+
+        float x = getBoardRight();
+        float viewW = stage.getViewport().getWorldWidth();
+        float viewH = stage.getViewport().getWorldHeight();
+        float width = viewW - x;
+
+        if (width > 0f) {
+            batch.setColor(Color.WHITE);
+            if (rightPreviewTexture != null) {
+                float texW = rightPreviewTexture.getWidth();
+                float texH = rightPreviewTexture.getHeight();
+                float scale = viewH / texH;
+                float drawW = texW * scale;
+
+                // جابه‌جایی بک‌گراند سمت راست به میزان دلخواه
+                float bgOffsetRight = 390f;
+                float drawX = viewW - drawW + bgOffsetRight;
+
+                batch.draw(rightPreviewTexture, drawX, 0f, drawW, viewH);
+            } else {
+                batch.setColor(0.08f, 0.07f, 0.05f, 0.94f);
+                batch.draw(whitePixel, x, 0f, width, viewH);
+                batch.setColor(Color.WHITE);
             }
         }
-        super.render(delta);
+    }
+
+    @Override
+    protected void drawSeasonForegroundEffects(float delta, float bw, float bh) {
+        drawPreviewZombies();
+    }
+
+    private String resolveExistingAssetPath(String path) {
+        if (path == null) return "";
+        if (Gdx.files.internal(path).exists()) return path;
+        if (path.startsWith("assets/")) {
+            String noPrefix = path.substring("assets/".length());
+            if (Gdx.files.internal(noPrefix).exists()) return noPrefix;
+        } else {
+            String withPrefix = "assets/" + path;
+            if (Gdx.files.internal(withPrefix).exists()) return withPrefix;
+        }
+        return path;
+    }
+
+    private void loadRightPreviewTexture() {
+        if (rightPreviewTexture != null) {
+            rightPreviewTexture.dispose();
+            rightPreviewTexture = null;
+        }
+
+        String[] candidates = {
+                "assets/images/chapters/" + seasonFolder + "/gameplay/texture_right.png",
+                "assets/images/chapters/" + seasonFolder + "/gameplay/right.png",
+                "assets/images/chapters/" + seasonFolder + "/gameplay/right_texture.png",
+                "assets/images/chapters/" + seasonFolder + "/gameplay/map_right.png",
+                "assets/images/chapters/" + seasonFolder + "/right.png",
+                "assets/images/chapters/" + seasonFolder + "/gameplay/zombie_area.png"
+        };
+
+        for (String candidate : candidates) {
+            String resolved = resolveExistingAssetPath(candidate);
+            if (resolved != null && !resolved.isBlank() && Gdx.files.internal(resolved).exists()) {
+                try {
+                    rightPreviewTexture = new Texture(Gdx.files.internal(resolved));
+                    rightPreviewTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+                    return;
+                } catch (Throwable t) {
+                    Gdx.app.error("BeforeMatchScreen",
+                            "Failed to load right-side preview texture: " + resolved, t);
+                }
+            }
+        }
+    }
+
+    // Zombie Jester's own "idle" clip (ZOMBIE_DARK_JESTER) is broken/glitched in the
+    // asset, so the loadout preview intentionally shows its "walk" clip instead - same
+    // fallback the real game effectively falls back to when an idle clip is unusable.
+    private static final String ZOMBIE_JESTER_ALIAS = "ZombieDarkJuggler";
+
+    private static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
+    private static final String PIANO_PROP_PAM = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
+    private static final float PIANO_PREVIEW_OFFSET_X = 46f;
+    private static final float PIANO_PREVIEW_OFFSET_Y = -6f;
+
+    private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
+    private static final float ARCADE_PREVIEW_OFFSET_X = -70f;
+    private static final float ARCADE_PREVIEW_OFFSET_Y = 6f;
+    private static final float ARCADE_PREVIEW_SCALE = 0.6f;
+
+    private void drawPreviewZombies() {
+        Level level = session == null ? null : session.getLevel();
+        if (level == null || level.getZombiePool() == null || level.getZombiePool().isEmpty()) return;
+
+        Set<String> uniqueAliases = new LinkedHashSet<>();
+        for (String alias : level.getZombiePool()) {
+            if (alias == null || alias.isBlank()) continue;
+            if (isBossPreviewAlias(alias)) continue;
+            uniqueAliases.add(alias);
+        }
+
+        if (uniqueAliases.isEmpty()) return;
+
+        float rightX = getBoardRight();
+        float viewW = stage.getViewport().getWorldWidth();
+        float areaW = Math.max(1f, viewW - rightX);
+        // Nudge the whole preview group further right within its reserved area.
+        float centerX = rightX + areaW * 0.5f + PREVIEW_GROUP_SHIFT_X;
+
+        // Keep zombies off the very top/bottom rows and only use the middle rows
+        // (rows 2/3/4, i.e. board indices 1..3 for a 5-row level) for the preview.
+        List<String> aliasList = new ArrayList<>(uniqueAliases);
+        int totalRows = Math.max(1, session.getRows());
+        int[] usableRows = middlePreviewRows(totalRows);
+        int rowCount = usableRows.length;
+
+        List<int[]> slots = new ArrayList<>(); // {aliasIndex, row, columnCycle}
+        for (int i = 0; i < aliasList.size(); i++) {
+            int row = usableRows[i % rowCount];
+            int columnCycle = i / rowCount;
+            slots.add(new int[]{i, row, columnCycle});
+        }
+
+        // Board row 0 is the farthest row on screen (top) and higher row indices sit
+        // lower/closer to the camera (see BoardLayout#cellY). In this 2.5D view the
+        // zombies nearer the camera (lower on screen, higher row index) need to be
+        // drawn on top of the ones farther away, so draw far-to-near: ascending row.
+        slots.sort((a, b) -> Integer.compare(a[1], b[1]));
+
+        for (int[] slot : slots) {
+            int aliasIndex = slot[0];
+            int row = slot[1];
+            int columnCycle = slot[2];
+            String alias = aliasList.get(aliasIndex);
+
+            float xOffset = columnCycle % 2 == 0 ? -PREVIEW_ZOMBIE_GAP_X : PREVIEW_ZOMBIE_GAP_X;
+            if (aliasList.size() <= rowCount) xOffset = 0f;
+
+            float x = centerX + xOffset;
+            float y = getCellCenterY(row) + ((aliasIndex % 3) - 1) * 8f;
+
+            drawPreviewZombie(alias, x, y, aliasIndex);
+        }
+    }
+
+    private boolean isBossPreviewAlias(String alias) {
+        String normalized = alias.toLowerCase();
+        return normalized.contains("zomboss");
+    }
+
+    /**
+     * Middle rows only (rows 2/3/4 in 1-indexed terms), so the preview avoids the very
+     * top/bottom board rows. For the standard 5-row board that's indices {1, 2, 3}; for
+     * odd row counts other than 5 it takes the middle three (or fewer if the board is
+     * smaller), keeping the selection centered.
+     */
+    private int[] middlePreviewRows(int totalRows) {
+        if (totalRows <= 3) {
+            int[] all = new int[totalRows];
+            for (int i = 0; i < totalRows; i++) all[i] = i;
+            return all;
+        }
+        int start = (totalRows - 3) / 2;
+        return new int[]{start, start + 1, start + 2};
+    }
+
+    private void drawPreviewZombie(String alias, float x, float y, int index) {
+        String path = ZombieAnimationRegistry.pathFor(alias, seasonFolder);
+        if (path == null) return;
+
+        // Zombie Jester's idle clip is broken, so show its walk clip instead - every
+        // other zombie shows idle, matching the real game's loadout preview.
+        boolean useWalkInstead = ZOMBIE_JESTER_ALIAS.equalsIgnoreCase(alias);
+        String preferredState = useWalkInstead ? "walk" : "idle";
+
+        String clip = AnimationFactory.exactClipNameForPath(path, preferredState);
+        if (clip == null) {
+            clip = AnimationFactory.resolveClipNameForPath(path, preferredState);
+        }
+        if (clip == null) return;
+
+        float time = previewAnimationTime;
+        float duration = AnimationFactory.clipDurationForPath(path, clip);
+        if (duration > 0f) time %= duration;
+
+        float scale = alias.toLowerCase().contains("gargantuar")
+                ? PREVIEW_ZOMBIE_SCALE * 0.92f : PREVIEW_ZOMBIE_SCALE;
+
+        float drawX = x - 42f;
+        float drawY = y - 5f;
+
+        batch.setColor(Color.WHITE);
+
+        // Piano/arcade zombies carry a separate prop PAM in the real game (piano they
+        // play, cabinet they push) - draw it alongside the zombie's own idle here too.
+        if (ZOMBIE_PIANO_ALIAS.equalsIgnoreCase(alias)) {
+            drawPreviewProp(PIANO_PROP_PAM, "idle", drawX + PIANO_PREVIEW_OFFSET_X, drawY + PIANO_PREVIEW_OFFSET_Y, scale, false);
+        } else if (ZOMBIE_ARCADE_ALIAS.equalsIgnoreCase(alias)) {
+            drawPreviewProp(ARCADE_PROP_PAM, "idle", drawX + ARCADE_PREVIEW_OFFSET_X, drawY + ARCADE_PREVIEW_OFFSET_Y, ARCADE_PREVIEW_SCALE, false);
+        }
+
+        boolean drawn = drawPam(path, clip, time, drawX, drawY, scale, false);
+        if (!drawn) {
+            try {
+                var region = GameAssetManager.get().getZombieRegion(alias);
+                if (region != null) {
+                    drawEntity(region, drawX, drawY,
+                            getBoardTileWidth(), getBoardTileHeight(),
+                            new Color(0.55f, 0.5f, 0.45f, 1f),
+                            alias);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        batch.setColor(Color.WHITE);
+    }
+
+    private void drawPreviewProp(String propPath, String preferredState, float x, float y, float scale, boolean flip) {
+        String clip = AnimationFactory.exactClipNameForPath(propPath, preferredState);
+        if (clip == null) {
+            clip = AnimationFactory.resolveClipNameForPath(propPath, preferredState);
+        }
+        if (clip == null) return;
+
+        float time = previewAnimationTime;
+        float duration = AnimationFactory.clipDurationForPath(propPath, clip);
+        if (duration > 0f) time %= duration;
+
+        drawPam(propPath, clip, time, x, y, scale, flip);
+    }
+
+    @Override
+    public boolean runCommand(String command) {
+        boolean result = super.runCommand(command);
+
+        controller.ScreenManager.syncWithCurrentMenu();
+
+        if (App.currentMenu instanceof BeforeMenu
+                && controller.ScreenManager.getScreen() == this) {
+            scheduleBuild();
+        }
+
+        return result;
+    }
+
+    private void scheduleBuild() {
+        if (stage == null) return;
+
+        Gdx.app.postRunnable(() -> {
+            if (stage != null
+                    && controller.ScreenManager.getScreen() == this
+                    && App.currentMenu instanceof BeforeMenu) {
+                build();
+            }
+        });
     }
 
     private void build() {
         rootTable.clear();
         cards.clear();
+
+        if (startOverlay != null) {
+            startOverlay.remove();
+            startOverlay = null;
+        }
 
         Level level = GameSession.peekInstance() == null ? null : GameSession.peekInstance().getLevel();
         if (level == null) {
@@ -118,35 +413,31 @@ public class BeforeMatchScreen extends UiScreen {
             return;
         }
 
+        rootTable.top().left();
+
         Table topBar = buildTopBar(level);
         Table middle = buildMiddleSection(level);
-        Table bottom = buildBottomBar();
 
-        // Same three-row shape as every other screen (e.g. EgyptStagesScreen): a fillX
-        // header, a middle row that actually receives the leftover vertical space via
-        // expand(), and a fillX footer - added straight to rootTable (already fixed at
-        // SCREEN_WIDTH x SCREEN_HEIGHT via setFillParent(true) in BaseScreen), not nested
-        // inside a self-padded wrapper table that has to guess its own height budget.
-        rootTable.add(topBar).fillX().padTop(5).padLeft(15).padRight(15).row();
-        rootTable.add(middle).expand().center().padTop(SPACE_SM).row();
-        rootTable.add(bottom).fillX().padBottom(SPACE_SM);
+        rootTable.add(topBar).expandX().fillX().top().left().padTop(8f).padLeft(12f).padRight(16f).row();
+        rootTable.add(middle).expand().fill().top().left().padTop(6f).padLeft(12f);
 
-        // Same as EgyptStagesScreen: the middle row's ScrollPane content can otherwise
-        // paint over these two in the actor draw order even though the Table cells
-        // themselves are correctly bounded - push them to the front explicitly.
         topBar.toFront();
-        bottom.toFront();
+
+        startOverlay = buildBottomBar();
+        startOverlay.setFillParent(true);
+        addBeforeModal(startOverlay);
     }
 
     private Table buildTopBar(Level level) {
         Table topBar = new Table();
+        topBar.top().left();
 
-        ImageButton back = createIconButton(BACK_ICON, 44, 44, () -> runCommand("menu exit"));
+        ImageButton back = createIconButton(BACK_ICON, 46, 46, () -> runCommand("menu exit"));
 
         Table topLeft = new Table();
-        topLeft.add(back).padRight(SPACE_MD);
+        topLeft.add(back).padRight(14f);
         Label nameLabel = new Label(level.getName(), skin, "title");
-        nameLabel.setFontScale(0.9f);
+        nameLabel.setFontScale(0.85f);
         topLeft.add(nameLabel);
 
         User user = User.currentUser;
@@ -164,47 +455,30 @@ public class BeforeMatchScreen extends UiScreen {
 
     private Table buildMiddleSection(Level level) {
         Table board = new Table();
-        board.setBackground(new TextureRegionDrawable(loadTextureSafe(BOARD)));
-        board.pad(SPACE_MD);
-        board.top();
+        board.top().left();
 
-        String mode = level.getGameMode() == null ? "Adventure" : level.getGameMode();
-        Label description = new Label(mode + " - Select up to 7 plants (+1 rented). Forced plants are added automatically.",
-                skin, "main");
-        description.setAlignment(Align.center);
-        description.setFontScale(0.8f);
-        description.setWrap(true);
-        board.add(description).colspan(2).fillX().padBottom(SPACE_XS).row();
-
-        if (level instanceof ConveyorBeltLevel) {
-            board.add(buildConveyorNotice()).colspan(2).fillX().padBottom(SPACE_XS).row();
-        }
-
-        // Both columns get expandY().fillY() so they share whatever height 'board' is
-        // actually given by its own cell in build() (bounded via rootTable's expand()
-        // row), instead of each guessing its own preferred height independently -
-        // that mismatch (grid taller than its slot) was what pushed the header and
-        // Start button off-screen before.
-        board.add(buildLoadoutPanel(level)).expandY().fillY().top().left().padRight(SPACE_MD);
+        board.add(buildLoadoutPanel(level)).width(105f).expandY().fillY().top().left().padRight(10f);
         board.add(buildRightPanel(level)).expand().fill().top().left();
 
-        Table sized = new Table();
-        sized.add(board).width(1200f).height(600f);
-        return sized;
+        return board;
     }
 
     private Table buildRightPanel(Level level) {
         Table rightPanel = new Table();
         rightPanel.top().left();
-        rightPanel.add(buildPreviewPanel()).fillX().padBottom(SPACE_SM).row();
-        rightPanel.add(buildPlantGrid(level)).expand().fill();
+
+        rightPanel.add(buildPreviewPanel()).expandX().fillX().padRight(170f).padBottom(SPACE_SM).row();
+        rightPanel.add(buildPlantGrid(level)).expand().fill().top().left();
+
         return rightPanel;
     }
 
     private Table buildBottomBar() {
         Table bottom = new Table();
+        bottom.bottom().right();
+        bottom.pad(12f).padRight(16f);
         TextButton start = primaryButton("Let's Rock!", () -> runCommand("start game"));
-        bottom.add(start).right().expandX().width(200).height(48);
+        bottom.add(start).width(180).height(48);
         return bottom;
     }
 
@@ -221,22 +495,10 @@ public class BeforeMatchScreen extends UiScreen {
         return button;
     }
 
-    private Table buildConveyorNotice() {
-        Table t = new Table();
-        t.setBackground(skin.getDrawable("card-background"));
-        Label l = new Label("CONVEYOR BELT\nPlants arrive during the match; manual loadout is not required.",
-                skin, "main");
-        l.setAlignment(Align.center);
-        l.setWrap(true);
-        t.add(l).expandX().fillX().pad(4);
-        return t;
-    }
-
     private Table buildPreviewPanel() {
         Table box = new Table();
         box.setBackground(skin.getDrawable("card-background"));
         box.pad(8).top().left();
-
 
         List<PlantJsonParser.PlantConfig> allPlants = collectionManager.getAllPlants();
         PlantJsonParser.PlantConfig config = null;
@@ -271,13 +533,17 @@ public class BeforeMatchScreen extends UiScreen {
             animationPath = AnimationFactory.pathForDisplayName(config.name);
         } catch (Throwable ignored) {}
 
-        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(animationPath, -10f, -15f);
+        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(animationPath, -10f, -8f);
+
         Table animLayer = new Table();
+        animLayer.setTransform(true);
+        animLayer.setScale(0.85f);
+        animLayer.setOrigin(Align.center);
         animLayer.setFillParent(true);
         animLayer.add(animActor).size(120, 120);
         animBox.add(animLayer);
 
-        box.add(animBox).size(200, 200).padRight(12).top();
+        box.add(animBox).size(165, 165).padRight(12).top();
 
         Table infoTable = new Table();
         infoTable.top().left();
@@ -304,7 +570,7 @@ public class BeforeMatchScreen extends UiScreen {
         box.add(infoTable).expandX().fillX().top().padRight(12);
 
         Table actionsTable = new Table();
-        actionsTable.bottom();
+        actionsTable.bottom().right();
 
         if (unlocked && state != null) {
             int coinCost = level * 500;
@@ -320,11 +586,11 @@ public class BeforeMatchScreen extends UiScreen {
                 upgBtn.addListener(new ClickListener() {
                     @Override public void clicked(InputEvent event, float x, float y) {
                         runCommand("upgrade plant -t " + plantName);
-                        build();
+                        scheduleBuild();
                     }
                 });
             }
-            actionsTable.add(upgBtn).width(155).height(44);
+            actionsTable.add(upgBtn).width(145).height(44).padRight(10);
         }
 
         int diamonds = state != null ? state.diamonds : 0;
@@ -337,15 +603,15 @@ public class BeforeMatchScreen extends UiScreen {
                 if (state != null && state.diamonds >= 10) {
                     state.diamonds -= 10;
                     showNoticePopup("Plant Boosted!", pName + " is boosted for this match!");
-                    build();
+                    scheduleBuild();
                 } else {
                     showNoticePopup("Insufficient Diamonds", "You need 10 diamonds to boost this plant.");
                 }
             }
         });
-        actionsTable.add(boostBtn).width(155).height(44).right().padLeft(10);
+        actionsTable.add(boostBtn).width(145).height(44).padRight(10);
 
-        box.add(actionsTable).left();
+        box.add(actionsTable).bottom().right();
 
         return box;
     }
@@ -382,23 +648,28 @@ public class BeforeMatchScreen extends UiScreen {
 
     private Actor buildLockedPlantsGrid(List<String> names, LockedPlantsLevel lockedLevel) {
         Table grid = new Table();
-        grid.top();
+        grid.top().left();
 
         Table currentRow = null;
         for (int i = 0; i < names.size(); i++) {
             if (i % PLANT_GRID_COLUMNS == 0) {
                 currentRow = new Table();
-                grid.add(currentRow).center().padBottom(SPACE_SM).row();
+                grid.add(currentRow).left().padBottom(SPACE_XS).row();
             }
             String name = names.get(i);
             boolean locked = isPlantLockedInLevel(lockedLevel, name);
             Actor card = buildCard(name, locked, locked);
-            currentRow.add(card).padLeft(SPACE_XS).padRight(SPACE_XS);
+            currentRow.add(card).padLeft(2f).padRight(2f);
         }
+
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setScrollingDisabled(true, false);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setOverscroll(false, false);
 
         Table viewport = new Table();
         viewport.top().left();
-        viewport.add(scrollable(grid)).expand().fill().top().left();
+        viewport.add(scrollPane).expand().fill().top().left();
         return viewport;
     }
 
@@ -424,30 +695,35 @@ public class BeforeMatchScreen extends UiScreen {
     private Actor buildGridContainer(List<String> names, java.util.function.Predicate<String> darkened,
                                      java.util.function.Predicate<String> showLockIcon) {
         Table grid = new Table();
-        grid.top();
+        grid.top().left();
 
         Table currentRow = null;
         for (int i = 0; i < names.size(); i++) {
             if (i % PLANT_GRID_COLUMNS == 0) {
                 currentRow = new Table();
-                grid.add(currentRow).center().padBottom(SPACE_SM).row();
+                grid.add(currentRow).left().padBottom(SPACE_XS).row();
             }
             String name = names.get(i);
             boolean isDarkened = darkened.test(name);
             Actor card = buildCard(name, isDarkened, showLockIcon.test(name));
-            currentRow.add(card).padLeft(SPACE_XS).padRight(SPACE_XS);
+            currentRow.add(card).padLeft(2f).padRight(2f);
         }
+
+        ScrollPane scrollPane = new ScrollPane(grid);
+        scrollPane.setScrollingDisabled(true, false);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setOverscroll(false, false);
 
         Table gridContainer = new Table();
         gridContainer.top().left();
-        gridContainer.add(scrollable(grid)).expand().fill().top().left();
+        gridContainer.add(scrollPane).expand().fill().top().left();
         return gridContainer;
     }
 
     private Actor buildCard(String name, boolean darkened, boolean showLockIcon) {
         Stack cardStack = new Stack();
 
-        float cardW = 108f;
+        float cardW = 104f;
         float cardH = cardW * 1.38f;
 
         try {
@@ -498,7 +774,7 @@ public class BeforeMatchScreen extends UiScreen {
                 if (!darkened) {
                     togglePlant(name);
                 } else {
-                    build();
+                    scheduleBuild();
                 }
             }
         });
@@ -509,25 +785,7 @@ public class BeforeMatchScreen extends UiScreen {
     private Table buildLoadoutPanel(Level level) {
         Table panel = new Table();
         panel.setBackground(skin.getDrawable("card-background"));
-        panel.pad(8).top();
-
-        float sampleW = 100f;
-        float sampleH = 138f;
-        try {
-            SeedPacketCard sampleCard = cardFactory.buildCardForDisplayName("Peashooter");
-            if (sampleCard != null && sampleCard.getWidth() > 0 && sampleCard.getHeight() > 0) {
-                sampleW = sampleCard.getWidth();
-                sampleH = sampleCard.getHeight();
-            }
-        } catch (Throwable ignored) {}
-
-        // Sized to comfortably fit all 8 slots (7 loadout + 1 rent) without needing to
-        // scroll on the board's current 600px height budget - was 76f before, which
-        // needed 684px total (8 slots + panel padding + counter label) and silently
-        // overflowed the board's actual ~500px available height for this column.
-        float targetH = 58f;
-        float scale = targetH / sampleH;
-        float targetW = sampleW * scale;
+        panel.pad(2f).top();
 
         Table slots = new Table();
         slots.top();
@@ -539,30 +797,30 @@ public class BeforeMatchScreen extends UiScreen {
             final String selected = name;
 
             if ("Empty".equals(name)) {
-                Actor emptySlot = createEmptyLoadoutSlot("Empty", targetW, targetH, false, null);
-                slots.add(emptySlot).size(targetW, targetH).pad(2f).row();
+                Actor emptySlot = createEmptyLoadoutSlot("Empty", false, null);
+                slots.add(emptySlot).size(LOADOUT_CARD_W, LOADOUT_CARD_H).pad(1f).row();
             } else {
-                Actor cardActor = createScaledLoadoutCard(name, scale, targetW, targetH, new ClickListener() {
+                Actor cardActor = createLoadoutCard(name, new ClickListener() {
                     @Override public void clicked(InputEvent event, float x, float y) {
                         previewPlantName = selected;
                         removePlant(selected);
                     }
                 });
-                slots.add(cardActor).size(targetW, targetH).pad(2f).row();
+                slots.add(cardActor).size(LOADOUT_CARD_W, LOADOUT_CARD_H).pad(1f).row();
             }
         }
 
         if (BeforeMenu.selectedPlants.size() == 8) {
             String rentedPlantName = BeforeMenu.selectedPlants.get(7);
-            Actor rentedCardActor = createScaledLoadoutCard(rentedPlantName, scale, targetW, targetH, new ClickListener() {
+            Actor rentedCardActor = createLoadoutCard(rentedPlantName, new ClickListener() {
                 @Override public void clicked(InputEvent event, float x, float y) {
                     previewPlantName = rentedPlantName;
                     removePlant(rentedPlantName);
                 }
             });
-            slots.add(rentedCardActor).size(targetW, targetH).padTop(4f).padBottom(2f).row();
+            slots.add(rentedCardActor).size(LOADOUT_CARD_W, LOADOUT_CARD_H).pad(1f).row();
         } else {
-            Actor rentSlot = createEmptyLoadoutSlot("Rent", targetW, targetH, true, new ClickListener() {
+            Actor rentSlot = createEmptyLoadoutSlot("Rent", true, new ClickListener() {
                 @Override public void clicked(InputEvent event, float x, float y) {
                     if (BeforeMenu.selectedPlants.size() < 7) {
                         showNoticePopup("Loadout Not Full", "You must fill all 7 loadout slots before renting a plant!");
@@ -571,54 +829,54 @@ public class BeforeMatchScreen extends UiScreen {
                     }
                 }
             });
-            slots.add(rentSlot).size(targetW, targetH).padTop(4f).padBottom(2f).row();
+            slots.add(rentSlot).size(LOADOUT_CARD_W, LOADOUT_CARD_H).pad(1f).row();
         }
 
-        panel.add(scrollable(slots)).expand().fill().row();
+        ScrollPane scrollPane = new ScrollPane(slots);
+        scrollPane.setScrollingDisabled(true, false);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setOverscroll(false, false);
+
+        panel.add(scrollPane).expand().fill().row();
 
         int currentSelected = Math.min(BeforeMenu.selectedPlants.size(), 7);
         Label info = new Label(currentSelected + "/7", skin, "main");
         info.setAlignment(Align.center);
         info.setFontScale(0.8f);
-        panel.add(info).padTop(6);
+        panel.add(info).padTop(2).padBottom(2);
 
         return panel;
     }
 
-    private Actor createScaledLoadoutCard(String plantName, float scale, float targetW, float targetH, ClickListener clickListener) {
+    private Actor createLoadoutCard(String plantName, ClickListener clickListener) {
+        Stack stack = new Stack();
         SeedPacketCard card = null;
         try {
             card = cardFactory.buildCardForDisplayName(plantName);
         } catch (Throwable ignored) {}
 
-        Container<Actor> wrapper = new Container<>();
-        wrapper.size(targetW, targetH);
-
         if (card != null) {
-            card.setTransform(true);
-            card.setOrigin(0, 0);
-            card.setScale(scale);
-            wrapper.setActor(card);
-            wrapper.top().left();
+            card.setSize(LOADOUT_CARD_W, LOADOUT_CARD_H);
+            card.setTouchable(Touchable.disabled);
+            stack.add(card);
         } else {
             Table fallback = new Table();
             fallback.setBackground(skin.getDrawable("card-background"));
             Label label = new Label(plantName, skin, "main");
             label.setAlignment(Align.center);
-            label.setFontScale(0.65f);
+            label.setFontScale(0.7f);
             label.setWrap(true);
-            fallback.add(label).width(targetW).center();
-            wrapper.setActor(fallback);
+            fallback.add(label).width(LOADOUT_CARD_W).center();
+            stack.add(fallback);
         }
 
         if (clickListener != null) {
-            wrapper.addListener(clickListener);
+            stack.addListener(clickListener);
         }
-
-        return wrapper;
+        return stack;
     }
 
-    private Actor createEmptyLoadoutSlot(String labelText, float targetW, float targetH, boolean isRent, ClickListener clickListener) {
+    private Actor createEmptyLoadoutSlot(String labelText, boolean isRent, ClickListener clickListener) {
         Table slot = new Table();
         slot.setBackground(skin.getDrawable("card-background"));
 
@@ -626,7 +884,7 @@ public class BeforeMatchScreen extends UiScreen {
         Label label = new Label(labelText, skin, "main");
         label.setAlignment(Align.center);
         label.setColor(isRent ? Color.WHITE : Color.LIGHT_GRAY);
-        label.setFontScale(0.7f);
+        label.setFontScale(0.75f);
         stack.add(label);
 
         if (isRent) {
@@ -634,18 +892,16 @@ public class BeforeMatchScreen extends UiScreen {
             lockImg.setScaling(Scaling.fit);
             Container<Image> lockCont = new Container<>(lockImg);
             lockCont.size(16f, 16f);
-            lockCont.right().bottom().pad(1);
+            lockCont.right().bottom().pad(2);
             stack.add(lockCont);
         }
 
         slot.add(stack).expand().fill();
 
-        Container<Table> wrapper = new Container<>(slot);
-        wrapper.size(targetW, targetH);
         if (clickListener != null) {
-            wrapper.addListener(clickListener);
+            slot.addListener(clickListener);
         }
-        return wrapper;
+        return slot;
     }
 
     private void showRentPlantPopup() {
@@ -712,7 +968,7 @@ public class BeforeMatchScreen extends UiScreen {
                         BeforeMenu.selectedPlants.add(plantName);
                         popupOverlay.remove();
                         activePopup = null;
-                        build();
+                        scheduleBuild();
                     }
                 }
             });
@@ -803,27 +1059,27 @@ public class BeforeMatchScreen extends UiScreen {
             return;
         }
         if (BeforeMenu.selectedPlants.size() >= 7) {
-            build();
+            scheduleBuild();
             return;
         }
         if (level instanceof LockedPlantsLevel) {
             BeforeMenu.selectedPlants.add(name);
-            build();
+            scheduleBuild();
             return;
         }
         runCommand("add plant -t " + name);
-        build();
+        scheduleBuild();
     }
 
     private void removePlant(String name) {
         Level level = GameSession.peekInstance() == null ? null : GameSession.peekInstance().getLevel();
         if (level instanceof LockedPlantsLevel) {
             BeforeMenu.selectedPlants.removeIf(p -> p.equalsIgnoreCase(name));
-            build();
+            scheduleBuild();
             return;
         }
         runCommand("remove plant -t " + name);
-        build();
+        scheduleBuild();
     }
 
     protected Table createResourceWidget(String iconPath, String value) {
@@ -968,7 +1224,7 @@ public class BeforeMatchScreen extends UiScreen {
         PlantIdleAnimationActor(String animationPath, float ox, float oy) {
             this.animationPath = animationPath;
             this.offsetX = ox + 60f;
-            this.offsetY = oy + 45f;
+            this.offsetY = oy + 53f;
         }
 
         @Override
@@ -1006,15 +1262,14 @@ public class BeforeMatchScreen extends UiScreen {
     }
 
     @Override
-    protected void onAfterCommand() {
-        build();
-    }
-
-    @Override
     public void dispose() {
         cardFactory.dispose();
         if (roundedAnimBgTexture != null) {
             roundedAnimBgTexture.dispose();
+        }
+        if (rightPreviewTexture != null) {
+            rightPreviewTexture.dispose();
+            rightPreviewTexture = null;
         }
         super.dispose();
     }

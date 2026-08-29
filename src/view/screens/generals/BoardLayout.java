@@ -19,6 +19,9 @@ class BoardLayout {
     /** Lawn width in background-image pixels, used to keep art scales stable. */
     private static final float SOURCE_BOARD_WIDTH = 733f;
 
+    /** Horizontal space reserved for the pre-match zombie preview on the right. */
+    private static final float PRE_MATCH_RIGHT_AREA_WIDTH = 240f;
+
     private final GameScreen screen;
 
     private float boardTileWidth = GameScreen.TILE_WIDTH;
@@ -73,7 +76,8 @@ class BoardLayout {
             float fitScale = Math.max(viewH / texH, viewW / texW);
             bgW = texW * fitScale;
             bgH = texH * fitScale;
-            bgX = viewW - bgW;
+            float rightArea = screen.isBeforeMatchPreview() ? PRE_MATCH_RIGHT_AREA_WIDTH : 0f;
+            bgX = viewW - bgW - rightArea;
             bgY = (viewH - bgH) * 0.5f;
 
             float boardPixelW = bgW * (1f - BOARD_INSET_LEFT_FRAC);

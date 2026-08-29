@@ -89,6 +89,21 @@ class ZombieRenderer {
     private static final Color FREEZE_TINT = new Color(0.55f, 0.78f, 1f, 1f);
     private static final Color FREEZE_FALLBACK_TINT = new Color(0.35f, 0.55f, 0.85f, 1f);
 
+    // Same idea as FREEZE_TINT, but for a hypnotized zombie's body - a purple/pink wash
+    // via SpriteBatch color multiplication.
+    private static final Color HYPNO_TINT = new Color(0.85f, 0.55f, 1f, 1f);
+    private static final Color HYPNO_FALLBACK_TINT = new Color(0.65f, 0.4f, 0.85f, 1f);
+
+    // Rising hypnosis bubbles drawn over a hypnotized zombie's body, purple/pink and
+    // semi-transparent - several of them, staggered so they don't all pop in step,
+    // climbing from the zombie's feet to over its head, then fading out and looping.
+    private static final Color HYPNO_BUBBLE_COLOR = new Color(0.87f, 0.45f, 0.95f, 1f);
+    private static final int HYPNO_BUBBLE_COUNT = 6;
+    private static final float HYPNO_BUBBLE_CYCLE_SECONDS = 1.8f;
+    private static final float HYPNO_BUBBLE_MIN_SIZE = 8f;
+    private static final float HYPNO_BUBBLE_MAX_SIZE = 20f;
+    private static final float HYPNO_BUBBLE_SWAY = 10f;
+
     private static final class ZombieWaterRipple {
         boolean inWater;
         float rippleLoopTime;
@@ -142,6 +157,8 @@ class ZombieRenderer {
     }
 
     void drawZombies(float delta, float bw, float bh) {
+        if (screen.isBeforeMatchPreview()) return;
+
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
         List<Zombie> zombies = new ArrayList<>(screen.session.getZombies());
@@ -181,9 +198,11 @@ class ZombieRenderer {
 
             // Hypno-shroom's registered overlay marks a zombie that now fights for the player;
             // without it a hypnotised zombie is indistinguishable from a hostile one.
-            if (zombie.isHypnotized()) {
+            boolean hypnotized = zombie.isHypnotized();
+            if (hypnotized) {
                 screen.drawPam(HYPNO_ZOMBIE_EFFECT_PAM, "animation", t, x + 20f, zombieOffsetY,
                         HYPNO_OVERLAY_SCALE, false);
+                drawHypnoBubbles(zombie, t, x + boardTileWidth * 0.5f, zombieOffsetY, boardTileHeight);
             }
 
             if (zombieSpawnEffects.containsKey(zombie)) {
@@ -270,13 +289,26 @@ class ZombieRenderer {
 
             boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE;
+            // Hypnotized takes precedence over the (rarer) case of a hypnotized zombie
+            // also being chilled - one flat tint at a time, same as the game's own status
+            // rendering never blends the two.
+            boolean tinted = hypnotized || chilled;
+            Color tint = hypnotized ? HYPNO_TINT : FREEZE_TINT;
             try {
                 drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
                 drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
-                if (chilled) screen.batch.setColor(FREEZE_TINT);
-                boolean pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
-                        0.52f, zombie.isFacingRight(), elementVisibility);
-                if (chilled) screen.batch.setColor(Color.WHITE);
+                if (tinted) screen.batch.setColor(tint);
+                boolean pamDrawn;
+                if (zombie.isFacingRight()) {
+                    // Keep the zombie animation mirrored with the same guaranteed
+                    // transform-based path used for Jester-deflected projectiles.
+                    pamDrawn = screen.drawPamMirrored(path, preferred, animationTime,
+                            x - 10f, zombieDrawY, 0.52f);
+                } else {
+                    pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
+                            0.52f, false, elementVisibility);
+                }
+                if (tinted) screen.batch.setColor(Color.WHITE);
                 if (pamDrawn && plantHead != null) {
                     drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
                             zombie.isFacingRight(), zombie.getZombieState());
@@ -284,7 +316,8 @@ class ZombieRenderer {
 
                 if (!pamDrawn) {
                     TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
-                    Color fallbackTint = chilled ? FREEZE_FALLBACK_TINT : new Color(0.55f, 0.5f, 0.45f, 1f);
+                    Color fallbackTint = hypnotized ? HYPNO_FALLBACK_TINT
+                            : chilled ? FREEZE_FALLBACK_TINT : new Color(0.55f, 0.5f, 0.45f, 1f);
                     screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
                             fallbackTint, GameScreenGraphics.initials(zombie.getAlias()));
                 }
@@ -428,6 +461,37 @@ class ZombieRenderer {
             }
         }
         dyingZombies.removeIf(dz -> dz.time > dz.duration);
+    }
+
+    /**
+     * Several small purple/pink bubbles rising from a hypnotized zombie's feet to over its
+     * head, staggered so they don't all pop at once, each fading in, floating up with a
+     * slight side-to-side sway, then fading out and looping back to the bottom - same idea
+     * as the original game's hypnosis bubble trail.
+     */
+    private void drawHypnoBubbles(Zombie zombie, float t, float baseX, float baseY, float boardTileHeight) {
+        float riseHeight = boardTileHeight * 0.85f;
+        float fadeWindow = 0.15f;
+        for (int i = 0; i < HYPNO_BUBBLE_COUNT; i++) {
+            float phaseOffset = (HYPNO_BUBBLE_CYCLE_SECONDS / HYPNO_BUBBLE_COUNT) * i;
+            float localTime = (t + phaseOffset) % HYPNO_BUBBLE_CYCLE_SECONDS;
+            float progress = localTime / HYPNO_BUBBLE_CYCLE_SECONDS;
+
+            float fadeIn = Math.min(1f, progress / fadeWindow);
+            float fadeOut = Math.min(1f, (1f - progress) / fadeWindow);
+            float alpha = Math.max(0f, Math.min(fadeIn, fadeOut));
+            if (alpha <= 0f) continue;
+
+            float lateralSeed = i * 2.4f;
+            float bubbleX = baseX + (float) Math.sin(progress * Math.PI * 2f + lateralSeed) * HYPNO_BUBBLE_SWAY
+                    + ((i % 3) - 1) * 9f;
+            float bubbleY = baseY + progress * riseHeight;
+            float size = HYPNO_BUBBLE_MIN_SIZE + (HYPNO_BUBBLE_MAX_SIZE - HYPNO_BUBBLE_MIN_SIZE) * progress;
+
+            screen.batch.setColor(HYPNO_BUBBLE_COLOR.r, HYPNO_BUBBLE_COLOR.g, HYPNO_BUBBLE_COLOR.b, alpha);
+            screen.batch.draw(screen.bubbleTexture, bubbleX - size * 0.5f, bubbleY - size * 0.5f, size, size);
+        }
+        screen.batch.setColor(Color.WHITE);
     }
 
     private void drawPlantHead(ZombotanyArt.Head head, float time, float bodyX, float bodyY,

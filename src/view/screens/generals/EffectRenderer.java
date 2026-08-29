@@ -952,16 +952,26 @@ class EffectRenderer {
         Plant source = projectile.getSourcePlant();
         if (position == null || source == null || source.getName() == null) return false;
 
+        // Projectiles normally fly left-to-right (positive x speed), which is the
+        // orientation the artwork is drawn in. Once something (e.g. a Jester Zombie)
+        // deflects a projectile back the other way, its speed.x() goes negative, so
+        // mirror the animation to match the direction it's actually travelling in.
+        boolean flip = isTravellingLeft(projectile);
+
         ProjectileEffectAssets.Variant variant = source.isPlantFoodActive()
                 ? ProjectileEffectAssets.Variant.PLANT_FOOD
                 : ProjectileEffectAssets.Variant.NORMAL;
         if (projectile.getDisplayPath() != null && projectile.getDisplayState() != null) {
-            boolean loop = true;
-            screen.drawPam(projectile.getDisplayPath(), projectile.getDisplayState(), age,
-                    GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                            + screen.getBoardTileWidth() * 0.41f,
-                    screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.36f,
-                    PROJECTILE_PAM_SCALE, false);
+            float dpx = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                    + screen.getBoardTileWidth() * 0.41f;
+            float dpy = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.36f;
+            if (flip) {
+                screen.drawPamMirrored(projectile.getDisplayPath(), projectile.getDisplayState(), age,
+                        dpx, dpy, PROJECTILE_PAM_SCALE);
+            } else {
+                screen.drawPam(projectile.getDisplayPath(), projectile.getDisplayState(), age,
+                        dpx, dpy, PROJECTILE_PAM_SCALE, false);
+            }
             return true;
         }
         List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
@@ -974,7 +984,6 @@ class EffectRenderer {
 
         ProjectileEffectAssets.AssetEntry entry =
                 entries.get(Math.min(projectile.getAssetVariant(), entries.size() - 1));
-        boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
 
         boolean freeFlying = projectile instanceof GrapeshotProjectile;
         float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
@@ -984,9 +993,29 @@ class EffectRenderer {
         float scaleFactor = freeFlying ? GRAPE_PROJECTILE_SCALE_FACTOR : 2.0f;
 
         if (entry.isStaticImage()) {
-            return screen.assets().drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE);
+            return screen.assets().drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE, flip);
         }
-        return screen.drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE * scaleFactor, loop);
+        // Note: this used to (incorrectly) pass entry.playMode()==LOOP into the "flip"
+        // slot, which had nothing to do with travel direction — that's why deflected
+        // projectiles kept their original orientation instead of mirroring with the
+        // reversed movement.
+        //
+        // Also, unlike zombies' own multi-part PAM rigs, these projectile clips don't
+        // reliably mirror through PamPlayer's own flip flag (drawPamMirrored exists in
+        // PamRenderer for exactly this reason — it flips the whole draw via a negated
+        // transform scale instead, which always works regardless of the clip's internals).
+        // Use that guaranteed path whenever the projectile is actually travelling left.
+        if (flip) {
+            return screen.drawPamMirrored(entry.path(), entry.state(), age, x, y,
+                    PROJECTILE_PAM_SCALE * scaleFactor);
+        }
+        return screen.drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE * scaleFactor, false);
+    }
+
+    /** True once a projectile's horizontal speed has gone negative (e.g. after a Jester deflection). */
+    private boolean isTravellingLeft(Projectile projectile) {
+        Position speed = projectile.getSpeed();
+        return speed != null && speed.x() < 0;
     }
 
     private void drawSmallDot(Position p, Color color) {

@@ -3,9 +3,13 @@ package view.screens.generals;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import controller.match.BeforeMenu;
 import model.App;
@@ -41,6 +45,7 @@ public class GameScreen extends UiScreen {
     protected MatchHud hud;
     protected Texture boardTexture;
     public TextureRegion whitePixel;
+    public TextureRegion bubbleTexture;
 
     protected TextureBank textureBank;
     protected PamPlayer pamPlayer;
@@ -58,6 +63,8 @@ public class GameScreen extends UiScreen {
     private final MowerRenderer mowers = new MowerRenderer(this);
     private final MatchEndSequence matchEnd = new MatchEndSequence(this);
     private final ZombossRenderer zomboss = new ZombossRenderer(this);
+    private final NukeEffect nukeEffect = new NukeEffect(this);
+    private Image nukeFlashOverlay;
 
     private view.hud.ZombossDialogueBox zombossDialogue;
 
@@ -88,9 +95,30 @@ public class GameScreen extends UiScreen {
         zomboss.reset();
         zomboss.preload();
         createZombossDialogue();
+        nukeEffect.preload();
+        createNukeFlashOverlay();
     }
 
-    private void createZombossDialogue() {
+    /**
+     * Full-screen white flash used by the "release the nuke" cheat. Added
+     * directly to the stage (on top of rootStack, so above the HUD too) and
+     * left non-touchable so it never blocks clicks on anything underneath it,
+     * even while fully visible.
+     */
+    private void createNukeFlashOverlay() {
+        nukeFlashOverlay = new Image(new TextureRegionDrawable(whitePixel));
+        nukeFlashOverlay.setFillParent(true);
+        nukeFlashOverlay.setTouchable(Touchable.disabled);
+        nukeFlashOverlay.setColor(1f, 1f, 1f, 0f);
+        stage.addActor(nukeFlashOverlay);
+    }
+
+    /** Wired to the HUD's nuke button. */
+    protected void triggerNukeCheat() {
+        nukeEffect.trigger();
+    }
+
+    protected void createZombossDialogue() {
         if (session == null || session.getZombossFight() == null) return;
         zombossDialogue = new view.hud.ZombossDialogueBox(skin);
         zombossDialogue.setAdvanceAction(() -> {
@@ -119,6 +147,7 @@ public class GameScreen extends UiScreen {
         hud.setPlantDragRelease(interaction::handlePlantDragRelease);
         hud.setShovelAction(() -> interaction.armTool(BoardInteraction.Tool.SHOVEL));
         hud.setFoodAction(() -> interaction.armTool(BoardInteraction.Tool.FOOD));
+        hud.setNukeAction(this::triggerNukeCheat);
         hud.setPauseAction(this::togglePause);
         hud.setStartWavesAction(() -> runCommand("start zombie waves"));
         hud.setDebugAddSunAction(() -> runCommand("cheat add -n 25 suns"));
@@ -184,12 +213,38 @@ public class GameScreen extends UiScreen {
 
         if (matchFinished) return;
 
+        if (!paused) nukeEffect.tick(delta);
+        if (nukeFlashOverlay != null) {
+            float a = nukeEffect.flashAlpha();
+            nukeFlashOverlay.setColor(1f, 1f, 1f, a);
+            nukeFlashOverlay.setVisible(a > 0f);
+        }
+
         refreshHud(delta);
         refreshZombossDialogue();
+
+        Object camera = stage.getViewport().getCamera();
+        OrthographicCamera orthoCamera = camera instanceof OrthographicCamera ? (OrthographicCamera) camera : null;
+        float shakeX = 0f, shakeY = 0f;
+        if (orthoCamera != null && nukeEffect.isActive()) {
+            shakeX = nukeEffect.shakeOffsetX();
+            shakeY = nukeEffect.shakeOffsetY();
+            orthoCamera.position.x += shakeX;
+            orthoCamera.position.y += shakeY;
+            orthoCamera.update();
+        }
+
         drawBoard(delta);
         stage.act(delta);
+
         if (controller.ScreenManager.getScreen() != this) return;
         stage.draw();
+
+        if (orthoCamera != null && (shakeX != 0f || shakeY != 0f)) {
+            orthoCamera.position.x -= shakeX;
+            orthoCamera.position.y -= shakeY;
+            orthoCamera.update();
+        }
     }
 
     /**
@@ -205,6 +260,11 @@ public class GameScreen extends UiScreen {
 
     protected List<String> loadoutPlants() {
         return new ArrayList<>(BeforeMenu.selectedPlants);
+    }
+
+    /** True only for the loadout screen that renders the match board before waves begin. */
+    protected boolean isBeforeMatchPreview() {
+        return false;
     }
 
     private void refreshZombossDialogue() {
@@ -324,6 +384,7 @@ public class GameScreen extends UiScreen {
         groundItems.drawGroundItems(delta, bw, bh);
         effects.drawProjectiles(delta, bw, bh);
         zomboss.drawEffects(delta);
+        nukeEffect.drawMissile();
         mowers.drawMowers(bw, bh);
         frostbite.drawFrostbiteIceBlocks(delta);
         interaction.drawHover(bw, bh);
@@ -447,6 +508,7 @@ public class GameScreen extends UiScreen {
             try { textureBank.dispose(); } catch (Throwable ignored) {}
         }
         if (whitePixel != null) whitePixel.getTexture().dispose();
+        if (bubbleTexture != null) bubbleTexture.getTexture().dispose();
         if (boardTexture != null) boardTexture.dispose();
         assets.dispose();
         super.dispose();

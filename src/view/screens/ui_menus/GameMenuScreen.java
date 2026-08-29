@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 
 import model.match.main.levels.Level;
+import model.resoures.CurrencyType;
 import model.user_data.User;
 import model.utils.LevelLoader;
 import model.utils.LevelProgression;
@@ -144,10 +145,8 @@ public class GameMenuScreen extends UiScreen {
         int diamonds = (user != null && user.userState != null) ? user.userState.diamonds : 0;
 
         Table topRight = new Table();
-        topRight.add(createResourceWidget("assets/images/ui/buttons_coin_buy_normal.png",
-                String.valueOf(coins))).padRight(15);
-        topRight.add(createResourceWidget("assets/images/ui/buttons_premium_normal.png",
-                String.valueOf(diamonds)));
+        topRight.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15);
+        topRight.add(currencyWidget(CurrencyType.DIAMOND, diamonds));
 
         Table topBar = new Table();
         topBar.add(topLeft).left().expandX();
@@ -234,6 +233,11 @@ public class GameMenuScreen extends UiScreen {
 
     @Override
     protected void onAfterCommand() {
+        build();
+    }
+
+    @Override
+    protected void refreshContent() {
         build();
     }
 }

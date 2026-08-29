@@ -20,6 +20,7 @@ import controller.ScreenManager;
 import controller.match.MatchMenu;
 import model.match.main.levels.Level;
 import model.match.main.levels.normal_levels.NormalLevel;
+import model.resoures.CurrencyType;
 import model.user_data.User;
 import model.utils.LevelLoader;
 import model.utils.LevelProgression;
@@ -230,8 +231,8 @@ public abstract class StagesScreen extends UiScreen {
         int diamonds = (user != null && user.userState != null) ? user.userState.diamonds : 0;
 
         Table topRight = new Table();
-        topRight.add(createResourceWidget(getCoinIcon(), String.valueOf(coins))).padRight(15);
-        topRight.add(createResourceWidget(getGemIcon(), String.valueOf(diamonds)));
+        topRight.add(currencyWidget(CurrencyType.COIN, coins)).padRight(15);
+        topRight.add(currencyWidget(CurrencyType.DIAMOND, diamonds));
 
         Table topBar = new Table();
         topBar.add(topLeft).left().expandX();
@@ -281,6 +282,11 @@ public abstract class StagesScreen extends UiScreen {
 
     @Override
     protected void onAfterCommand() {
+        build();
+    }
+
+    @Override
+    protected void refreshContent() {
         build();
     }
 

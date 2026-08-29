@@ -96,7 +96,15 @@ public class SunProduceStrategy implements ActStrategy {
     private Position dropOffsetPosition(Position location, int index) {
         Position offset = SUN_DROP_OFFSETS[index % SUN_DROP_OFFSETS.length];
         double jitterX = (RANDOM.nextDouble() * 2 - 1) * DROP_JITTER;
-        double jitterY = (RANDOM.nextDouble() * 2 - 1) * DROP_JITTER;
-        return new Position(location.x() + offset.x() + jitterX, location.y() + offset.y() + jitterY);
+        // Jitter is horizontal only: any vertical nudge risks crossing into the row
+        // above or below once rendering truncates the fractional position back to a
+        // tile index, which visually drops the sun on the wrong tile. Suns from a
+        // producer always stay on the producer's own row.
+        double x = location.x() + offset.x() + jitterX;
+        // Clamp so the offset (plus jitter) can never push the sun far enough
+        // sideways to visually cross into the neighboring column either.
+        double maxSpread = 0.45;
+        x = Math.max(location.x() - maxSpread, Math.min(location.x() + maxSpread, x));
+        return new Position(x, location.y());
     }
 }
