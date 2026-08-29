@@ -34,26 +34,43 @@ public class IZombieMatch {
     public static final double COUCH_MATCH_SECONDS = 360.0;
 
     private static final int ZOMBIE_STAT_TIER = 3;
-    private static final int ZOMBIE_START_SUN = 1750;
+    private static final int ZOMBIE_START_SUN = 400;
     private static final int PLANT_START_SUN = 150;
     private static final int PLANT_SUN_GRANT = 25;
     private static final double PLANT_SUN_INTERVAL = 6.0;
     private static final double ESCAPE_COLUMN = -1.2;
 
     private static final String[] SEED_BANK = {
-        "Sunflower", "Peashooter", "Wall-nut", "Snow Pea", "Repeater", "Potato Mine",
+            "Sunflower", "Peashooter", "Wall-nut", "Snow Pea", "Repeater", "Potato Mine",
     };
 
     private static final String[] DEFENDER_LAYOUT = {
-        "SP.N.",
-        "S.P..",
-        "SPUN.",
-        "S.P..",
-        "SP.N.",
+            "SP.N.",
+            "S.P..",
+            "SPUN.",
+            "S.P..",
+            "SP.N.",
     };
 
     private static final Map<Character, Integer> LAYOUT_PLANT_IDS = Map.of(
             'S', 1, 'P', 6, 'N', 44, 'U', 23);
+
+    private static final Map<String, ZombiePacketTemplate> KNOWN_ZOMBIE_PACKETS = Map.of(
+            "ZombieImp", new ZombiePacketTemplate("Imp", 25, 5.0),
+            "ZombieDefault", new ZombiePacketTemplate("Browncoat", 50, 5.0),
+            "ZombieArmor1", new ZombiePacketTemplate("Conehead", 75, 7.5),
+            "ZombieNewspaper", new ZombiePacketTemplate("Newspaper Zombie", 100, 12.0),
+            "ZombieRa", new ZombiePacketTemplate("Ra Zombie", 100, 12.0),
+            "ZombieArmor2", new ZombiePacketTemplate("Buckethead", 125, 15.0));
+
+    /** Default roster used whenever no co-op zombie loadout was selected. */
+    private static final List<String> DEFAULT_ROSTER = List.of(
+            "ZombieImp", "ZombieDefault", "ZombieArmor1", "ZombieNewspaper", "ZombieRa", "ZombieArmor2");
+
+    /** At most this many roster entries are usable (keyboard slots are 1-6 in the couch UI). */
+    private static final int MAX_ROSTER_SIZE = 6;
+
+    private record ZombiePacketTemplate(String displayName, int cost, double recharge) {}
 
     private final GameSession session;
     private final Brain[] brains = new Brain[ROWS];
@@ -76,6 +93,16 @@ public class IZombieMatch {
     }
 
     public IZombieMatch(double matchSeconds) {
+        this(matchSeconds, null, null);
+    }
+
+    /**
+     * @param plantLoadout  plant names to build the seed tray from (see BeforeMenu.selectedPlants);
+     *                      falls back to the built-in {@link #SEED_BANK} when null/empty.
+     * @param zombieLoadout zombie aliases to build the roster from (see BeforeMenu.selectedZombies);
+     *                      falls back to {@link #DEFAULT_ROSTER} when null/empty.
+     */
+    public IZombieMatch(double matchSeconds, List<String> plantLoadout, List<String> zombieLoadout) {
         this.matchSeconds = matchSeconds;
         this.session = new GameSession(ROWS, COLS);
         session.setDifficultyLevel(ZOMBIE_STAT_TIER);
@@ -84,28 +111,70 @@ public class IZombieMatch {
         session.setLawnMowersEnabled(false);
         session.setZombieSunProductionMode(true);
         session.addSun(ZOMBIE_START_SUN);
-        buildRoster();
-        buildSeedBank();
+        buildRoster(zombieLoadout);
+        buildSeedBank(plantLoadout);
         seedDefendingPlants();
         placeBrains();
     }
 
-    private void buildRoster() {
-        roster.add(new ZombiePacket("ZombieImp", "Imp", 25, 5.0));
-        roster.add(new ZombiePacket("ZombieDefault", "Browncoat", 50, 5.0));
-        roster.add(new ZombiePacket("ZombieArmor1", "Conehead", 75, 7.5));
-        roster.add(new ZombiePacket("ZombieNewspaper", "Newspaper Zombie", 100, 12.0));
-        roster.add(new ZombiePacket("ZombieRa", "Ra Zombie", 100, 12.0));
-        roster.add(new ZombiePacket("ZombieArmor2", "Buckethead", 125, 15.0));
+    private void buildRoster(List<String> zombieLoadout) {
+        List<String> aliases = (zombieLoadout == null || zombieLoadout.isEmpty()) ? DEFAULT_ROSTER : zombieLoadout;
+        for (String alias : aliases) {
+            if (alias == null || alias.isBlank() || roster.size() >= MAX_ROSTER_SIZE) continue;
+            roster.add(buildPacket(alias));
+        }
+        if (roster.isEmpty()) {
+            for (String alias : DEFAULT_ROSTER) roster.add(buildPacket(alias));
+        }
     }
 
-    private void buildSeedBank() {
-        for (String name : SEED_BANK) {
+    private ZombiePacket buildPacket(String alias) {
+        ZombiePacketTemplate known = KNOWN_ZOMBIE_PACKETS.get(alias);
+        if (known != null) {
+            return new ZombiePacket(alias, known.displayName(), known.cost(), known.recharge());
+        }
+
+        // No hand-tuned entry for this alias (e.g. a co-op pick outside the default six) -
+        // derive a rough cost/recharge from the zombie's own HP instead of leaving it unusable.
+        String displayName = friendlyZombieName(alias);
+        int cost = 100;
+        double recharge = 10.0;
+        try {
+            Zombie sample = ZombieFactory.create(alias, 0, 0);
+            if (sample != null && sample.getMaxHp() > 0) {
+                cost = Math.round(Math.max(25, Math.min(300, sample.getMaxHp() * 0.6f)) / 25f) * 25;
+                recharge = Math.max(5.0, Math.min(20.0, sample.getMaxHp() / 40.0));
+            }
+        } catch (Throwable ignored) {
+        }
+        return new ZombiePacket(alias, displayName, cost, recharge);
+    }
+
+    private String friendlyZombieName(String alias) {
+        if (alias == null || alias.isBlank()) return "Zombie";
+        String withoutPrefix = alias.startsWith("Zombie") ? alias.substring("Zombie".length()) : alias;
+        return withoutPrefix.isBlank() ? alias : withoutPrefix;
+    }
+
+    private void buildSeedBank(List<String> plantLoadout) {
+        List<String> names = (plantLoadout == null || plantLoadout.isEmpty())
+                ? java.util.Arrays.asList(SEED_BANK) : plantLoadout;
+        for (String name : names) {
+            if (name == null || name.isBlank()) continue;
             int id = PlantFactory.findPlantIdByName(name);
             if (id < 0) continue;
             PlantJsonParser.PlantConfig config = PlantFactory.getBlueprints().get(id);
             if (config == null) continue;
             seeds.add(new SeedCard(id, config.name, config.cost, Math.max(1.0, config.recharge)));
+        }
+        if (seeds.isEmpty()) {
+            for (String name : SEED_BANK) {
+                int id = PlantFactory.findPlantIdByName(name);
+                if (id < 0) continue;
+                PlantJsonParser.PlantConfig config = PlantFactory.getBlueprints().get(id);
+                if (config == null) continue;
+                seeds.add(new SeedCard(id, config.name, config.cost, Math.max(1.0, config.recharge)));
+            }
         }
     }
 

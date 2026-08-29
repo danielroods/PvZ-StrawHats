@@ -302,6 +302,17 @@ public class GameScreen extends UiScreen {
         return false;
     }
 
+    /**
+     * Horizontal space to leave empty on the right of the lawn, shifting the whole board
+     * left by that much (see {@link view.screens.generals.BoardLayout}). Before-match
+     * preview screens use this to make room for the loadout/preview panel; gameplay
+     * screens that dock a side panel over the board (e.g. co-op's zombie tray) can
+     * override this too, so that panel doesn't sit on top of playable lawn columns.
+     */
+    protected float reservedRightAreaWidth() {
+        return 0f;
+    }
+
     private void refreshZombossDialogue() {
         if (zombossDialogue == null || session == null) return;
 

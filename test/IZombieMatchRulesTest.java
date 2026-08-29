@@ -28,7 +28,7 @@ class IZombieMatchRulesTest {
     void theBoardOpensWithBrainsAndDefenders() {
         assertEquals(5, match.getBrainCount());
         assertEquals(0, match.getBrainsEaten());
-        assertEquals(1750, match.getZombieSun());
+        assertEquals(400, match.getZombieSun());
         assertEquals(150, match.getPlantSun());
         assertEquals(6, match.getRoster().size());
         assertEquals(6, match.getSeeds().size());

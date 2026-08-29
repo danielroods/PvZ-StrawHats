@@ -54,39 +54,39 @@ import java.util.stream.Collectors;
 
 public class BeforeMatchScreen extends GameScreen {
 
-    private static final float PREVIEW_ZOMBIE_SCALE = 0.46f;
-    private static final float PREVIEW_ZOMBIE_GAP_X = 52f;
+    protected static final float PREVIEW_ZOMBIE_SCALE = 0.46f;
+    protected static final float PREVIEW_ZOMBIE_GAP_X = 52f;
     // Shifts the whole zombie-preview group further right within its reserved area.
-    private static final float PREVIEW_GROUP_SHIFT_X = 40f;
+    protected static final float PREVIEW_GROUP_SHIFT_X = 40f;
 
     /** Loadout card size matching MatchHud exactly. */
-    private static final float LOADOUT_CARD_W = 95f;
-    private static final float LOADOUT_CARD_H = 60f;
+    protected static final float LOADOUT_CARD_W = 95f;
+    protected static final float LOADOUT_CARD_H = 60f;
 
-    private static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
-    private static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
-    private static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
-    private static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
+    protected static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
+    protected static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
+    protected static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
+    protected static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
 
-    private static final Color GREEN = new Color(0.30f, 0.75f, 0.25f, 1f);
-    private static final Color GRAY = new Color(0.45f, 0.45f, 0.45f, 1f);
-    private static final Color PURPLE = new Color(0.60f, 0.30f, 0.85f, 1f);
+    protected static final Color GREEN = new Color(0.30f, 0.75f, 0.25f, 1f);
+    protected static final Color GRAY = new Color(0.45f, 0.45f, 0.45f, 1f);
+    protected static final Color PURPLE = new Color(0.60f, 0.30f, 0.85f, 1f);
 
-    private static final int PLANT_GRID_COLUMNS = 6;
+    protected static final int PLANT_GRID_COLUMNS = 6;
 
-    private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
-    private final CollectionManager collectionManager = new CollectionManager();
-    private final List<Actor> cards = new ArrayList<>();
-    private Table activePopup = null;
+    protected final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
+    protected final CollectionManager collectionManager = new CollectionManager();
+    protected final List<Actor> cards = new ArrayList<>();
+    protected Table activePopup = null;
 
-    private String previewPlantName = null;
+    protected String previewPlantName = null;
 
-    private Map<String, Boolean> visibility = new HashMap<>();
-    private Texture roundedAnimBgTexture;
-    private Drawable roundedAnimBgDrawable;
-    private Texture rightPreviewTexture;
-    private float previewAnimationTime;
-    private Table startOverlay;
+    protected Map<String, Boolean> visibility = new HashMap<>();
+    protected Texture roundedAnimBgTexture;
+    protected Drawable roundedAnimBgDrawable;
+    protected Texture rightPreviewTexture;
+    protected float previewAnimationTime;
+    protected Table startOverlay;
 
     @Override
     public void show() {
@@ -98,7 +98,7 @@ public class BeforeMatchScreen extends GameScreen {
         build();
     }
 
-    private void configureSeasonFolder() {
+    protected void configureSeasonFolder() {
         GameSession gameSession = GameSession.peekInstance();
         Level level = gameSession == null ? null : gameSession.getLevel();
         String season = level == null || level.getSeason() == null
@@ -172,7 +172,7 @@ public class BeforeMatchScreen extends GameScreen {
         drawPreviewZombies();
     }
 
-    private String resolveExistingAssetPath(String path) {
+    protected String resolveExistingAssetPath(String path) {
         if (path == null) return "";
         if (Gdx.files.internal(path).exists()) return path;
         if (path.startsWith("assets/")) {
@@ -185,7 +185,7 @@ public class BeforeMatchScreen extends GameScreen {
         return path;
     }
 
-    private void loadRightPreviewTexture() {
+    protected void loadRightPreviewTexture() {
         if (rightPreviewTexture != null) {
             rightPreviewTexture.dispose();
             rightPreviewTexture = null;
@@ -218,20 +218,20 @@ public class BeforeMatchScreen extends GameScreen {
     // Zombie Jester's own "idle" clip (ZOMBIE_DARK_JESTER) is broken/glitched in the
     // asset, so the loadout preview intentionally shows its "walk" clip instead - same
     // fallback the real game effectively falls back to when an idle clip is unusable.
-    private static final String ZOMBIE_JESTER_ALIAS = "ZombieDarkJuggler";
+    protected static final String ZOMBIE_JESTER_ALIAS = "ZombieDarkJuggler";
 
-    private static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
-    private static final String PIANO_PROP_PAM = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
-    private static final float PIANO_PREVIEW_OFFSET_X = 46f;
-    private static final float PIANO_PREVIEW_OFFSET_Y = -6f;
+    protected static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
+    protected static final String PIANO_PROP_PAM = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
+    protected static final float PIANO_PREVIEW_OFFSET_X = 46f;
+    protected static final float PIANO_PREVIEW_OFFSET_Y = -6f;
 
-    private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
-    private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
-    private static final float ARCADE_PREVIEW_OFFSET_X = -70f;
-    private static final float ARCADE_PREVIEW_OFFSET_Y = 6f;
-    private static final float ARCADE_PREVIEW_SCALE = 0.6f;
+    protected static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    protected static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
+    protected static final float ARCADE_PREVIEW_OFFSET_X = -70f;
+    protected static final float ARCADE_PREVIEW_OFFSET_Y = 6f;
+    protected static final float ARCADE_PREVIEW_SCALE = 0.6f;
 
-    private void drawPreviewZombies() {
+    protected void drawPreviewZombies() {
         Level level = session == null ? null : session.getLevel();
         if (level == null || level.getZombiePool() == null || level.getZombiePool().isEmpty()) return;
 
@@ -286,7 +286,7 @@ public class BeforeMatchScreen extends GameScreen {
         }
     }
 
-    private boolean isBossPreviewAlias(String alias) {
+    protected boolean isBossPreviewAlias(String alias) {
         String normalized = alias.toLowerCase();
         return normalized.contains("zomboss");
     }
@@ -297,7 +297,7 @@ public class BeforeMatchScreen extends GameScreen {
      * odd row counts other than 5 it takes the middle three (or fewer if the board is
      * smaller), keeping the selection centered.
      */
-    private int[] middlePreviewRows(int totalRows) {
+    protected int[] middlePreviewRows(int totalRows) {
         if (totalRows <= 3) {
             int[] all = new int[totalRows];
             for (int i = 0; i < totalRows; i++) all[i] = i;
@@ -307,7 +307,7 @@ public class BeforeMatchScreen extends GameScreen {
         return new int[]{start, start + 1, start + 2};
     }
 
-    private void drawPreviewZombie(String alias, float x, float y, int index) {
+    protected void drawPreviewZombie(String alias, float x, float y, int index) {
         String path = ZombieAnimationRegistry.pathFor(alias, seasonFolder);
         if (path == null) return;
 
@@ -358,7 +358,7 @@ public class BeforeMatchScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    private void drawPreviewProp(String propPath, String preferredState, float x, float y, float scale, boolean flip) {
+    protected void drawPreviewProp(String propPath, String preferredState, float x, float y, float scale, boolean flip) {
         String clip = AnimationFactory.exactClipNameForPath(propPath, preferredState);
         if (clip == null) {
             clip = AnimationFactory.resolveClipNameForPath(propPath, preferredState);
@@ -386,7 +386,7 @@ public class BeforeMatchScreen extends GameScreen {
         return result;
     }
 
-    private void scheduleBuild() {
+    protected void scheduleBuild() {
         if (stage == null) return;
 
         Gdx.app.postRunnable(() -> {
@@ -398,7 +398,7 @@ public class BeforeMatchScreen extends GameScreen {
         });
     }
 
-    private void build() {
+    protected void build() {
         rootTable.clear();
         cards.clear();
 
@@ -428,7 +428,7 @@ public class BeforeMatchScreen extends GameScreen {
         addBeforeModal(startOverlay);
     }
 
-    private Table buildTopBar(Level level) {
+    protected Table buildTopBar(Level level) {
         Table topBar = new Table();
         topBar.top().left();
 
@@ -453,7 +453,7 @@ public class BeforeMatchScreen extends GameScreen {
         return topBar;
     }
 
-    private Table buildMiddleSection(Level level) {
+    protected Table buildMiddleSection(Level level) {
         Table board = new Table();
         board.top().left();
 
@@ -463,7 +463,7 @@ public class BeforeMatchScreen extends GameScreen {
         return board;
     }
 
-    private Table buildRightPanel(Level level) {
+    protected Table buildRightPanel(Level level) {
         Table rightPanel = new Table();
         rightPanel.top().left();
 
@@ -473,7 +473,7 @@ public class BeforeMatchScreen extends GameScreen {
         return rightPanel;
     }
 
-    private Table buildBottomBar() {
+    protected Table buildBottomBar() {
         Table bottom = new Table();
         bottom.bottom().right();
         bottom.pad(12f).padRight(16f);
@@ -482,7 +482,7 @@ public class BeforeMatchScreen extends GameScreen {
         return bottom;
     }
 
-    private ImageButton createIconButton(String path, float width, float height, Runnable action) {
+    protected ImageButton createIconButton(String path, float width, float height, Runnable action) {
         TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
         ImageButton button = new ImageButton(drawable);
         button.getImageCell().size(width, height);
@@ -495,7 +495,7 @@ public class BeforeMatchScreen extends GameScreen {
         return button;
     }
 
-    private Table buildPreviewPanel() {
+    protected Table buildPreviewPanel() {
         Table box = new Table();
         box.setBackground(skin.getDrawable("card-background"));
         box.pad(8).top().left();
@@ -616,7 +616,7 @@ public class BeforeMatchScreen extends GameScreen {
         return box;
     }
 
-    private Actor buildPlantGrid(Level level) {
+    protected Actor buildPlantGrid(Level level) {
         UserState state = User.currentUser != null ? User.currentUser.userState : null;
 
         if (level instanceof ConveyorBeltLevel conveyor) {
@@ -646,7 +646,7 @@ public class BeforeMatchScreen extends GameScreen {
                 name -> state != null && !state.isPlantUnlocked(findId(allPlants, name)));
     }
 
-    private Actor buildLockedPlantsGrid(List<String> names, LockedPlantsLevel lockedLevel) {
+    protected Actor buildLockedPlantsGrid(List<String> names, LockedPlantsLevel lockedLevel) {
         Table grid = new Table();
         grid.top().left();
 
@@ -673,7 +673,7 @@ public class BeforeMatchScreen extends GameScreen {
         return viewport;
     }
 
-    private boolean isPlantLockedInLevel(LockedPlantsLevel lockedLevel, String plantName) {
+    protected boolean isPlantLockedInLevel(LockedPlantsLevel lockedLevel, String plantName) {
         if (lockedLevel == null || lockedLevel.getLockedPlants() == null) {
             return false;
         }
@@ -685,15 +685,15 @@ public class BeforeMatchScreen extends GameScreen {
         return false;
     }
 
-    private int findId(List<PlantJsonParser.PlantConfig> plants, String name) {
+    protected int findId(List<PlantJsonParser.PlantConfig> plants, String name) {
         for (PlantJsonParser.PlantConfig config : plants) {
             if (config.name.equalsIgnoreCase(name)) return config.id;
         }
         return -1;
     }
 
-    private Actor buildGridContainer(List<String> names, java.util.function.Predicate<String> darkened,
-                                     java.util.function.Predicate<String> showLockIcon) {
+    protected Actor buildGridContainer(List<String> names, java.util.function.Predicate<String> darkened,
+                                       java.util.function.Predicate<String> showLockIcon) {
         Table grid = new Table();
         grid.top().left();
 
@@ -720,7 +720,7 @@ public class BeforeMatchScreen extends GameScreen {
         return gridContainer;
     }
 
-    private Actor buildCard(String name, boolean darkened, boolean showLockIcon) {
+    protected Actor buildCard(String name, boolean darkened, boolean showLockIcon) {
         Stack cardStack = new Stack();
 
         float cardW = 104f;
@@ -782,7 +782,7 @@ public class BeforeMatchScreen extends GameScreen {
         return cell;
     }
 
-    private Table buildLoadoutPanel(Level level) {
+    protected Table buildLoadoutPanel(Level level) {
         Table panel = new Table();
         panel.setBackground(skin.getDrawable("card-background"));
         panel.pad(2f).top();
@@ -848,7 +848,7 @@ public class BeforeMatchScreen extends GameScreen {
         return panel;
     }
 
-    private Actor createLoadoutCard(String plantName, ClickListener clickListener) {
+    protected Actor createLoadoutCard(String plantName, ClickListener clickListener) {
         Stack stack = new Stack();
         SeedPacketCard card = null;
         try {
@@ -873,10 +873,26 @@ public class BeforeMatchScreen extends GameScreen {
         if (clickListener != null) {
             stack.addListener(clickListener);
         }
-        return stack;
+        // Give the plant card the same bordered-slot look the zombie cards have (their
+        // icon sits on a dedicated frame texture) - a thin card-background frame behind
+        // the packet art instead of the bare seed packet floating with no border.
+        return wrapWithCardFrame(stack, LOADOUT_CARD_W, LOADOUT_CARD_H);
     }
 
-    private Actor createEmptyLoadoutSlot(String labelText, boolean isRent, ClickListener clickListener) {
+    /**
+     * Wraps a card actor with a thin card-background "frame" behind it, so plant cards
+     * read as a bordered slot the same way zombie cards do (their frame.png border is
+     * baked into the icon texture itself). Returned actor keeps the requested outer size.
+     */
+    protected Actor wrapWithCardFrame(Actor content, float outerW, float outerH) {
+        Table framed = new Table();
+        framed.setBackground(skin.getDrawable("card-background"));
+        framed.pad(3f);
+        framed.add(content).size(outerW - 6f, outerH - 6f);
+        return framed;
+    }
+
+    protected Actor createEmptyLoadoutSlot(String labelText, boolean isRent, ClickListener clickListener) {
         Table slot = new Table();
         slot.setBackground(skin.getDrawable("card-background"));
 
@@ -904,7 +920,7 @@ public class BeforeMatchScreen extends GameScreen {
         return slot;
     }
 
-    private void showRentPlantPopup() {
+    protected void showRentPlantPopup() {
         if (activePopup != null) {
             activePopup.remove();
             activePopup = null;
@@ -997,7 +1013,7 @@ public class BeforeMatchScreen extends GameScreen {
         activePopup = popupOverlay;
     }
 
-    private void showNoticePopup(String titleText, String msgText) {
+    protected void showNoticePopup(String titleText, String msgText) {
         Table popupOverlay = new Table();
         popupOverlay.setFillParent(true);
 
@@ -1035,14 +1051,14 @@ public class BeforeMatchScreen extends GameScreen {
         getModalStack().add(popupOverlay);
     }
 
-    private int getUserCoins() {
+    protected int getUserCoins() {
         if (User.currentUser != null && User.currentUser.userState != null) {
             return User.currentUser.userState.coins;
         }
         return 0;
     }
 
-    private boolean tryDeductCoins(int amount) {
+    protected boolean tryDeductCoins(int amount) {
         if (User.currentUser != null && User.currentUser.userState != null) {
             if (User.currentUser.userState.coins >= amount) {
                 User.currentUser.userState.coins -= amount;
@@ -1052,7 +1068,7 @@ public class BeforeMatchScreen extends GameScreen {
         return false;
     }
 
-    private void togglePlant(String name) {
+    protected void togglePlant(String name) {
         Level level = GameSession.peekInstance() == null ? null : GameSession.peekInstance().getLevel();
         if (BeforeMenu.selectedPlants.stream().anyMatch(p -> p.equalsIgnoreCase(name))) {
             removePlant(name);
@@ -1071,7 +1087,7 @@ public class BeforeMatchScreen extends GameScreen {
         scheduleBuild();
     }
 
-    private void removePlant(String name) {
+    protected void removePlant(String name) {
         Level level = GameSession.peekInstance() == null ? null : GameSession.peekInstance().getLevel();
         if (level instanceof LockedPlantsLevel) {
             BeforeMenu.selectedPlants.removeIf(p -> p.equalsIgnoreCase(name));
@@ -1098,7 +1114,7 @@ public class BeforeMatchScreen extends GameScreen {
         return outer;
     }
 
-    private TextButton coloredButton(String text, Color color, float fontScale) {
+    protected TextButton coloredButton(String text, Color color, float fontScale) {
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = skin.getFont("default-font");
         style.fontColor = Color.BLACK;
@@ -1112,14 +1128,14 @@ public class BeforeMatchScreen extends GameScreen {
         return btn;
     }
 
-    private Drawable getRoundedAnimBgDrawable() {
+    protected Drawable getRoundedAnimBgDrawable() {
         if (roundedAnimBgDrawable == null) {
             roundedAnimBgDrawable = createRoundedTextureDrawable("assets/images/ui/collection/card_plant_bg_modern.png", 14f);
         }
         return roundedAnimBgDrawable;
     }
 
-    private Drawable createRoundedTextureDrawable(String path, float screenRadius) {
+    protected Drawable createRoundedTextureDrawable(String path, float screenRadius) {
         if (path != null && !path.isEmpty() && Gdx.files.internal(path).exists()) {
             Pixmap src = new Pixmap(Gdx.files.internal(path));
             int w = src.getWidth();
@@ -1152,15 +1168,15 @@ public class BeforeMatchScreen extends GameScreen {
         return solidColorDrawable(new Color(0f, 0f, 0f, 0f));
     }
 
-    private Drawable roundedFilledDrawable(Color fill, Color border, float radius, float thickness) {
+    protected Drawable roundedFilledDrawable(Color fill, Color border, float radius, float thickness) {
         return roundedDrawable(fill, border, radius, thickness, true);
     }
 
-    private Drawable roundedBorderDrawable(Color border, float thickness, float radius) {
+    protected Drawable roundedBorderDrawable(Color border, float thickness, float radius) {
         return roundedDrawable(new Color(1f, 1f, 1f, 0f), border, radius, thickness, false);
     }
 
-    private Drawable roundedDrawable(Color fill, Color border, float radius, float thickness, boolean filled) {
+    protected Drawable roundedDrawable(Color fill, Color border, float radius, float thickness, boolean filled) {
         int size = 64;
         Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
         pixmap.setBlending(Pixmap.Blending.None);
@@ -1189,7 +1205,7 @@ public class BeforeMatchScreen extends GameScreen {
         return new NinePatchDrawable(new com.badlogic.gdx.graphics.g2d.NinePatch(texture, 18, 18, 18, 18));
     }
 
-    private float roundedRectDistance(float x, float y, float w, float h, float radius) {
+    protected float roundedRectDistance(float x, float y, float w, float h, float radius) {
         float cx = Math.max(radius, Math.min(x, w - radius));
         float cy = Math.max(radius, Math.min(y, h - radius));
         float dx = x - cx;
@@ -1197,7 +1213,7 @@ public class BeforeMatchScreen extends GameScreen {
         return (float) Math.sqrt(dx * dx + dy * dy) - radius;
     }
 
-    private Drawable solidColorDrawable(Color color) {
+    protected Drawable solidColorDrawable(Color color) {
         Pixmap pixmap = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();
@@ -1215,7 +1231,7 @@ public class BeforeMatchScreen extends GameScreen {
         return new TextureRegion(texture);
     }
 
-    private class PlantIdleAnimationActor extends Actor {
+    protected class PlantIdleAnimationActor extends Actor {
         private final String animationPath;
         private float stateTime = 0f;
         private final float offsetX;

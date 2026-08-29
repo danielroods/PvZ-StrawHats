@@ -25,6 +25,11 @@ public class BeforeMenu extends Menu {
     private static final int PLANT_SLOTS = 8;
     public static List<String> selectedPlants = new ArrayList<>();
 
+    /** Co-op zombie roster - populated/consumed by {@link CoopBeforeMenu} and
+     *  {@link view.screens.match.before.CoopBeforeMatchScreen}. Lives here (next to
+     *  selectedPlants) so both loadouts reset together whenever a match starts fresh. */
+    public static List<String> selectedZombies = new ArrayList<>();
+
     private final CollectionManager manager = new CollectionManager();
 
     @Override

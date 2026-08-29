@@ -52,7 +52,15 @@ public class WallNutStrategy implements ActStrategy {
                     || !isInSweetPotatoFrontStrip(zombie, center)) continue;
 
             Position zombiePos = zombie.getPosition();
-            zombie.setPosition(new Position(zombiePos.x(), center.y()));
+            int fromRow = (int) Math.round(zombiePos.y());
+            int toRow = (int) Math.round(center.y());
+            if (fromRow != toRow) {
+                // Glide into the Sweet Potato's row smoothly instead of
+                // snapping instantly — same row-shift used by tile sliders.
+                session.beginSliderRide(zombie, zombiePos.x(), fromRow, toRow);
+            } else {
+                zombie.setPosition(new Position(zombiePos.x(), center.y()));
+            }
             zombie.setFacingRight(false);
             if (zombie.getSpeed() != null && zombie.getSpeed().x() > 0) {
                 zombie.setSpeed(new Position(-Math.abs(zombie.getSpeed().x()), zombie.getSpeed().y()));

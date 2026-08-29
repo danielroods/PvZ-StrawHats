@@ -1,7 +1,6 @@
 package model.collections.zombie.zombie_effect;
 
 import model.collections.zombie.Zombie;
-import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 import service.GameClock;
 
@@ -37,13 +36,14 @@ public class PianistMusicEffect implements ZombieEffectStatus {
             int directionModifier = Math.random() < 0.5 ? -1 : 1;
             int targetRow = activeRow + directionModifier;
 
-            if (targetRow >= 0 && targetRow < limitRows) {
-                dancer.setPosition(new Position(dancer.getPosition().x(), targetRow));
-            } else {
+            if (targetRow < 0 || targetRow >= limitRows) {
                 targetRow = activeRow - directionModifier;
-                if (targetRow >= 0 && targetRow < limitRows) {
-                    dancer.setPosition(new Position(dancer.getPosition().x(), targetRow));
-                }
+            }
+
+            if (targetRow >= 0 && targetRow < limitRows) {
+                // Glide into the new row smoothly instead of snapping
+                // instantly — same row-shift used by tile sliders.
+                session.beginSliderRide(dancer, dancer.getPosition().x(), activeRow, targetRow);
             }
         }
     }

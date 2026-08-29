@@ -332,6 +332,7 @@ public class Projectile extends Item {
 
     private void hitZombie(Zombie primary, GameSession session) {
         applyDamageAndEffect(primary);
+        if (moveStrategy != null) moveStrategy.onHit(this);
 
         int areaLength = hitEffectStrategy == null ? 1 : hitEffectStrategy.getAreaLength();
         double radius = Math.max(0, (areaLength - 1) / 2.0);
