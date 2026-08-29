@@ -34,7 +34,7 @@ public class IZombieMatch {
     public static final double COUCH_MATCH_SECONDS = 360.0;
 
     private static final int ZOMBIE_STAT_TIER = 3;
-    private static final int ZOMBIE_START_SUN = 1750;
+    private static final int ZOMBIE_START_SUN = 400;
     private static final int PLANT_START_SUN = 150;
     private static final int PLANT_SUN_GRANT = 25;
     private static final double PLANT_SUN_INTERVAL = 6.0;

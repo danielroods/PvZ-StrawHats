@@ -224,7 +224,7 @@ class NetworkIntegrationTest {
         plants.awaitOk(plants.send(Protocol.MATCH_READY, Envelope.obj("matchId", matchId)));
 
         MatchSnapshot first = awaitSnapshot(zombies, matchId);
-        assertEquals(1750, first.zombieSun, "the zombie player starts with a fixed budget");
+        assertEquals(400, first.zombieSun, "the zombie player starts with a fixed budget");
         assertEquals(150, first.plantSun, "the plant player starts small");
         assertEquals(6, first.packets.size(), "six zombie packets");
         assertEquals(6, first.seeds.size(), "six seed cards");
