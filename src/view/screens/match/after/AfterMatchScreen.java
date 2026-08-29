@@ -139,6 +139,7 @@ public class AfterMatchScreen extends UiScreen {
         AfterMenu menu = App.currentMenu instanceof AfterMenu ? (AfterMenu) App.currentMenu : null;
         resultText = menu == null ? "Match finished." : menu.showMenu();
         wonMatch = resultText.startsWith("YOU WIN");
+        AudioManager.get().playSound(wonMatch ? AudioEnum.SFX_MATCH_WIN : AudioEnum.SFX_MATCH_LOSE);
 
         if (wonMatch && !pinataSequenceStarted) {
             // Only ever start the piñata sequence once per screen instance - build() itself

@@ -16,6 +16,8 @@ import model.collections.zombie.zombie_effect.MageState;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -84,6 +86,9 @@ class PlantRenderer {
     private final Map<Plant, Integer> plantLastGrowthStage = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
+    // Plant Food application detection: fires SFX_PLANT_FOOD once on the frame
+    // isPlantFoodActive() flips from false to true (see drawPlants).
+    private final Map<Plant, Boolean> plantFoodLastActive = new IdentityHashMap<>();
 
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
@@ -135,6 +140,9 @@ class PlantRenderer {
             float plantOffsetY = y + 40f;
 
             if (findHexer(plant) != null) {
+                if (!sheepAnimTimes.containsKey(plant)) {
+                    AudioManager.get().playSound(AudioEnum.SFX_BLEAT);
+                }
                 drawSheep(plant, delta, plantOffsetX, plantOffsetY);
                 continue;
             } else {
@@ -142,6 +150,12 @@ class PlantRenderer {
             }
 
             String path = AnimationFactory.pathForDisplayName(plant.getName());
+
+            boolean plantFoodActiveNow = plant.isPlantFoodActive();
+            Boolean plantFoodWasActive = plantFoodLastActive.put(plant, plantFoodActiveNow);
+            if (plantFoodActiveNow && !Boolean.TRUE.equals(plantFoodWasActive)) {
+                AudioManager.get().playSound(AudioEnum.SFX_PLANT_FOOD);
+            }
 
             // The model has no "attacking" state - ActStrategy.act() fires a shot the
             // instant internalTimer hits 0 and immediately resets it to actionInterval.
@@ -160,6 +174,7 @@ class PlantRenderer {
                 plantAttackWindow.put(plant, attackDuration);
                 plantAttackIsBoosted.put(plant, boosted);
                 plantAttackBaseState.put(plant, baseAttackState);
+                playFireEventSound(plant);
             }
 
             Float attackTime = plantAttackAnimTimes.get(plant);
@@ -441,6 +456,7 @@ class PlantRenderer {
         plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        plantFoodLastActive.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
     }
@@ -797,6 +813,27 @@ class PlantRenderer {
     }
 
     /**
+     * Plays the plant SFX matching a just-detected fire event (see the cooldown-reset
+     * idiom above). Sun producers get the sun-produce chime; anything with a projectile
+     * gets normal/fire/ice shot SFX; melee-family plants get the melee-hit thud.
+     */
+    private void playFireEventSound(Plant plant) {
+        if (plant == null) return;
+        if (isSunProducingPlant(plant)) {
+            AudioManager.get().playSound(AudioEnum.SFX_SUN_PRODUCE);
+        } else if (plant.getType() == PlantType.MELEE) {
+            AudioManager.get().playSound(AudioEnum.SFX_MELEE_HIT);
+        } else if (plant.getTags().contains(PlantTag.FIRE)) {
+            AudioManager.get().playSound(AudioEnum.SFX_SHOOT_FIRE);
+        } else if (plant.getTags().contains(PlantTag.ICE)) {
+            AudioManager.get().playSound(AudioEnum.SFX_SHOOT_ICE);
+        } else if (plant.getType() == PlantType.SHOOTER || plant.getType() == PlantType.LOBBER
+                || plant.getType() == PlantType.HOMING || plant.getType() == PlantType.STRIKE_THROUGH) {
+            AudioManager.get().playSound(AudioEnum.SFX_SHOOT_NORMAL);
+        }
+    }
+
+    /**
      * Split Pea shoots both forward (right, toward the zombies) and backward (left) in the
      * same volley, but {@link model.collections.plant.actstrategy.ShootStrategy} only actually
      * launches a projectile toward a side that has a target (zombie or grave) in range. Its
@@ -856,6 +893,7 @@ class PlantRenderer {
             boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
             Position position = plant.getPosition();
             screen.effects().addExplodingPlantEffect(entry, loop, position, EXPLODING_PLANT_EFFECT_DURATION);
+            AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
         }

@@ -18,6 +18,8 @@ import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match_mechanisms.vector.Position;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 
 class BoardInteraction {
 
@@ -221,6 +223,7 @@ class BoardInteraction {
 
             if (Math.abs(world.x - centerX) <= radius && Math.abs(world.y - centerY) <= radius) {
                 screen.session.collectItemsNear(p);
+                AudioManager.get().playSound(AudioEnum.SFX_ITEM_COLLECT);
                 return true;
             }
         }

@@ -24,6 +24,8 @@ import model.utils.GameSettings;
 import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.textures.TextureBank;
 import service.GameClock;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 import view.hud.MatchHud;
 import view.screens.match.after.MatchEndSequence;
 
@@ -67,6 +69,12 @@ public class GameScreen extends UiScreen {
     private Image nukeFlashOverlay;
 
     private view.hud.ZombossDialogueBox zombossDialogue;
+    // Edge-detection so SFX_ZOMBOSS_NPC plays once per line, not every frame
+    // refreshZombossDialogue() runs - see that method.
+    private int lastZombossDialogueIndex = -1;
+    // Edge-detection so SFX_SANDSTORM plays once per storm, not every frame
+    // refreshSandStormAudio() runs - see that method.
+    private boolean lastSandStormActive = false;
 
     double tickAccumulator;
     boolean paused;
@@ -222,6 +230,7 @@ public class GameScreen extends UiScreen {
 
         refreshHud(delta);
         refreshZombossDialogue();
+        refreshSandStormAudio();
 
         Object camera = stage.getViewport().getCamera();
         OrthographicCamera orthoCamera = camera instanceof OrthographicCamera ? (OrthographicCamera) camera : null;
@@ -273,13 +282,32 @@ public class GameScreen extends UiScreen {
         model.match.boss.ZombossFight fight = session.getZombossFight();
         if (fight == null || fight.getPhase() != model.match.boss.ZombossPhase.NPC_TALK) {
             zombossDialogue.showLine(null, 0, 0);
+            lastZombossDialogueIndex = -1;
             return;
+        }
+
+        if (fight.getDialogueIndex() != lastZombossDialogueIndex) {
+            lastZombossDialogueIndex = fight.getDialogueIndex();
+            AudioManager.get().playSound(AudioEnum.SFX_ZOMBOSS_NPC);
         }
 
         zombossDialogue.showLine(
                 fight.getDialogueLine(),
                 fight.getDialogueIndex(),
                 fight.getDialogueCount());
+    }
+
+    // Edge-detection for SFX_SANDSTORM (Egypt's entry hazard) - same idiom as
+    // refreshZombossDialogue/lastTideColumn above, kept here (rather than per-screen)
+    // since isSandStormActive() is session-level and every GameScreen subclass already
+    // reaches render() -> refreshHud() each frame.
+    private void refreshSandStormAudio() {
+        if (session == null) return;
+        boolean active = session.isSandStormActive();
+        if (active && !lastSandStormActive) {
+            AudioManager.get().playSound(AudioEnum.SFX_SANDSTORM);
+        }
+        lastSandStormActive = active;
     }
 
     protected void refreshHud(float delta) {

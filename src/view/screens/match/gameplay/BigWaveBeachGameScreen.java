@@ -109,6 +109,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
 
         if (targetColumns != lastTideColumn) {
             lastTideColumn = targetColumns;
+            AudioManager.get().playSound(AudioEnum.SFX_WAVE);
         }
 
         float alpha = Math.min(1f, Math.max(0f, delta) / TIDE_MOVE_SECONDS);
@@ -171,6 +172,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         if (session.getBeachBigWaveIndex() != lastBigWaveIndex) {
             lastBigWaveIndex = session.getBeachBigWaveIndex();
             bigWaveAnimationTime = 0f;
+            AudioManager.get().playSound(AudioEnum.SFX_WIND);
         }
         float time = bigWaveAnimationTime += Math.max(0f, delta);
 

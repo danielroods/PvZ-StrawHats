@@ -30,6 +30,8 @@ import model.utils.GameSession;
 import pvz.libpvz.pam.PamPlayer;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,6 +65,9 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
     private final ProgressBar waveProgressBar;
+    // Edge-detection for SFX_WAVE_START (same idiom used throughout the renderers):
+    // fires once each time getWavesSpawnedCount() ticks up.
+    private int lastWavesSpawnedCount = -1;
     private final ProgressBar.ProgressBarStyle normalProgressStyle;
     private final ProgressBar.ProgressBarStyle bossProgressStyle;
     private final ProgressMeterOverlay progressMeterOverlay;
@@ -326,6 +331,10 @@ public final class MatchHud extends Table implements Disposable {
         coinLabel.setText(String.valueOf(coins));
         int spawned = session.getWavesSpawnedCount();
         int total = Math.max(1, session.getTotalWaveCount());
+        if (lastWavesSpawnedCount >= 0 && spawned > lastWavesSpawnedCount) {
+            AudioManager.get().playSound(AudioEnum.SFX_WAVE_START);
+        }
+        lastWavesSpawnedCount = spawned;
         Level currentLevel = session.getLevel();
         boolean bossLevel = currentLevel instanceof BossLevel;
 
@@ -371,7 +380,7 @@ public final class MatchHud extends Table implements Disposable {
         if (level instanceof model.match.main.levels.special_levels.IntroductionLevel) return "LEARN THE BASICS";
         if (level instanceof ConveyorBeltLevel) return "CONVEYOR BELT";
         if (level instanceof model.match.main.levels.special_levels.LockedPlantsLevel) return "LOCKED PLANTS";
-        if (level instanceof model.match.main.levels.special_levels.BossLevel) return "BOSS BATTLE";
+        if (level instanceof BossLevel) return "BOSS BATTLE";
         if (level instanceof model.match.main.levels.special_levels.SaveOurSeedsLevel) return "PROTECT YOUR PLANTS";
         if (level instanceof model.match.main.levels.special_levels.DeadLineLevel) return "DO NOT CROSS THE LINE";
         if (level instanceof model.match.main.levels.special_levels.TimedWarLevel) return "SURVIVE THE TIMER";

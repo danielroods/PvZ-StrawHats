@@ -23,6 +23,8 @@ import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.Environment;
 import model.pitches.TileType;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 import view.screens.match.gameplay.mini_games.ZombotanyArt;
 
 import java.util.ArrayList;
@@ -145,6 +147,12 @@ class ZombieRenderer {
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> zombieWaterRipples = new IdentityHashMap<>();
     private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
+    // Edge-detection for one-shot SFX (same idiom as zombieGyratingLast above):
+    // fires SFX_ZOMBIE_EAT the frame a zombie starts biting, SFX_HYPNOTIZE the
+    // frame Hypno-shroom flips a zombie to the player's side.
+    private final Map<Zombie, Boolean> zombieEatingLast = new IdentityHashMap<>();
+    private final Map<Zombie, Boolean> zombieHypnotizedLast = new IdentityHashMap<>();
+    private final Map<Zombie, String> zombieActionStateLast = new IdentityHashMap<>();
     private final Map<Zombie, Integer> zombieLastHp = new IdentityHashMap<>();
     private final Map<Zombie, Float> pianoDamageAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> arcadeDeathAnimTimes = new IdentityHashMap<>();
@@ -194,11 +202,16 @@ class ZombieRenderer {
             if (zombie.isFromNecromancy()) {
                 zombieSpawnEffects.put(zombie, 0f);
                 zombie.setFromNecromancy(false);
+                AudioManager.get().playSound(AudioEnum.SFX_NECROMANCY);
             }
 
             // Hypno-shroom's registered overlay marks a zombie that now fights for the player;
             // without it a hypnotised zombie is indistinguishable from a hostile one.
             boolean hypnotized = zombie.isHypnotized();
+            if (hypnotized && !zombieHypnotizedLast.getOrDefault(zombie, false)) {
+                AudioManager.get().playSound(AudioEnum.SFX_HYPNOTIZE);
+            }
+            zombieHypnotizedLast.put(zombie, hypnotized);
             if (hypnotized) {
                 screen.drawPam(HYPNO_ZOMBIE_EFFECT_PAM, "animation", t, x + 20f, zombieOffsetY,
                         HYPNO_OVERLAY_SCALE, false);
@@ -240,6 +253,11 @@ class ZombieRenderer {
                 // "cast", "cast_loop", "reel") takes priority over the plain
                 // eat/spin/walk resolution below.
                 preferred = zombie.getActionAnimationState();
+                if ("power_up".equals(preferred)
+                        && !"power_up".equals(zombieActionStateLast.get(zombie))) {
+                    AudioManager.get().playSound(AudioEnum.SFX_LASER_SHOT);
+                }
+                zombieActionStateLast.put(zombie, preferred);
             } else if (zombie.getZombieState() == ZombieState.EATING) {
                 // ZombieBeachFisherman's PAM has no dedicated "eat" clip; it
                 // reuses its "toss" animation for chomping instead.
@@ -248,7 +266,13 @@ class ZombieRenderer {
                         && !armour.isDestroyed();
                 preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss"
                         : hasNewspaper ? "eat_newspaper" : "eat";
+                if (!zombieEatingLast.getOrDefault(zombie, false)) {
+                    AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_EAT);
+                }
+                zombieEatingLast.put(zombie, true);
             } else {
+                zombieEatingLast.put(zombie, false);
+                zombieActionStateLast.remove(zombie);
                 boolean stillRunning = ZOMBIE_MODERN_ALLSTAR_ALIAS.equals(zombie.getAlias())
                         && zombie.getAttackBehavior() instanceof SmashAttack;
                 boolean hasNewspaper = ZOMBIE_NEWSPAPER_ALIAS.equals(zombie.getAlias())
@@ -355,6 +379,9 @@ class ZombieRenderer {
         zombieSpawnEffects.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieGyratingLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        zombieEatingLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        zombieHypnotizedLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        zombieActionStateLast.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieLastHp.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
@@ -375,6 +402,9 @@ class ZombieRenderer {
                     : AnimationFactory.clipDurationForPath(
                     shockPath, ZombieShockAnimationRegistry.SHOCK_STATE);
             if (shockPath != null && shockDuration <= 0f) shockDuration = DEATH_ANIM_DURATION;
+            if (shockPath != null) {
+                AudioManager.get().playSound(AudioEnum.SFX_ELECTRIC_SHOCK);
+            }
 
             String ashPath = (zombie.diedFromFire() || zombie.diedFromAsh() || zombie.diedFromShock())
                     ? ZombieAshAnimationRegistry.pathFor(zombie) : null;
@@ -519,6 +549,7 @@ class ZombieRenderer {
         Integer lastHp = zombieLastHp.put(zombie, zombie.getHP());
         if (lastHp != null && zombie.getHP() < lastHp) {
             pianoDamageAnimTimes.put(zombie, 0f);
+            AudioManager.get().playSound(AudioEnum.SFX_PIANO);
         }
 
         Float damageTime = pianoDamageAnimTimes.get(zombie);

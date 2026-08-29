@@ -18,6 +18,8 @@ import model.projectile.zombie_projectile.SnowballProjectile;
 import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -831,9 +833,14 @@ class EffectRenderer {
         for (ZombieProjectile projectile : live) {
             Position position = projectile.getPosition();
             if (position == null) continue;
+            boolean justSpawned = !zombieProjectileAnimTimes.containsKey(projectile);
             zombieProjectileTraces.put(projectile, position);
             float age = zombieProjectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             zombieProjectileAnimTimes.put(projectile, age);
+
+            if (justSpawned && projectile instanceof GargantuarImpProjectile) {
+                AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_IMP);
+            }
 
             if (projectile instanceof GargantuarImpProjectile impProjectile) {
                 // While a Gargantuar-thrown imp is airborne it isn't a Zombie yet (it
@@ -882,6 +889,7 @@ class EffectRenderer {
             if (position == null || isOffBoard(position)) continue;
             impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
                     false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
+            AudioManager.get().playSound(AudioEnum.SFX_BUBBLE_HIT);
         }
         zombieProjectileAnimTimes.keySet().removeIf(p -> !live.contains(p));
         zombieProjectileTraces.keySet().removeIf(p -> !live.contains(p));
@@ -905,6 +913,7 @@ class EffectRenderer {
                     entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
                     entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
                     PROJECTILE_PAM_SCALE));
+            AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_HIT);
         }
     }
 
