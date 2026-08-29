@@ -69,7 +69,7 @@ public class AfterMenu extends Menu {
         }
 
         int completedLevelId = won && level != null ? level.getId() : state.lastLevel;
-        state.recordGameResult(completedLevelId, coinsAwarded);
+        state.recordGameResult(completedLevelId);
 
         for (Level candidate : allLevels) {
             boolean unlockedBefore = LevelProgression.isUnlocked(allLevels, previousLastLevel, candidate);

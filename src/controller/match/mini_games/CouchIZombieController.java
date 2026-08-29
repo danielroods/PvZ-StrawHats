@@ -1,7 +1,7 @@
 package controller.match.mini_games;
 
+import controller.ui_menus.MainMenu;
 import controller.ui_menus.Menu;
-import controller.ui_menus.TravelLogMenu;
 import model.App;
 import model.Regex;
 import model.match.mini_games.izombie.IZombieMatch;
@@ -20,7 +20,7 @@ public class CouchIZombieController extends Menu {
                     + "\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$",
             Pattern.CASE_INSENSITIVE);
 
-    private IZombieMatch match = new IZombieMatch();
+    private IZombieMatch match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS);
     private boolean outcomeReported;
 
     public IZombieMatch getMatch() {
@@ -28,7 +28,7 @@ public class CouchIZombieController extends Menu {
     }
 
     public void restart() {
-        match = new IZombieMatch();
+        match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS);
         outcomeReported = false;
     }
 
@@ -103,12 +103,17 @@ public class CouchIZombieController extends Menu {
         App.currentMenu = new MiniGameEndMenu("Couch I, Zombie", true,
                 (plantsWon ? "Player 1 (plants) wins!" : "Player 2 (zombies) wins!")
                         + "  " + match.getEndReason(),
-                () -> App.currentMenu = new CouchIZombieController());
+                () -> App.currentMenu = new CouchIZombieController()) {
+            @Override
+            public void exitMenu() {
+                App.currentMenu = new MainMenu();
+            }
+        };
     }
 
     @Override
     public void exitMenu() {
-        App.currentMenu = new TravelLogMenu();
+        App.currentMenu = new MainMenu();
     }
 
     @Override

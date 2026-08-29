@@ -19,6 +19,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import model.match.main.levels.Level;
 import model.user_data.User;
 import model.utils.LevelLoader;
+import net.client.NetworkClient;
+import net.dto.LeaderboardRowDto;
+import net.dto.LeaderboardRows;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.screens.generals.UiScreen;
@@ -50,6 +53,9 @@ public class LeaderboardScreen extends UiScreen {
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
         super.show();
         build();
+        if (NetworkClient.get().isSignedIn()) {
+            NetworkClient.get().requestLeaderboard(envelope -> build());
+        }
     }
 
     private void build() {
@@ -137,7 +143,7 @@ public class LeaderboardScreen extends UiScreen {
         header.add(createLabel("Stage", "muted")).width(COL_STAGE);
         header.add(createLabel("Minigames", "muted")).width(COL_MINIGAMES);
         header.add(createLabel("Quests", "muted")).width(COL_QUESTS);
-        header.add(createLabel("Score", "muted")).width(COL_SCORE);
+        header.add(createLabel("My Point", "muted")).width(COL_SCORE);
         return header;
     }
 
@@ -145,18 +151,11 @@ public class LeaderboardScreen extends UiScreen {
         Table list = new Table();
         list.top();
 
-        List<Level> allLevels;
-        try {
-            allLevels = LevelLoader.loadLevels();
-        } catch (Exception e) {
+        List<LeaderboardRowDto> rows = loadRows();
+        if (rows == null) {
             list.add(createLabel("Could not load leaderboard data.", "muted")).pad(30);
             return list;
         }
-
-        List<LeaderboardRow> rows = User.users.stream()
-                .map(u -> LeaderboardRow.of(u, allLevels))
-                .collect(Collectors.toList());
-
         if (rows.isEmpty()) {
             list.add(createLabel("No records yet.", "muted")).pad(30);
             return list;
@@ -165,31 +164,60 @@ public class LeaderboardScreen extends UiScreen {
         sortRows(rows);
 
         int rank = 1;
-        for (LeaderboardRow row : sort.ascending? rows : rows.reversed())
+        for (LeaderboardRowDto row : sort.ascending ? rows : rows.reversed()) {
             list.add(buildRow(rank++, row)).width(ROW_WIDTH).padBottom(10).row();
-
+        }
         return list;
     }
 
-    private void sortRows(List<LeaderboardRow> rows) {
-        Comparator<LeaderboardRow> comparator = switch (sort.column) {
+    private List<LeaderboardRowDto> loadRows() {
+        List<LeaderboardRowDto> online = NetworkClient.get().getLeaderboardRows();
+        if (NetworkClient.get().isSignedIn() && online != null) {
+            return new java.util.ArrayList<>(online);
+        }
+        List<Level> allLevels;
+        try {
+            allLevels = LevelLoader.loadLevels();
+        } catch (Exception e) {
+            return null;
+        }
+        return User.users.stream()
+                .map(user -> LeaderboardRows.of(user, allLevels))
+                .collect(Collectors.toList());
+    }
+
+    private void sortRows(List<LeaderboardRowDto> rows) {
+        Comparator<LeaderboardRowDto> comparator = switch (sort.column) {
             case RANK -> null;
-            case USERNAME -> Comparator.comparing((LeaderboardRow r) -> r.user.username,
+            case USERNAME -> Comparator.comparing((LeaderboardRowDto r) -> r.username,
                     String.CASE_INSENSITIVE_ORDER);
-            case SEASON -> Comparator.comparing((LeaderboardRow r) -> r.season, String.CASE_INSENSITIVE_ORDER);
-            case CHAPTER -> Comparator.comparing((LeaderboardRow r) -> r.chapter, String.CASE_INSENSITIVE_ORDER);
-            case STAGE -> Comparator.comparingInt((LeaderboardRow r) -> r.stageLevelId);
-            case MINIGAMES -> Comparator.comparingInt((LeaderboardRow r) -> r.miniGamesWon);
-            case QUESTS -> Comparator.comparingInt((LeaderboardRow r) -> r.questsCompleted);
-            case SCORE -> Comparator.comparingInt((LeaderboardRow r) -> r.highScore);
+            case SEASON -> Comparator.comparing((LeaderboardRowDto r) -> r.season,
+                    String.CASE_INSENSITIVE_ORDER);
+            case CHAPTER -> Comparator.comparing((LeaderboardRowDto r) -> r.chapter,
+                    String.CASE_INSENSITIVE_ORDER);
+            case STAGE -> Comparator.comparingInt((LeaderboardRowDto r) -> r.stageLevelId);
+            case MINIGAMES -> Comparator.comparingInt((LeaderboardRowDto r) -> r.miniGamesWon);
+            case QUESTS -> Comparator.comparingInt((LeaderboardRowDto r) -> r.questsCompleted);
+            case SCORE -> myPointComparator();
         };
         if (comparator == null) return;
         rows.sort(comparator);
-
     }
 
-    private Table buildRow(int rank, LeaderboardRow row) {
-        boolean isYou = User.currentUser != null && User.currentUser.username.equals(row.user.username);
+    private Comparator<LeaderboardRowDto> myPointComparator() {
+        return (left, right) -> {
+            boolean leftMissing = left.myPoint == null;
+            boolean rightMissing = right.myPoint == null;
+            if (leftMissing && rightMissing) return 0;
+            if (leftMissing) return sort.ascending ? 1 : -1;
+            if (rightMissing) return sort.ascending ? -1 : 1;
+            return Integer.compare(left.myPoint, right.myPoint);
+        };
+    }
+
+    private Table buildRow(int rank, LeaderboardRowDto row) {
+        boolean isYou = User.currentUser != null
+                && User.currentUser.username.equals(row.username);
 
         Table card = new Table();
         card.setBackground(isYou ? highlightRowDrawable() : skin.getDrawable("card-background"));
@@ -197,14 +225,14 @@ public class LeaderboardScreen extends UiScreen {
         card.defaults().left().padRight(8);
 
         card.add(rankBadge(rank)).width(COL_RANK);
-        card.add(avatarStack(row.user)).size(COL_AVATAR);
-        card.add(nameColumn(row.user)).width(COL_NAME);
+        card.add(avatarStack(row)).size(COL_AVATAR);
+        card.add(nameColumn(row)).width(COL_NAME);
         card.add(createLabel(row.season, "main")).width(COL_SEASON);
         card.add(createLabel(row.chapter, "main")).width(COL_CHAPTER);
         card.add(createLabel(row.stage, "main")).width(COL_STAGE);
         card.add(createLabel(String.valueOf(row.miniGamesWon), "main")).width(COL_MINIGAMES);
         card.add(createLabel(String.valueOf(row.questsCompleted), "main")).width(COL_QUESTS);
-        card.add(scoreLabel(row.highScore)).width(COL_SCORE);
+        card.add(scoreLabel(row.myPoint)).width(COL_SCORE);
 
         return card;
     }
@@ -236,12 +264,12 @@ public class LeaderboardScreen extends UiScreen {
         return badge;
     }
 
-    private Actor avatarStack(User user) {
+    private Actor avatarStack(LeaderboardRowDto row) {
         Stack stack = new Stack();
         Image frame = new Image(loadTextureSafe("assets/images/ui/reward4_bg.png"));
 
-        String avatarPath = (user.profilePicture != null && !user.profilePicture.isEmpty())
-                ? user.profilePicture
+        String avatarPath = (row.profilePicture != null && !row.profilePicture.isEmpty())
+                ? row.profilePicture
                 : "assets/images/ui/avatar_luffy.png";
 
         Table avatarWrap = new Table();
@@ -252,21 +280,25 @@ public class LeaderboardScreen extends UiScreen {
         return stack;
     }
 
-    private Table nameColumn(User user) {
+    private Table nameColumn(LeaderboardRowDto row) {
         Table col = new Table();
-        col.add(new Label(user.username, skin, "title")).left().row();
+        col.add(new Label(row.username, skin, "title")).left().row();
 
-        if (user.nickname != null && !user.nickname.isEmpty() && !user.nickname.equals(user.username)) {
-            Label nick = createLabel(user.nickname, "muted");
+        if (row.nickname != null && !row.nickname.isEmpty() && !row.nickname.equals(row.username)) {
+            Label nick = createLabel(row.nickname, "muted");
             nick.setFontScale(0.75f);
             col.add(nick).left();
         }
         return col;
     }
 
-    private Label scoreLabel(int highScore) {
+    private Label scoreLabel(Integer myPoint) {
+        if (myPoint == null) {
+            Label.LabelStyle muted = new Label.LabelStyle(skin.getFont("default-font"), Color.GRAY);
+            return new Label("—", muted);
+        }
         Label.LabelStyle style = new Label.LabelStyle(skin.getFont("default-font"), Color.GOLD);
-        return new Label(String.valueOf(highScore), style);
+        return new Label(String.valueOf(myPoint), style);
     }
 
     private Drawable circleDrawable(Color color, int diameter) {
@@ -352,44 +384,4 @@ public class LeaderboardScreen extends UiScreen {
 
 
 
-    private record LeaderboardRow(User user, String season, String chapter, String stage, int stageLevelId,
-                                  int miniGamesWon, int questsCompleted, int highScore) {
-
-        static LeaderboardRow of(User user, List<Level> allLevels) {
-            Level level = null;
-            if (user.userState.lastLevel > 0) {
-                level = allLevels.stream()
-                        .filter(l -> l.getId() == user.userState.lastLevel)
-                        .findFirst()
-                        .orElse(null);
-            }
-
-            String season = "-";
-            String chapter = "-";
-            String stage = "-";
-            int stageLevelId = -1;
-
-            if (level != null) {
-                season = capitalize(level.getSeason().getName());
-                stageLevelId = level.getId();
-                String name = level.getName();
-                int idx = name.indexOf(" - ");
-                if (idx >= 0) {
-                    chapter = name.substring(0, idx);
-                    stage = name.substring(idx + 3);
-                } else {
-                    chapter = name;
-                    stage = name;
-                }
-            }
-
-            return new LeaderboardRow(user, season, chapter, stage, stageLevelId,
-                    user.userState.miniGamesWon, user.userState.questsCompleted, user.userState.highScore);
-        }
-
-        private static String capitalize(String s) {
-            if (s == null || s.isEmpty()) return s;
-            return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-        }
-    }
 }

@@ -89,14 +89,15 @@ public class LeaderboardMenu extends Menu {
 
         StringBuilder sb = new StringBuilder("[ Leaderboard Menu ]  (sorted by ")
                 .append(sortColumn).append(", ").append(ascending ? "ascending" : "descending").append(")\n");
-        sb.append(String.format("%-5s %-16s %-10s %-20s %-14s %-11s %-8s %-6s%n",
-                "Rank", "Username", "Season", "Chapter", "Stage", "MiniGames", "Quests", "Score"));
+        sb.append(String.format("%-5s %-16s %-10s %-20s %-14s %-11s %-8s %-8s%n",
+                "Rank", "Username", "Season", "Chapter", "Stage", "MiniGames", "Quests", "MyPoint"));
 
         int rank = 1;
         for (Row row : rows) {
-            sb.append(String.format("%-5d %-16s %-10s %-20s %-14s %-11d %-8d %-6d%n",
+            sb.append(String.format("%-5d %-16s %-10s %-20s %-14s %-11d %-8d %-8s%n",
                     rank++, row.username, row.season, row.chapter, row.stage,
-                    row.miniGamesWon, row.questsCompleted, row.highScore));
+                    row.miniGamesWon, row.questsCompleted,
+                    row.myPoint == null ? "-" : String.valueOf(row.myPoint)));
         }
 
         return sb.toString().trim() + commands;
@@ -111,8 +112,10 @@ public class LeaderboardMenu extends Menu {
             case "stage" -> Comparator.comparingInt((Row r) -> r.stageLevelId);
             case "minigames" -> Comparator.comparingInt((Row r) -> r.miniGamesWon);
             case "quests" -> Comparator.comparingInt((Row r) -> r.questsCompleted);
-            case "score" -> Comparator.comparingInt((Row r) -> r.highScore);
-            default -> Comparator.comparingInt((Row r) -> r.highScore);
+            case "score" -> Comparator.comparing((Row r) -> r.myPoint,
+                    Comparator.nullsFirst(Comparator.naturalOrder()));
+            default -> Comparator.comparing((Row r) -> r.myPoint,
+                    Comparator.nullsFirst(Comparator.naturalOrder()));
         };
 
         if (comparator == null) {
@@ -126,7 +129,7 @@ public class LeaderboardMenu extends Menu {
 
 
     private record Row(String username, String season, String chapter, String stage, int stageLevelId, int miniGamesWon,
-                       int questsCompleted, int highScore) {
+                       int questsCompleted, Integer myPoint) {
 
         static Row of(User user, List<Level> allLevels) {
                 Level level = null;
@@ -157,7 +160,8 @@ public class LeaderboardMenu extends Menu {
                 }
 
                 return new Row(user.username, season, chapter, stage, stageLevelId,
-                        user.userState.miniGamesWon, user.userState.questsCompleted, user.userState.highScore);
+                        user.userState.miniGamesWon, user.userState.questsCompleted,
+                        user.userState.bonusHighScore);
             }
 
             private static String capitalize(String s) {

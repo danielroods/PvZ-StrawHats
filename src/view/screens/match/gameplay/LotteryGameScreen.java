@@ -40,6 +40,8 @@ public class LotteryGameScreen extends GameScreen {
     private final List<Long> recentKillTimestamps = new ArrayList<>();
     private final Map<Zombie, Float> knownZombies = new IdentityHashMap<>();
 
+    private int meowPoints = 0;
+    private boolean scoreSubmitted = false;
     private float gameTimeSeconds = 0f;
     private float spawnTimer = 0f;
     private float sunSpawnTimer = 0f;
@@ -363,6 +365,7 @@ public class LotteryGameScreen extends GameScreen {
 
         int totalMeowPoints = calculate5PatternPoints(zombie, isPiercingShot, spawnTimeSeconds, killTimeSeconds);
 
+        meowPoints += totalMeowPoints;
         if (lotteryHud != null) {
             lotteryHud.addPoints(totalMeowPoints);
             lotteryHud.updateCombo(comboCount);
@@ -386,11 +389,34 @@ public class LotteryGameScreen extends GameScreen {
         return Math.round(rawScore * difficultyMultiplier);
     }
 
+    private void submitBonusScore() {
+        if (scoreSubmitted) return;
+        scoreSubmitted = true;
+
+        net.client.NetworkClient client = net.client.NetworkClient.get();
+        if (!client.isSignedIn()) {
+            view.screens.generals.Toast.show(stage, "Sign in to multiplayer to record "
+                    + meowPoints + " MyoPoints on the leaderboard.");
+            return;
+        }
+        client.submitBonusScore(meowPoints, envelope -> {
+            if (!envelope.isType(net.Protocol.OK)) return;
+            int best = envelope.getInt("bestScore", meowPoints);
+            if (model.user_data.User.currentUser != null) {
+                model.user_data.User.currentUser.userState.bonusHighScore = best;
+            }
+            view.screens.generals.Toast.show(stage, envelope.getBoolean("improved", false)
+                    ? "New record! " + best + " MyoPoints."
+                    : "Scored " + meowPoints + ". Your record stays " + best + ".");
+        });
+    }
+
     @Override
     protected void checkMatchEnd() {
         if (matchFinished) return;
 
         if (session != null && session.isGameOver()) {
+            submitBonusScore();
             matchFinished = true;
             try {
                 App.currentMenu = new AfterMenu();

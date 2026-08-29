@@ -218,7 +218,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         if (hud == null || match == null) return;
         double remaining = match.getRemainingSeconds();
         float progress = (float) Math.max(0, Math.min(1,
-                1.0 - remaining / IZombieMatch.MATCH_SECONDS));
+                1.0 - remaining / match.getMatchSeconds()));
         hud.setProgressOverride(String.format("BRAINZ %d/5   %02d:%02d",
                 match.getBrainsEaten(), (int) (remaining / 60), (int) (remaining % 60)),
                 progress);

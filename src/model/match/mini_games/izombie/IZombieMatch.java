@@ -31,6 +31,7 @@ public class IZombieMatch {
     public static final int BRAIN_COLUMN = 0;
     public static final int REDLINE_COLUMN = 5;
     public static final double MATCH_SECONDS = 120.0;
+    public static final double COUCH_MATCH_SECONDS = 360.0;
 
     private static final int ZOMBIE_STAT_TIER = 3;
     private static final int ZOMBIE_START_SUN = 1750;
@@ -61,6 +62,7 @@ public class IZombieMatch {
     private final Set<Zombie> zombieSideUnits = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<MatchEvent> pendingEvents = new ArrayList<>();
 
+    private final double matchSeconds;
     private int plantSun = PLANT_START_SUN;
     private double plantSunTimer;
     private double elapsedSeconds;
@@ -70,6 +72,11 @@ public class IZombieMatch {
     private String endReason = "";
 
     public IZombieMatch() {
+        this(MATCH_SECONDS);
+    }
+
+    public IZombieMatch(double matchSeconds) {
+        this.matchSeconds = matchSeconds;
         this.session = new GameSession(ROWS, COLS);
         session.setDifficultyLevel(ZOMBIE_STAT_TIER);
         session.setSkySunEnabled(false);
@@ -289,8 +296,8 @@ public class IZombieMatch {
             finish(Role.ZOMBIES, "All the brainz were eaten.");
             return;
         }
-        if (elapsedSeconds >= MATCH_SECONDS) {
-            finish(Role.PLANTS, "The plants held the lawn for two minutes.");
+        if (elapsedSeconds >= matchSeconds) {
+            finish(Role.PLANTS, "The plants held the lawn until time ran out.");
             return;
         }
         if (zombieSideUnits.isEmpty() && cheapestZombieCost() > session.getSunCount()) {
@@ -368,8 +375,12 @@ public class IZombieMatch {
         return elapsedSeconds;
     }
 
+    public double getMatchSeconds() {
+        return matchSeconds;
+    }
+
     public double getRemainingSeconds() {
-        return Math.max(0.0, MATCH_SECONDS - elapsedSeconds);
+        return Math.max(0.0, matchSeconds - elapsedSeconds);
     }
 
     public int getBrainsEaten() {

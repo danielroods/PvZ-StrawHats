@@ -293,7 +293,7 @@ public class NetworkScreen extends UiScreen {
             }
         });
 
-        Label title = new Label("Multiplayer", skin, "title");
+        Label title = new Label("Online Match", skin, "title");
         title.setColor(Color.WHITE);
 
         Table left = new Table();
@@ -302,6 +302,8 @@ public class NetworkScreen extends UiScreen {
 
         Table bar = new Table();
         bar.add(left).left().expandX();
+        bar.add(secondaryButton("Leaderboard",
+                () -> runCommand("menu enter leaderboard"))).width(190).height(45).right();
         return bar;
     }
 

@@ -13,6 +13,7 @@ public class UserState {
     public int difficultyLevel;
     public int gamesPlayed = 0;
     public int highScore = 0;
+    public Integer bonusHighScore;
     public int miniGamesWon = 0;
     public int questsCompleted = 0;
 
@@ -81,10 +82,19 @@ public class UserState {
         if (item != null) news.add(item);
     }
 
-    public void recordGameResult(int levelReached, int score) {
+    public void recordGameResult(int levelReached) {
         gamesPlayed++;
         if (levelReached > lastLevel) lastLevel = levelReached;
-        if (score > highScore) highScore = score;
+    }
+
+    public boolean recordBonusScore(int score) {
+        if (bonusHighScore != null && score <= bonusHighScore) return false;
+        bonusHighScore = score;
+        return true;
+    }
+
+    public boolean hasBonusScore() {
+        return bonusHighScore != null;
     }
 
     public boolean hasUnreadNews() {

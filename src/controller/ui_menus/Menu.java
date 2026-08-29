@@ -34,8 +34,10 @@ public abstract class Menu {
             case "collection" -> App.currentMenu = new CollectionMenu();
             case "travellog" -> App.currentMenu = new TravelLogMenu();
             case "leaderboard" -> App.currentMenu = new LeaderboardMenu();
-            case "network", "multiplayer" ->
+            case "network", "multiplayer", "onlinematch", "online match" ->
                     App.currentMenu = new controller.ui_menus.network.NetworkMenu();
+            case "coop", "co-op", "izombiecoop" ->
+                    App.currentMenu = new controller.match.mini_games.CouchIZombieController();
             default -> throw new GameException("no such menu.");
         }
         System.out.println("Menu changed to: " + menuKey + " menu");
