@@ -96,6 +96,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
     // Set true once a "catch" animation completes, and set false again once Plant Food
     // throws the held items at zombies - see ModifyStrategy and DisarmBlast.
     private boolean magnetItemVisible = false;
+    // Set when Hot Potato is planted on an IceBlock so the renderer can play the
+    // ice-melting puddle effect once, without coupling the model to EffectRenderer.
+    private boolean hotPotatoMeltEffectPending = false;
 
     private PlantArmour armor;
 
@@ -913,6 +916,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isMagnetItemVisible() { return magnetItemVisible; }
     public void setMagnetItemVisible(boolean visible) { this.magnetItemVisible = visible; }
+
+    public boolean isHotPotatoMeltEffectPending() { return hotPotatoMeltEffectPending; }
+    public void setHotPotatoMeltEffectPending(boolean pending) { this.hotPotatoMeltEffectPending = pending; }
 
     public boolean isSpecialInvulnerable() { return specialInvulnerable; }
     public void setSpecialInvulnerable(boolean value) { this.specialInvulnerable = value; }

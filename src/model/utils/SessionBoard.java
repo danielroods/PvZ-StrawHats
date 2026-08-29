@@ -285,6 +285,7 @@ class SessionBoard {
              * animation/explosion lifecycle.
              */
             plant.setPosition(new Position(col, row));
+            plant.setHotPotatoMeltEffectPending(true);
 
             if (!plants.contains(plant)) {
                 plants.add(plant);

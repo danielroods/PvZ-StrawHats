@@ -11,11 +11,15 @@ import model.collections.plant.AbilityType;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.plant.PlantType;
+import model.collections.plant.plantfood.TangleKelpPlantFood;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_effect.MageState;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.obstacles.OctopusWrap;
+import model.collections.animations.ZombieAnimationRegistry;
+import model.pitches.TileType;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 
@@ -34,11 +38,17 @@ class PlantRenderer {
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
     private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
-    // Dark Wizard's hex ("sheepening"): "animation" plays once as the plant
-    // transforms, then "idle" holds for as long as it stays hexed.
+    // Dark Wizard's hex (sheepening): transform once, then hold the sheep idle.
     private static final String SHEEP_PAM = "768/FULL/EFFECTS/DARK_WIZARD_SHEEPENING/DARK_WIZARD_SHEEPENING.PAM";
     private static final float DEFAULT_SHEEP_TRANSFORM_DURATION = 0.6f;
     private static final float SHEEP_SCALE = 0.5f;
+    private static final String GRAPESHOT_ATTACK_STATE = "attack_t2";
+    private static final String BOWLING_BULB_NAME = "Bowling Bulb";
+    private static final String EXPLODE_O_NUT_BLINK_PAM =
+            "768/INITIAL/EFFECTS/EXPLODEONUT_BLINK/EXPLODEONUT_BLINK.PAM";
+    private static final float EXPLODE_O_NUT_BLINK_SCALE = 0.55f;
+    private static final Color EXPLODE_O_NUT_BLINK_TINT = new Color(1f, 0.55f, 0.30f, 0.55f);
+    private static final float EXPLODE_O_NUT_PLANTFOOD_OFF_HOLD = 0.2667f;
 
     private final GameScreen screen;
 
@@ -66,6 +76,7 @@ class PlantRenderer {
 
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> sheepAnimTimes = new IdentityHashMap<>();
+    private final Map<Cell, Float> octopusWrapAnimTimes = new IdentityHashMap<>();
     // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
     private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
@@ -86,9 +97,39 @@ class PlantRenderer {
     private final Map<Plant, Integer> plantLastGrowthStage = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
-    // Plant Food application detection: fires SFX_PLANT_FOOD once on the frame
-    // isPlantFoodActive() flips from false to true (see drawPlants).
+
+    // Bowling Bulb cycles through 3 different balls (light/medium/heavy) each shot, both on
+    // a normal attack and on every shot of its Plant Food burst - see BowlingBulbStrategy's
+    // own ammoIndex. This mirrors that same 0/1/2 cycle here, advanced once per fire event
+    // (the same cooldown-reset detection used for plantAttackAnimTimes above), so the right
+    // "special"/"specialN" (attack), "plantfoodN" (Plant Food) and "reloadN" (post-attack
+    // cooldown, non-Plant-Food only) clip can be picked for whichever ball just fired.
+    private final Map<Plant, Integer> bowlingBulbShotIndex = new IdentityHashMap<>();
+
+    // Doom-shroom has its own three-stage visual lifecycle: spawn -> stage idle ->
+    // stage transform -> next stage idle. These are tracked per instance because the
+    // plant can create new stage-1 Doom-shrooms when a higher-stage Doom explodes.
+    private final Map<Plant, Float> doomSpawnAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomSpawnWindows = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomTransformAnimTimes = new IdentityHashMap<>();
+    private final Map<Plant, Float> doomTransformWindows = new IdentityHashMap<>();
+    private final Map<Plant, Integer> doomLastGrowthStage = new IdentityHashMap<>();
     private final Map<Plant, Boolean> plantFoodLastActive = new IdentityHashMap<>();
+
+    private final Map<Plant, Integer> endurianAttackPhases = new IdentityHashMap<>();
+    private final Map<Plant, Float> endurianAttackTimes = new IdentityHashMap<>();
+
+    private final Map<Plant, Float> explodeONutBlinkTimes = new IdentityHashMap<>();
+    private final Map<Plant, Boolean> explodeONutHadArmor = new IdentityHashMap<>();
+    private final Map<Plant, Float> explodeONutArmorOffTimes = new IdentityHashMap<>();
+
+    // Headbutter Lettuce (Plants.json "Iceberg Lettuce") Plant Food: a three-phase
+    // "plantfood_on" (intro, once) -> "plantfood_loop" (holds for the rest of the Plant
+    // Food window) -> "plantfood_off" (outro, once, played after the Plant Food window
+    // closes) sequence - see advanceHeadbutterLettuceTimers/headbutterLettuceState below.
+    private final Map<Plant, Boolean> headbutterLettucePfWasActive = new IdentityHashMap<>();
+    private final Map<Plant, Float> headbutterLettucePfOnTime = new IdentityHashMap<>();
+    private final Map<Plant, Float> headbutterLettucePfOffTime = new IdentityHashMap<>();
 
     PlantRenderer(GameScreen screen) {
         this.screen = screen;
@@ -114,8 +155,10 @@ class PlantRenderer {
                 if (!prepping) {
                     String loopState;
                     if (plant.isWallNut()) loopState = plant.getWallNutHealthAnimationState();
+                    else if (plant.isExplodeONut()) loopState = resolveExplodeONutIdleState(plant);
                     else if (plant.isTallNut()) loopState = plant.getTallNutHealthAnimationState();
                     else if (plant.isGarlic()) loopState = plant.getGarlicHealthAnimationState();
+                    else if (plant.isEndurian()) loopState = resolveEndurianIdleState(plant);
                     else loopState = plantStackState(plant, "idle");
                     float idleDuration = screen.pam().resolvePlantClipDuration(plant.getName(), loopState);
                     if (idleDuration > 0f) t %= idleDuration;
@@ -151,6 +194,11 @@ class PlantRenderer {
 
             String path = AnimationFactory.pathForDisplayName(plant.getName());
 
+            if ("Hot Potato".equalsIgnoreCase(plant.getName()) && plant.isHotPotatoMeltEffectPending()) {
+                screen.effects().addHotPotatoMeltEffect(plant.getPosition());
+                plant.setHotPotatoMeltEffectPending(false);
+            }
+
             boolean plantFoodActiveNow = plant.isPlantFoodActive();
             Boolean plantFoodWasActive = plantFoodLastActive.put(plant, plantFoodActiveNow);
             if (plantFoodActiveNow && !Boolean.TRUE.equals(plantFoodWasActive)) {
@@ -164,7 +212,12 @@ class PlantRenderer {
             // for plantAttackAnimTimes/plantAttackWindow to ride out.
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
-            if (!frozenInIce && lastCooldown != null && cooldown > lastCooldown + 0.05) {
+            if (!frozenInIce && !"Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && lastCooldown != null && cooldown > lastCooldown + 0.05) {
+                if (isBowlingBulb(plant)) {
+                    int nextShotIndex = (bowlingBulbShotIndex.getOrDefault(plant, -1) + 1) % 3;
+                    bowlingBulbShotIndex.put(plant, nextShotIndex);
+                }
                 boolean boosted = plant.isPlantFoodActive();
                 String baseAttackState = resolveAttackBaseState(plant);
                 String durationState = boosted ? plantFoodClipState(plant) : baseAttackState;
@@ -194,6 +247,50 @@ class PlantRenderer {
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
 
+            // Doom-shroom has explicit stage clips supplied by its PAM. A newly planted
+            // Doom starts with stage1_spawn; each GrowthTracker transition plays the
+            // corresponding transform clip once before settling into the new stage idle.
+            if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
+                Integer lastStage = doomLastGrowthStage.put(plant, stage);
+                if (!frozenInIce && lastStage == null) {
+                    float duration = screen.pam().resolvePlantClipDuration(plant.getName(), "stage1_spawn");
+                    if (duration <= 0f) duration = DEFAULT_PLANT_ATTACK_DURATION;
+                    doomSpawnAnimTimes.put(plant, 0f);
+                    doomSpawnWindows.put(plant, duration);
+                } else if (!frozenInIce && lastStage != null && stage > lastStage) {
+                    String transformState = "stage" + lastStage + "_transform";
+                    float duration = screen.pam().resolvePlantClipDuration(plant.getName(), transformState);
+                    if (duration <= 0f) duration = DEFAULT_PLANT_ATTACK_DURATION;
+                    doomTransformAnimTimes.put(plant, 0f);
+                    doomTransformWindows.put(plant, duration);
+                }
+            }
+
+            Float doomSpawnTime = doomSpawnAnimTimes.get(plant);
+            if (doomSpawnTime != null && !frozenInIce) {
+                doomSpawnTime += delta;
+                float window = doomSpawnWindows.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (doomSpawnTime >= window) {
+                    doomSpawnAnimTimes.remove(plant);
+                    doomSpawnWindows.remove(plant);
+                } else {
+                    doomSpawnAnimTimes.put(plant, doomSpawnTime);
+                }
+            }
+
+            Float doomTransformTime = doomTransformAnimTimes.get(plant);
+            if (doomTransformTime != null && !frozenInIce) {
+                doomTransformTime += delta;
+                float window = doomTransformWindows.getOrDefault(plant, DEFAULT_PLANT_ATTACK_DURATION);
+                if (doomTransformTime >= window) {
+                    doomTransformAnimTimes.remove(plant);
+                    doomTransformWindows.remove(plant);
+                } else {
+                    doomTransformAnimTimes.put(plant, doomTransformTime);
+                }
+            }
+
             // Sun-shroom grows through 3 stages over time (GrowthTracker). Every time it
             // steps up a stage, briefly play the matching one-shot "growth_stageN" clip
             // before settling back into that stage's idle/plantfood loop.
@@ -220,8 +317,20 @@ class PlantRenderer {
                 }
             }
             boolean growing = plantGrowthAnimTimes.containsKey(plant) && !plant.isPlantFoodActive();
+
+            boolean endurian = plant.isEndurian();
+            if (endurian && !frozenInIce) advanceEndurianAttack(plant, delta);
+            int endurianPhase = endurian ? endurianAttackPhases.getOrDefault(plant, 0) : 0;
+
+            boolean explodeONut = plant.isExplodeONut();
+            if (explodeONut && !frozenInIce) advanceExplodeONutTimers(plant, delta);
+
+            boolean headbutterLettuce = isHeadbutterLettuce(plant);
+            if (headbutterLettuce && !frozenInIce) advanceHeadbutterLettuceTimers(plant, delta);
+
             String preferredState;
             float animTime = t;
+            boolean potatoMine = plant.isPotatoMine();
             boolean pumpkinHasArmor = plant.isPumpkin()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
@@ -231,7 +340,21 @@ class PlantRenderer {
             boolean tallNutHasPlantFoodArmor = plant.isTallNut()
                     && plant.getArmor() != null
                     && plant.getArmor().getHP() > 0;
-            if (pumpkinHasArmor) {
+            if (explodeONut) {
+                preferredState = resolveExplodeONutState(plant);
+                animTime = explodeONutAnimTime(plant, preferredState, t);
+            } else if (endurian) {
+                if ("plantfood_on".equals(plant.getVisualAnimationState())) {
+                    preferredState = "plantfood_on";
+                    animTime = (float) plant.getVisualAnimationElapsed();
+                } else if (endurianPhase > 0) {
+                    preferredState = endurianAttackClip(plant, endurianPhase);
+                    animTime = endurianAttackTimes.getOrDefault(plant, 0f);
+                } else {
+                    preferredState = resolveEndurianIdleState(plant);
+                    animTime = t;
+                }
+            } else if (pumpkinHasArmor) {
                 preferredState = resolvePumpkinPlantFoodState(plant);
                 animTime = plant.isPlantFoodActive()
                         ? (float) plant.getVisualAnimationElapsed()
@@ -255,6 +378,9 @@ class PlantRenderer {
                 animTime = (float) plant.getVisualAnimationElapsed();
                 float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                 if (clipDuration > 0f) animTime %= clipDuration;
+            } else if (potatoMine && plant.getVisualAnimationState() != null) {
+                preferredState = plant.getVisualAnimationState();
+                animTime = (float) plant.getVisualAnimationElapsed();
             } else if (plant.getVisualAnimationState() != null) {
                 preferredState = plant.getVisualAnimationState();
                 animTime = (float) plant.getVisualAnimationElapsed();
@@ -262,15 +388,62 @@ class PlantRenderer {
                     float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
                     if (clipDuration > 0f) animTime %= clipDuration;
                 }
+            } else if (potatoMine && !plant.isPotatoMineArmed()) {
+                preferredState = "plant_idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if (potatoMine) {
+                preferredState = "idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && doomSpawnAnimTimes.containsKey(plant)) {
+                preferredState = "stage1_spawn";
+                animTime = doomSpawnAnimTimes.get(plant);
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                    && doomTransformAnimTimes.containsKey(plant)) {
+                int transformFrom = Math.max(1, plant.getGrowthStage() - 1);
+                preferredState = "stage" + transformFrom + "_transform";
+                animTime = doomTransformAnimTimes.get(plant);
+            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
+                animTime = t;
             } else if (prepping) {
-                preferredState = plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST
-                        ? "intro"
-                        : screen.pam().resolveFuseClipState(plant.getName());
+                if ("Cherry Bomb".equalsIgnoreCase(plant.getName())) {
+                    preferredState = "attack";
+                } else if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
+                    preferredState = GRAPESHOT_ATTACK_STATE;
+                } else if (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST) {
+                    preferredState = "intro";
+                } else {
+                    preferredState = screen.pam().resolveFuseClipState(plant.getName());
+                }
                 animTime = t;
             } else if (attacking) {
                 preferredState = attackIsBoosted ? plantFoodClipState(plant)
                         : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
                 animTime = plantAttackAnimTimes.get(plant);
+            } else if (isBowlingBulb(plant) && plant.isPlantFoodActive()) {
+                // Between the individual balls of a Plant Food burst (and before the very
+                // first one), Bowling Bulb has no reload beat - it just idles in its
+                // Plant-Food pose until the next ball fires.
+                preferredState = "plantfood_idle";
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if (isBowlingBulb(plant) && plant.getIntervalTimer() > 0.001) {
+                // A normal (non-Plant-Food) shot: after its "special"/"specialN" attack clip
+                // finishes, play the matching "reload"/"reloadN" clip for the rest of the
+                // real cooldown, until it's ready to fire again.
+                preferredState = bowlingBulbReloadState(plant);
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                animTime = clipDuration > 0f ? (t % clipDuration) : t;
+            } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
+                preferredState = "plantfood";
+                animTime = t;
+            } else if (headbutterLettuce
+                    && (plant.isPlantFoodActive() || headbutterLettucePfOffTime.containsKey(plant))) {
+                preferredState = headbutterLettuceState(plant);
+                animTime = headbutterLettuceAnimTime(plant, preferredState, t);
             } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
                 preferredState = "idle_plantfood";
                 animTime = (float) plant.getVisualAnimationElapsed();
@@ -296,8 +469,7 @@ class PlantRenderer {
                 plantOffsetY += squashJumpArcOffset(plant, boardTileHeight);
             }
 
-            boolean meleePlant = "Bonk Choy".equalsIgnoreCase(plant.getName())
-                    || "Wasabi Whip".equalsIgnoreCase(plant.getName())
+            boolean meleePlant = "Wasabi Whip".equalsIgnoreCase(plant.getName())
                     || "Chomper".equalsIgnoreCase(plant.getName())
                     || "Squash".equalsIgnoreCase(plant.getName());
 
@@ -328,6 +500,12 @@ class PlantRenderer {
                     && ("idle".equals(preferredState)
                     || "idle2".equals(preferredState)
                     || "idle3".equals(preferredState));
+            boolean explodeONutArmorState = explodeONut
+                    && ("plantfood".equals(preferredState)
+                    || "plantfood2".equals(preferredState)
+                    || "plantfood3".equals(preferredState)
+                    || "plantfood_on".equals(preferredState));
+            boolean explodeONutExactState = explodeONut && !explodeONutArmorState;
             boolean wallNutPlantFoodState = plant.isWallNut()
                     && ("plantfood".equals(preferredState)
                     || "plantfood2".equals(preferredState)
@@ -355,12 +533,28 @@ class PlantRenderer {
                     || "idle_damage3".equals(preferredState)
                     || "idle2_damage3".equals(preferredState)
                     || "plantfood".equals(preferredState));
-            if (squashExactState) {
+            boolean potatoMineExactState = potatoMine
+                    && ("plant_idle".equals(preferredState)
+                    || "recover".equals(preferredState)
+                    || "idle".equals(preferredState)
+                    || "attack".equals(preferredState)
+                    || "plantfood2".equals(preferredState));
+            if (explodeONutArmorState) {
+                drawn = screen.drawPam(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false,
+                        explodeONutArmorVisibility(preferredState));
+            } else if (explodeONutExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (potatoMineExactState) {
+                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (squashExactState) {
                 boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, squashMirror);
             } else if (pumpkinPlantFoodState) {
-                Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
+                java.util.Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
                 pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
                 pumpkinPfVisibility.put("pumpkin_armor_02", "idle_plantfood2".equals(preferredState));
                 pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
@@ -404,6 +598,16 @@ class PlantRenderer {
             } else if (tallNutExactState) {
                 drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                         plantOffsetX, plantOffsetY, 0.55f, false);
+            } else if (endurian) {
+                drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
+                        0.55f, false, endurianVisibility(plant, preferredState));
+            } else if (isMagnetShroom(plant)) {
+                // Magnet_Item is invisible until a "catch" completes (or Plant Food
+                // grabs a batch); it stays visible from then on until it's thrown away.
+                Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
+                magnetVisibility.put("Magnet_Item", plant.isMagnetItemVisible());
+                drawn = screen.drawPam(path, preferredState, animTime,
+                        plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
             } else {
                 drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
             }
@@ -411,6 +615,10 @@ class PlantRenderer {
                 TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
                 screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
                         new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
+            }
+
+            if (explodeONut && !frozenInIce) {
+                drawExplodeONutBlink(plant, plantOffsetX, plantOffsetY);
             }
 
             if (plant.isPumpkin() && plant.getArmor() != null && plant.getArmor().getHP() > 0
@@ -446,6 +654,10 @@ class PlantRenderer {
                     screen.batch.setColor(Color.WHITE);
                 }
             }
+
+            if (plant.getPlantFoodEffect() instanceof TangleKelpPlantFood tangleKelpPlantFood) {
+                drawTangleKelpRemoteAttacks(tangleKelpPlantFood, boardTileWidth);
+            }
         }
         plantAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
@@ -456,9 +668,82 @@ class PlantRenderer {
         plantLastGrowthStage.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        sheepAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantFoodLastActive.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        bowlingBulbShotIndex.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        endurianAttackPhases.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        endurianAttackTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutBlinkTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutHadArmor.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        explodeONutArmorOffTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfWasActive.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfOnTime.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        headbutterLettucePfOffTime.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
+        drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
+    }
+
+
+    private void drawOctopusWraps(float delta, float boardTileWidth, float boardTileHeight) {
+        if (screen.session.getEnvironment() == null) return;
+
+        String path = "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
+        if (path == null) return;
+
+        for (int row = 0; row < screen.session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+                Cell cell = screen.session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof OctopusWrap wrap)) continue;
+
+                float time = octopusWrapAnimTimes.getOrDefault(cell, 0f) + delta;
+                octopusWrapAnimTimes.put(cell, time);
+
+                Position pos = wrap.getWrappedPlant() != null
+                        ? wrap.getWrappedPlant().getPosition()
+                        : new Position(col, row);
+                if (pos == null) pos = new Position(col, row);
+
+                float x = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 10f;
+                float y = screen.cellY(pos.y()) + 40f;
+
+                if (!wrap.isDead()) {
+                    float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "animation3");
+                    float animTime = duration > 0f ? time % duration : time;
+                    screen.drawPam(path, "animation3", animTime, x, y, 0.52f, false);
+                } else {
+                    float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "die");
+                    float animTime = duration > 0f ? Math.min(time, duration) : time;
+                    screen.drawPam(path, "die", animTime, x, y, 0.52f, false);
+                    if (duration <= 0f || time >= duration) {
+                        cell.setObstacle(null);
+                        octopusWrapAnimTimes.remove(cell);
+                    }
+                }
+            }
+        }
+        octopusWrapAnimTimes.keySet().removeIf(cell -> cell == null || cell.getObstacle() == null);
+    }
+
+    /**
+     * Tangle Kelp's Plant Food can drag zombies under on tiles other than its own - there's
+     * no real plant standing there, so each such tile borrows a plain "attack" clip of the
+     * same PAM for as long as {@link TangleKelpPlantFood#remoteAttackTiles()} reports it.
+     */
+    private void drawTangleKelpRemoteAttacks(TangleKelpPlantFood effect, float boardTileWidth) {
+        List<Position> tiles = effect.remoteAttackTiles();
+        if (tiles.isEmpty()) return;
+
+        String path = AnimationFactory.pathForDisplayName("Tangle Kelp");
+        float clipDuration = screen.pam().resolvePlantClipDuration("Tangle Kelp", "attack");
+        float rawTime = (float) effect.remoteAttackElapsed();
+        float time = clipDuration > 0f ? rawTime % clipDuration : rawTime;
+
+        for (Position tile : tiles) {
+            float tileX = GameScreen.BOARD_X + (float) tile.x() * boardTileWidth + 30f;
+            float tileY = screen.cellY((int) tile.y()) + 40f;
+            screen.drawPam(path, "attack", time, tileX, tileY, 0.55f, false);
+        }
     }
 
     /** Plays the brief "death"/"idle_stage4" clip queued up by trackExplodedPlants. */
@@ -538,29 +823,21 @@ class PlantRenderer {
         return new Position(origin.x(), origin.y());
     }
 
-    /**
-     * Finds the zombie whose Dark Wizard hex ({@link MageState}) currently has this plant
-     * incapacitated, or null if the plant isn't hexed (e.g. octopus-wrapped instead, which
-     * also uses {@link Plant.PlantState#INCAPACITATED} but has its own separate visual).
-     */
+    /** Finds the Dark Wizard effect currently hexing this plant, if any. */
     private MageState findHexer(Plant plant) {
         if (plant.getPlantState() != Plant.PlantState.INCAPACITATED) return null;
         for (Zombie zombie : screen.session.getZombies()) {
             if (zombie == null) continue;
-            if (zombie.getEffectStatus() instanceof MageState mage && mage.isHexed(plant)) {
-                return mage;
-            }
+            if (zombie.getEffectStatus() instanceof MageState mage && mage.isHexed(plant)) return mage;
         }
         return null;
     }
 
-    /** Draws the sheep transform in place of the plant's own body while it's hexed. */
+    /** Draws the sheep transform in place of the plant while it is hexed. */
     private void drawSheep(Plant plant, float delta, float x, float y) {
         float t = sheepAnimTimes.getOrDefault(plant, 0f) + delta;
-
         float transformDuration = AnimationFactory.exactClipDurationForPath(SHEEP_PAM, "animation");
         if (transformDuration <= 0f) transformDuration = DEFAULT_SHEEP_TRANSFORM_DURATION;
-
         String state;
         float time;
         if (t < transformDuration) {
@@ -572,7 +849,6 @@ class PlantRenderer {
             time = idleDuration > 0f ? (t - transformDuration) % idleDuration : (t - transformDuration);
         }
         sheepAnimTimes.put(plant, t);
-
         screen.pam().drawPamExact(SHEEP_PAM, state, time, x, y, SHEEP_SCALE, false);
     }
 
@@ -603,6 +879,9 @@ class PlantRenderer {
         if (plant != null && plant.isWallNut()) {
             return plant.getWallNutHealthAnimationState();
         }
+        if (plant != null && plant.isExplodeONut()) {
+            return resolveExplodeONutIdleState(plant);
+        }
         if (plant != null && plant.isTallNut()) {
             return plant.getTallNutHealthAnimationState();
         }
@@ -611,6 +890,12 @@ class PlantRenderer {
         }
         if (plant != null && plant.isSweetPotato()) {
             return plant.getSweetPotatoHealthAnimationState();
+        }
+        if (plant != null && plant.isEndurian()) {
+            return resolveEndurianIdleState(plant);
+        }
+        if (plant != null && plant.isCactus()) {
+            return cactusIdleState(plant);
         }
         if (plant != null && plant.isPumpkin()) {
             double ratio = plant.getHealthRatio();
@@ -676,8 +961,10 @@ class PlantRenderer {
     /**
      * Sunflower, Twin Sunflower, Primal Sunflower and Sun-shroom all use the "special"
      * clip (Sun-shroom's staged "special_stageN" variant) while they're actively producing
-     * a sun. Sun Bean doesn't produce sun this way (it grants sun on taking damage instead),
-     * so it's excluded here even though it's still part of {@link #isSunProducerFamily}
+     * a sun. Sun Bean doesn't produce sun this way (biting it marks the zombie as a sun-bean
+     * carrier - halo overlay until that zombie dies, then it drops sun - see Plant#takeDamage
+     * and Zombie#markSunBeanCarrier), so it's excluded here even though it's still part of
+     * {@link #isSunProducerFamily}
      * for Plant Food purposes.
      */
     private boolean isSunProducingPlant(Plant plant) {
@@ -711,6 +998,9 @@ class PlantRenderer {
      * just uses the plain "plantfood" clip for its whole Plant Food duration.
      */
     private String plantFoodClipState(Plant plant) {
+        if (isHeadbutterLettuce(plant)) {
+            return "plantfood_loop";
+        }
         if (isSunShroom(plant)) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "plantfood_stage2";
@@ -721,6 +1011,12 @@ class PlantRenderer {
         if (isSeaShroom(plant)) {
             return "pf";
         }
+        if (isBowlingBulb(plant)) {
+            return bowlingBulbPlantFoodState(plant);
+        }
+        if (plant.isCactus()) {
+            return plant.isCactusUnderground() ? "down_attack_plantfood" : "attack_plantfood";
+        }
         return "plantfood";
     }
 
@@ -730,7 +1026,12 @@ class PlantRenderer {
      * handled by the "attacking" branch above.
      */
     private boolean showsPlantFoodLoopForFullDuration(Plant plant) {
-        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant);
+        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant)
+                || isMagnetShroom(plant);
+    }
+
+    private boolean isMagnetShroom(Plant plant) {
+        return plant != null && "Magnet-shroom".equalsIgnoreCase(plant.getName());
     }
 
     private String resolvePumpkinPlantFoodState(Plant plant) {
@@ -742,6 +1043,250 @@ class PlantRenderer {
             case 4 -> "idle_plantfood4";
             default -> resolveIdleState(plant);
         };
+    }
+
+    /**
+     * Cactus's idle loop while it isn't mid-transition and isn't in its brief fire-event
+     * attack window (see resolveAttackBaseState/plantFoodClipState for the attack clips,
+     * and Plant#tickCactusPosture for the down/up one-shot transitions handled generically
+     * through the visualAnimationState catch-all above this in the draw-loop if-chain).
+     */
+    private String cactusIdleState(Plant plant) {
+        boolean plantFood = plant.isPlantFoodActive();
+        if (plant.isCactusUnderground()) {
+            return plantFood ? "down_idle_plantfood" : "down_idle";
+        }
+        return plantFood ? "idle_plantfood" : "idle";
+    }
+
+    private String resolveEndurianIdleState(Plant plant) {
+        if (plant.getEndurianDamageTier() == 0 && isOnWaterTile(plant)) return "water";
+        return plant.getEndurianHealthAnimationState();
+    }
+
+    private boolean isOnWaterTile(Plant plant) {
+        Position position = plant.getPosition();
+        if (position == null || screen.session == null || screen.session.getEnvironment() == null) {
+            return false;
+        }
+        Cell cell = screen.session.getEnvironment().getCell(
+                (int) Math.round(position.y()), (int) Math.round(position.x()));
+        return cell != null && cell.getTile() != null && cell.getTile().type() == TileType.Water;
+    }
+
+    private String endurianTierSuffix(Plant plant) {
+        return switch (plant.getEndurianDamageTier()) {
+            case 1 -> "_damage";
+            case 2 -> "_damage2";
+            case 3 -> "_damage3";
+            default -> "";
+        };
+    }
+
+    private String endurianAttackClip(Plant plant, int phase) {
+        String base = switch (phase) {
+            case 1 -> "attack_start";
+            case 2 -> "attack_loop";
+            default -> "attack_end";
+        };
+        return base + endurianTierSuffix(plant);
+    }
+
+    private float endurianClipDuration(Plant plant, String base) {
+        float duration = screen.pam().resolvePlantClipDuration(plant.getName(),
+                base + endurianTierSuffix(plant));
+        return duration > 0f ? duration : DEFAULT_PLANT_ATTACK_DURATION;
+    }
+
+    private void advanceEndurianAttack(Plant plant, float delta) {
+        int phase = endurianAttackPhases.getOrDefault(plant, 0);
+        float time = endurianAttackTimes.getOrDefault(plant, 0f);
+        boolean underAttack = plant.isEndurianUnderAttack();
+
+        if (phase != 0) time += delta;
+        if (underAttack && (phase == 0 || phase == 3)) {
+            phase = 1;
+            time = 0f;
+        }
+        if (phase == 0) return;
+
+        if (phase == 1 && time >= endurianClipDuration(plant, "attack_start")) {
+            phase = underAttack ? 2 : 3;
+            time = 0f;
+        }
+        if (phase == 2) {
+            if (!underAttack) {
+                phase = 3;
+                time = 0f;
+            } else {
+                float loop = endurianClipDuration(plant, "attack_loop");
+                if (loop > 0f && time >= loop) time %= loop;
+            }
+        }
+        if (phase == 3 && time >= endurianClipDuration(plant, "attack_end")) {
+            endurianAttackPhases.remove(plant);
+            endurianAttackTimes.remove(plant);
+            return;
+        }
+        endurianAttackPhases.put(plant, phase);
+        endurianAttackTimes.put(plant, time);
+    }
+
+    private Map<String, Boolean> endurianVisibility(Plant plant, String state) {
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        for (int i = 1; i <= 8; i++) {
+            visibility.put("PF_spike" + i, false);
+        }
+        visibility.put("PF_armor_1", false);
+        visibility.put("armor2", false);
+        visibility.put("armor_3", false);
+
+        int stage = plant.getEndurianPlantFoodArmorStage();
+        boolean armored = stage > 0;
+        boolean attackState = state != null && state.startsWith("attack_");
+        for (int i = 1; i <= 3; i++) {
+            visibility.put("armor_damage_" + i, armored && !attackState && stage == i);
+            visibility.put("armor_damage_" + i + "_attack", armored && attackState && stage == i);
+        }
+        visibility.put("endurian_plantfood_armor", armored);
+        return visibility;
+    }
+
+    private void advanceExplodeONutTimers(Plant plant, float delta) {
+        explodeONutBlinkTimes.put(plant, explodeONutBlinkTimes.getOrDefault(plant, 0f) + delta);
+
+        boolean armored = plant.isExplodeONutArmored();
+        boolean hadArmor = Boolean.TRUE.equals(explodeONutHadArmor.put(plant, armored));
+        if (hadArmor && !armored) {
+            explodeONutArmorOffTimes.put(plant, 0f);
+        } else if (armored) {
+            explodeONutArmorOffTimes.remove(plant);
+        }
+
+        Float offTime = explodeONutArmorOffTimes.get(plant);
+        if (offTime != null) {
+            offTime += delta;
+            if (offTime >= EXPLODE_O_NUT_PLANTFOOD_OFF_HOLD) explodeONutArmorOffTimes.remove(plant);
+            else explodeONutArmorOffTimes.put(plant, offTime);
+        }
+    }
+
+    private float explodeONutAnimTime(Plant plant, String state, float loopTime) {
+        if ("plantfood_on".equals(state)) return (float) plant.getVisualAnimationElapsed();
+        if ("plantfood_off".equals(state)) return explodeONutArmorOffTimes.getOrDefault(plant, 0f);
+        float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), state);
+        return clipDuration > 0f ? loopTime % clipDuration : loopTime;
+    }
+
+    private boolean isHeadbutterLettuce(Plant plant) {
+        return plant != null && "Iceberg Lettuce".equalsIgnoreCase(plant.getName());
+    }
+
+    /**
+     * Drives Headbutter Lettuce's three-phase Plant Food sequence: "plantfood_on" (intro,
+     * played once as soon as Plant Food activates), "plantfood_loop" (holds for whatever
+     * remains of the Plant Food window), then "plantfood_off" (outro, played once - note
+     * this runs *after* isPlantFoodActive() has already gone false, the same idiom
+     * advanceExplodeONutTimers uses for its own "plantfood_off").
+     */
+    private void advanceHeadbutterLettuceTimers(Plant plant, float delta) {
+        boolean active = plant.isPlantFoodActive();
+        boolean wasActive = Boolean.TRUE.equals(headbutterLettucePfWasActive.put(plant, active));
+
+        if (active && !wasActive) {
+            headbutterLettucePfOnTime.put(plant, 0f);
+            headbutterLettucePfOffTime.remove(plant);
+        } else if (!active && wasActive) {
+            headbutterLettucePfOffTime.put(plant, 0f);
+            headbutterLettucePfOnTime.remove(plant);
+        }
+
+        Float onTime = headbutterLettucePfOnTime.get(plant);
+        if (active && onTime != null) {
+            headbutterLettucePfOnTime.put(plant, onTime + delta);
+        }
+
+        Float offTime = headbutterLettucePfOffTime.get(plant);
+        if (offTime != null) {
+            float offDuration = headbutterLettuceClipDuration(plant, "plantfood_off");
+            offTime += delta;
+            if (offTime >= offDuration) headbutterLettucePfOffTime.remove(plant);
+            else headbutterLettucePfOffTime.put(plant, offTime);
+        }
+    }
+
+    /** "plantfood_on" while its intro clip is still playing, then "plantfood_loop" for the
+     *  rest of the Plant Food window, then "plantfood_off" once Plant Food has ended. */
+    private String headbutterLettuceState(Plant plant) {
+        if (plant.isPlantFoodActive()) {
+            float onDuration = headbutterLettuceClipDuration(plant, "plantfood_on");
+            Float onTime = headbutterLettucePfOnTime.get(plant);
+            if (onTime != null && onTime < onDuration) return "plantfood_on";
+            return "plantfood_loop";
+        }
+        return "plantfood_off";
+    }
+
+    private float headbutterLettuceAnimTime(Plant plant, String state, float loopTime) {
+        if ("plantfood_on".equals(state)) return headbutterLettucePfOnTime.getOrDefault(plant, 0f);
+        if ("plantfood_off".equals(state)) return headbutterLettucePfOffTime.getOrDefault(plant, 0f);
+        float clipDuration = headbutterLettuceClipDuration(plant, state);
+        return clipDuration > 0f ? (loopTime % clipDuration) : loopTime;
+    }
+
+    private float headbutterLettuceClipDuration(Plant plant, String state) {
+        float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), state);
+        return clipDuration > 0f ? clipDuration : DEFAULT_PLANT_ATTACK_DURATION;
+    }
+
+    private String resolveExplodeONutIdleState(Plant plant) {
+        if (plant.getExplodeONutDamageTier() == 0 && isOnWaterTile(plant)) return "water";
+        return plant.getExplodeONutHealthAnimationState();
+    }
+
+    private String resolveExplodeONutState(Plant plant) {
+        if (plant.isExplodeONutArmored()) {
+            if ("plantfood_on".equals(plant.getVisualAnimationState())) return "plantfood_on";
+            return switch (plant.getExplodeONutPlantFoodArmorStage()) {
+                case 2 -> "plantfood2";
+                case 3 -> "plantfood3";
+                default -> "plantfood";
+            };
+        }
+        if (explodeONutArmorOffTimes.containsKey(plant)) return "plantfood_off";
+        return resolveExplodeONutIdleState(plant);
+    }
+
+    private Map<String, Boolean> explodeONutArmorVisibility(String state) {
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        visibility.put("wallnut_plantfood_armor_01",
+                "plantfood".equals(state) || "plantfood_on".equals(state));
+        visibility.put("wallnut_plantfood_armor_02", "plantfood2".equals(state));
+        visibility.put("wallnut_plantfood_armor_03", "plantfood3".equals(state));
+        return visibility;
+    }
+
+    private void drawExplodeONutBlink(Plant plant, float plantOffsetX, float plantOffsetY) {
+        float clip = AnimationFactory.exactClipDurationForPath(
+                EXPLODE_O_NUT_BLINK_PAM, "animation");
+        if (clip <= 0f) clip = 0.3f;
+
+        float period = switch (plant.getExplodeONutDamageTier()) {
+            case 1 -> 1.5f;
+            case 2 -> 1.0f;
+            case 3 -> 0.55f;
+            default -> 2.2f;
+        };
+        if (plant.isExplodeONutArmored()) period = 1.2f;
+        period = Math.max(period, clip);
+
+        float phase = explodeONutBlinkTimes.getOrDefault(plant, 0f) % period;
+        if (phase > clip) return;
+
+        screen.batch.setColor(EXPLODE_O_NUT_BLINK_TINT);
+        screen.drawPam(EXPLODE_O_NUT_BLINK_PAM, "animation", phase,
+                plantOffsetX, plantOffsetY, EXPLODE_O_NUT_BLINK_SCALE, false);
+        screen.batch.setColor(Color.WHITE);
     }
 
     private String resolveWallNutPlantFoodState(Plant plant) {
@@ -765,7 +1310,7 @@ class PlantRenderer {
             default -> "pumpkin_armor_04";
         };
 
-        Map<String, Boolean> visibility = new java.util.HashMap<>();
+        java.util.Map<String, Boolean> visibility = new java.util.HashMap<>();
         visibility.put("pumpkin_body", false);
         visibility.put("pumpkin_body_2", false);
         visibility.put("pumpkin_body_3", false);
@@ -783,6 +1328,20 @@ class PlantRenderer {
     }
 
     private String resolveAttackBaseState(Plant plant) {
+        if (isHeadbutterLettuce(plant)) {
+            // Front (right, toward oncoming zombies) uses "attack"; a target caught on the
+            // back tile mirrors MeleeStrategy's facing flag and uses the separate "attack2"
+            // clip instead of a mirrored sprite (unlike Wasabi Whip/Chomper/Squash - see the
+            // meleePlant mirror check in the main draw loop, which this plant is deliberately
+            // not part of).
+            return plant.isMeleeFacingLeft() ? "attack2" : "attack";
+        }
+        if (plant != null && "Bonk Choy".equalsIgnoreCase(plant.getName())) {
+            // Same idea as Headbutter Lettuce above: Bonk Choy has its own real "attack2"
+            // clip for a back-tile hit, so it's also excluded from the meleePlant mirror
+            // check rather than mirroring the plain "attack" sprite.
+            return plant.isMeleeFacingLeft() ? "attack2" : "attack";
+        }
         if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "attack_stage2";
@@ -795,6 +1354,11 @@ class PlantRenderer {
         }
         if (plant != null && "Chomper".equalsIgnoreCase(plant.getName())) {
             return "bite_end";
+        }
+        if (plant != null && plant.isCactus()) {
+            if (plant.isCactusUnderground()) return "down_attack";
+            if (plant.isCactusStretching()) return "attack_stretch";
+            return "attack";
         }
         if (isFumeShroom(plant)) {
             return "special";
@@ -809,14 +1373,45 @@ class PlantRenderer {
         if (isSunProducingPlant(plant)) {
             return sunProducerSpecialState(plant);
         }
+        if (isBowlingBulb(plant)) {
+            return bowlingBulbSpecialState(plant);
+        }
         return plantStackState(plant, "attack");
     }
 
-    /**
-     * Plays the plant SFX matching a just-detected fire event (see the cooldown-reset
-     * idiom above). Sun producers get the sun-produce chime; anything with a projectile
-     * gets normal/fire/ice shot SFX; melee-family plants get the melee-hit thud.
-     */
+    private boolean isBowlingBulb(Plant plant) {
+        return plant != null && BOWLING_BULB_NAME.equalsIgnoreCase(plant.getName());
+    }
+
+    private int bowlingBulbAmmoIndex(Plant plant) {
+        return bowlingBulbShotIndex.getOrDefault(plant, 0);
+    }
+
+    private String bowlingBulbSpecialState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "special2";
+            case 2 -> "special3";
+            default -> "special";
+        };
+    }
+
+    private String bowlingBulbReloadState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "reload2";
+            case 2 -> "reload3";
+            default -> "reload";
+        };
+    }
+
+    private String bowlingBulbPlantFoodState(Plant plant) {
+        return switch (bowlingBulbAmmoIndex(plant)) {
+            case 1 -> "plantfood2";
+            case 2 -> "plantfood3";
+            default -> "plantfood";
+        };
+    }
+
+    /** Plays the SFX matching a detected plant fire event. */
     private void playFireEventSound(Plant plant) {
         if (plant == null) return;
         if (isSunProducingPlant(plant)) {
@@ -884,7 +1479,71 @@ class PlantRenderer {
         List<Plant> stillAlive = screen.session.getPlants();
         for (Plant plant : alivePlantsBeforeTick) {
             if (stillAlive.contains(plant)) continue;
-            if (plant.getPosition() == null || plant.getHP() <= 0) continue;
+            if (plant.getPosition() == null) continue;
+
+            if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+                int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
+                screen.effects().addDoomExplosion(plant.getPosition(), stage);
+                screen.effects().addScorchedTileEffect(plant.getPosition());
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                doomSpawnAnimTimes.remove(plant);
+                doomSpawnWindows.remove(plant);
+                doomTransformAnimTimes.remove(plant);
+                doomTransformWindows.remove(plant);
+                doomLastGrowthStage.remove(plant);
+                continue;
+            }
+
+            if ("Torchwood".equalsIgnoreCase(plant.getName())) {
+                String path = AnimationFactory.pathForDisplayName(plant.getName());
+                if (path != null) {
+                    screen.effects().addExplodingPlantEffect(
+                            new ProjectileEffectAssets.AssetEntry(path, "explosion",
+                                    ProjectileEffectAssets.PlayMode.ONCE,
+                                    ProjectileEffectAssets.Kind.EFFECT,
+                                    ProjectileEffectAssets.Variant.NORMAL,
+                                    ProjectileEffectAssets.Scope.SELF,
+                                    "Torchwood death explosion"),
+                            false, plant.getPosition(), EXPLODING_PLANT_EFFECT_DURATION);
+                }
+                screen.effects().addTorchwoodRowFireEffect((int) Math.round(plant.getPosition().y()),
+                        EXPLODING_PLANT_EFFECT_DURATION);
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if (plant.isExplodeONut()) {
+                if (plant.isExplodeONutDetonated()) {
+                    screen.effects().addExplodeONutExplosion(plant.getPosition());
+                }
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                explodeONutBlinkTimes.remove(plant);
+                explodeONutHadArmor.remove(plant);
+                explodeONutArmorOffTimes.remove(plant);
+                continue;
+            }
+
+            if ("Jalapeno".equalsIgnoreCase(plant.getName())) {
+                screen.effects().addJalapenoRowFireEffect(
+                        (int) Math.round(plant.getPosition().y()));
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            boolean delayedExplosiveDeath = plant.isPotatoMine()
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName());
+            if (plant.isPotatoMine() && plant.wasPotatoMineEatenByZombie()) continue;
+            if (!delayedExplosiveDeath && plant.getHP() <= 0) continue;
             if (plant.getType() != PlantType.EXPLOSIVE) continue;
 
             ProjectileEffectAssets.AssetEntry entry = screen.effects().resolveExplosionEntry(plant.getName());
@@ -892,8 +1551,14 @@ class PlantRenderer {
 
             boolean loop = entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP;
             Position position = plant.getPosition();
-            screen.effects().addExplodingPlantEffect(entry, loop, position, EXPLODING_PLANT_EFFECT_DURATION);
-            AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
+            float effectDuration = EXPLODING_PLANT_EFFECT_DURATION;
+            if ("Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Primal Potato Mine".equalsIgnoreCase(plant.getName())
+                    || "Cherry Bomb".equalsIgnoreCase(plant.getName())) {
+                float resolved = AnimationFactory.exactClipDurationForPath(entry.path(), entry.state());
+                if (resolved > 0f) effectDuration = resolved;
+            }
+            screen.effects().addExplodingPlantEffect(entry, loop, position, effectDuration);
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
         }
