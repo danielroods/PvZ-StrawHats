@@ -26,6 +26,8 @@ import model.utils.GameSession;
 import service.GameClock;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
+import service.card_factory.ZombieIconCard;
+import service.card_factory.ZombieIconCardFactory;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.screens.generals.GameScreen;
@@ -37,27 +39,39 @@ import java.util.List;
 public class CouchIZombieGameScreen extends GameScreen {
 
     private static final float BRAIN_WIDTH_FACTOR = 0.72f;
-    private static final float CARD_W = 84f;
-    private static final float CARD_H = 106f;
+    /** Same card sizes as the before-match loadout panels, so the in-match HUD matches. */
+    private static final float PLANT_CARD_W = 95f;
+    private static final float PLANT_CARD_H = 60f;
+    private static final float ZOMBIE_CARD_W = 72f;
+    private static final float ZOMBIE_CARD_H = 92f;
     private static final Color RED_LINE_COLOR = new Color(0.88f, 0.16f, 0.14f, 0.8f);
     private static final Color PLANT_ZONE = new Color(0.45f, 0.95f, 0.45f, 0.10f);
     private static final Color ZOMBIE_CURSOR = new Color(0.95f, 0.45f, 0.25f, 0.35f);
+    /** Room reserved on the right of the lawn for the P2 zombie tray, so it can't cover the grid. */
+    private static final float ZOMBIE_TRAY_AREA_WIDTH = 150f;
+    /** Same right-side loadout texture the before-match screen uses, shown behind the zombie tray. */
+    private static final String TEXTURE_RIGHT = "assets/images/ui/texture_right.png";
 
     {
         seasonFolder = "izombie";
     }
 
     private final SeedPacketCardFactory seedCards = new SeedPacketCardFactory();
+    private final ZombieIconCardFactory zombieCards = new ZombieIconCardFactory();
     private final List<Stack> seedViews = new ArrayList<>();
     private final List<Image> seedDim = new ArrayList<>();
     private final List<Image> seedSel = new ArrayList<>();
 
     private Texture brainTexture;
+    private Texture textureRight;
     private Table plantTray;
     private Label plantTrayTitle;
     private Table zombieTray;
     private Label zombieTrayTitle;
-    private List<Label> packetLabels = new ArrayList<>();
+    private final List<Stack> zombieViews = new ArrayList<>();
+    private final List<Image> zombieDim = new ArrayList<>();
+    private final List<Image> zombieSel = new ArrayList<>();
+    private final List<Label> zombieCostLabels = new ArrayList<>();
     private String selectedSeed;
     private int packetIndex;
     private int cursorRow = 2;
@@ -85,6 +99,12 @@ public class CouchIZombieGameScreen extends GameScreen {
         return false;
     }
 
+    @Override
+    protected float reservedRightAreaWidth() {
+        // Same idea as the before-match loadout shift: keep the P2 zombie tray off the lawn.
+        return ZOMBIE_TRAY_AREA_WIDTH;
+    }
+
     private CouchIZombieController controller() {
         return App.currentMenu instanceof CouchIZombieController couch ? couch : null;
     }
@@ -102,6 +122,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
 
         brainTexture = loadBrainTexture();
+        textureRight = loadTextureRight();
         if (hud != null) {
             hud.setLoadoutBankVisible(false);
             hud.setShovelVisible(false);
@@ -120,10 +141,26 @@ public class CouchIZombieGameScreen extends GameScreen {
         return loadTextureSafe(path);
     }
 
+    private Texture loadTextureRight() {
+        if (!Gdx.files.internal(TEXTURE_RIGHT).exists()) {
+            return null;
+        }
+        try {
+            Texture texture = new Texture(Gdx.files.internal(TEXTURE_RIGHT));
+            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            return texture;
+        } catch (Throwable t) {
+            Gdx.app.error("CouchIZombieGameScreen", "Failed to load " + TEXTURE_RIGHT, t);
+            return null;
+        }
+    }
+
     @Override
     public void dispose() {
         seedCards.dispose();
+        zombieCards.dispose();
         if (brainTexture != null) brainTexture.dispose();
+        if (textureRight != null) textureRight.dispose();
         super.dispose();
     }
 
@@ -220,19 +257,20 @@ public class CouchIZombieGameScreen extends GameScreen {
         float progress = (float) Math.max(0, Math.min(1,
                 1.0 - remaining / match.getMatchSeconds()));
         hud.setProgressOverride(String.format("BRAINZ %d/5   %02d:%02d",
-                match.getBrainsEaten(), (int) (remaining / 60), (int) (remaining % 60)),
+                        match.getBrainsEaten(), (int) (remaining / 60), (int) (remaining % 60)),
                 progress);
         updateTrays(match);
     }
 
     @Override
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
+        drawRightTexture();
         IZombieMatch match = match();
         if (match == null) return;
         brainAnimTime += delta;
 
         for (int col = IZombieMatch.BRAIN_COLUMN + 1;
-                col <= IZombieMatch.REDLINE_COLUMN; col++) {
+             col <= IZombieMatch.REDLINE_COLUMN; col++) {
             drawFallback(getCellX(col), getBoardBottom(), getBoardTileWidth(), bh, PLANT_ZONE);
         }
         drawFallback(getCellX(IZombieMatch.REDLINE_COLUMN + 1) - 2f, getBoardBottom(),
@@ -240,6 +278,22 @@ public class CouchIZombieGameScreen extends GameScreen {
         drawFallback(getCellX(cursorCol), getCellY(cursorRow), getBoardTileWidth(),
                 getBoardTileHeight(), ZOMBIE_CURSOR);
         drawBrains(match);
+    }
+
+    /** Fills the strip reserved by {@link #reservedRightAreaWidth()} with the co-op loadout texture. */
+    private void drawRightTexture() {
+        float viewW = stage.getViewport().getWorldWidth();
+        float viewH = stage.getViewport().getWorldHeight();
+        float x = viewW - ZOMBIE_TRAY_AREA_WIDTH;
+
+        batch.setColor(Color.WHITE);
+        if (textureRight != null) {
+            batch.draw(textureRight, x, 0f, ZOMBIE_TRAY_AREA_WIDTH, viewH);
+        } else {
+            batch.setColor(0.08f, 0.07f, 0.05f, 0.94f);
+            batch.draw(whitePixel, x, 0f, ZOMBIE_TRAY_AREA_WIDTH, viewH);
+            batch.setColor(Color.WHITE);
+        }
     }
 
     private void drawBrains(IZombieMatch match) {
@@ -275,8 +329,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         if (match == null) return;
         Table tray = new Table();
         tray.setBackground(skin.getDrawable("card-background"));
-        tray.pad(5f);
-        tray.top();
+        tray.pad(2f).top();
 
         for (SeedCard card : match.getSeeds()) {
             Stack stack = new Stack();
@@ -288,13 +341,17 @@ public class CouchIZombieGameScreen extends GameScreen {
                 art = null;
             }
             if (art != null) {
-                art.setSize(CARD_W, CARD_H);
+                art.setSize(PLANT_CARD_W, PLANT_CARD_H);
                 art.setTouchable(Touchable.disabled);
                 stack.add(art);
             } else {
                 Table fallback = new Table();
                 fallback.setBackground(skin.getDrawable("card-background"));
-                fallback.add(new Label(card.name(), skin, "main")).center();
+                Label label = new Label(card.name(), skin, "main");
+                label.setAlignment(Align.center);
+                label.setFontScale(0.7f);
+                label.setWrap(true);
+                fallback.add(label).width(PLANT_CARD_W).center();
                 stack.add(fallback);
             }
 
@@ -311,10 +368,10 @@ public class CouchIZombieGameScreen extends GameScreen {
             stack.add(sel);
 
             Label cost = new Label(String.valueOf(card.cost()), skin, "main");
-            cost.setFontScale(0.8f);
+            cost.setFontScale(0.7f);
             Table costTable = new Table();
             costTable.bottom().right();
-            costTable.add(cost).padRight(4f).padBottom(2f);
+            costTable.add(cost).padRight(3f).padBottom(1f);
             costTable.setTouchable(Touchable.disabled);
             stack.add(costTable);
 
@@ -328,14 +385,14 @@ public class CouchIZombieGameScreen extends GameScreen {
             seedViews.add(stack);
             seedDim.add(dim);
             seedSel.add(sel);
-            tray.add(stack).size(CARD_W, CARD_H).padBottom(3f).row();
+            tray.add(wrapWithCardFrame(stack, PLANT_CARD_W, PLANT_CARD_H)).size(PLANT_CARD_W, PLANT_CARD_H).pad(1f).row();
         }
 
         plantTrayTitle = new Label("P1 MOUSE", skin, "main");
         plantTrayTitle.setFontScale(0.7f);
         plantTrayTitle.setAlignment(Align.center);
         plantTrayTitle.setWrap(true);
-        tray.add(plantTrayTitle).width(CARD_W).padTop(2f).row();
+        tray.add(plantTrayTitle).width(PLANT_CARD_W).padTop(2f).row();
         tray.pack();
         tray.setPosition(8f, 26f);
         plantTray = tray;
@@ -347,32 +404,104 @@ public class CouchIZombieGameScreen extends GameScreen {
         if (match == null) return;
         Table tray = new Table();
         tray.setBackground(skin.getDrawable("card-background"));
-        tray.pad(6f);
-        tray.top();
+        tray.pad(2f).top();
 
         zombieTrayTitle = new Label("P2 KEYBOARD", skin, "main");
         zombieTrayTitle.setFontScale(0.7f);
-        tray.add(zombieTrayTitle).left().padBottom(4f).row();
+        zombieTrayTitle.setAlignment(Align.center);
+        tray.add(zombieTrayTitle).width(ZOMBIE_CARD_W).padBottom(2f).row();
 
-        packetLabels = new ArrayList<>();
-        int index = 1;
-        for (ZombiePacket packet : match.getRoster()) {
-            Label label = new Label(index + "  " + packet.getDisplayName()
-                    + "  " + packet.getCost(), skin, "main");
-            label.setFontScale(0.66f);
-            packetLabels.add(label);
-            tray.add(label).left().row();
-            index++;
+        List<ZombiePacket> roster = match.getRoster();
+        for (int i = 0; i < roster.size(); i++) {
+            ZombiePacket packet = roster.get(i);
+            final int slotIndex = i;
+
+            Stack stack = new Stack();
+            stack.setTouchable(Touchable.enabled);
+            try {
+                ZombieIconCard art = zombieCards.buildCardForAlias(packet.getAlias(), ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+                if (art != null) {
+                    art.setTouchable(Touchable.disabled);
+                    stack.add(art);
+                }
+            } catch (Throwable ignored) {
+            }
+            if (stack.getChildren().isEmpty()) {
+                Table fallback = new Table();
+                fallback.setBackground(skin.getDrawable("card-background"));
+                Label label = new Label(packet.getDisplayName(), skin, "main");
+                label.setAlignment(Align.center);
+                label.setFontScale(0.6f);
+                label.setWrap(true);
+                fallback.add(label).width(ZOMBIE_CARD_W).center();
+                stack.add(fallback);
+            }
+
+            Image dim = new Image(new TextureRegionDrawable(whitePixelRegion()));
+            dim.setColor(0f, 0f, 0f, 0.6f);
+            dim.setFillParent(true);
+            dim.setTouchable(Touchable.disabled);
+            stack.add(dim);
+
+            Image sel = new Image(new TextureRegionDrawable(whitePixelRegion()));
+            sel.setColor(0.95f, 0.55f, 0.25f, 0.30f);
+            sel.setFillParent(true);
+            sel.setTouchable(Touchable.disabled);
+            stack.add(sel);
+
+            Label cost = new Label(index1(slotIndex) + " " + packet.getCost(), skin, "main");
+            cost.setFontScale(0.6f);
+            Table costTable = new Table();
+            costTable.bottom().right();
+            costTable.add(cost).padRight(3f).padBottom(1f);
+            costTable.setTouchable(Touchable.disabled);
+            stack.add(costTable);
+
+            stack.addListener(new ClickListener() {
+                @Override public void clicked(InputEvent event, float x, float y) {
+                    packetIndex = slotIndex;
+                    AudioManager.get().playSound(AudioEnum.SFX_CLICK, 0.5f);
+                }
+            });
+
+            zombieViews.add(stack);
+            zombieDim.add(dim);
+            zombieSel.add(sel);
+            zombieCostLabels.add(cost);
+            tray.add(stack).size(ZOMBIE_CARD_W, ZOMBIE_CARD_H).pad(1f).row();
         }
 
-        Label help = new Label("W/S lane   A/D column   SPACE drop", skin, "muted");
-        help.setFontScale(0.6f);
-        tray.add(help).left().padTop(6f).row();
+        Label help = new Label("W/S lane  A/D col  SPACE drop", skin, "muted");
+        help.setFontScale(0.55f);
+        help.setAlignment(Align.center);
+        help.setWrap(true);
+        tray.add(help).width(ZOMBIE_CARD_W).padTop(4f).row();
 
         tray.pack();
-        tray.setPosition(stage.getWidth() - tray.getWidth() - 10f, 26f);
+        // Sit inside the reserved right-side strip (kept clear of the lawn), not the raw
+        // stage edge - the lawn's own right columns (the zombie placement area) end there.
+        tray.setPosition(stage.getWidth() - ZOMBIE_TRAY_AREA_WIDTH
+                + (ZOMBIE_TRAY_AREA_WIDTH - tray.getWidth()) * 0.5f, 26f);
         zombieTray = tray;
         stage.addActor(zombieTray);
+    }
+
+    private static String index1(int zeroBasedIndex) {
+        return String.valueOf(zeroBasedIndex + 1);
+    }
+
+    /**
+     * Same idea as the before-match loadout panel: a thin card-background frame behind
+     * a card so plant cards read as a bordered slot the same way zombie cards do (their
+     * frame.png border is baked into the icon texture itself).
+     */
+    private com.badlogic.gdx.scenes.scene2d.Actor wrapWithCardFrame(
+            com.badlogic.gdx.scenes.scene2d.Actor content, float outerW, float outerH) {
+        Table framed = new Table();
+        framed.setBackground(skin.getDrawable("card-background"));
+        framed.pad(3f);
+        framed.add(content).size(outerW - 6f, outerH - 6f);
+        return framed;
     }
 
     private void updateTrays(IZombieMatch match) {
@@ -386,20 +515,20 @@ public class CouchIZombieGameScreen extends GameScreen {
         }
 
         List<ZombiePacket> roster = match.getRoster();
-        for (int i = 0; i < packetLabels.size() && i < roster.size(); i++) {
+        for (int i = 0; i < zombieViews.size() && i < roster.size(); i++) {
             ZombiePacket packet = roster.get(i);
-            boolean ready = packet.isReady() && match.getZombieSun() >= packet.getCost();
-            Label label = packetLabels.get(i);
-            label.setText((i + 1) + (i == packetIndex ? " > " : "  ")
-                    + packet.getDisplayName() + "  " + packet.getCost()
-                    + (packet.isReady() ? "" : String.format(" (%.1fs)", packet.getCooldown())));
-            label.setColor(ready ? Color.WHITE : Color.GRAY);
+            boolean ready = packet.isReady();
+            boolean affordable = match.getZombieSun() >= packet.getCost();
+            zombieDim.get(i).setVisible(!ready || !affordable);
+            zombieSel.get(i).setVisible(i == packetIndex);
+            zombieCostLabels.get(i).setText((i + 1) + " " + packet.getCost()
+                    + (ready ? "" : String.format(" %.1fs", packet.getCooldown())));
         }
         if (zombieTrayTitle != null) {
-            zombieTrayTitle.setText("P2 KEYBOARD   sun " + match.getZombieSun());
+            zombieTrayTitle.setText("P2  sun " + match.getZombieSun());
         }
         if (plantTrayTitle != null) {
-            plantTrayTitle.setText("P1 SUN " + match.getPlantSun());
+            plantTrayTitle.setText("P1  sun " + match.getPlantSun());
         }
     }
 

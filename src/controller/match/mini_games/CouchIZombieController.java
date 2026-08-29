@@ -20,15 +20,37 @@ public class CouchIZombieController extends Menu {
                     + "\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$",
             Pattern.CASE_INSENSITIVE);
 
-    private IZombieMatch match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS);
+    private final java.util.List<String> plantLoadout;
+    private final java.util.List<String> zombieLoadout;
+    private IZombieMatch match;
     private boolean outcomeReported;
+
+    public CouchIZombieController() {
+        this(null, null);
+    }
+
+    /**
+     * @param plantLoadout  the plant player's chosen loadout from the before-match screen
+     *                      (see {@code BeforeMenu.selectedPlants}); null/empty falls back
+     *                      to the built-in seed bank.
+     * @param zombieLoadout the zombie player's chosen loadout from the before-match screen
+     *                      (see {@code BeforeMenu.selectedZombies}); null/empty falls back
+     *                      to the built-in default roster.
+     *                      Either way, the match's own pre-placed defending plants are
+     *                      untouched - the loadouts only decide what's offered to pick from.
+     */
+    public CouchIZombieController(java.util.List<String> plantLoadout, java.util.List<String> zombieLoadout) {
+        this.plantLoadout = plantLoadout == null ? null : new java.util.ArrayList<>(plantLoadout);
+        this.zombieLoadout = zombieLoadout == null ? null : new java.util.ArrayList<>(zombieLoadout);
+        this.match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS, this.plantLoadout, this.zombieLoadout);
+    }
 
     public IZombieMatch getMatch() {
         return match;
     }
 
     public void restart() {
-        match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS);
+        match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS, plantLoadout, zombieLoadout);
         outcomeReported = false;
     }
 
@@ -103,7 +125,7 @@ public class CouchIZombieController extends Menu {
         App.currentMenu = new MiniGameEndMenu("Couch I, Zombie", true,
                 (plantsWon ? "Player 1 (plants) wins!" : "Player 2 (zombies) wins!")
                         + "  " + match.getEndReason(),
-                () -> App.currentMenu = new CouchIZombieController()) {
+                () -> App.currentMenu = new CouchIZombieController(plantLoadout, zombieLoadout)) {
             @Override
             public void exitMenu() {
                 App.currentMenu = new MainMenu();

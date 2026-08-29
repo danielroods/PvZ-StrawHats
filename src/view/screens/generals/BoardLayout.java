@@ -76,7 +76,8 @@ class BoardLayout {
             float fitScale = Math.max(viewH / texH, viewW / texW);
             bgW = texW * fitScale;
             bgH = texH * fitScale;
-            float rightArea = screen.isBeforeMatchPreview() ? PRE_MATCH_RIGHT_AREA_WIDTH : 0f;
+            float rightArea = screen.isBeforeMatchPreview()
+                    ? PRE_MATCH_RIGHT_AREA_WIDTH : screen.reservedRightAreaWidth();
             bgX = viewW - bgW - rightArea;
             bgY = (viewH - bgH) * 0.5f;
 
