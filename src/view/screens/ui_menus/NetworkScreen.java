@@ -1,9 +1,12 @@
 package view.screens.ui_menus;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -20,9 +23,17 @@ import view.screens.generals.UiScreen;
 public class NetworkScreen extends UiScreen {
 
     private static final float PANEL_WIDTH = 900f;
+    private static final float PLAYERS_PANEL_WIDTH = 340f;
 
-    private TextField hostField;
-    private TextField portField;
+    private static final String WOOD_BACKGROUND_PATH = "assets/images/backg/wood board.png";
+    private static final String LEADERBOARD_ICON_PATH = "assets/images/ui/leaderboard.png";
+    private static final String BACK_ICON_PATH = "assets/images/ui/buttons_hud_back_normal.png";
+    private static final String ISLAND_ICON_PATH = "assets/images/ui/net/joust_icicle.png";
+    private static final String GOOGLE_ACCOUNT_ICON_PATH = "assets/images/ui/net/LinkAccountGooglePlay.png";
+    private static final String WIFI_ICON_PATH = "assets/images/ui/net/wifi_icon.png";
+    private static final String UNKNOWN_AVATAR_PATH = "assets/images/ui/net/avatar_practice.png";
+    private static final String AVATAR_FRAME_PATH = "assets/images/ui/reward4_bg.png";
+
     private TextField usernameField;
     private TextField passwordField;
     private TextField opponentField;
@@ -55,23 +66,13 @@ public class NetworkScreen extends UiScreen {
         rootTable.add(buildTopBar()).fillX().padTop(12).padLeft(20).padRight(20).row();
 
         NetworkClient client = NetworkClient.get();
-        Table card = new Table();
-        card.setBackground(skin.getDrawable("card-background"));
-        card.pad(CARD_PAD * 2).defaults().pad(SPACE_XS);
-
-        statusLabel = createLabel(statusText(client), "main");
-        statusLabel.setWrap(true);
-        card.add(statusLabel).width(PANEL_WIDTH - 80).colspan(2).padBottom(SPACE_MD).row();
-
         if (!client.isConnected()) {
-            buildConnectSection(card);
+            rootTable.add(buildHubSection(client)).expand().fill().padTop(SPACE_MD).row();
         } else if (!client.isSignedIn()) {
-            buildSignInSection(card);
+            rootTable.add(buildAccountSection(client)).expand().fill().padTop(SPACE_MD).row();
         } else {
-            buildLobbySection(card, client);
+            rootTable.add(buildLobbySection(client)).expand().fill().padTop(SPACE_MD).row();
         }
-
-        rootTable.add(scrollable(card)).width(PANEL_WIDTH).expand().fill().padTop(SPACE_MD).row();
     }
 
     private String statusText(NetworkClient client) {
@@ -86,60 +87,106 @@ public class NetworkScreen extends UiScreen {
                 + (client.isQueued() ? "  -  waiting for an opponent..." : "");
     }
 
-    private void buildConnectSection(Table card) {
-        hostField = field(false);
-        hostField.setText(NetworkClient.get().getHost());
-        portField = field(false);
-        portField.setText(String.valueOf(NetworkClient.get().getPort()));
+    // ---------------------------------------------------------------------
+    // Hub (not connected yet): a wood board with a leaderboard icon and the
+    // island icon. Tapping the island opens the connect-to-server popup.
+    // ---------------------------------------------------------------------
+    private Table buildHubSection(NetworkClient client) {
+        Table board = new Table();
+        board.setBackground(woodDrawable());
+        board.pad(CARD_PAD * 3);
 
-        addRow(card, "Server", hostField);
-        addRow(card, "Port", portField);
-        card.add(primaryButton("Connect", this::connect))
-                .colspan(2).width(BUTTON_WIDTH).padTop(SPACE_MD).row();
-        card.add(createLabel("Offline play keeps working either way.", "muted"))
-                .colspan(2).padTop(SPACE_SM).row();
+        statusLabel = createLabel(statusText(client), "main");
+        statusLabel.setWrap(true);
+        statusLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
+        board.add(statusLabel).width(PANEL_WIDTH - 160).padBottom(SPACE_XL).row();
+
+        Table icons = new Table();
+        icons.add(hubIcon(ISLAND_ICON_PATH, "Play Online", 140, 140,
+                () -> new ConnectServerModal(this::build).show())).padRight(SPACE_XL * 2);
+        icons.add(hubIcon(LEADERBOARD_ICON_PATH, "Leaderboard", 96, 96,
+                () -> runCommand("menu enter leaderboard")));
+        board.add(icons).row();
+
+        Table wrap = new Table();
+        wrap.add(board).width(PANEL_WIDTH);
+        return wrap;
     }
 
-    private void buildSignInSection(Table card) {
+    private Actor hubIcon(String iconPath, String label, float width, float height, Runnable action) {
+        Table container = new Table();
+        ImageButton button = new ImageButton(new TextureRegionDrawable(loadTextureSafe(iconPath)));
+        button.getImageCell().size(width, height);
+        button.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                AudioManager.get().playSound(AudioEnum.SFX_CLICK, 0.5f);
+                action.run();
+            }
+        });
+        container.add(button).row();
+        container.add(createLabel(label, "title")).padTop(SPACE_SM);
+        return container;
+    }
+
+    // ---------------------------------------------------------------------
+    // Account / sign-in section: wood board with the account icon on top.
+    // ---------------------------------------------------------------------
+    private Table buildAccountSection(NetworkClient client) {
+        Table board = new Table();
+        board.setBackground(woodDrawable());
+        board.pad(CARD_PAD * 3).defaults().pad(SPACE_XS);
+
+        Image accountIcon = new Image(loadTextureSafe(GOOGLE_ACCOUNT_ICON_PATH));
+        board.add(accountIcon).size(72, 72).colspan(2).padBottom(SPACE_MD).row();
+
+        statusLabel = createLabel(statusText(client), "main");
+        statusLabel.setWrap(true);
+        board.add(statusLabel).width(PANEL_WIDTH - 160).colspan(2).padBottom(SPACE_MD).row();
+
         usernameField = field(false);
         passwordField = field(true);
-        addRow(card, "Username", usernameField);
-        addRow(card, "Password", passwordField);
+        addRow(board, "Username", usernameField);
+        addRow(board, "Password", passwordField);
 
         Table buttons = new Table();
         buttons.add(primaryButton("Sign in", this::signIn)).width(200).padRight(SPACE_MD);
         buttons.add(secondaryButton("Create account", this::registerOnline)).width(240);
-        card.add(buttons).colspan(2).padTop(SPACE_MD).row();
-        card.add(secondaryButton("Disconnect", this::disconnect))
+        board.add(buttons).colspan(2).padTop(SPACE_MD).row();
+        board.add(secondaryButton("Disconnect", this::disconnect))
                 .colspan(2).width(BUTTON_WIDTH).padTop(SPACE_SM).row();
-        card.add(createLabel("Creating an account online uses the details above plus your "
+        board.add(createLabel("Creating an account online uses the details above plus your "
                         + "current offline profile's email and nickname.", "muted"))
-                .colspan(2).width(PANEL_WIDTH - 120).padTop(SPACE_SM).row();
+                .colspan(2).width(PANEL_WIDTH - 200).padTop(SPACE_SM).row();
+
+        Table wrap = new Table();
+        wrap.add(scrollable(board)).width(PANEL_WIDTH);
+        return wrap;
     }
 
-    private void buildLobbySection(Table card, NetworkClient client) {
+    // ---------------------------------------------------------------------
+    // Matchmaking / lobby: no wood board here. Left = challenge + queue
+    // controls (with wifi status + unknown-avatar waiting state), right =
+    // a leaderboard-styled scrollable panel of online players.
+    // ---------------------------------------------------------------------
+    private Table buildLobbySection(NetworkClient client) {
+        Table left = new Table();
+        left.top();
+        left.setBackground(skin.getDrawable("card-background"));
+        left.pad(CARD_PAD * 2).defaults().pad(SPACE_XS);
+
+        Table statusRow = new Table();
+        statusRow.add(new Image(loadTextureSafe(WIFI_ICON_PATH))).size(28, 28).padRight(SPACE_SM);
+        statusLabel = createLabel(statusText(client), "main");
+        statusLabel.setWrap(true);
+        statusRow.add(statusLabel).width(PANEL_WIDTH - PLAYERS_PANEL_WIDTH - 160);
+        left.add(statusRow).colspan(2).padBottom(SPACE_MD).row();
+
         opponentField = field(false);
-        addRow(card, "Challenge", opponentField);
-        card.add(primaryButton("Send invite", this::challenge))
+        addRow(left, "Challenge", opponentField);
+        left.add(primaryButton("Send invite", this::challenge))
                 .colspan(2).width(BUTTON_WIDTH).padTop(SPACE_SM).row();
 
-        Table queueButtons = new Table();
-        if (client.isQueued()) {
-            queueButtons.add(secondaryButton("Cancel search", () -> {
-                client.leaveQueue();
-                build();
-            })).width(260);
-        } else {
-            queueButtons.add(primaryButton("Find random opponent", () ->
-                    client.joinQueue(envelope -> build()))).width(300);
-        }
-        card.add(queueButtons).colspan(2).padTop(SPACE_MD).row();
-
-        card.add(createLabel("Players online", "title")).colspan(2).padTop(SPACE_XL).row();
-        playersTable = new Table();
-        playersTable.top();
-        card.add(playersTable).colspan(2).width(PANEL_WIDTH - 120).padTop(SPACE_SM).row();
-        refreshPlayers();
+        left.add(buildQueueArea(client)).colspan(2).padTop(SPACE_MD).row();
 
         Table footer = new Table();
         footer.add(secondaryButton("Sign out", () -> {
@@ -147,7 +194,60 @@ public class NetworkScreen extends UiScreen {
             build();
         })).width(200).padRight(SPACE_MD);
         footer.add(secondaryButton("Disconnect", this::disconnect)).width(200);
-        card.add(footer).colspan(2).padTop(SPACE_XL).row();
+        left.add(footer).colspan(2).padTop(SPACE_XL).row();
+
+        Table right = buildPlayersPanel();
+
+        Table row = new Table();
+        row.add(left).width(PANEL_WIDTH - PLAYERS_PANEL_WIDTH - SPACE_MD).top().padRight(SPACE_MD);
+        row.add(right).width(PLAYERS_PANEL_WIDTH).top();
+
+        Table wrap = new Table();
+        wrap.add(row).expand().fill();
+        return wrap;
+    }
+
+    private Actor buildQueueArea(NetworkClient client) {
+        if (!client.isQueued()) {
+            return primaryButton("Find random opponent", () -> client.joinQueue(envelope -> build()));
+        }
+
+        Table waiting = new Table();
+        Stack avatarStack = new Stack();
+        avatarStack.add(new Image(loadTextureSafe(AVATAR_FRAME_PATH)));
+        Table avatarWrap = new Table();
+        avatarWrap.add(new Image(loadTextureSafe(UNKNOWN_AVATAR_PATH))).size(48, 48);
+        avatarStack.add(avatarWrap);
+
+        waiting.add(avatarStack).size(60, 60).padBottom(SPACE_SM).row();
+        Table wifiRow = new Table();
+        wifiRow.add(new Image(loadTextureSafe(WIFI_ICON_PATH))).size(22, 22).padRight(SPACE_XS);
+        wifiRow.add(createLabel("Searching for an opponent...", "muted"));
+        waiting.add(wifiRow).padBottom(SPACE_SM).row();
+        waiting.add(secondaryButton("Cancel search", () -> {
+            client.leaveQueue();
+            build();
+        })).width(260);
+        return waiting;
+    }
+
+    private Table buildPlayersPanel() {
+        Table panel = new Table();
+        panel.top();
+        panel.setBackground(woodDrawable());
+        panel.pad(SPACE_MD);
+
+        Table header = new Table();
+        header.add(new Image(loadTextureSafe(LEADERBOARD_ICON_PATH))).size(30, 30).padRight(SPACE_SM);
+        header.add(createLabel("Players Online", "title"));
+        panel.add(header).left().padBottom(SPACE_SM).row();
+
+        playersTable = new Table();
+        playersTable.top();
+        panel.add(scrollable(playersTable)).grow().row();
+        refreshPlayers();
+
+        return panel;
     }
 
     private void refreshPlayers() {
@@ -159,37 +259,43 @@ public class NetworkScreen extends UiScreen {
         playersTable.clear();
         var players = NetworkClient.get().getOnlinePlayers();
         if (players.isEmpty()) {
-            playersTable.add(createLabel("Nobody else is online yet.", "muted")).left().row();
+            playersTable.add(createLabel("Nobody else is online yet.", "muted")).left().pad(SPACE_SM).row();
             return;
         }
         for (NetworkClient.OnlinePlayer player : players) {
-            Table row = new Table();
-            row.add(createLabel(player.nickname() + "  (" + player.username() + ")", "main"))
-                    .left().expandX();
-            if (player.inMatch()) {
-                row.add(createLabel("in a match", "muted")).right();
-            } else {
-                row.add(secondaryButton("Challenge", () -> {
-                    opponentField.setText(player.username());
-                    challenge();
-                })).width(180).right();
-            }
-            playersTable.add(row).width(PANEL_WIDTH - 140).padBottom(SPACE_SM).row();
+            playersTable.add(buildPlayerRow(player)).width(PLAYERS_PANEL_WIDTH - 40).padBottom(SPACE_SM).row();
         }
     }
 
-    private void connect() {
-        int port = Protocol.DEFAULT_PORT;
-        try {
-            port = Integer.parseInt(portField.getText().trim());
-        } catch (NumberFormatException ignored) {
-            Toast.show(stage, "That port is not a number, using " + port + ".");
+    /** A leaderboard-styled row: rounded avatar frame, nickname, and a challenge action. */
+    private Table buildPlayerRow(NetworkClient.OnlinePlayer player) {
+        Table row = new Table();
+        row.setBackground(skin.getDrawable("card-background"));
+        row.pad(6, 10, 6, 10).defaults().pad(0, 4, 0, 4);
+
+        Stack avatarStack = new Stack();
+        avatarStack.add(new Image(loadTextureSafe(AVATAR_FRAME_PATH)));
+        Table avatarWrap = new Table();
+        avatarWrap.add(new Image(loadTextureSafe(UNKNOWN_AVATAR_PATH))).size(26, 26);
+        avatarStack.add(avatarWrap);
+        row.add(avatarStack).size(36, 36);
+
+        Table nameCol = new Table();
+        nameCol.add(new Label(player.nickname(), skin, "main")).left().row();
+        Label username = createLabel(player.username(), "muted");
+        username.setFontScale(0.75f);
+        nameCol.add(username).left();
+        row.add(nameCol).left().expandX();
+
+        if (player.inMatch()) {
+            row.add(createLabel("in a match", "muted")).right();
+        } else {
+            row.add(secondaryButton("Challenge", () -> {
+                opponentField.setText(player.username());
+                challenge();
+            })).width(140).right();
         }
-        String host = hostField.getText().trim();
-        if (host.isEmpty()) host = Protocol.DEFAULT_HOST;
-        NetworkClient.get().connect(host, port);
-        Toast.show(stage, NetworkClient.get().getStatusMessage());
-        build();
+        return row;
     }
 
     private void disconnect() {
@@ -283,9 +389,12 @@ public class NetworkScreen extends UiScreen {
                 () -> NetworkClient.get().respondToInvite(invite.inviteId(), false, null)).show();
     }
 
+    private TextureRegionDrawable woodDrawable() {
+        return new TextureRegionDrawable(loadTextureSafe(WOOD_BACKGROUND_PATH));
+    }
+
     private Table buildTopBar() {
-        ImageButton backBtn = new ImageButton(new TextureRegionDrawable(
-                loadTextureSafe("assets/images/ui/buttons_hud_back_normal.png")));
+        ImageButton backBtn = new ImageButton(new TextureRegionDrawable(loadTextureSafe(BACK_ICON_PATH)));
         backBtn.getImageCell().size(54, 54);
         backBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
@@ -300,10 +409,18 @@ public class NetworkScreen extends UiScreen {
         left.add(backBtn).left();
         left.add(title).padLeft(SPACE_MD);
 
+        ImageButton leaderboardBtn = new ImageButton(
+                new TextureRegionDrawable(loadTextureSafe(LEADERBOARD_ICON_PATH)));
+        leaderboardBtn.getImageCell().size(48, 48);
+        leaderboardBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                runCommand("menu enter leaderboard");
+            }
+        });
+
         Table bar = new Table();
         bar.add(left).left().expandX();
-        bar.add(secondaryButton("Leaderboard",
-                () -> runCommand("menu enter leaderboard"))).width(190).height(45).right();
+        bar.add(leaderboardBtn).right();
         return bar;
     }
 

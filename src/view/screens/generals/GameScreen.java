@@ -460,8 +460,19 @@ public class GameScreen extends UiScreen {
         zomboss.drawNpc();
         interaction.drawDragPreview(delta);
         matchEnd.drawMatchEndOverlay();
+        drawMatchStartOverlay();
 
         batch.end();
+    }
+
+    /**
+     * Hook for a pre-match splash (e.g. the "VS" icon shown right as a networked match
+     * begins). No-op by default; drawn last, on top of everything else in the board
+     * batch, right after {@link MatchEndSequence#drawMatchEndOverlay()}. Override and
+     * pair with a helper that draws via {@link #batch}/{@link #whitePixel} the same way
+     * {@code MatchEndSequence} does.
+     */
+    protected void drawMatchStartOverlay() {
     }
 
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
@@ -502,7 +513,7 @@ public class GameScreen extends UiScreen {
         return plant.getPosition();
     }
 
-    protected boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
+    public boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
         return drawPam(path, preferred, time, x, y, scale, flip, null);
     }
 

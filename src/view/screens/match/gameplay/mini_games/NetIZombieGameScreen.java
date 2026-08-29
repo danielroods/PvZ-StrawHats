@@ -85,6 +85,7 @@ public class NetIZombieGameScreen extends GameScreen {
     private boolean shovelArmed;
     private boolean readySent;
     private boolean endHandled;
+    private MatchStartOverlay matchStartOverlay;
 
     @Override
     protected String getSeasonGameplayFolder() {
@@ -131,6 +132,9 @@ public class NetIZombieGameScreen extends GameScreen {
         reactionOverlay = new ReactionOverlay(skin, this::loadTextureSafe);
         stage.addActor(reactionOverlay);
 
+        matchStartOverlay = new MatchStartOverlay(this);
+        matchStartOverlay.start();
+
         if (!readySent && App.currentMenu instanceof NetIZombieController controller) {
             controller.sendReady();
             readySent = true;
@@ -160,11 +164,16 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     public void render(float delta) {
+        boolean starting = matchStartOverlay != null && matchStartOverlay.isActive();
+        if (starting) matchStartOverlay.advance(delta);
+
         if (state != null) {
             GameSession.setCurrent(state.getShadowSession());
             List<model.collections.zombie.Zombie> removed = state.drainRemovedZombies();
             if (!removed.isEmpty()) trackZombieDeaths(removed);
-            state.advance(delta);
+            // Freeze the board's own visible progress while the VS splash plays;
+            // the server-side match keeps running underneath regardless.
+            if (!starting) state.advance(delta);
 
             String rejection = state.pollRejection();
             if (rejection != null && stage != null) Toast.show(stage, rejection);
@@ -174,6 +183,11 @@ public class NetIZombieGameScreen extends GameScreen {
             }
         }
         super.render(delta);
+    }
+
+    @Override
+    protected void drawMatchStartOverlay() {
+        if (matchStartOverlay != null) matchStartOverlay.draw();
     }
 
     @Override
@@ -565,7 +579,7 @@ public class NetIZombieGameScreen extends GameScreen {
         for (int i = 0; i < Protocol.REACTION_TEXTS.length; i++) {
             int index = i;
             bar.add(reactionButton(Protocol.REACTION_TEXTS[i], 150f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_TEXT, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_TEXT, index)))
                     .padRight(4f);
         }
         bar.row();
@@ -574,13 +588,13 @@ public class NetIZombieGameScreen extends GameScreen {
         for (int i = 0; i < 3; i++) {
             int index = i;
             quick.add(reactionButton(ReactionOverlay.EMOJI_LABELS[i], 46f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_EMOJI, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_EMOJI, index)))
                     .padRight(4f);
         }
         for (int i = 0; i < 3; i++) {
             int index = i;
             quick.add(reactionButton(ReactionOverlay.STICKER_LABELS[i], 46f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_STICKER, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_STICKER, index)))
                     .padRight(4f);
         }
         bar.add(quick).colspan(3).padTop(4f);
