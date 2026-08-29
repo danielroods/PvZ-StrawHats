@@ -68,7 +68,7 @@ public class MainMenuScreen extends UiScreen {
 
         Actor gameBtn = createBannerCard("assets/images/ui/calendar_card_7day_tombtangled.png", "Game", () -> runCommand("menu enter game"));
         Actor onlineMatchBtn = createBannerCard("assets/images/ui/calendar_card_7day_lunar_new_year.png", "Online Match", () -> runCommand("menu enter network"));
-        Actor coopBtn = createBannerCard("assets/images/ui/opponentpanel_bg.png", "Co-op", () -> runCommand("menu enter coop"));
+        Actor coopBtn = createBannerCard("assets/images/ui/calendar_card_7day_foodfight.png", "Co-op", () -> runCommand("menu enter coop"));
         Actor travelBtn = createBannerCard("assets/images/ui/calendar_card_7day_bigwavebeach.png", "Travel Log", () -> runCommand("menu enter travellog"));
 
         carouselContent.add(gameBtn).size(420, 260).pad(20);
