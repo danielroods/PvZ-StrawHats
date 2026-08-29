@@ -56,8 +56,8 @@ class EndurianTest {
         assertEquals(46, endurian.getId());
         assertEquals(PlantType.WALL_NUT, endurian.getType());
         assertEquals(100, endurian.getCost());
-        assertEquals(3000, endurian.getMaxHp());
-        assertEquals(3000, endurian.getHP());
+        assertEquals(5000, endurian.getMaxHp());
+        assertEquals(5000, endurian.getHP());
         assertEquals(20, endurian.getDamage());
         assertEquals(15, endurian.getRecharge());
         assertEquals(1.0, endurian.getActionInterval(), 1.0e-9,
@@ -119,7 +119,7 @@ class EndurianTest {
 
         assertEquals(190, zombie.getHP(), "only zombies in contact with Endurian take spike damage");
         assertFalse(endurian.isEndurianUnderAttack(), "no contact means no spike animation either");
-        assertEquals(2950, endurian.getHP());
+        assertEquals(4950, endurian.getHP());
     }
 
     @Test
@@ -150,7 +150,7 @@ class EndurianTest {
 
         session = new GameSession(ROWS, COLS);
         Plant levelThree = plantEndurian(3);
-        assertEquals(4000, levelThree.getMaxHp(), "level 3 adds 1000 HP");
+        assertEquals(6000, levelThree.getMaxHp(), "level 3 adds 1000 HP");
         assertEquals(25, levelThree.getEndurianSpikeDamage());
 
         session = new GameSession(ROWS, COLS);
@@ -165,15 +165,15 @@ class EndurianTest {
         assertEquals(0, endurian.getEndurianDamageTier());
         assertEquals("idle", endurian.getEndurianHealthAnimationState());
 
-        endurian.setHP(2400);
+        endurian.setHP(4000);
         assertEquals(1, endurian.getEndurianDamageTier());
         assertEquals("damage", endurian.getEndurianHealthAnimationState());
 
-        endurian.setHP(1500);
+        endurian.setHP(2500);
         assertEquals(2, endurian.getEndurianDamageTier());
         assertEquals("damage2", endurian.getEndurianHealthAnimationState());
 
-        endurian.setHP(600);
+        endurian.setHP(1000);
         assertEquals(3, endurian.getEndurianDamageTier());
         assertEquals("damage3", endurian.getEndurianHealthAnimationState());
     }
@@ -187,7 +187,7 @@ class EndurianTest {
         assertTrue(endurian.canUsePlantFood());
         assertTrue(endurian.activatePlant(session));
 
-        assertEquals(3000, endurian.getHP(), "Plant Food restores the nut to full health");
+        assertEquals(5000, endurian.getHP(), "Plant Food restores the nut to full health");
         assertEquals(0, endurian.getEndurianDamageTier());
         assertNotNull(endurian.getArmor());
         assertEquals(3000, endurian.getArmor().getHP());
@@ -207,7 +207,7 @@ class EndurianTest {
         assertEquals(40, endurian.getEndurianSpikeDamage(), "the spiky armor hits twice as hard");
 
         endurian.takeDamage(100, zombie);
-        assertEquals(3000, endurian.getHP(), "the armor soaks the bite");
+        assertEquals(5000, endurian.getHP(), "the armor soaks the bite");
         assertEquals(2900, endurian.getArmor().getHP());
         assertEquals(460, zombie.getHP(), "the spikes still answer while armored");
     }
@@ -237,7 +237,7 @@ class EndurianTest {
         endurian.takeDamage(100, zombie);
 
         assertNull(endurian.getArmor(), "a spent Plant Food armor is discarded");
-        assertEquals(2960, endurian.getHP(), "the overflow carries through to the nut");
+        assertEquals(4960, endurian.getHP(), "the overflow carries through to the nut");
 
         session.getZombies().clear();
         tick(30);
@@ -249,7 +249,7 @@ class EndurianTest {
         Plant endurian = plantEndurian(1);
         Zombie zombie = spawnZombie(COL, 100000);
 
-        endurian.takeDamage(3000, zombie);
+        endurian.takeDamage(5000, zombie);
 
         assertEquals(0, endurian.getHP());
         assertEquals(Plant.PlantState.DYING, endurian.getPlantState());

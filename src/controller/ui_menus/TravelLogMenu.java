@@ -186,6 +186,8 @@ public class TravelLogMenu extends Menu {
             case "wallnutbowling", "walnutbowling" ->
                     App.currentMenu = new WallnutBowlingController(new WallnutBowling(level));
             case "izombie" -> App.currentMenu = new ImZombieController(new IZombie(level));
+            case "izombie2p", "izombiecouch" ->
+                    App.currentMenu = new CouchIZombieController();
             case "beghouled" -> App.currentMenu = new BeghouledController(new Beghouled(level));
             case "zombotany" -> App.currentMenu = new ZombotanyController(new Zombotany(level));
             default -> throw new GameException("no such mini-game.");

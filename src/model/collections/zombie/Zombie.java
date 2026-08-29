@@ -556,6 +556,8 @@ public class Zombie extends Item implements Attack {
     public ZombieRace getRace() { return race; }
     public void setRace(ZombieRace race) { this.race = race; }
     public ZombieState getZombieState() { return zombieState; }
+    public void setZombieState(ZombieState zombieState) { this.zombieState = zombieState; }
+    public void setStatusWithoutEffects(Status status) { this.status = status; }
     /** True when this zombie's death was caused by fire (fire pea hit, or dying while ablaze). */
     public boolean diedFromFire() { return firedDeath; }
     public boolean diedFromAsh() { return ashDeath; }

@@ -38,14 +38,16 @@ public class TravelLogScreen extends UiScreen {
     private static final float BAR_HEIGHT = 22f;
 
     private static final String[] MINIGAME_KEYS = {
-            "vasebreaker", "wallnut-bowling", "i-zombie", "beghouled", "zombotany"
+            "vasebreaker", "wallnut-bowling", "i-zombie", "i-zombie-2p", "beghouled", "zombotany"
     };
     private static final String[] MINIGAME_LABELS = {
-            "Vasebreaker", "Wallnut Bowling", "I, Zombie", "Beghouled", "Zombotany"
+            "Vasebreaker", "Wallnut Bowling", "I, Zombie", "I, Zombie (2 Players)",
+            "Beghouled", "Zombotany"
     };
     private static final String[] MINIGAME_ICONS = {
             "assets/images/ui/travel_log/zvase.jpg",
             "assets/images/ui/travel_log/zwallnutb.jpg",
+            "assets/images/ui/travel_log/zizombie.jpg",
             "assets/images/ui/travel_log/zizombie.jpg",
             "assets/images/ui/travel_log/zbegho.jpg",
             "assets/images/ui/travel_log/zombotany.jpg"

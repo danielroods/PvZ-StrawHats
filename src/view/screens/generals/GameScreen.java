@@ -275,6 +275,10 @@ public class GameScreen extends UiScreen {
     protected void onZombieDied(Zombie zombie) {
     }
 
+    protected void trackZombieDeaths(List<Zombie> aliveBefore) {
+        zombies.trackZombieDeaths(aliveBefore);
+    }
+
     protected void startMatchEndSequence(boolean won) {
         matchEnd.startMatchEndSequence(won);
     }

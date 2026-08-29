@@ -76,7 +76,7 @@ public enum Regex {
             "^\\s*travel\\s+log\\s+collect\\s+-q\\s+(?<questid>\\S+)\\s*$"
     ),
     TRAVEL_LOG_PLAY_MINIGAME(
-            "^\\s*travel\\s+log\\s+play\\s+-m\\s+(?<minigame>[a-zA-Z,-]+)\\s+-l\\s+(?<level>[1-3])\\s*$"
+            "^\\s*travel\\s+log\\s+play\\s+-m\\s+(?<minigame>[a-zA-Z0-9,-]+)\\s+-l\\s+(?<level>[1-3])\\s*$"
     ),
 
     // profile menu
