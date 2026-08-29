@@ -58,6 +58,11 @@ public class EffectStatusRegistry {
                     getDouble(params, data, "chargingTime", 5.0),
                     getInt(params, data, "laserDamage", 4001));
 
+            case "CrystalSkullBeamEffect" -> new CrystalSkullBeamEffect(
+                    getInt(params, data, "laserDamage", getInt(params, data, "LaserBeamDamage", 4001)),
+                    getDouble(params, data, "chargingTime", getDouble(params, data, "ChargingTime", 5.0)),
+                    getDouble(params, data, "laserCooldownTime", getDouble(params, data, "LaserCooldownTime", 5.0)));
+
             case "PeashooterZombieEffect" -> new PeashooterZombieEffect(
                     getInt(params, data, "damage", 20),
                     getDouble(params, data, "fireRate", 1.5),

@@ -16,6 +16,7 @@ import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.OctopusProjectile;
 import model.projectile.zombie_projectile.SnowballProjectile;
 import model.projectile.zombie_projectile.BoneProjectile;
+import model.projectile.zombie_projectile.CrystalSkullBeamProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import service.resource_manager.AudioEnum;
@@ -68,6 +69,12 @@ class EffectRenderer {
     private static final float SCORCHED_TILE_LOCK_SECONDS = 10.0f;
     private static final String SNOWBALL_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_hunter_snowball_projectile.png";
     private static final String BONE_PROJECTILE_TEXTURE = "assets/images/zombies/zombie_egypt_tombraiser_31x62.png";
+    private static final String CRYSTALSKULL_BEAM_PAM =
+            "768/FULL/EFFECTS/CRYSTALSKULL_BEAM/CRYSTALSKULL_BEAM.PAM";
+    private static final String CRYSTALSKULL_BEAM_STATE = "laser_baem";
+    // The beam clip is authored one tile wide; stretch it across however many
+    // tiles separate the zombie from the plant it's hitting.
+    private static final float CRYSTALSKULL_BEAM_HEIGHT_SCALE = PROJECTILE_PAM_SCALE * 2.0f;
     private static final String OCTOPUS_PROJECTILE_PAM =
             "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
 
@@ -521,23 +528,23 @@ class EffectRenderer {
 
     private void drawTimedEffectVisual(TimedPamEffect effect, float x, float y, float drawScale,
                                        boolean potatoMineExplosion) {
-            if (effect.staticImage) {
-                screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
-                screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
-            } else {
-                boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
-                        x, y, drawScale, effect.loop);
-                if (!drawn && potatoMineExplosion) {
-                    String fallback;
-                    if (PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
-                        fallback = "animation";
-                    } else {
-                        fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
-                    }
-                    screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
+        if (effect.staticImage) {
+            screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
+            screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
+        } else {
+            boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
+                    x, y, drawScale, effect.loop);
+            if (!drawn && potatoMineExplosion) {
+                String fallback;
+                if (PRIMAL_POTATO_MINE_EXPLOSION_PAM.equals(effect.path)) {
+                    fallback = "animation";
+                } else {
+                    fallback = "animation2".equals(effect.state) ? "animation" : "animation2";
                 }
-                screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
+                screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
             }
+            screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
+        }
     }
 
     private void drawGarlicPlantFoodProjectiles() {
@@ -917,8 +924,42 @@ class EffectRenderer {
             drawZombieProjectileTexture(SNOWBALL_PROJECTILE_TEXTURE, position, 0.34f, 0f);
         } else if (projectile instanceof BoneProjectile) {
             drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
+        } else if (projectile instanceof CrystalSkullBeamProjectile beam) {
+            drawCrystalSkullBeam(beam, position, age);
         } else {
             drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+        }
+    }
+
+    /**
+     * Scratches the beam art from the zombie's own position straight across to
+     * the plant it's hitting, stretching the clip's width to match the actual
+     * distance instead of always drawing it at a fixed length.
+     */
+    private void drawCrystalSkullBeam(CrystalSkullBeamProjectile beam, Position sourcePosition, float age) {
+        Position targetPosition = beam.getBeamTargetPosition();
+        if (targetPosition == null) {
+            drawSmallDot(sourcePosition, new Color(0.55f, 0.85f, 0.95f, 1f));
+            return;
+        }
+
+        float boardTileWidth = screen.getBoardTileWidth();
+        float sourceX = GameScreen.BOARD_X + (float) sourcePosition.x() * boardTileWidth
+                + boardTileWidth * 0.41f;
+        float targetX = GameScreen.BOARD_X + (float) targetPosition.x() * boardTileWidth
+                + boardTileWidth * 0.41f;
+        float y = screen.cellY((int) sourcePosition.y()) + screen.getBoardTileHeight() * 0.42f;
+
+        // The clip is drawn anchored at the source (zombie) and stretched toward the
+        // target (plant); a negative X scale both flips and stretches leftward since
+        // the target is toward the house (lower x) from the zombie.
+        float distancePixels = targetX - sourceX;
+        float scaleX = distancePixels / boardTileWidth * PROJECTILE_PAM_SCALE;
+        if (Math.abs(scaleX) < 0.01f) scaleX = scaleX < 0 ? -0.01f : 0.01f;
+
+        if (!screen.drawPamStretched(CRYSTALSKULL_BEAM_PAM, CRYSTALSKULL_BEAM_STATE, age,
+                sourceX, y, scaleX, CRYSTALSKULL_BEAM_HEIGHT_SCALE, false)) {
+            drawSmallDot(sourcePosition, new Color(0.55f, 0.85f, 0.95f, 1f));
         }
     }
 

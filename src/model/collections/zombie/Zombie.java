@@ -82,6 +82,11 @@ public class Zombie extends Item implements Attack {
     private VulnerabilityType vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
+
+    // While true (e.g. Prospector Zombie sailing through the air after its
+    // dynamite blast), the zombie sails over plants instead of stopping to eat
+    // them the moment one shows up in its path.
+    private boolean ignoreTargetAcquisition = false;
     private int sunBeanCarrierValue = 0;
 
     private boolean boss;
@@ -373,7 +378,7 @@ public class Zombie extends Item implements Attack {
         // whole moveset, so the ordinary target/attack/move pass is skipped for it.
         if (boss) return;
 
-        Item target = acquireTarget(session);
+        Item target = ignoreTargetAcquisition ? null : acquireTarget(session);
         if (target != null && target.isAlive()) {
             zombieState = ZombieState.EATING;
             if (moveBehavior instanceof model.collections.zombie.zombie_move.SnorkelMove) {
@@ -618,6 +623,8 @@ public class Zombie extends Item implements Attack {
         this.fromNecromancy = fromNecromancy;
     }
     public boolean isFacingRight() { return isFacingRight; }
+    public void setIgnoreTargetAcquisition(boolean ignore) { this.ignoreTargetAcquisition = ignore; }
+    public boolean isIgnoringTargetAcquisition() { return ignoreTargetAcquisition; }
     public void setFacingRight(boolean facingRight) { isFacingRight = facingRight; }
     public boolean hasPlantFood() { return hasPlantFood; }
     public void setHasPlantFood(boolean hasPlantFood) { this.hasPlantFood = hasPlantFood; }
