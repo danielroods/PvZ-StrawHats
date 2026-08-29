@@ -191,7 +191,7 @@ class ZombossFightTest {
             }
         }
         assertTrue(windows >= 3,
-                "the machine should crack open more than once over a whole fight, saw " + windows);
+                "the machine should crack open more than once over a fight, saw " + windows);
     }
 
     @ParameterizedTest

@@ -32,14 +32,14 @@ public class ZombossFight {
     private static final double STUN_DAMAGE_MULTIPLIER = 2.5;
     private static final double VULNERABLE_DAMAGE_MULTIPLIER = 2.0;
 
-    private static final double SPAWN_INTERVAL_START = 15.0;
-    private static final double SPAWN_INTERVAL_MIN = 8.0;
-    private static final double SPAWN_RAMP_SECONDS = 240.0;
-    private static final double SPAWN_FIRST_DELAY = 14.0;
+    private static final double SPAWN_INTERVAL_START = 14.0;
+    private static final double SPAWN_INTERVAL_MIN = 7.5;
+    private static final double SPAWN_RAMP_SECONDS = 120.0;
+    private static final double SPAWN_FIRST_DELAY = 10.0;
     private static final double SPAWN_DOUBLE_AFTER_SECONDS = 150.0;
-    private static final int MAX_ACTIVE_MINIONS = 8;
+    private static final int MAX_ACTIVE_MINIONS = 9;
     private static final int SPAWN_DOUBLE_HEADROOM = 3;
-    private static final double SUMMON_SPAWN_PAUSE = 8.0;
+    private static final double SUMMON_SPAWN_PAUSE = 7.0;
 
     private static final double OPENING_GRACE_SECONDS = 6.0;
 
@@ -49,6 +49,10 @@ public class ZombossFight {
     private final Random random = new Random();
     private final LaneBag laneBag;
     private final List<String> minionPool = new ArrayList<>();
+    private final List<String> weightedPool = new ArrayList<>();
+    private final List<String> minionDeck = new ArrayList<>();
+    private int deckIndex;
+    private boolean firstDeckDealt;
 
     private final List<ZombossSkyStrike> skyStrikes = new ArrayList<>();
     private final List<ZombossRowEffect> rowEffects = new ArrayList<>();
@@ -68,7 +72,7 @@ public class ZombossFight {
     private boolean vulnerable;
     private double queuedRecovery;
 
-    private double spawnTimer = SPAWN_FIRST_DELAY;
+    private double spawnTimer;
 
     private ZombossActionSequence deathSequence;
 
@@ -77,6 +81,7 @@ public class ZombossFight {
         this.chapter = chapter;
         this.laneBag = new LaneBag(session == null ? 5 : session.getRows(), random);
         this.behavior = createBehavior(chapter);
+        this.spawnTimer = SPAWN_FIRST_DELAY * chapter.getSpawnPacing();
         buildMinionPool();
     }
 
@@ -94,7 +99,8 @@ public class ZombossFight {
         if (level == null || level.getZombiePool() == null) return;
         for (String alias : level.getZombiePool()) {
             if (alias == null || alias.equalsIgnoreCase(chapter.getAlias())) continue;
-            for (int i = 0; i < minionWeight(alias); i++) minionPool.add(alias);
+            minionPool.add(alias);
+            for (int i = 0; i < minionWeight(alias); i++) weightedPool.add(alias);
         }
     }
 
@@ -106,11 +112,40 @@ public class ZombossFight {
         } catch (Exception e) {
             return 1;
         }
-        if (threat <= 150) return 8;
-        if (threat <= 300) return 6;
-        if (threat <= 550) return 4;
+        if (threat <= 300) return 3;
         if (threat <= 800) return 2;
         return 1;
+    }
+
+    private String drawMinionAlias() {
+        if (minionPool.isEmpty()) return null;
+        if (deckIndex >= minionDeck.size()) {
+            minionDeck.clear();
+            if (firstDeckDealt) {
+                minionDeck.addAll(weightedPool);
+                Collections.shuffle(minionDeck, random);
+            } else {
+                minionDeck.addAll(minionPool);
+                dealOpeningDeckByThreat();
+                firstDeckDealt = true;
+            }
+            deckIndex = 0;
+        }
+        return minionDeck.get(deckIndex++);
+    }
+
+    private void dealOpeningDeckByThreat() {
+        minionDeck.sort(java.util.Comparator.comparingDouble(this::rampScore));
+    }
+
+    private double rampScore(String alias) {
+        int threat;
+        try {
+            threat = ZombieFactory.getZombieCost(alias);
+        } catch (Exception e) {
+            threat = 100;
+        }
+        return threat * (0.75 + random.nextDouble() * 0.5);
     }
 
     public GameSession getSession() { return session; }
@@ -267,7 +302,7 @@ public class ZombossFight {
     public Zombie spawnMinionAtBoss() {
         if (minionPool.isEmpty() || boss == null || boss.getPosition() == null) return null;
         if (!hasMinionRoom()) return null;
-        String alias = minionPool.get(random.nextInt(minionPool.size()));
+        String alias = drawMinionAlias();
         int row = (int) Math.round(boss.getPosition().y());
         int col = (int) Math.round(boss.getPosition().x());
         Zombie minion = createMinion(alias, row, col);
@@ -282,7 +317,7 @@ public class ZombossFight {
     public Zombie spawnMinionAtEdge() {
         if (minionPool.isEmpty() || session == null) return null;
         if (!hasMinionRoom()) return null;
-        String alias = minionPool.get(random.nextInt(minionPool.size()));
+        String alias = drawMinionAlias();
         int cols = session.getCols();
         SpawnPlacement.Placement placement = SpawnPlacement.resolve(session.getZombies(), alias,
                 cols, laneBag.preferenceOrder(laneBag.draw()), SpawnPlacement.entryX(cols));
@@ -434,7 +469,7 @@ public class ZombossFight {
         if (stunned || stunsTriggered >= STUN_HEALTH_FRACTIONS.length) return;
         double health = getBossHealthFraction();
         if (health > STUN_HEALTH_FRACTIONS[stunsTriggered]) return;
-       while (stunsTriggered < STUN_HEALTH_FRACTIONS.length
+        while (stunsTriggered < STUN_HEALTH_FRACTIONS.length
                 && health <= STUN_HEALTH_FRACTIONS[stunsTriggered]) {
             stunsTriggered++;
         }
@@ -474,7 +509,9 @@ public class ZombossFight {
             for (int i = 0; i < count; i++) behavior.spawnPoolMinion();
         }
         double ramp = Math.min(1.0, battleElapsed / SPAWN_RAMP_SECONDS);
-        spawnTimer = SPAWN_INTERVAL_START + (SPAWN_INTERVAL_MIN - SPAWN_INTERVAL_START) * ramp;
+        spawnTimer = (SPAWN_INTERVAL_START
+                + (SPAWN_INTERVAL_MIN - SPAWN_INTERVAL_START) * ramp)
+                * chapter.getSpawnPacing();
     }
 
     private void beginDeath() {

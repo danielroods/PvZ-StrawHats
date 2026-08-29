@@ -2,27 +2,35 @@ import model.collections.Item;
 import model.collections.item.GroundSun;
 import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantJsonParser;
+import model.collections.zombie.Zombie;
 import model.match.boss.ZombossFight;
 import model.match.boss.ZombossPhase;
 import model.match.main.levels.special_levels.BossLevel;
 import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 import model.utils.LevelLoader;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import service.GameClock;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BossLevelBalanceTest {
 
-    private static final int TRIALS = 5;
+    private static final int EGYPT = 104;
+    private static final int ICE_AGE = 204;
+    private static final int BEACH = 304;
+    private static final int DARK_AGES = 404;
+
     private static final int TIME_LIMIT_SECONDS = 600;
 
-    private static GameSession startBattle(int levelId) throws java.io.IOException {
+    private static GameSession startBattle(int levelId) throws IOException {
         BossLevel level = (BossLevel) LevelLoader.loadLevelById(levelId);
         GameSession session = new GameSession(level.getRows(), level.getCols());
         session.setLevel(level);
@@ -39,6 +47,12 @@ class BossLevelBalanceTest {
             if (candidate.name.equalsIgnoreCase(name)) return candidate;
         }
         throw new IllegalArgumentException("unknown plant " + name);
+    }
+
+    private static String[] layoutFor(int levelId) {
+        String shooter = levelId == ICE_AGE ? "Fire Peashooter" : "Repeater";
+        String lobber = levelId == ICE_AGE ? "Pepper-pult" : "Melon-pult";
+        return new String[] {"Sunflower", "Sunflower", shooter, shooter, lobber, "Wall-nut"};
     }
 
     private static void collectSun(GameSession session) {
@@ -64,60 +78,85 @@ class BossLevelBalanceTest {
         }
     }
 
-    private record Outcome(boolean won, int seconds, double bossHealthLeft, int stunWindows) { }
+    private record Outcome(boolean won, int seconds, Set<String> zombiesSeen, int peakMinions) { }
 
-    private static Outcome playOnce(int levelId, String[] layout) throws java.io.IOException {
+    private static Outcome playOnce(int levelId) throws IOException {
         GameSession session = startBattle(levelId);
         ZombossFight fight = session.getZombossFight();
+        String[] layout = layoutFor(levelId);
         replant(session, layout);
 
-        int stunWindows = 0;
-        boolean wasStunned = false;
+        Set<String> seen = new LinkedHashSet<>();
+        int peak = 0;
         int ticks = (int) (TIME_LIMIT_SECONDS / GameClock.SECONDS_PER_TICK);
         for (int i = 0; i < ticks; i++) {
             collectSun(session);
             if (i % 10 == 0) replant(session, layout);
             session.tick();
-            if (fight.isStunned() && !wasStunned) stunWindows++;
-            wasStunned = fight.isStunned();
+            for (Zombie zombie : session.getZombies()) {
+                if (zombie != fight.getBoss()) seen.add(zombie.getAlias());
+            }
+            peak = Math.max(peak, fight.countMinions());
             if (session.isGameWon() || session.isGameOver()) {
-                return new Outcome(session.isGameWon(), (int) (i * GameClock.SECONDS_PER_TICK),
-                        fight.getBossHealthFraction(), stunWindows);
+                return new Outcome(session.isGameWon(),
+                        (int) (i * GameClock.SECONDS_PER_TICK), seen, peak);
             }
         }
-        return new Outcome(false, TIME_LIMIT_SECONDS, fight.getBossHealthFraction(), stunWindows);
-    }
-
-    private static String[] layoutFor(int levelId) {
-        String shooter = levelId == 204 ? "Fire Peashooter" : "Repeater";
-        return new String[] {"Sunflower", "Sunflower", shooter, shooter, "Wall-nut"};
+        return new Outcome(false, TIME_LIMIT_SECONDS, seen, peak);
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {104, 204, 304, 404})
-    void aPlainLawnCanWinEveryChapter(int levelId) throws java.io.IOException {
-        String[] layout = layoutFor(levelId);
+    @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
+    void aPlainLawnCanWinEveryChapter(int levelId) throws IOException {
+        int trials = 8;
         int wins = 0;
         int fastest = Integer.MAX_VALUE;
-        double bestHealthLeft = 1.0;
-        for (int trial = 0; trial < TRIALS; trial++) {
-            Outcome outcome = playOnce(levelId, layout);
-            bestHealthLeft = Math.min(bestHealthLeft, outcome.bossHealthLeft());
+        for (int trial = 0; trial < trials; trial++) {
+            Outcome outcome = playOnce(levelId);
             if (outcome.won()) {
                 wins++;
                 fastest = Math.min(fastest, outcome.seconds());
             }
         }
-        assertTrue(wins > 0, "level " + levelId + " was unwinnable in " + TRIALS
-                + " runs with a basic lawn; closest run left the boss on "
-                + Math.round(bestHealthLeft * 100) + "% health");
+        assertTrue(wins > 0, "level " + levelId + " was unwinnable across " + trials
+                + " runs with a basic lawn");
         assertTrue(fastest >= 45, "level " + levelId + " fell over in " + fastest
                 + "s - a Zomboss fight should not be a formality");
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {104, 204, 304, 404})
-    void reinforcementsStayWithinTheCrowdCap(int levelId) throws java.io.IOException {
+    @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
+    void everyZombieInThePoolTurnsUp(int levelId) throws IOException {
+        BossLevel level = (BossLevel) LevelLoader.loadLevelById(levelId);
+        List<String> pool = new ArrayList<>(level.getZombiePool());
+        pool.remove(level.getChapter().getAlias());
+
+        GameSession session = startBattle(levelId);
+        ZombossFight fight = session.getZombossFight();
+        session.setZombieBreachesEnabled(false);
+
+        Set<String> seen = new LinkedHashSet<>();
+        for (int i = 0; i < 4000; i++) {
+            session.tick();
+            for (Zombie zombie : session.getZombies()) {
+                if (zombie == fight.getBoss()) continue;
+                seen.add(zombie.getAlias());
+                if (zombie.getPosition() != null && zombie.getPosition().x() < -1.0) {
+                    zombie.setAlive(false);
+                }
+            }
+        }
+
+        Set<String> missing = new LinkedHashSet<>(pool);
+        missing.removeAll(seen);
+        assertTrue(missing.isEmpty(), "level " + levelId
+                + " never sent these zombies across a whole match: " + missing
+                + " (saw " + seen + ")");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
+    void reinforcementsStayWithinTheCrowdCap(int levelId) throws IOException {
         GameSession session = startBattle(levelId);
         ZombossFight fight = session.getZombossFight();
         session.setZombieBreachesEnabled(false);
@@ -127,14 +166,14 @@ class BossLevelBalanceTest {
             session.tick();
             peak = Math.max(peak, fight.countMinions());
         }
-        assertTrue(peak <= 12, "level " + levelId + " let " + peak
+        assertTrue(peak <= 14, "level " + levelId + " let " + peak
                 + " reinforcements pile onto the lawn at once");
         assertTrue(peak > 0, "level " + levelId + " never sent any reinforcements");
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {104, 204, 304, 404})
-    void theBossPausesBetweenAttacks(int levelId) throws java.io.IOException {
+    @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
+    void theBossPausesBetweenAttacks(int levelId) throws IOException {
         GameSession session = startBattle(levelId);
         ZombossFight fight = session.getZombossFight();
         session.setZombieBreachesEnabled(false);

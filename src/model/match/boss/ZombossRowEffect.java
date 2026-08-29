@@ -18,12 +18,7 @@ public final class ZombossRowEffect {
 
     public ZombossRowEffect(String pamPath, String clip, int row, double duration,
                             boolean burning) {
-        this(pamPath, clip, row, duration, burning, 0.0);
-    }
-
-    public ZombossRowEffect(String pamPath, String clip, int row, double duration,
-                            boolean burning, double warningSeconds) {
-        this(pamPath, clip, row, duration, burning, warningSeconds, 0);
+        this(pamPath, clip, row, duration, burning, 0.0, 0);
     }
 
     public ZombossRowEffect(String pamPath, String clip, int row, double duration,
@@ -37,11 +32,11 @@ public final class ZombossRowEffect {
         this.minColumn = Math.max(0, minColumn);
     }
 
-    public int getMinColumn() { return minColumn; }
-
     public double getWarningSeconds() { return warningSeconds; }
 
     public boolean isWarning() { return elapsed < warningSeconds; }
+
+    public int getMinColumn() { return minColumn; }
 
     public String getPamPath() { return pamPath; }
 

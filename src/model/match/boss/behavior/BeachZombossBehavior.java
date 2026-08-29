@@ -25,15 +25,15 @@ public class BeachZombossBehavior extends ZombossBehavior {
     private static final double TANGLE_KELP_DAMAGE_FRACTION = 0.10;
     private static final double PLANT_ARRIVAL_SECONDS = 0.85;
 
-    private static final double SHARK_INTERVAL_MIN = 14.0;
-    private static final double SHARK_INTERVAL_SPREAD = 8.0;
-    private static final double SHARK_FIRST_DELAY = 16.0;
+    private static final double SHARK_INTERVAL_MIN = 12.0;
+    private static final double SHARK_INTERVAL_SPREAD = 7.0;
+    private static final double SHARK_FIRST_DELAY = 14.0;
     private static final double WATER_ATTACK_REACH = 1.4;
-    private static final double WATER_ATTACK_CHANCE = 0.3;
-    private static final double SUCTION_CHANCE = 0.35;
+    private static final double WATER_ATTACK_CHANCE = 0.35;
+    private static final double SUCTION_CHANCE = 0.4;
     private static final int SUCTION_MAX_PLANTS = 2;
-    private static final double COOLDOWN_MIN = 4.0;
-    private static final double COOLDOWN_SPREAD = 3.0;
+    private static final double COOLDOWN_MIN = 3.5;
+    private static final double COOLDOWN_SPREAD = 2.5;
 
     public static final class PulledPlant {
         private final int row;
@@ -145,7 +145,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
     }
 
     private void beginCooldown() {
-        fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
+        fight.setActionCooldown(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
     private Plant waterPlantWithinReach() {
@@ -213,7 +213,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
     }
 
     private void startSuction() {
-        suctionRow = pickSuctionRow();
+        suctionRow = random().nextInt(session().getRows());
         tangleKelpPending = false;
         pulledPlants.clear();
         fight.startAction(fight.newAction("suction")
@@ -234,7 +234,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
 
     private void tearPlantsIntoVortex() {
         if (suctionRow < 0) return;
-        List<Plant> row = new ArrayList<>(ZombossLawn.plantsInRow(session(), suctionRow));
+       List<Plant> row = new ArrayList<>(ZombossLawn.plantsInRow(session(), suctionRow));
         double bossColumn = fight.getBossPosition().x();
         row.sort(java.util.Comparator.comparingDouble(
                 p -> Math.abs(bossColumn - p.getPosition().x())));

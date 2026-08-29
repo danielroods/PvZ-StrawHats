@@ -4,7 +4,7 @@ import java.util.List;
 
 public enum ZombossChapter {
 
-    EGYPT("Egypt", "ZombieEgyptZomboss",
+    EGYPT(1.0, "Egypt", "ZombieEgyptZomboss",
             "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_ZOMBOSS/ZOMBIE_EGYPT_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",
             List.of("die", "die_idle", "die_talk", "die_exit"),
@@ -12,7 +12,7 @@ public enum ZombossChapter {
                     "Ten thousand years I spent building this machine.",
                     "Let us see how your garden holds up against a god-king!")),
 
-    ICE_AGE("Frostbite Caves", "ZombieIceAgeZomboss",
+    ICE_AGE(1.0, "Frostbite Caves", "ZombieIceAgeZomboss",
             "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_ZOMBOSS/ZOMBIE_ICEAGE_ZOMBOSS.PAM",
             "reveal", "stun", "cover_up",
             List.of("die", "die_talk", "die_exit"),
@@ -20,7 +20,7 @@ public enum ZombossChapter {
                     "My glacier walls will hold. Yours will not.",
                     "Enjoy the cold, plants. You will be here a while.")),
 
-    BEACH("Big Wave Beach", "ZombieBeachZomboss",
+    BEACH(1.05, "Big Wave Beach", "ZombieBeachZomboss",
             "768/FULL/ZOMBIE/ZOMBIE_BEACH_ZOMBOSS/ZOMBIE_BEACH_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",
             List.of("die", "die_talk", "die_exit"),
@@ -28,7 +28,7 @@ public enum ZombossChapter {
                     "This machine drinks the whole ocean if I ask it to.",
                     "Let us find out how well a garden swims!")),
 
-    DARK_AGES("Dark Ages", "ZombieDarkZomboss",
+    DARK_AGES(1.3, "Dark Ages", "ZombieDarkZomboss",
             "768/FULL/ZOMBIE/ZOMBIE_DARK_ZOMBOSS/ZOMBIE_DARK_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",
             List.of("die", "die_talk", "die_exit"),
@@ -46,6 +46,7 @@ public enum ZombossChapter {
     public static final String INTRO_CLIP = "intro";
     public static final String IDLE_CLIP = "idle";
 
+    private final double spawnPacing;
     private final String seasonName;
     private final String alias;
     private final String bossPam;
@@ -55,9 +56,10 @@ public enum ZombossChapter {
     private final List<String> deathClips;
     private final List<String> dialogue;
 
-    ZombossChapter(String seasonName, String alias, String bossPam, String stunStartClip,
-                   String stunLoopClip, String stunEndClip, List<String> deathClips,
-                   List<String> dialogue) {
+    ZombossChapter(double spawnPacing, String seasonName, String alias, String bossPam,
+                   String stunStartClip, String stunLoopClip, String stunEndClip,
+                   List<String> deathClips, List<String> dialogue) {
+        this.spawnPacing = spawnPacing;
         this.seasonName = seasonName;
         this.alias = alias;
         this.bossPam = bossPam;
@@ -67,6 +69,8 @@ public enum ZombossChapter {
         this.deathClips = deathClips;
         this.dialogue = dialogue;
     }
+
+    public double getSpawnPacing() { return spawnPacing; }
 
     public String getSeasonName() { return seasonName; }
 

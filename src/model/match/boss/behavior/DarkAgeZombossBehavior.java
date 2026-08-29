@@ -26,11 +26,11 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
     private static final double FIRE_ROW_WARNING_SECONDS = 1.3;
     private static final int FIRE_BREATH_RANGE = 5;
     private static final double FIRE_BOMB_LOOP_SECONDS = 1.2;
-    private static final int SUMMON_COUNT = 2;
+    private static final int SUMMON_COUNT = 1;
     private static final double VULNERABLE_LOOP_SECONDS = 5.0;
-    private static final double VULNERABLE_CHANCE = 0.2;
-    private static final double COOLDOWN_MIN = 3.5;
-    private static final double COOLDOWN_SPREAD = 2.5;
+    private static final double VULNERABLE_CHANCE = 0.28;
+    private static final double COOLDOWN_MIN = 3.0;
+    private static final double COOLDOWN_SPREAD = 2.2;
 
     private double shiftFromRow;
     private double shiftToRow;
@@ -46,8 +46,6 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     @Override
     public void onBattleStart() {
-        // One column in from the edge, so the dragon is inside the lawn the plants can shoot
-        // into rather than hovering behind the zombies' entry lane.
         fight.moveBossTo(Math.max(0, session().getCols() - 2), fight.getBossPosition().y());
     }
 
@@ -71,9 +69,9 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
         double roll = random().nextDouble();
         if (roll < 0.26) {
             startSummon();
-        } else if (roll < 0.50) {
+        } else if (roll < 0.52) {
             startFireBomb();
-        } else if (roll < 0.68) {
+        } else if (roll < 0.72) {
             startFireAttack();
         } else if (!startRowShift()) {
             startFireAttack();

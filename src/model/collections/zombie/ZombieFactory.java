@@ -307,8 +307,7 @@ public class ZombieFactory {
 
     public static Armour createKnightArmor() {
         int crownHp = armorBaseHp.getOrDefault("CrownDefault", ArmourType.CROWN.getArmorHp());
-        int shoulderHp = armorBaseHp.getOrDefault("ShoulderArmorDefault", ArmourType.SHOULDER_ARMOR.getArmorHp());
-        return new ZombieArmour(ArmourType.CROWN, crownHp + shoulderHp);
+        return new ZombieArmour(ArmourType.CROWN, crownHp);
     }
 
     private static String parseRtidAlias(String rtid) {

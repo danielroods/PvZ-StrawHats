@@ -44,7 +44,7 @@ public final class ZombossLawn {
     public static Plant pickBombardTarget(GameSession session, Random random) {
         List<Plant> candidates = livingPlants(session);
         if (candidates.isEmpty()) return null;
-       candidates.sort(Comparator.comparingDouble((Plant p) -> p.getPosition().x()).reversed());
+        candidates.sort(Comparator.comparingDouble((Plant p) -> p.getPosition().x()).reversed());
         int pool = Math.max(1, (int) Math.ceil(candidates.size() * 0.6));
         return candidates.get(random.nextInt(pool));
     }

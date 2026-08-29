@@ -7,7 +7,8 @@ import model.utils.GameSession;
 import service.GameClock;
 
 public class KingBuffEffect implements ZombieEffectStatus {
-    public static final int MAX_CORONATIONS = 3;
+
+    public static final int MAX_CORONATIONS = 2;
 
     private final double coronationCooldown;
     private double rechargeTimer;
