@@ -33,6 +33,7 @@ public class NetworkScreen extends UiScreen {
     private static final String WIFI_ICON_PATH = "assets/images/ui/net/wifi_icon.png";
     private static final String UNKNOWN_AVATAR_PATH = "assets/images/ui/net/avatar_practice.png";
     private static final String AVATAR_FRAME_PATH = "assets/images/ui/reward4_bg.png";
+    private static final String PLAYER_ICON = "assets/images/ui/net/MM_playerIcon.png";
 
     private TextField usernameField;
     private TextField passwordField;
@@ -238,7 +239,7 @@ public class NetworkScreen extends UiScreen {
         panel.pad(SPACE_MD);
 
         Table header = new Table();
-        header.add(new Image(loadTextureSafe(LEADERBOARD_ICON_PATH))).size(30, 30).padRight(SPACE_SM);
+        header.add(new Image(loadTextureSafe(PLAYER_ICON))).size(30, 30).padRight(SPACE_SM);
         header.add(createLabel("Players Online", "title"));
         panel.add(header).left().padBottom(SPACE_SM).row();
 
