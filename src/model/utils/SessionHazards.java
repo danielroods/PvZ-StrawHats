@@ -23,9 +23,9 @@ class SessionHazards {
     private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 1.35;
     private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 1.05;
 
-    // How long a zombie visibly glides across a tile slider's row shift, so the
-    // TILESLIDER_ICEAGE_UP/DOWN active_start/active_end art has time to actually
-    // play out instead of the zombie's row snapping in a single tick.
+    // How long a zombie visibly glides across a smooth row shift (tile sliders,
+    // Garlic's redirect, Sweet Potato's pull) so the row change reads as a
+    // glide instead of the zombie's row snapping in a single tick.
     static final double SLIDER_RIDE_DURATION_SECONDS = 0.55;
 
     private double sandStormTimer = 0.0;
@@ -266,10 +266,13 @@ class SessionHazards {
     }
 
     /**
-     * Starts (or restarts) a smooth row glide for a zombie stepping onto a tile
-     * slider, instead of the row snapping instantly. No-op if the zombie is
-     * already riding this exact slider (so a mover calling this every tick while
-     * still on the same tile doesn't reset the animation each frame).
+     * Starts (or restarts) a smooth row glide for a zombie, instead of the
+     * row snapping instantly. Originally built for Frostbite Caves tile
+     * sliders, this is now the shared row-change glide used by Garlic's
+     * redirect and Sweet Potato's pull as well. No-op if the zombie is
+     * already gliding to this exact target row (so a mover calling this
+     * every tick while still on the same tile doesn't reset the animation
+     * each frame).
      */
     void beginSliderRide(Zombie zombie, double currentX, int fromRow, int toRow) {
         if (zombie == null) return;

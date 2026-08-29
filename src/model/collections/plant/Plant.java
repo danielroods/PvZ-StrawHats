@@ -577,7 +577,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 : Math.signum(zombie.getSpeed().x());
         if (Math.abs(directionX) < 0.0001) directionX = -1.0;
         double redirectX = originalX + (0.06 * directionX);
-        zombie.setPosition(new Position(redirectX, targetRow));
+        // Glide the zombie into its new row over a short duration instead of
+        // snapping it there instantly — the same smooth row-shift used by
+        // Frostbite Caves tile sliders (see GameSession#beginSliderRide).
+        session.beginSliderRide(zombie, redirectX, currentRow, targetRow);
         zombie.startKnockback(0.03 * directionX, 0.12);
         zombie.applyStatus(Zombie.Status.BUTTER, 0.65);
         zombie.clearActionAnimationState();
@@ -613,7 +616,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
                     : Math.signum(zombie.getSpeed().x());
             if (Math.abs(directionX) < 0.0001) directionX = -1.0;
             double redirectX = zp.x() + (0.06 * directionX);
-            zombie.setPosition(new Position(redirectX, targetRow));
+            // Same smooth row glide as the single-bite redirect above, rather
+            // than snapping every zombie on the row instantly.
+            session.beginSliderRide(zombie, redirectX, row, targetRow);
             zombie.startKnockback(0.03 * directionX, 0.12);
             zombie.applyStatus(Zombie.Status.BUTTER, 7.5);
             zombie.clearActionAnimationState();
