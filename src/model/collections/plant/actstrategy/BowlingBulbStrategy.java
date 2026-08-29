@@ -3,7 +3,7 @@ package model.collections.plant.actstrategy;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
-import model.projectile.BounceMove;
+import model.projectile.RollingBounceMove;
 import model.projectile.Projectile;
 import model.projectile.hit.PierceHit;
 import model.utils.GameSession;
@@ -11,10 +11,7 @@ import model.utils.GameSession;
 public class BowlingBulbStrategy implements ActStrategy {
     private static final double[] AMMO_DAMAGE_MULTIPLIER = {1.0, 3.0, 4.5};
     private static final double[] AMMO_RELOAD_SECONDS = {2.0, 5.0, 10.0};
-    private static final double HORIZONTAL_SPEED = 8.0;
-    private static final double RICOCHET_GRAVITY = 22.0;
-    private static final double RICOCHET_LIFT = 6.6;
-    private static final double RICOCHET_DAMPING = 0.9;
+    private static final double ROLL_SPEED = 8.0;
     private static final int RICOCHET_HITS = 3;
 
     private int ammoIndex = 0;
@@ -31,10 +28,10 @@ public class BowlingBulbStrategy implements ActStrategy {
 
         Projectile bulb = new Projectile(user,
                 user.getPosition(),
-                new Position(HORIZONTAL_SPEED, -RICOCHET_LIFT),
+                new Position(ROLL_SPEED, 0),
                 target,
                 damage,
-                new BounceMove(RICOCHET_GRAVITY, RICOCHET_DAMPING),
+                new RollingBounceMove(ROLL_SPEED),
                 new PierceHit(RICOCHET_HITS)
         );
         bulb.setAssetVariant(index);
