@@ -24,12 +24,15 @@ public final class ZombossSkyStrike {
     private final double lockSeconds;
     private final double impactSeconds;
 
+    public static final double MIN_LOCK_SECONDS = 2.0;
+
     public ZombossSkyStrike(Config config, int row, int col) {
         this.config = config;
         this.row = row;
         this.col = col;
         this.lockSeconds = config.reticlePath() == null ? 0.0
-                : durationOf(config.reticlePath(), config.reticleClip(), 0.85);
+                : Math.max(MIN_LOCK_SECONDS,
+                        durationOf(config.reticlePath(), config.reticleClip(), 0.85));
         this.impactSeconds = durationOf(config.impactPath(), config.impactClip(), 1.0);
         this.stage = config.reticlePath() == null ? Stage.FALL : Stage.LOCK;
     }

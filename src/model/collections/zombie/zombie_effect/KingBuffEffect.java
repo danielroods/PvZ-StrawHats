@@ -7,8 +7,11 @@ import model.utils.GameSession;
 import service.GameClock;
 
 public class KingBuffEffect implements ZombieEffectStatus {
+    public static final int MAX_CORONATIONS = 3;
+
     private final double coronationCooldown;
     private double rechargeTimer;
+    private int coronations;
 
     public KingBuffEffect(double coronationCooldown) {
         this.coronationCooldown = coronationCooldown;
@@ -18,11 +21,13 @@ public class KingBuffEffect implements ZombieEffectStatus {
     @Override
     public void applyTickEffect(Zombie king, GameSession session) {
         if (!king.isAlive() || king.getPosition() == null) return;
+        if (coronations >= MAX_CORONATIONS) return;
 
         rechargeTimer += GameClock.SECONDS_PER_TICK;
         if (rechargeTimer >= coronationCooldown) {
             if (bestowKnightArmor(king, session)) {
                 rechargeTimer = 0;
+                coronations++;
             }
         }
     }

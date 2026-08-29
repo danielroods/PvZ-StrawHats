@@ -114,8 +114,15 @@ public class Zombie extends Item implements Attack {
         return RAND.nextInt(100) < 5;
     }
 
+    public static final double HIT_RADIUS = 0.5;
+    public static final double BOSS_HIT_RADIUS = 1.55;
+
     public void markAsBoss() {
         this.boss = true;
+    }
+
+    public double getHitRadius() {
+        return boss ? BOSS_HIT_RADIUS : HIT_RADIUS;
     }
 
     public boolean isBoss() {

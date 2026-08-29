@@ -25,13 +25,13 @@ public class EgyptZombossBehavior extends ZombossBehavior {
             1.15, false);
 
     private static final double STOMP_REACH = 1.35;
-    private static final double STOMP_CHANCE = 0.6;
+    private static final double STOMP_CHANCE = 0.3;
     private static final double PORTAL_LOOP_SECONDS = 4.0;
-    private static final int PORTAL_SPAWN_COUNT = 3;
-    private static final double MIN_COLUMN = 4.0;
+    private static final int PORTAL_SPAWN_COUNT = 2;
+    private static final double MIN_COLUMN = 5.0;
     private static final double MAX_COLUMN = 8.0;
-    private static final double COOLDOWN_MIN = 1.6;
-    private static final double COOLDOWN_SPREAD = 1.8;
+    private static final double COOLDOWN_MIN = 3.5;
+    private static final double COOLDOWN_SPREAD = 2.5;
 
     private Position moveFrom;
     private Position moveTo;
@@ -67,11 +67,11 @@ public class EgyptZombossBehavior extends ZombossBehavior {
             return;
         }
         double roll = random().nextDouble();
-        if (roll < 0.30) {
+        if (roll < 0.26) {
             startMissile();
-        } else if (roll < 0.55) {
+        } else if (roll < 0.46) {
             startPortal();
-        } else if (roll < 0.80 && startJump()) {
+        } else if (roll < 0.60 && startJump()) {
             return;
         } else {
             startWalk();
@@ -79,7 +79,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
     }
 
     private void beginCooldown() {
-        fight.setActionCooldown(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
+        fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
     // ---- stomp -------------------------------------------------------
@@ -92,11 +92,11 @@ public class EgyptZombossBehavior extends ZombossBehavior {
 
     private void applyStomp() {
         Position position = fight.getBossPosition();
-        Plant victim = ZombossLawn.plantWithinReach(session(), position, STOMP_REACH);
-        if (victim != null) ZombossLawn.destroyPlant(session(), victim);
         Plant underfoot = session().getPlantAt((int) Math.round(position.y()),
                 (int) Math.round(position.x()));
-        if (underfoot != null) ZombossLawn.destroyPlant(session(), underfoot);
+        Plant victim = underfoot != null ? underfoot
+                : ZombossLawn.plantWithinReach(session(), position, STOMP_REACH);
+        if (victim != null) ZombossLawn.destroyPlant(session(), victim);
     }
 
     // ---- jump --------------------------------------------------------
@@ -175,7 +175,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         if (targetCol < MIN_COLUMN || targetCol > MAX_COLUMN
                 || targetRow < 0 || targetRow > rows - 1) {
             // Would leave its patch of lawn; just idle this beat out instead.
-            fight.setActionCooldown(0.8);
+            fight.setActionCooldown(1.6);
             return;
         }
         moveFrom = from;

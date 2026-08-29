@@ -27,15 +27,21 @@ public class ZombossFight {
     private static final int BOSS_SPAWN_ROW = 2;
     private static final int BOSS_SPAWN_COL = 7;
 
-    private static final double STUN_HEALTH_FRACTION = 0.5;
-    private static final double STUN_LOOP_SECONDS = 6.0;
-    private static final double STUN_DAMAGE_MULTIPLIER = 2.0;
+    private static final double[] STUN_HEALTH_FRACTIONS = {0.75, 0.5, 0.25};
+    private static final double STUN_LOOP_SECONDS = 8.0;
+    private static final double STUN_DAMAGE_MULTIPLIER = 2.5;
+    private static final double VULNERABLE_DAMAGE_MULTIPLIER = 2.0;
 
-    private static final double SPAWN_INTERVAL_START = 8.0;
-    private static final double SPAWN_INTERVAL_MIN = 3.0;
-    private static final double SPAWN_RAMP_SECONDS = 150.0;
-    private static final double SPAWN_FIRST_DELAY = 3.0;
-    private static final int MAX_ACTIVE_MINIONS = 16;
+    private static final double SPAWN_INTERVAL_START = 15.0;
+    private static final double SPAWN_INTERVAL_MIN = 8.0;
+    private static final double SPAWN_RAMP_SECONDS = 240.0;
+    private static final double SPAWN_FIRST_DELAY = 14.0;
+    private static final double SPAWN_DOUBLE_AFTER_SECONDS = 150.0;
+    private static final int MAX_ACTIVE_MINIONS = 8;
+    private static final int SPAWN_DOUBLE_HEADROOM = 3;
+    private static final double SUMMON_SPAWN_PAUSE = 8.0;
+
+    private static final double OPENING_GRACE_SECONDS = 6.0;
 
     private final GameSession session;
     private final ZombossChapter chapter;
@@ -57,8 +63,10 @@ public class ZombossFight {
     private double actionCooldown;
     private double battleElapsed;
 
-    private boolean stunTriggered;
+    private int stunsTriggered;
     private boolean stunned;
+    private boolean vulnerable;
+    private double queuedRecovery;
 
     private double spawnTimer = SPAWN_FIRST_DELAY;
 
@@ -86,8 +94,23 @@ public class ZombossFight {
         if (level == null || level.getZombiePool() == null) return;
         for (String alias : level.getZombiePool()) {
             if (alias == null || alias.equalsIgnoreCase(chapter.getAlias())) continue;
-            minionPool.add(alias);
+            for (int i = 0; i < minionWeight(alias); i++) minionPool.add(alias);
         }
+    }
+
+    private int minionWeight(String alias) {
+        int threat;
+        try {
+            if (ZombieFactory.isStationaryMover(alias)) return 1;
+            threat = ZombieFactory.getZombieCost(alias);
+        } catch (Exception e) {
+            return 1;
+        }
+        if (threat <= 150) return 8;
+        if (threat <= 300) return 6;
+        if (threat <= 550) return 4;
+        if (threat <= 800) return 2;
+        return 1;
     }
 
     public GameSession getSession() { return session; }
@@ -203,6 +226,26 @@ public class ZombossFight {
 
     public void setActionCooldown(double seconds) {
         this.actionCooldown = Math.max(0.0, seconds);
+        this.queuedRecovery = 0.0;
+    }
+
+    public void queueRecovery(double seconds) {
+        this.queuedRecovery = Math.max(0.0, seconds);
+    }
+
+    public boolean isVulnerable() { return vulnerable; }
+
+    public void setVulnerable(boolean open) {
+        this.vulnerable = open;
+        refreshDamageMultiplier();
+    }
+
+    private void refreshDamageMultiplier() {
+        if (boss == null) return;
+        double multiplier = 1.0;
+        if (stunned) multiplier *= STUN_DAMAGE_MULTIPLIER;
+        if (vulnerable) multiplier *= VULNERABLE_DAMAGE_MULTIPLIER;
+        boss.setDamageTakenMultiplier(multiplier);
     }
 
     public void addSkyStrike(ZombossSkyStrike strike) {
@@ -217,8 +260,13 @@ public class ZombossFight {
         if (boss != null) boss.setPosition(new Position(col, row));
     }
 
+    public boolean hasMinionRoom() {
+        return countMinions() < MAX_ACTIVE_MINIONS;
+    }
+
     public Zombie spawnMinionAtBoss() {
         if (minionPool.isEmpty() || boss == null || boss.getPosition() == null) return null;
+        if (!hasMinionRoom()) return null;
         String alias = minionPool.get(random.nextInt(minionPool.size()));
         int row = (int) Math.round(boss.getPosition().y());
         int col = (int) Math.round(boss.getPosition().x());
@@ -227,11 +275,13 @@ public class ZombossFight {
         minion.setPosition(new Position(boss.getPosition().x(), row));
         minion.setFromNecromancy(true);
         session.spawnZombie(minion);
+        spawnTimer = Math.max(spawnTimer, SUMMON_SPAWN_PAUSE);
         return minion;
     }
 
     public Zombie spawnMinionAtEdge() {
         if (minionPool.isEmpty() || session == null) return null;
+        if (!hasMinionRoom()) return null;
         String alias = minionPool.get(random.nextInt(minionPool.size()));
         int cols = session.getCols();
         SpawnPlacement.Placement placement = SpawnPlacement.resolve(session.getZombies(), alias,
@@ -291,6 +341,7 @@ public class ZombossFight {
                         ZombossChapter.NPC_PAM, ZombossChapter.NPC_EXIT_CLIP);
                 if (phaseElapsed >= (length > 0 ? length : 0.7)) {
                     enter(ZombossPhase.BATTLE);
+                    setActionCooldown(OPENING_GRACE_SECONDS);
                     behavior.onBattleStart();
                     GeneralPrinter.print("The battle against " + chapter.getSeasonName()
                             + " Zomboss has begun!");
@@ -348,7 +399,12 @@ public class ZombossFight {
             action.advance(deltaSeconds);
             if (!wasFinished && action.isFinished()) {
                 behavior.onActionFinished(action);
-                if ("stun".equals(action.getName())) endStun();
+                if ("stun".equals(action.getName())) {
+                    endStun();
+                } else if (queuedRecovery > 0) {
+                    actionCooldown = Math.max(actionCooldown, queuedRecovery);
+                    queuedRecovery = 0.0;
+                }
             }
         }
 
@@ -375,29 +431,35 @@ public class ZombossFight {
     }
 
     private void maybeTriggerStun() {
-        if (stunTriggered || stunned) return;
-        if (getBossHealthFraction() > STUN_HEALTH_FRACTION) return;
-        stunTriggered = true;
+        if (stunned || stunsTriggered >= STUN_HEALTH_FRACTIONS.length) return;
+        double health = getBossHealthFraction();
+        if (health > STUN_HEALTH_FRACTIONS[stunsTriggered]) return;
+       while (stunsTriggered < STUN_HEALTH_FRACTIONS.length
+                && health <= STUN_HEALTH_FRACTIONS[stunsTriggered]) {
+            stunsTriggered++;
+        }
         beginStun();
     }
 
     public void beginStun() {
         stunned = true;
         skyStrikes.clear();
+        rowEffects.clear();
+        queuedRecovery = 0.0;
         ZombossActionSequence stun = newAction("stun")
                 .then(chapter.getStunStartClip())
                 .loop(chapter.getStunLoopClip(), STUN_LOOP_SECONDS)
                 .then(chapter.getStunEndClip());
         startAction(stun);
-        if (boss != null) boss.setDamageTakenMultiplier(STUN_DAMAGE_MULTIPLIER);
+        refreshDamageMultiplier();
         behavior.onStunStart();
         GeneralPrinter.print("Zomboss is stunned - hit it while the machine is open!");
     }
 
     private void endStun() {
         stunned = false;
-        if (boss != null) boss.setDamageTakenMultiplier(1.0);
-        setActionCooldown(1.5);
+        refreshDamageMultiplier();
+        setActionCooldown(3.0);
         behavior.onStunEnd();
     }
 
@@ -405,8 +467,10 @@ public class ZombossFight {
         if (minionPool.isEmpty()) return;
         spawnTimer -= deltaSeconds;
         if (spawnTimer > 0) return;
-        if (countMinions() < MAX_ACTIVE_MINIONS) {
-            int count = battleElapsed > 60 ? 2 : 1;
+        int active = countMinions();
+        if (active < MAX_ACTIVE_MINIONS) {
+            int count = battleElapsed > SPAWN_DOUBLE_AFTER_SECONDS
+                    && active <= MAX_ACTIVE_MINIONS - SPAWN_DOUBLE_HEADROOM ? 2 : 1;
             for (int i = 0; i < count; i++) behavior.spawnPoolMinion();
         }
         double ramp = Math.min(1.0, battleElapsed / SPAWN_RAMP_SECONDS);
@@ -417,6 +481,7 @@ public class ZombossFight {
         skyStrikes.clear();
         rowEffects.clear();
         stunned = false;
+        vulnerable = false;
         behavior.onDefeated();
         deathSequence = newAction("death");
         for (String clip : chapter.getDeathClips()) deathSequence.then(clip);

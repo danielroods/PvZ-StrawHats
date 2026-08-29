@@ -33,9 +33,11 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
     /** The glacier is two columns deep, measured back from the right-hand edge. */
     private static final int BLOCKED_COLUMN_COUNT = 2;
 
-    private static final double CHILL_TICK_SECONDS = 0.8;
-    private static final double COOLDOWN_MIN = 2.0;
-    private static final double COOLDOWN_SPREAD = 2.0;
+    private static final double CHILL_TICK_SECONDS = 2.2;
+    private static final double WIND_SECONDS = 2.9;
+    private static final double WIND_WARNING_SECONDS = 1.0;
+    private static final double COOLDOWN_MIN = 4.0;
+    private static final double COOLDOWN_SPREAD = 3.0;
 
     private int windRow = -1;
     private double chillTimer;
@@ -58,7 +60,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
             return;
         }
         if (!fight.isIdleForAction()) return;
-        if (random().nextDouble() < 0.55) {
+        if (random().nextDouble() < 0.45) {
             startWind();
         } else {
             startSlingshot();
@@ -66,7 +68,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
     }
 
     private void beginCooldown() {
-        fight.setActionCooldown(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
+        fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
     /**
@@ -81,10 +83,11 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
             return;
         }
         windRow = 1 + random().nextInt(maxRow);
-        chillTimer = 0.0;
+        // The wind is shown for a beat before it starts biting, so the row can be cleared.
+        chillTimer = WIND_WARNING_SECONDS;
         fight.startAction(fight.newAction("wind").then("wind_" + windRow));
         fight.addRowEffect(new ZombossRowEffect(IceWind.PAM_PATH_PLACEHOLDER, IceWind.PAM_CLIP,
-                windRow, 2.9, false));
+                windRow, WIND_SECONDS, false, WIND_WARNING_SECONDS));
         beginCooldown();
     }
 

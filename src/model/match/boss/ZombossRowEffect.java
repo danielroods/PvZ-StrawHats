@@ -10,17 +10,38 @@ public final class ZombossRowEffect {
     private final int row;
     private final double duration;
     private final boolean burning;
+    private final double warningSeconds;
+    private final int minColumn;
 
     private double elapsed;
+    private boolean burned;
 
     public ZombossRowEffect(String pamPath, String clip, int row, double duration,
                             boolean burning) {
+        this(pamPath, clip, row, duration, burning, 0.0);
+    }
+
+    public ZombossRowEffect(String pamPath, String clip, int row, double duration,
+                            boolean burning, double warningSeconds) {
+        this(pamPath, clip, row, duration, burning, warningSeconds, 0);
+    }
+
+    public ZombossRowEffect(String pamPath, String clip, int row, double duration,
+                            boolean burning, double warningSeconds, int minColumn) {
         this.pamPath = pamPath;
         this.clip = clip;
         this.row = row;
         this.duration = Math.max(0.1, duration);
         this.burning = burning;
+        this.warningSeconds = Math.max(0.0, warningSeconds);
+        this.minColumn = Math.max(0, minColumn);
     }
+
+    public int getMinColumn() { return minColumn; }
+
+    public double getWarningSeconds() { return warningSeconds; }
+
+    public boolean isWarning() { return elapsed < warningSeconds; }
 
     public String getPamPath() { return pamPath; }
 
@@ -36,8 +57,10 @@ public final class ZombossRowEffect {
 
     public void tick(double deltaSeconds, GameSession session) {
         elapsed += Math.max(0.0, deltaSeconds);
-        if (!burning || session == null) return;
+        if (!burning || burned || session == null || elapsed < warningSeconds) return;
+        burned = true;
         for (Plant plant : ZombossLawn.plantsInRow(session, row)) {
+            if (Math.round(plant.getPosition().x()) < minColumn) continue;
             if (!ZombossLawn.isFireProof(plant)) ZombossLawn.destroyPlant(session, plant);
         }
     }

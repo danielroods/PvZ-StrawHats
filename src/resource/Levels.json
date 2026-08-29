@@ -75,7 +75,7 @@
     "season": "egypt",
     "rows": 5,
     "cols": 9,
-    "initialSun": 500,
+    "initialSun": 1500,
     "availablePlants": [
       "Sunflower",
       "Twin Sunflower",
@@ -172,7 +172,7 @@
     "season": "cave",
     "rows": 5,
     "cols": 9,
-    "initialSun": 500,
+    "initialSun": 1500,
     "availablePlants": [
       "Sunflower",
       "Twin Sunflower",
@@ -271,7 +271,7 @@
     "season": "beach",
     "rows": 5,
     "cols": 9,
-    "initialSun": 500,
+    "initialSun": 1500,
     "availablePlants": [
       "Sunflower",
       "Twin Sunflower",
@@ -366,7 +366,7 @@
     "season": "darkage",
     "rows": 5,
     "cols": 9,
-    "initialSun": 500,
+    "initialSun": 1500,
     "availablePlants": [
       "Sun-shroom",
       "Sunflower",

@@ -143,7 +143,7 @@ class ZombossRenderer {
         for (ZombossRowEffect effect : fight.getRowEffects()) {
             float time = loopedTime(effect.getPamPath(), effect.getClip(),
                     (float) effect.getElapsed());
-            for (int col = 0; col < cols; col++) {
+            for (int col = effect.getMinColumn(); col < cols; col++) {
                 screen.drawPam(effect.getPamPath(), effect.getClip(), time + col * 0.05f,
                         GameScreen.BOARD_X + (col + 0.45f) * tileW,
                         screen.cellY(effect.getRow()) + tileH * 0.3f, TILE_FX_SCALE, false);

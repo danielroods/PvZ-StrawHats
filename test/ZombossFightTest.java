@@ -149,7 +149,7 @@ class ZombossFightTest {
 
     @ParameterizedTest
     @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
-    void halfHealthOpensTheStunWindow(int levelId) throws java.io.IOException {
+    void losingHealthOpensAStunWindow(int levelId) throws java.io.IOException {
         GameSession session = startSession(loadBossLevel(levelId));
         ZombossFight fight = runIntro(session);
 
@@ -157,21 +157,41 @@ class ZombossFightTest {
         assertFalse(fight.isStunned());
         assertTrue(boss.getHP() > boss.getMaxHp() * 0.8,
                 "one hit must never take more than a slice of the boss's health");
-        hammerBoss(session, fight, 0.45);
+        hammerBoss(session, fight, 0.6);
         session.tick();
 
-        assertTrue(fight.isStunned(), "dropping below half health must trigger the stun");
+        assertTrue(fight.isStunned(), "crossing a health threshold must trigger the stun");
         assertTrue(boss.getDamageTakenMultiplier() > 1.0, "the stun window doubles damage");
 
         int before = fight.countMinions();
         tickSeconds(session, 4.0);
         assertEquals(before, fight.countMinions(), "no reinforcements arrive while stunned");
 
-        tickSeconds(session, 12.0);
+        tickSeconds(session, 16.0);
         assertFalse(fight.isStunned(), "the boss should recover from the stun");
-        if (levelId != DARK_AGES) {
-            assertEquals(1.0, boss.getDamageTakenMultiplier(), 0.001);
+        assertEquals(1.0, boss.getDamageTakenMultiplier(), 0.001,
+                "damage goes back to normal once the machine closes up again");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {EGYPT, ICE_AGE, BEACH, DARK_AGES})
+    void theStunWindowReopensAsTheBossIsWornDown(int levelId) throws java.io.IOException {
+        GameSession session = startSession(loadBossLevel(levelId));
+        ZombossFight fight = runIntro(session);
+
+        int windows = 0;
+        boolean wasStunned = false;
+        for (double health : new double[] {0.7, 0.45, 0.2}) {
+            hammerBoss(session, fight, health);
+            for (int i = 0; i < 300 && fight.getBoss().isAlive(); i++) {
+                session.tick();
+                if (fight.isStunned() && !wasStunned) windows++;
+                wasStunned = fight.isStunned();
+                if (!fight.isStunned() && windows > 0 && i > 200) break;
+            }
         }
+        assertTrue(windows >= 3,
+                "the machine should crack open more than once over a whole fight, saw " + windows);
     }
 
     @ParameterizedTest

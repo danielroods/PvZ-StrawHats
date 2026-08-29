@@ -25,13 +25,15 @@ public class BeachZombossBehavior extends ZombossBehavior {
     private static final double TANGLE_KELP_DAMAGE_FRACTION = 0.10;
     private static final double PLANT_ARRIVAL_SECONDS = 0.85;
 
-    private static final double SHARK_INTERVAL_MIN = 6.0;
-    private static final double SHARK_INTERVAL_SPREAD = 5.0;
+    private static final double SHARK_INTERVAL_MIN = 14.0;
+    private static final double SHARK_INTERVAL_SPREAD = 8.0;
+    private static final double SHARK_FIRST_DELAY = 16.0;
     private static final double WATER_ATTACK_REACH = 1.4;
-    private static final double WATER_ATTACK_CHANCE = 0.5;
-    private static final double SUCTION_CHANCE = 0.45;
-    private static final double COOLDOWN_MIN = 1.8;
-    private static final double COOLDOWN_SPREAD = 2.2;
+    private static final double WATER_ATTACK_CHANCE = 0.3;
+    private static final double SUCTION_CHANCE = 0.35;
+    private static final int SUCTION_MAX_PLANTS = 2;
+    private static final double COOLDOWN_MIN = 4.0;
+    private static final double COOLDOWN_SPREAD = 3.0;
 
     public static final class PulledPlant {
         private final int row;
@@ -64,7 +66,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
     private final List<ZombossShark> sharks = new ArrayList<>();
     private final List<PulledPlant> pulledPlants = new ArrayList<>();
 
-    private double sharkTimer = SHARK_INTERVAL_MIN;
+    private double sharkTimer = SHARK_FIRST_DELAY;
     private int suctionRow = -1;
     private boolean tangleKelpPending;
     private boolean waterAttackApplied;
@@ -143,7 +145,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
     }
 
     private void beginCooldown() {
-        fight.setActionCooldown(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
+        fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
     private Plant waterPlantWithinReach() {
@@ -211,7 +213,7 @@ public class BeachZombossBehavior extends ZombossBehavior {
     }
 
     private void startSuction() {
-        suctionRow = random().nextInt(session().getRows());
+        suctionRow = pickSuctionRow();
         tangleKelpPending = false;
         pulledPlants.clear();
         fight.startAction(fight.newAction("suction")
@@ -221,16 +223,33 @@ public class BeachZombossBehavior extends ZombossBehavior {
         beginCooldown();
     }
 
+    private int pickSuctionRow() {
+        List<Integer> occupied = new ArrayList<>();
+        for (int row = 0; row < session().getRows(); row++) {
+            if (!ZombossLawn.plantsInRow(session(), row).isEmpty()) occupied.add(row);
+        }
+        if (occupied.isEmpty()) return random().nextInt(session().getRows());
+        return occupied.get(random().nextInt(occupied.size()));
+    }
+
     private void tearPlantsIntoVortex() {
         if (suctionRow < 0) return;
-        for (Plant plant : ZombossLawn.plantsInRow(session(), suctionRow)) {
+        List<Plant> row = new ArrayList<>(ZombossLawn.plantsInRow(session(), suctionRow));
+        double bossColumn = fight.getBossPosition().x();
+        row.sort(java.util.Comparator.comparingDouble(
+                p -> Math.abs(bossColumn - p.getPosition().x())));
+        int taken = 0;
+        for (Plant plant : row) {
+            boolean kelp = ZombossLawn.isTangleKelp(plant);
+            if (taken >= SUCTION_MAX_PLANTS && !kelp) continue;
             int col = (int) Math.round(plant.getPosition().x());
             boolean overWater = ZombossLawn.isWater(session(), suctionRow, col);
-            boolean kelp = ZombossLawn.isTangleKelp(plant);
             if (kelp) tangleKelpPending = true;
             pulledPlants.add(new PulledPlant(suctionRow, plant.getPosition().x(),
                     overWater, kelp));
             ZombossLawn.destroyPlant(session(), plant);
+            taken++;
+            if (kelp) break;
         }
     }
 

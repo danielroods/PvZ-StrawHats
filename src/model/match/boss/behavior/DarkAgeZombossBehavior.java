@@ -18,18 +18,19 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
             null, null,
             FIREBALL_PAM, "fall",
             FIREBALL_PAM, "impact",
-            1.0, true);
+            2.6, true);
 
     private static final double ROW_SHIFT_SECONDS = 1.1;
     private static final double FIRE_ATTACK_LOOP_SECONDS = 3.0;
-    private static final double FIRE_ROW_BURN_SECONDS = 4.2;
+    private static final double FIRE_ROW_BURN_SECONDS = 3.0;
+    private static final double FIRE_ROW_WARNING_SECONDS = 1.3;
+    private static final int FIRE_BREATH_RANGE = 5;
     private static final double FIRE_BOMB_LOOP_SECONDS = 1.2;
-    private static final int SUMMON_COUNT = 3;
-    private static final double VULNERABLE_LOOP_SECONDS = 3.5;
-    private static final double VULNERABLE_CHANCE = 0.12;
-    private static final double VULNERABLE_DAMAGE_MULTIPLIER = 2.0;
-    private static final double COOLDOWN_MIN = 1.5;
-    private static final double COOLDOWN_SPREAD = 1.8;
+    private static final int SUMMON_COUNT = 2;
+    private static final double VULNERABLE_LOOP_SECONDS = 5.0;
+    private static final double VULNERABLE_CHANCE = 0.2;
+    private static final double COOLDOWN_MIN = 3.5;
+    private static final double COOLDOWN_SPREAD = 2.5;
 
     private double shiftFromRow;
     private double shiftToRow;
@@ -45,7 +46,9 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     @Override
     public void onBattleStart() {
-        fight.moveBossTo(Math.max(0, session().getCols() - 1), fight.getBossPosition().y());
+        // One column in from the edge, so the dragon is inside the lawn the plants can shoot
+        // into rather than hovering behind the zombies' entry lane.
+        fight.moveBossTo(Math.max(0, session().getCols() - 2), fight.getBossPosition().y());
     }
 
     @Override
@@ -66,11 +69,11 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
             return;
         }
         double roll = random().nextDouble();
-        if (roll < 0.28) {
+        if (roll < 0.26) {
             startSummon();
-        } else if (roll < 0.56) {
+        } else if (roll < 0.50) {
             startFireBomb();
-        } else if (roll < 0.82) {
+        } else if (roll < 0.68) {
             startFireAttack();
         } else if (!startRowShift()) {
             startFireAttack();
@@ -78,7 +81,7 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
     }
 
     private void beginCooldown() {
-        fight.setActionCooldown(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
+        fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
     private void startSummon() {
@@ -116,8 +119,9 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     private void igniteRow() {
         int row = (int) Math.round(fight.getBossPosition().y());
+        int reach = (int) Math.round(fight.getBossPosition().x()) - FIRE_BREATH_RANGE + 1;
         fight.addRowEffect(new ZombossRowEffect(FIRE_TILE_PAM, FIRE_TILE_CLIP, row,
-                FIRE_ROW_BURN_SECONDS, true));
+                FIRE_ROW_BURN_SECONDS, true, FIRE_ROW_WARNING_SECONDS, Math.max(0, reach)));
     }
 
     private boolean startRowShift() {
@@ -135,9 +139,7 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     private void startVulnerable() {
         vulnerableOpen = true;
-        if (fight.getBoss() != null) {
-            fight.getBoss().setDamageTakenMultiplier(VULNERABLE_DAMAGE_MULTIPLIER);
-        }
+        fight.setVulnerable(true);
         fight.startAction(fight.newAction("vulnerable")
                 .then("vulnerable")
                 .loop("vulnerable_loop", VULNERABLE_LOOP_SECONDS)
@@ -148,13 +150,22 @@ public class DarkAgeZombossBehavior extends ZombossBehavior {
 
     private void closeVulnerable() {
         vulnerableOpen = false;
-        if (fight.getBoss() != null && !fight.isStunned()) {
-            fight.getBoss().setDamageTakenMultiplier(1.0);
-        }
+        fight.setVulnerable(false);
+    }
+
+    @Override
+    public void onStunStart() {
+        if (vulnerableOpen) closeVulnerable();
+    }
+
+    @Override
+    public void onDefeated() {
+        if (vulnerableOpen) closeVulnerable();
     }
 
     @Override
     public void onActionFinished(ZombossActionSequence sequence) {
+        if ("vulnerable".equals(sequence.getName())) closeVulnerable();
         if ("shift".equals(sequence.getName())) {
             fight.moveBossTo(fight.getBossPosition().x(), shiftToRow);
         }

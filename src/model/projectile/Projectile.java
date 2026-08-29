@@ -285,7 +285,8 @@ public class Projectile extends Item {
         List<ZombieHit> collisions = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
             if (!isValidTarget(zombie) || hitZombies.contains(zombie)) continue;
-            double projection = collisionProjection(zombie.getPosition(), previousPosition, currentPosition);
+            double projection = collisionProjection(zombie.getPosition(), previousPosition,
+                    currentPosition, zombie.getHitRadius());
             if (projection >= 0) collisions.add(new ZombieHit(zombie, projection));
         }
         collisions.sort(Comparator.comparingDouble(ZombieHit::projection));
@@ -313,7 +314,12 @@ public class Projectile extends Item {
         Position targetPosition = resolveTargetPosition(target);
         Position currentPosition = getPosition();
         if (targetPosition == null || currentPosition == null) return;
-        if (collisionProjection(targetPosition, previousPosition, currentPosition) < 0) return;
+        double targetRadius = target instanceof Zombie targetZombie
+                ? targetZombie.getHitRadius() : Zombie.HIT_RADIUS;
+        if (collisionProjection(targetPosition, previousPosition, currentPosition,
+                targetRadius) < 0) {
+            return;
+        }
 
         if (target instanceof Zombie zombie) {
             zombie.takeDamage(getEffectiveDamage(), this);
@@ -502,15 +508,20 @@ public class Projectile extends Item {
     }
 
     private double collisionProjection(Position targetPosition, Position start, Position end) {
+        return collisionProjection(targetPosition, start, end, Zombie.HIT_RADIUS);
+    }
+
+    private double collisionProjection(Position targetPosition, Position start, Position end,
+                                       double radius) {
         if (targetPosition == null || start == null || end == null) return -1;
         Position movement = end.sub(start);
         double lengthSquared = movement.dot(movement);
-        if (lengthSquared == 0) return end.distanceTo(targetPosition) <= 0.5 ? 0 : -1;
+        if (lengthSquared == 0) return end.distanceTo(targetPosition) <= radius ? 0 : -1;
 
         double projection = targetPosition.sub(start).dot(movement) / lengthSquared;
         if (projection < 0 || projection > 1) return -1;
         Position closestPoint = start.add(movement.scale(projection));
-        return closestPoint.distanceTo(targetPosition) <= 0.5 ? projection : -1;
+        return closestPoint.distanceTo(targetPosition) <= radius ? projection : -1;
     }
 
     private int getLobberSourceRow() {
