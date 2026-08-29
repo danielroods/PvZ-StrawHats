@@ -224,26 +224,28 @@ class FrostbiteRenderer {
                 boolean isZombie = iceBlock.getFrozenZombie() != null;
                 Texture iceBlockTexture = isZombie ? screen.assets().zombieIceBlockTexture() : plantIceBlockTextureFor(iceBlock);
                 int plantLevel = isZombie ? 3 : plantIceLevelFor(iceBlock);
-                if (iceBlockTexture != null) {
-                    float drawW = isZombie ? boardTileWidth * ICE_BLOCK_ART_SCALE
-                            : iceBlockTexture.getWidth() * boardFitScale * plantIceScaleFor(plantLevel);
-                    float drawH = isZombie ? boardTileHeight * ICE_BLOCK_ART_SCALE
-                            : iceBlockTexture.getHeight() * boardFitScale * plantIceScaleFor(plantLevel);
-                    float drawX = isZombie ? x + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X
-                            : x + (boardTileWidth - drawW) * 0.5f + plantIceOffsetXFor(plantLevel);
-                    float drawY = isZombie ? y + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y
-                            : y + (boardTileHeight - drawH) * 0.5f + plantIceOffsetYFor(plantLevel);
-                    screen.batch.setColor(1f, 1f, 1f, pulse);
-                    screen.batch.draw(iceBlockTexture, drawX, drawY, drawW, drawH);
-                    screen.batch.setColor(Color.WHITE);
-                } else {
-                    screen.batch.setColor(0.70f, 0.90f, 1f, 0.34f);
-                    screen.batch.draw(screen.whitePixel, x + 4f, y + 4f, boardTileWidth - 8f, boardTileHeight - 8f);
-                    screen.batch.setColor(0.88f, 0.98f, 1f, 0.34f);
-                    screen.batch.draw(screen.whitePixel, x + boardTileWidth * 0.16f, y + boardTileHeight * 0.16f, 5f, boardTileHeight * 0.65f);
-                    screen.batch.draw(screen.whitePixel, x + boardTileWidth * 0.58f, y + boardTileHeight * 0.25f, 4f, boardTileHeight * 0.48f);
-                    screen.batch.setColor(Color.WHITE);
-                }
+                screen.queueRowDraw(r, () -> {
+                    if (iceBlockTexture != null) {
+                        float drawW = isZombie ? boardTileWidth * ICE_BLOCK_ART_SCALE
+                                : iceBlockTexture.getWidth() * boardFitScale * plantIceScaleFor(plantLevel);
+                        float drawH = isZombie ? boardTileHeight * ICE_BLOCK_ART_SCALE
+                                : iceBlockTexture.getHeight() * boardFitScale * plantIceScaleFor(plantLevel);
+                        float drawX = isZombie ? x + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X
+                                : x + (boardTileWidth - drawW) * 0.5f + plantIceOffsetXFor(plantLevel);
+                        float drawY = isZombie ? y + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y
+                                : y + (boardTileHeight - drawH) * 0.5f + plantIceOffsetYFor(plantLevel);
+                        screen.batch.setColor(1f, 1f, 1f, pulse);
+                        screen.batch.draw(iceBlockTexture, drawX, drawY, drawW, drawH);
+                        screen.batch.setColor(Color.WHITE);
+                    } else {
+                        screen.batch.setColor(0.70f, 0.90f, 1f, 0.34f);
+                        screen.batch.draw(screen.whitePixel, x + 4f, y + 4f, boardTileWidth - 8f, boardTileHeight - 8f);
+                        screen.batch.setColor(0.88f, 0.98f, 1f, 0.34f);
+                        screen.batch.draw(screen.whitePixel, x + boardTileWidth * 0.16f, y + boardTileHeight * 0.16f, 5f, boardTileHeight * 0.65f);
+                        screen.batch.draw(screen.whitePixel, x + boardTileWidth * 0.58f, y + boardTileHeight * 0.25f, 4f, boardTileHeight * 0.48f);
+                        screen.batch.setColor(Color.WHITE);
+                    }
+                });
             }
         }
     }

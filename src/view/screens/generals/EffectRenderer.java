@@ -346,7 +346,9 @@ class EffectRenderer {
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth
                     + effect.offsetX;
             float y = screen.cellY((int) effect.position.y()) + effect.offsetY;
-            screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, false);
+            float time = effect.time;
+            int row = (int) effect.position.y();
+            screen.queueRowDraw(row, () -> screen.drawPam(effect.path, effect.state, time, x, y, effect.scale, false));
         }
         effects.removeIf(e -> e.time > e.duration);
     }
@@ -372,11 +374,13 @@ class EffectRenderer {
             for (int col = fromCol; col <= toCol; col++) {
                 float x = GameScreen.BOARD_X + col * boardTileWidth + boardTileWidth * 0.3f;
                 float y = screen.cellY(row) + boardTileHeight * 0.3f;
-                if (entry.isStaticImage()) {
-                    screen.assets().drawStaticEffect(entry.path(), x, y, PROJECTILE_PAM_SCALE);
-                } else {
-                    screen.drawPam(entry.path(), entry.state(), time, x, y, PROJECTILE_PAM_SCALE, loop);
-                }
+                screen.queueRowDraw(row, () -> {
+                    if (entry.isStaticImage()) {
+                        screen.assets().drawStaticEffect(entry.path(), x, y, PROJECTILE_PAM_SCALE);
+                    } else {
+                        screen.drawPam(entry.path(), entry.state(), time, x, y, PROJECTILE_PAM_SCALE, loop);
+                    }
+                });
             }
         }
     }
@@ -422,8 +426,11 @@ class EffectRenderer {
                         SCORCHED_EARTH_TILE_PAM, "animation2");
                 if (duration > 0f) time %= duration;
             }
-            screen.drawPam(SCORCHED_EARTH_TILE_PAM, effect.phase, time,
-                    x, y, SCORCHED_TILE_SCALE, loop);
+            String phase = effect.phase;
+            float finalTime = time;
+            int row = (int) effect.position.y();
+            screen.queueRowDraw(row, () -> screen.drawPam(SCORCHED_EARTH_TILE_PAM, phase, finalTime,
+                    x, y, SCORCHED_TILE_SCALE, loop));
         }
 
         float finalEndDuration = endDuration;
@@ -472,8 +479,11 @@ class EffectRenderer {
                         HOTPOTATO_ICEBLOCK_PUDDLE_PAM, "animation2");
                 if (duration > 0f) time %= duration;
             }
-            screen.drawPam(HOTPOTATO_ICEBLOCK_PUDDLE_PAM, effect.phase, time,
-                    x, y, HOTPOTATO_PUDDLE_SCALE, loop);
+            String phase = effect.phase;
+            float finalTime = time;
+            int row = (int) effect.position.y();
+            screen.queueRowDraw(row, () -> screen.drawPam(HOTPOTATO_ICEBLOCK_PUDDLE_PAM, phase, finalTime,
+                    x, y, HOTPOTATO_PUDDLE_SCALE, loop));
         }
 
         float finalOutroDuration = outroDuration;
@@ -503,6 +513,14 @@ class EffectRenderer {
                     + boardTileWidth * offsetX;
             float y = screen.cellY((int) effect.position.y()) + boardTileHeight * offsetY
                     + boardTileWidth * 0.3f;
+            int row = (int) effect.position.y();
+            screen.queueRowDraw(row, () -> drawTimedEffectVisual(effect, x, y, drawScale, potatoMineExplosion));
+        }
+        effects.removeIf(e -> e.time > e.duration);
+    }
+
+    private void drawTimedEffectVisual(TimedPamEffect effect, float x, float y, float drawScale,
+                                       boolean potatoMineExplosion) {
             if (effect.staticImage) {
                 screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
                 screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
@@ -520,8 +538,6 @@ class EffectRenderer {
                 }
                 screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
             }
-        }
-        effects.removeIf(e -> e.time > e.duration);
     }
 
     private void drawGarlicPlantFoodProjectiles() {
@@ -546,10 +562,12 @@ class EffectRenderer {
             float col = startCol + (endCol - startCol) * (float) progress;
 
             float x = GameScreen.BOARD_X + col * tileW;
-            float y = screen.cellY((int) Math.round(plant.getPosition().y())) + tileH * 0.36f;
+            int row = (int) Math.round(plant.getPosition().y());
+            float y = screen.cellY(row) + tileH * 0.36f;
+            float elapsedTime = (float) elapsed;
 
-            screen.drawPam(GARLIC_PF_PAM, "animation", (float) elapsed,
-                    x, y, PROJECTILE_PAM_SCALE * 1.35f, false);
+            screen.queueRowDraw(row, () -> screen.drawPam(GARLIC_PF_PAM, "animation", elapsedTime,
+                    x, y, PROJECTILE_PAM_SCALE * 1.35f, false));
         }
     }
 
@@ -592,7 +610,9 @@ class EffectRenderer {
             float clipDuration = AnimationFactory.clipDurationForPath(entry.path(), entry.state());
             if (clipDuration > 0f) time = time % clipDuration;
         }
-        screen.drawPam(entry.path(), entry.state(), time, x, y, PROJECTILE_PAM_SCALE, false);
+        float finalTime = time;
+        int row = (int) tile.y();
+        screen.queueRowDraw(row, () -> screen.drawPam(entry.path(), entry.state(), finalTime, x, y, PROJECTILE_PAM_SCALE, false));
     }
 
     /**
@@ -751,9 +771,14 @@ class EffectRenderer {
             if (!projectile.isVisible()) continue;
             float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             projectileAnimTimes.put(projectile, age);
-            if (!drawProjectilePam(projectile, age)) {
-                drawSmallDot(projectile.getPosition(), new Color(0.95f, 0.9f, 0.18f, 1f));
-            }
+            Position projectilePosition = projectile.getPosition();
+            if (projectilePosition == null) continue;
+            int row = (int) Math.round(projectilePosition.y());
+            screen.queueRowDraw(row, () -> {
+                if (!drawProjectilePam(projectile, age)) {
+                    drawSmallDot(projectilePosition, new Color(0.95f, 0.9f, 0.18f, 1f));
+                }
+            });
         }
         spawnImpactEffectsForSpentProjectiles();
         drawMeleePlantProjectiles(delta);
@@ -842,43 +867,8 @@ class EffectRenderer {
                 AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_IMP);
             }
 
-            if (projectile instanceof GargantuarImpProjectile impProjectile) {
-                // While a Gargantuar-thrown imp is airborne it isn't a Zombie yet (it
-                // only spawns as one on landing), so it's rendered here directly using
-                // its own PAM in the "fly" animation state.
-                String path = ZombieAnimationRegistry.pathFor(impProjectile.getImpAlias(), screen.seasonFolder);
-                boolean pamDrawn = false;
-                if (path != null) {
-                    float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth() - 10f;
-                    float y = screen.cellY(position.y()) + 40f;
-                    pamDrawn = screen.drawPam(path, "fly", age, x, y, 0.52f, impProjectile.isFacingRight());
-                }
-                if (!pamDrawn) {
-                    drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
-                }
-            } else if (projectile instanceof ZombiePeaProjectile) {
-                float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                        + screen.getBoardTileWidth() * 0.41f;
-                float y = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.42f;
-                if (!screen.drawPam(ZOMBIE_PEA_PAM, "animation", age, x, y,
-                        PROJECTILE_PAM_SCALE * 2.0f, true)) {
-                    drawSmallDot(position, new Color(0.55f, 0.85f, 0.25f, 1f));
-                }
-            } else if (projectile instanceof OctopusProjectile) {
-                float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                        + screen.getBoardTileWidth() * 0.41f;
-                float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.42f;
-                if (!screen.drawPam(OCTOPUS_PROJECTILE_PAM, "toss", age, x, y,
-                        PROJECTILE_PAM_SCALE * 2.0f, true)) {
-                    drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
-                }
-            } else if (projectile instanceof SnowballProjectile) {
-                drawZombieProjectileTexture(SNOWBALL_PROJECTILE_TEXTURE, position, 0.34f, 0f);
-            } else if (projectile instanceof BoneProjectile) {
-                drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
-            } else {
-                drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
-            }
+            int row = (int) Math.round(position.y());
+            screen.queueRowDraw(row, () -> drawZombieProjectileVisual(projectile, position, age));
         }
 
         for (Map.Entry<ZombieProjectile, Position> spent : zombieProjectileTraces.entrySet()) {
@@ -893,6 +883,43 @@ class EffectRenderer {
         }
         zombieProjectileAnimTimes.keySet().removeIf(p -> !live.contains(p));
         zombieProjectileTraces.keySet().removeIf(p -> !live.contains(p));
+    }
+
+    private void drawZombieProjectileVisual(ZombieProjectile projectile, Position position, float age) {
+        if (projectile instanceof GargantuarImpProjectile impProjectile) {
+            String path = ZombieAnimationRegistry.pathFor(impProjectile.getImpAlias(), screen.seasonFolder);
+            boolean pamDrawn = false;
+            if (path != null) {
+                float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth() - 10f;
+                float y = screen.cellY(position.y()) + 40f;
+                pamDrawn = screen.drawPam(path, "fly", age, x, y, 0.52f, impProjectile.isFacingRight());
+            }
+            if (!pamDrawn) {
+                drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+            }
+        } else if (projectile instanceof ZombiePeaProjectile) {
+            float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                    + screen.getBoardTileWidth() * 0.41f;
+            float y = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.42f;
+            if (!screen.drawPam(ZOMBIE_PEA_PAM, "animation", age, x, y,
+                    PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                drawSmallDot(position, new Color(0.55f, 0.85f, 0.25f, 1f));
+            }
+        } else if (projectile instanceof OctopusProjectile) {
+            float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                    + screen.getBoardTileWidth() * 0.41f;
+            float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.42f;
+            if (!screen.drawPam(OCTOPUS_PROJECTILE_PAM, "toss", age, x, y,
+                    PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
+            }
+        } else if (projectile instanceof SnowballProjectile) {
+            drawZombieProjectileTexture(SNOWBALL_PROJECTILE_TEXTURE, position, 0.34f, 0f);
+        } else if (projectile instanceof BoneProjectile) {
+            drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
+        } else {
+            drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
+        }
     }
 
     private void spawnImpactEffectsForSpentProjectiles() {

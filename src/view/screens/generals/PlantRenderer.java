@@ -186,7 +186,13 @@ class PlantRenderer {
                 if (!sheepAnimTimes.containsKey(plant)) {
                     AudioManager.get().playSound(AudioEnum.SFX_BLEAT);
                 }
-                drawSheep(plant, delta, plantOffsetX, plantOffsetY);
+                SheepFrame sheepFrame = advanceSheepState(plant, delta);
+                float sheepDrawX = plantOffsetX;
+                float sheepDrawY = plantOffsetY;
+                int sheepRow = (int) plant.getPosition().y();
+                screen.queueRowDraw(sheepRow, () -> screen.pam().drawPamExact(
+                        SHEEP_PAM, sheepFrame.state(), sheepFrame.time(),
+                        sheepDrawX, sheepDrawY, SHEEP_SCALE, false));
                 continue;
             } else {
                 sheepAnimTimes.remove(plant);
@@ -328,332 +334,13 @@ class PlantRenderer {
             boolean headbutterLettuce = isHeadbutterLettuce(plant);
             if (headbutterLettuce && !frozenInIce) advanceHeadbutterLettuceTimers(plant, delta);
 
-            String preferredState;
-            float animTime = t;
-            boolean potatoMine = plant.isPotatoMine();
-            boolean pumpkinHasArmor = plant.isPumpkin()
-                    && plant.getArmor() != null
-                    && plant.getArmor().getHP() > 0;
-            boolean wallNutHasPlantFoodArmor = plant.isWallNut()
-                    && plant.getArmor() != null
-                    && plant.getArmor().getHP() > 0;
-            boolean tallNutHasPlantFoodArmor = plant.isTallNut()
-                    && plant.getArmor() != null
-                    && plant.getArmor().getHP() > 0;
-            if (explodeONut) {
-                preferredState = resolveExplodeONutState(plant);
-                animTime = explodeONutAnimTime(plant, preferredState, t);
-            } else if (endurian) {
-                if ("plantfood_on".equals(plant.getVisualAnimationState())) {
-                    preferredState = "plantfood_on";
-                    animTime = (float) plant.getVisualAnimationElapsed();
-                } else if (endurianPhase > 0) {
-                    preferredState = endurianAttackClip(plant, endurianPhase);
-                    animTime = endurianAttackTimes.getOrDefault(plant, 0f);
-                } else {
-                    preferredState = resolveEndurianIdleState(plant);
-                    animTime = t;
-                }
-            } else if (pumpkinHasArmor) {
-                preferredState = resolvePumpkinPlantFoodState(plant);
-                animTime = plant.isPlantFoodActive()
-                        ? (float) plant.getVisualAnimationElapsed()
-                        : t;
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                if (clipDuration > 0f) animTime %= clipDuration;
-            } else if (wallNutHasPlantFoodArmor) {
-                preferredState = resolveWallNutPlantFoodState(plant);
-                animTime = t;
-            } else if (tallNutHasPlantFoodArmor) {
-                preferredState = "idle";
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                animTime = t;
-                if (clipDuration > 0f) animTime %= clipDuration;
-            } else if (plant.isWallNut() && plant.getVisualAnimationState() != null) {
-                preferredState = plant.getVisualAnimationState();
-                animTime = (float) plant.getVisualAnimationElapsed();
-            } else if (plant.isSweetPotato() && plant.isPlantFoodActive()) {
-
-                preferredState = "plantfood";
-                animTime = (float) plant.getVisualAnimationElapsed();
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                if (clipDuration > 0f) animTime %= clipDuration;
-            } else if (potatoMine && plant.getVisualAnimationState() != null) {
-                preferredState = plant.getVisualAnimationState();
-                animTime = (float) plant.getVisualAnimationElapsed();
-            } else if (plant.getVisualAnimationState() != null) {
-                preferredState = plant.getVisualAnimationState();
-                animTime = (float) plant.getVisualAnimationElapsed();
-                if (plant.isPumpkin() && "idle_plantfood".equals(preferredState)) {
-                    float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                    if (clipDuration > 0f) animTime %= clipDuration;
-                }
-            } else if (potatoMine && !plant.isPotatoMineArmed()) {
-                preferredState = "plant_idle";
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                animTime = clipDuration > 0f ? (t % clipDuration) : t;
-            } else if (potatoMine) {
-                preferredState = "idle";
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                animTime = clipDuration > 0f ? (t % clipDuration) : t;
-            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
-                    && doomSpawnAnimTimes.containsKey(plant)) {
-                preferredState = "stage1_spawn";
-                animTime = doomSpawnAnimTimes.get(plant);
-            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
-                    && doomTransformAnimTimes.containsKey(plant)) {
-                int transformFrom = Math.max(1, plant.getGrowthStage() - 1);
-                preferredState = "stage" + transformFrom + "_transform";
-                animTime = doomTransformAnimTimes.get(plant);
-            } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
-                preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
-                animTime = t;
-            } else if (prepping) {
-                if ("Cherry Bomb".equalsIgnoreCase(plant.getName())) {
-                    preferredState = "attack";
-                } else if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
-                    preferredState = GRAPESHOT_ATTACK_STATE;
-                } else if (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST) {
-                    preferredState = "intro";
-                } else {
-                    preferredState = screen.pam().resolveFuseClipState(plant.getName());
-                }
-                animTime = t;
-            } else if (attacking) {
-                preferredState = attackIsBoosted ? plantFoodClipState(plant)
-                        : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
-                animTime = plantAttackAnimTimes.get(plant);
-            } else if (isBowlingBulb(plant) && plant.isPlantFoodActive()) {
-                // Between the individual balls of a Plant Food burst (and before the very
-                // first one), Bowling Bulb has no reload beat - it just idles in its
-                // Plant-Food pose until the next ball fires.
-                preferredState = "plantfood_idle";
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                animTime = clipDuration > 0f ? (t % clipDuration) : t;
-            } else if (isBowlingBulb(plant) && plant.getIntervalTimer() > 0.001) {
-                // A normal (non-Plant-Food) shot: after its "special"/"specialN" attack clip
-                // finishes, play the matching "reload"/"reloadN" clip for the rest of the
-                // real cooldown, until it's ready to fire again.
-                preferredState = bowlingBulbReloadState(plant);
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                animTime = clipDuration > 0f ? (t % clipDuration) : t;
-            } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
-                preferredState = "plantfood";
-                animTime = t;
-            } else if (headbutterLettuce
-                    && (plant.isPlantFoodActive() || headbutterLettucePfOffTime.containsKey(plant))) {
-                preferredState = headbutterLettuceState(plant);
-                animTime = headbutterLettuceAnimTime(plant, preferredState, t);
-            } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
-                preferredState = "idle_plantfood";
-                animTime = (float) plant.getVisualAnimationElapsed();
-            } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
-                preferredState = "idle";
-                animTime = t;
-            } else if (showsPlantFoodLoopForFullDuration(plant) && plant.isPlantFoodActive()) {
-                // Sunflower, Twin Sunflower, Primal Sunflower, Sun-shroom, Sun Bean,
-                // Sea-shroom, Puff-shroom and Fume-shroom all show their "plantfood"/"pf"
-                // clip for their entire Plant Food duration, not just during the brief
-                // fire-event window handled above.
-                preferredState = plantFoodClipState(plant);
-                animTime = t;
-            } else if (growing) {
-                preferredState = "growth_stage" + (plant.getGrowthStage() - 1);
-                animTime = growthTime;
-            } else {
-                preferredState = resolveIdleState(plant);
-                animTime = t;
-            }
-
-            if (squashJumping) {
-                plantOffsetY += squashJumpArcOffset(plant, boardTileHeight);
-            }
-
-            boolean meleePlant = "Wasabi Whip".equalsIgnoreCase(plant.getName())
-                    || "Chomper".equalsIgnoreCase(plant.getName())
-                    || "Squash".equalsIgnoreCase(plant.getName());
-
-            boolean mirror = meleePlant && plant.isMeleeFacingLeft()
-                    && (attacking
-                    || preferredState.startsWith("attack")
-                    || "bite_end".equals(preferredState)
-                    || "special".equals(preferredState)
-                    || "special_idle".equals(preferredState));
-
-            // special_idle is a looping chew animation. The visual-state timer itself
-            // is finite (10 seconds), so wrap only the clip time, not the state lifetime.
-            if ("special_idle".equals(preferredState)) {
-                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
-                if (clipDuration > 0f) animTime %= clipDuration;
-            }
-
-            boolean drawn;
-            boolean squashExactState = "Squash".equalsIgnoreCase(plant.getName())
-                    && plant.getVisualAnimationState() != null;
-            boolean pumpkinPlantFoodState = plant.isPumpkin()
-                    && preferredState != null
-                    && (preferredState.equals("idle_plantfood")
-                    || preferredState.equals("idle_plantfood2")
-                    || preferredState.equals("idle_plantfood3")
-                    || preferredState.equals("idle_plantfood4"));
-            boolean pumpkinExactState = plant.isPumpkin()
-                    && ("idle".equals(preferredState)
-                    || "idle2".equals(preferredState)
-                    || "idle3".equals(preferredState));
-            boolean explodeONutArmorState = explodeONut
-                    && ("plantfood".equals(preferredState)
-                    || "plantfood2".equals(preferredState)
-                    || "plantfood3".equals(preferredState)
-                    || "plantfood_on".equals(preferredState));
-            boolean explodeONutExactState = explodeONut && !explodeONutArmorState;
-            boolean wallNutPlantFoodState = plant.isWallNut()
-                    && ("plantfood".equals(preferredState)
-                    || "plantfood2".equals(preferredState)
-                    || "plantfood3".equals(preferredState));
-            boolean wallNutExactState = plant.isWallNut()
-                    && ("idle".equals(preferredState)
-                    || "damage".equals(preferredState)
-                    || "damage2".equals(preferredState)
-                    || "damage3".equals(preferredState));
-            boolean tallNutArmorState = plant.isTallNut()
-                    && tallNutHasPlantFoodArmor;
-            boolean tallNutExactState = plant.isTallNut()
-                    && ("idle".equals(preferredState)
-                    || "damage".equals(preferredState)
-                    || "damage2".equals(preferredState));
-            boolean garlicExactState = plant.isGarlic()
-                    && ("idle".equals(preferredState)
-                    || "idle_damage".equals(preferredState)
-                    || "idle-damage2".equals(preferredState)
-                    || "plantfood".equals(preferredState));
-            boolean sweetPotatoExactState = plant.isSweetPotato()
-                    && ("idle".equals(preferredState)
-                    || "idle_damage".equals(preferredState)
-                    || "idle_damage2".equals(preferredState)
-                    || "idle_damage3".equals(preferredState)
-                    || "idle2_damage3".equals(preferredState)
-                    || "plantfood".equals(preferredState));
-            boolean potatoMineExactState = potatoMine
-                    && ("plant_idle".equals(preferredState)
-                    || "recover".equals(preferredState)
-                    || "idle".equals(preferredState)
-                    || "attack".equals(preferredState)
-                    || "plantfood2".equals(preferredState));
-            if (explodeONutArmorState) {
-                drawn = screen.drawPam(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false,
-                        explodeONutArmorVisibility(preferredState));
-            } else if (explodeONutExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (potatoMineExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (squashExactState) {
-                boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, squashMirror);
-            } else if (pumpkinPlantFoodState) {
-                java.util.Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
-                pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
-                pumpkinPfVisibility.put("pumpkin_armor_02", "idle_plantfood2".equals(preferredState));
-                pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
-                pumpkinPfVisibility.put("pumpkin_armor_04", "idle_plantfood4".equals(preferredState));
-                drawn = screen.drawPam(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false, pumpkinPfVisibility);
-            } else if (pumpkinExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (wallNutPlantFoodState) {
-                Map<String, Boolean> wallNutPfVisibility = new java.util.HashMap<>();
-                wallNutPfVisibility.put("wallnut_plantfood_armor_01", "plantfood".equals(preferredState));
-                wallNutPfVisibility.put("wallnut_plantfood_armor_02", "plantfood2".equals(preferredState));
-                wallNutPfVisibility.put("wallnut_plantfood_armor_03", "plantfood3".equals(preferredState));
-                drawn = screen.drawPam(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false, wallNutPfVisibility);
-            } else if (wallNutExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (garlicExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (sweetPotatoExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (tallNutArmorState) {
-                Map<String, Boolean> tallNutArmorVisibility = new java.util.HashMap<>();
-                tallNutArmorVisibility.put("_tallnut_plantfood_armor", true);
-                tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", false);
-                tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", false);
-                tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", false);
-                int stage = plant.getTallNutPlantFoodArmorStage();
-                switch (stage) {
-                    case 1 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", true);
-                    case 2 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", true);
-                    case 3 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", true);
-                    default -> { }
-                }
-                drawn = screen.drawPam(path, "idle", animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false, tallNutArmorVisibility);
-            } else if (tallNutExactState) {
-                drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, false);
-            } else if (endurian) {
-                drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
-                        0.55f, false, endurianVisibility(plant, preferredState));
-            } else if (isMagnetShroom(plant)) {
-                // Magnet_Item is invisible until a "catch" completes (or Plant Food
-                // grabs a batch); it stays visible from then on until it's thrown away.
-                Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
-                magnetVisibility.put("Magnet_Item", plant.isMagnetItemVisible());
-                drawn = screen.drawPam(path, preferredState, animTime,
-                        plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
-            } else {
-                drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
-            }
-            if (!drawn) {
-                TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
-                screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
-                        new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
-            }
-
-            if (explodeONut && !frozenInIce) {
-                drawExplodeONutBlink(plant, plantOffsetX, plantOffsetY);
-            }
-
-            if (plant.isPumpkin() && plant.getArmor() != null && plant.getArmor().getHP() > 0
-                    && !pumpkinPlantFoodState) {
-                drawPumpkinArmorOverlay(plant, plantOffsetX, plantOffsetY);
-            }
-            int chill = plant.getChillLevel();
-            if (chill > 0 && chill < 3) {
-                GameScreenAssets assets = screen.assets();
-                Texture chillTexture = chill == 1 ? assets.plantIceBlockTexture1() : assets.plantIceBlockTexture2();
-                if (chillTexture == null) {
-                    chillTexture = assets.plantIceBlockTexture1() != null
-                            ? assets.plantIceBlockTexture1() : assets.plantIceBlockTexture2();
-                }
-                if (chillTexture == null) chillTexture = assets.plantIceBlockTexture3();
-
-                if (chillTexture != null) {
-                    float alpha = chill == 1 ? FrostbiteRenderer.PLANT_ICE_ALPHA_1 : FrostbiteRenderer.PLANT_ICE_ALPHA_2;
-                    float levelScale = FrostbiteRenderer.plantIceScaleFor(chill);
-                    float offsetX = FrostbiteRenderer.plantIceOffsetXFor(chill);
-                    float offsetY = FrostbiteRenderer.plantIceOffsetYFor(chill);
-                    float drawW = chillTexture.getWidth() * screen.boardFitScale() * levelScale;
-                    float drawH = chillTexture.getHeight() * screen.boardFitScale() * levelScale;
-                    float drawX = x + (boardTileWidth - drawW) * 0.5f + offsetX;
-                    float drawY = y + (boardTileHeight - drawH) * 0.5f + offsetY;
-                    screen.batch.setColor(1f, 1f, 1f, alpha);
-                    screen.batch.draw(chillTexture, drawX, drawY, drawW, drawH);
-                    screen.batch.setColor(Color.WHITE);
-                } else {
-                    float alpha = chill == 1 ? 0.35f : 0.55f;
-                    screen.batch.setColor(0.75f, 0.93f, 1f, alpha);
-                    screen.batch.draw(screen.whitePixel, x + 9f, y + 7f, boardTileWidth - 18f, boardTileHeight - 12f);
-                    screen.batch.setColor(Color.WHITE);
-                }
-            }
+            float capturedGrowthTime = growthTime == null ? 0f : growthTime;
+            PlantVisualArgs visualArgs = new PlantVisualArgs(frozenInIce, prepping, t, attacking,
+                    attackIsBoosted, endurian, endurianPhase, explodeONut, headbutterLettuce, growing,
+                    capturedGrowthTime, path, x, y, plantOffsetX, plantOffsetY, squashJumping,
+                    boardTileWidth, boardTileHeight);
+            int plantRow = (int) plant.getPosition().y();
+            screen.queueRowDraw(plantRow, () -> drawPlantVisual(plant, visualArgs));
 
             if (plant.getPlantFoodEffect() instanceof TangleKelpPlantFood tangleKelpPlantFood) {
                 drawTangleKelpRemoteAttacks(tangleKelpPlantFood, boardTileWidth);
@@ -684,6 +371,346 @@ class PlantRenderer {
         drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
     }
 
+    private record PlantVisualArgs(
+            boolean frozenInIce, boolean prepping, float t, boolean attacking, boolean attackIsBoosted,
+            boolean endurian, int endurianPhase, boolean explodeONut, boolean headbutterLettuce,
+            boolean growing, float growthTime, String path, float x, float y, float plantOffsetX,
+            float plantOffsetY, boolean squashJumping, float boardTileWidth, float boardTileHeight) { }
+
+    private void drawPlantVisual(Plant plant, PlantVisualArgs a) {
+        boolean frozenInIce = a.frozenInIce();
+        boolean prepping = a.prepping();
+        float t = a.t();
+        boolean attacking = a.attacking();
+        boolean attackIsBoosted = a.attackIsBoosted();
+        boolean endurian = a.endurian();
+        int endurianPhase = a.endurianPhase();
+        boolean explodeONut = a.explodeONut();
+        boolean headbutterLettuce = a.headbutterLettuce();
+        boolean growing = a.growing();
+        float growthTime = a.growthTime();
+        String path = a.path();
+        float x = a.x();
+        float y = a.y();
+        float plantOffsetX = a.plantOffsetX();
+        float plantOffsetY = a.plantOffsetY();
+        boolean squashJumping = a.squashJumping();
+        float boardTileWidth = a.boardTileWidth();
+        float boardTileHeight = a.boardTileHeight();
+
+        String preferredState;
+        float animTime = t;
+        boolean potatoMine = plant.isPotatoMine();
+        boolean pumpkinHasArmor = plant.isPumpkin()
+                && plant.getArmor() != null
+                && plant.getArmor().getHP() > 0;
+        boolean wallNutHasPlantFoodArmor = plant.isWallNut()
+                && plant.getArmor() != null
+                && plant.getArmor().getHP() > 0;
+        boolean tallNutHasPlantFoodArmor = plant.isTallNut()
+                && plant.getArmor() != null
+                && plant.getArmor().getHP() > 0;
+        if (explodeONut) {
+            preferredState = resolveExplodeONutState(plant);
+            animTime = explodeONutAnimTime(plant, preferredState, t);
+        } else if (endurian) {
+            if ("plantfood_on".equals(plant.getVisualAnimationState())) {
+                preferredState = "plantfood_on";
+                animTime = (float) plant.getVisualAnimationElapsed();
+            } else if (endurianPhase > 0) {
+                preferredState = endurianAttackClip(plant, endurianPhase);
+                animTime = endurianAttackTimes.getOrDefault(plant, 0f);
+            } else {
+                preferredState = resolveEndurianIdleState(plant);
+                animTime = t;
+            }
+        } else if (pumpkinHasArmor) {
+            preferredState = resolvePumpkinPlantFoodState(plant);
+            animTime = plant.isPlantFoodActive()
+                    ? (float) plant.getVisualAnimationElapsed()
+                    : t;
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            if (clipDuration > 0f) animTime %= clipDuration;
+        } else if (wallNutHasPlantFoodArmor) {
+            preferredState = resolveWallNutPlantFoodState(plant);
+            animTime = t;
+        } else if (tallNutHasPlantFoodArmor) {
+            preferredState = "idle";
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            animTime = t;
+            if (clipDuration > 0f) animTime %= clipDuration;
+        } else if (plant.isWallNut() && plant.getVisualAnimationState() != null) {
+            preferredState = plant.getVisualAnimationState();
+            animTime = (float) plant.getVisualAnimationElapsed();
+        } else if (plant.isSweetPotato() && plant.isPlantFoodActive()) {
+
+            preferredState = "plantfood";
+            animTime = (float) plant.getVisualAnimationElapsed();
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            if (clipDuration > 0f) animTime %= clipDuration;
+        } else if (potatoMine && plant.getVisualAnimationState() != null) {
+            preferredState = plant.getVisualAnimationState();
+            animTime = (float) plant.getVisualAnimationElapsed();
+        } else if (plant.getVisualAnimationState() != null) {
+            preferredState = plant.getVisualAnimationState();
+            animTime = (float) plant.getVisualAnimationElapsed();
+            if (plant.isPumpkin() && "idle_plantfood".equals(preferredState)) {
+                float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+                if (clipDuration > 0f) animTime %= clipDuration;
+            }
+        } else if (potatoMine && !plant.isPotatoMineArmed()) {
+            preferredState = "plant_idle";
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            animTime = clipDuration > 0f ? (t % clipDuration) : t;
+        } else if (potatoMine) {
+            preferredState = "idle";
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            animTime = clipDuration > 0f ? (t % clipDuration) : t;
+        } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                && doomSpawnAnimTimes.containsKey(plant)) {
+            preferredState = "stage1_spawn";
+            animTime = doomSpawnAnimTimes.get(plant);
+        } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())
+                && doomTransformAnimTimes.containsKey(plant)) {
+            int transformFrom = Math.max(1, plant.getGrowthStage() - 1);
+            preferredState = "stage" + transformFrom + "_transform";
+            animTime = doomTransformAnimTimes.get(plant);
+        } else if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
+            preferredState = "stage" + Math.max(1, Math.min(3, plant.getGrowthStage())) + "_idle";
+            animTime = t;
+        } else if (prepping) {
+            if ("Cherry Bomb".equalsIgnoreCase(plant.getName())) {
+                preferredState = "attack";
+            } else if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
+                preferredState = GRAPESHOT_ATTACK_STATE;
+            } else if (plant.getAbilityType() == AbilityType.MINT_FAMILY_BOOST) {
+                preferredState = "intro";
+            } else {
+                preferredState = screen.pam().resolveFuseClipState(plant.getName());
+            }
+            animTime = t;
+        } else if (attacking) {
+            preferredState = attackIsBoosted ? plantFoodClipState(plant)
+                    : plantAttackBaseState.getOrDefault(plant, plantStackState(plant, "attack"));
+            animTime = plantAttackAnimTimes.get(plant);
+        } else if (isBowlingBulb(plant) && plant.isPlantFoodActive()) {
+            preferredState = "plantfood_idle";
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            animTime = clipDuration > 0f ? (t % clipDuration) : t;
+        } else if (isBowlingBulb(plant) && plant.getIntervalTimer() > 0.001) {
+            preferredState = bowlingBulbReloadState(plant);
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            animTime = clipDuration > 0f ? (t % clipDuration) : t;
+        } else if ("Torchwood".equalsIgnoreCase(plant.getName()) && plant.isPlantFoodActive()) {
+            preferredState = "plantfood";
+            animTime = t;
+        } else if (headbutterLettuce
+                && (plant.isPlantFoodActive() || headbutterLettucePfOffTime.containsKey(plant))) {
+            preferredState = headbutterLettuceState(plant);
+            animTime = headbutterLettuceAnimTime(plant, preferredState, t);
+        } else if (plant.isPumpkin() && plant.isPlantFoodActive()) {
+            preferredState = "idle_plantfood";
+            animTime = (float) plant.getVisualAnimationElapsed();
+        } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
+            preferredState = "idle";
+            animTime = t;
+        } else if (showsPlantFoodLoopForFullDuration(plant) && plant.isPlantFoodActive()) {
+            preferredState = plantFoodClipState(plant);
+            animTime = t;
+        } else if (growing) {
+            preferredState = "growth_stage" + (plant.getGrowthStage() - 1);
+            animTime = growthTime;
+        } else {
+            preferredState = resolveIdleState(plant);
+            animTime = t;
+        }
+
+        if (squashJumping) {
+            plantOffsetY += squashJumpArcOffset(plant, boardTileHeight);
+        }
+
+        boolean meleePlant = "Wasabi Whip".equalsIgnoreCase(plant.getName())
+                || "Chomper".equalsIgnoreCase(plant.getName())
+                || "Squash".equalsIgnoreCase(plant.getName());
+
+        boolean mirror = meleePlant && plant.isMeleeFacingLeft()
+                && (attacking
+                || preferredState.startsWith("attack")
+                || "bite_end".equals(preferredState)
+                || "special".equals(preferredState)
+                || "special_idle".equals(preferredState));
+        if ("special_idle".equals(preferredState)) {
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            if (clipDuration > 0f) animTime %= clipDuration;
+        }
+
+        boolean drawn;
+        boolean squashExactState = "Squash".equalsIgnoreCase(plant.getName())
+                && plant.getVisualAnimationState() != null;
+        boolean pumpkinPlantFoodState = plant.isPumpkin()
+                && preferredState != null
+                && (preferredState.equals("idle_plantfood")
+                || preferredState.equals("idle_plantfood2")
+                || preferredState.equals("idle_plantfood3")
+                || preferredState.equals("idle_plantfood4"));
+        boolean pumpkinExactState = plant.isPumpkin()
+                && ("idle".equals(preferredState)
+                || "idle2".equals(preferredState)
+                || "idle3".equals(preferredState));
+        boolean explodeONutArmorState = explodeONut
+                && ("plantfood".equals(preferredState)
+                || "plantfood2".equals(preferredState)
+                || "plantfood3".equals(preferredState)
+                || "plantfood_on".equals(preferredState));
+        boolean explodeONutExactState = explodeONut && !explodeONutArmorState;
+        boolean wallNutPlantFoodState = plant.isWallNut()
+                && ("plantfood".equals(preferredState)
+                || "plantfood2".equals(preferredState)
+                || "plantfood3".equals(preferredState));
+        boolean wallNutExactState = plant.isWallNut()
+                && ("idle".equals(preferredState)
+                || "damage".equals(preferredState)
+                || "damage2".equals(preferredState)
+                || "damage3".equals(preferredState));
+        boolean tallNutArmorState = plant.isTallNut()
+                && tallNutHasPlantFoodArmor;
+        boolean tallNutExactState = plant.isTallNut()
+                && ("idle".equals(preferredState)
+                || "damage".equals(preferredState)
+                || "damage2".equals(preferredState));
+        boolean garlicExactState = plant.isGarlic()
+                && ("idle".equals(preferredState)
+                || "idle_damage".equals(preferredState)
+                || "idle-damage2".equals(preferredState)
+                || "plantfood".equals(preferredState));
+        boolean sweetPotatoExactState = plant.isSweetPotato()
+                && ("idle".equals(preferredState)
+                || "idle_damage".equals(preferredState)
+                || "idle_damage2".equals(preferredState)
+                || "idle_damage3".equals(preferredState)
+                || "idle2_damage3".equals(preferredState)
+                || "plantfood".equals(preferredState));
+        boolean potatoMineExactState = potatoMine
+                && ("plant_idle".equals(preferredState)
+                || "recover".equals(preferredState)
+                || "idle".equals(preferredState)
+                || "attack".equals(preferredState)
+                || "plantfood2".equals(preferredState));
+        if (explodeONutArmorState) {
+            drawn = screen.drawPam(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false,
+                    explodeONutArmorVisibility(preferredState));
+        } else if (explodeONutExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (potatoMineExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (squashExactState) {
+            boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, squashMirror);
+        } else if (pumpkinPlantFoodState) {
+            java.util.Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
+            pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
+            pumpkinPfVisibility.put("pumpkin_armor_02", "idle_plantfood2".equals(preferredState));
+            pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
+            pumpkinPfVisibility.put("pumpkin_armor_04", "idle_plantfood4".equals(preferredState));
+            drawn = screen.drawPam(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false, pumpkinPfVisibility);
+        } else if (pumpkinExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (wallNutPlantFoodState) {
+            Map<String, Boolean> wallNutPfVisibility = new java.util.HashMap<>();
+            wallNutPfVisibility.put("wallnut_plantfood_armor_01", "plantfood".equals(preferredState));
+            wallNutPfVisibility.put("wallnut_plantfood_armor_02", "plantfood2".equals(preferredState));
+            wallNutPfVisibility.put("wallnut_plantfood_armor_03", "plantfood3".equals(preferredState));
+            drawn = screen.drawPam(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false, wallNutPfVisibility);
+        } else if (wallNutExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (garlicExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (sweetPotatoExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (tallNutArmorState) {
+            Map<String, Boolean> tallNutArmorVisibility = new java.util.HashMap<>();
+            tallNutArmorVisibility.put("_tallnut_plantfood_armor", true);
+            tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", false);
+            tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", false);
+            tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", false);
+            int stage = plant.getTallNutPlantFoodArmorStage();
+            switch (stage) {
+                case 1 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_norm", true);
+                case 2 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_01", true);
+                case 3 -> tallNutArmorVisibility.put("tallnut_plantfood_armor_damage_02", true);
+                default -> { }
+            }
+            drawn = screen.drawPam(path, "idle", animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false, tallNutArmorVisibility);
+        } else if (tallNutExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (endurian) {
+            drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
+                    0.55f, false, endurianVisibility(plant, preferredState));
+        } else if (isMagnetShroom(plant)) {
+           Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
+            magnetVisibility.put("Magnet_Item", plant.isMagnetItemVisible());
+            drawn = screen.drawPam(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
+        } else {
+            drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
+        }
+        if (!drawn) {
+            TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());
+            screen.drawEntity(region, plantOffsetX, plantOffsetY, boardTileWidth, boardTileHeight,
+                    new Color(0.2f, 0.65f, 0.22f, 1f), GameScreenGraphics.initials(plant.getName()));
+        }
+
+        if (explodeONut && !frozenInIce) {
+            drawExplodeONutBlink(plant, plantOffsetX, plantOffsetY);
+        }
+
+        if (plant.isPumpkin() && plant.getArmor() != null && plant.getArmor().getHP() > 0
+                && !pumpkinPlantFoodState) {
+            drawPumpkinArmorOverlay(plant, plantOffsetX, plantOffsetY);
+        }
+        int chill = plant.getChillLevel();
+        if (chill > 0 && chill < 3) {
+            GameScreenAssets assets = screen.assets();
+            Texture chillTexture = chill == 1 ? assets.plantIceBlockTexture1() : assets.plantIceBlockTexture2();
+            if (chillTexture == null) {
+                chillTexture = assets.plantIceBlockTexture1() != null
+                        ? assets.plantIceBlockTexture1() : assets.plantIceBlockTexture2();
+            }
+            if (chillTexture == null) chillTexture = assets.plantIceBlockTexture3();
+
+            if (chillTexture != null) {
+                float alpha = chill == 1 ? FrostbiteRenderer.PLANT_ICE_ALPHA_1 : FrostbiteRenderer.PLANT_ICE_ALPHA_2;
+                float levelScale = FrostbiteRenderer.plantIceScaleFor(chill);
+                float offsetX = FrostbiteRenderer.plantIceOffsetXFor(chill);
+                float offsetY = FrostbiteRenderer.plantIceOffsetYFor(chill);
+                float drawW = chillTexture.getWidth() * screen.boardFitScale() * levelScale;
+                float drawH = chillTexture.getHeight() * screen.boardFitScale() * levelScale;
+                float drawX = x + (boardTileWidth - drawW) * 0.5f + offsetX;
+                float drawY = y + (boardTileHeight - drawH) * 0.5f + offsetY;
+                screen.batch.setColor(1f, 1f, 1f, alpha);
+                screen.batch.draw(chillTexture, drawX, drawY, drawW, drawH);
+                screen.batch.setColor(Color.WHITE);
+            } else {
+                float alpha = chill == 1 ? 0.35f : 0.55f;
+                screen.batch.setColor(0.75f, 0.93f, 1f, alpha);
+                screen.batch.draw(screen.whitePixel, x + 9f, y + 7f, boardTileWidth - 18f, boardTileHeight - 12f);
+                screen.batch.setColor(Color.WHITE);
+            }
+        }
+
+    }
 
     private void drawOctopusWraps(float delta, float boardTileWidth, float boardTileHeight) {
         if (screen.session.getEnvironment() == null) return;
@@ -710,11 +737,11 @@ class PlantRenderer {
                 if (!wrap.isDead()) {
                     float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "animation3");
                     float animTime = duration > 0f ? time % duration : time;
-                    screen.drawPam(path, "animation3", animTime, x, y, 0.52f, false);
+                    screen.queueRowDraw(row, () -> screen.drawPam(path, "animation3", animTime, x, y, 0.52f, false));
                 } else {
                     float duration = screen.pam().resolveClipDuration("ZombieBeachOctopus", "die");
                     float animTime = duration > 0f ? Math.min(time, duration) : time;
-                    screen.drawPam(path, "die", animTime, x, y, 0.52f, false);
+                    screen.queueRowDraw(row, () -> screen.drawPam(path, "die", animTime, x, y, 0.52f, false));
                     if (duration <= 0f || time >= duration) {
                         cell.setObstacle(null);
                         octopusWrapAnimTimes.remove(cell);
@@ -742,7 +769,8 @@ class PlantRenderer {
         for (Position tile : tiles) {
             float tileX = GameScreen.BOARD_X + (float) tile.x() * boardTileWidth + 30f;
             float tileY = screen.cellY((int) tile.y()) + 40f;
-            screen.drawPam(path, "attack", time, tileX, tileY, 0.55f, false);
+            int tileRow = (int) tile.y();
+            screen.queueRowDraw(tileRow, () -> screen.drawPam(path, "attack", time, tileX, tileY, 0.55f, false));
         }
     }
 
@@ -753,7 +781,11 @@ class PlantRenderer {
             effect.elapsed += delta;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * boardTileWidth + 30f;
             float y = screen.cellY((int) effect.position.y()) + 40f;
-            screen.drawPam(effect.path, effect.state, effect.elapsed, x, y, 0.55f, false);
+            float elapsed = effect.elapsed;
+            String effectPath = effect.path;
+            String effectState = effect.state;
+            int row = (int) effect.position.y();
+            screen.queueRowDraw(row, () -> screen.drawPam(effectPath, effectState, elapsed, x, y, 0.55f, false));
         }
         dyingShroomEffects.removeIf(e -> e.elapsed >= SHROOM_DEATH_HOLD_SECONDS);
     }
@@ -833,8 +865,10 @@ class PlantRenderer {
         return null;
     }
 
-    /** Draws the sheep transform in place of the plant while it is hexed. */
-    private void drawSheep(Plant plant, float delta, float x, float y) {
+    private record SheepFrame(String state, float time) { }
+
+    /** Advances the sheep transform's state (in place of the plant while it is hexed). */
+    private SheepFrame advanceSheepState(Plant plant, float delta) {
         float t = sheepAnimTimes.getOrDefault(plant, 0f) + delta;
         float transformDuration = AnimationFactory.exactClipDurationForPath(SHEEP_PAM, "animation");
         if (transformDuration <= 0f) transformDuration = DEFAULT_SHEEP_TRANSFORM_DURATION;
@@ -849,7 +883,7 @@ class PlantRenderer {
             time = idleDuration > 0f ? (t - transformDuration) % idleDuration : (t - transformDuration);
         }
         sheepAnimTimes.put(plant, t);
-        screen.pam().drawPamExact(SHEEP_PAM, state, time, x, y, SHEEP_SCALE, false);
+        return new SheepFrame(state, time);
     }
 
     /**

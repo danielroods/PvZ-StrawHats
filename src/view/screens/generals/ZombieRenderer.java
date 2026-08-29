@@ -213,16 +213,21 @@ class ZombieRenderer {
             }
             zombieHypnotizedLast.put(zombie, hypnotized);
             if (hypnotized) {
-                screen.drawPam(HYPNO_ZOMBIE_EFFECT_PAM, "animation", t, x + 20f, zombieOffsetY,
-                        HYPNO_OVERLAY_SCALE, false);
-                drawHypnoBubbles(zombie, t, x + boardTileWidth * 0.5f, zombieOffsetY, boardTileHeight);
+                float hypnoT = t;
+                int hypnoRow = (int) Math.round(p.y());
+                screen.queueRowDraw(hypnoRow, () -> {
+                    screen.drawPam(HYPNO_ZOMBIE_EFFECT_PAM, "animation", hypnoT, x + 20f, zombieOffsetY,
+                            HYPNO_OVERLAY_SCALE, false);
+                    drawHypnoBubbles(zombie, hypnoT, x + boardTileWidth * 0.5f, zombieOffsetY, boardTileHeight);
+                });
             }
 
             if (zombieSpawnEffects.containsKey(zombie)) {
                 float effectTime = zombieSpawnEffects.get(zombie) + delta;
                 if (effectTime < ZOMBIE_SPAWN_EFFECT_DURATION) {
                     zombieSpawnEffects.put(zombie, effectTime);
-                    screen.drawPam(
+                    int spawnRow = (int) Math.round(p.y());
+                    screen.queueRowDraw(spawnRow, () -> screen.drawPam(
                             ZOMBIE_SPAWN_EFFECT_PAM,
                             "animation",
                             effectTime,
@@ -230,7 +235,7 @@ class ZombieRenderer {
                             zombieOffsetY,
                             0.52f,
                             zombie.isFacingRight()
-                    );
+                    ));
                 } else {
                     zombieSpawnEffects.remove(zombie);
                 }
@@ -311,69 +316,13 @@ class ZombieRenderer {
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
-            boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
             boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE;
-            // Hypnotized takes precedence over the (rarer) case of a hypnotized zombie
-            // also being chilled - one flat tint at a time, same as the game's own status
-            // rendering never blends the two.
-            boolean tinted = hypnotized || chilled;
-            Color tint = hypnotized ? HYPNO_TINT : FREEZE_TINT;
-            try {
-                drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
-                drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
-                if (tinted) screen.batch.setColor(tint);
-                boolean pamDrawn;
-                if (zombie.isFacingRight()) {
-                    // Keep the zombie animation mirrored with the same guaranteed
-                    // transform-based path used for Jester-deflected projectiles.
-                    pamDrawn = screen.drawPamMirrored(path, preferred, animationTime,
-                            x - 10f, zombieDrawY, 0.52f);
-                } else {
-                    pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
-                            0.52f, false, elementVisibility);
-                }
-                if (tinted) screen.batch.setColor(Color.WHITE);
-                if (pamDrawn && plantHead != null) {
-                    drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
-                            zombie.isFacingRight(), zombie.getZombieState());
-                }
-
-                if (!pamDrawn) {
-                    TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
-                    Color fallbackTint = hypnotized ? HYPNO_FALLBACK_TINT
-                            : chilled ? FREEZE_FALLBACK_TINT : new Color(0.55f, 0.5f, 0.45f, 1f);
-                    screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
-                            fallbackTint, GameScreenGraphics.initials(zombie.getAlias()));
-                }
-            } finally {
-                if (waterClipActive) popWaterClip();
-            }
-
-            if (waterRipple != null && (waterRipple.inWater || waterRipple.exiting)) {
-                drawWaterRipple(zombie.getAlias(), rippleDrawX, rippleDrawY,
-                        zombie.isFacingRight(), waterRipple);
-            }
-
-            if (zombie.isSunBeanCarrier()) {
-                final String SUN_BEAN_CARRIER_PAM =
-                        "768/FULL/EFFECTS/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1.PAM";
-                float haloTime = t;
-                float haloDuration = AnimationFactory.clipDurationForPath(SUN_BEAN_CARRIER_PAM, "animation");
-                if (haloDuration > 0f) haloTime %= haloDuration;
-                screen.drawPam(SUN_BEAN_CARRIER_PAM, "animation", haloTime,
-                        x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight());
-            }
-
-            if (screen.session.isZombieInSandStorm(zombie)) {
-                double stormTime = screen.session.getSandStormAnimationTime(zombie);
-                if (stormTime >= 0.0) {
-                    float stormX = x + boardTileWidth * 0.5f - 60f;
-                    float stormY = zombieOffsetY + boardTileHeight * 0.78f - 40f;
-                    drawZombieSandStorm(stormX, stormY,
-                            boardTileWidth, boardTileHeight, (float) stormTime, System.identityHashCode(zombie), true, zombie.isFacingRight());
-                }
-            }
-
+            ZombieVisualArgs visualArgs = new ZombieVisualArgs(t, x, zombieDrawY, zombieOffsetY,
+                    submerged, hypnotized, chilled, preferred, path, animationTime, elementVisibility,
+                    plantHead, clipWaterY, waterRipple, rippleDrawX, rippleDrawY,
+                    boardTileWidth, boardTileHeight, delta);
+            int zombieRow = (int) Math.round(p.y());
+            screen.queueRowDraw(zombieRow, () -> drawZombieVisual(zombie, visualArgs));
         }
         zombieAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         zombieSpawnEffects.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
@@ -386,6 +335,92 @@ class ZombieRenderer {
         pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+    }
+
+    private record ZombieVisualArgs(
+            float t, float x, float zombieDrawY, float zombieOffsetY, boolean submerged,
+            boolean hypnotized, boolean chilled, String preferred, String path, float animationTime,
+            Map<String, Boolean> elementVisibility, ZombotanyArt.Head plantHead, float clipWaterY,
+            ZombieWaterRipple waterRipple, float rippleDrawX, float rippleDrawY,
+            float boardTileWidth, float boardTileHeight, float delta) { }
+
+    private void drawZombieVisual(Zombie zombie, ZombieVisualArgs a) {
+        float t = a.t();
+        float x = a.x();
+        float zombieDrawY = a.zombieDrawY();
+        float zombieOffsetY = a.zombieOffsetY();
+        boolean submerged = a.submerged();
+        boolean hypnotized = a.hypnotized();
+        boolean chilled = a.chilled();
+        String preferred = a.preferred();
+        String path = a.path();
+        float animationTime = a.animationTime();
+        Map<String, Boolean> elementVisibility = a.elementVisibility();
+        ZombotanyArt.Head plantHead = a.plantHead();
+        float clipWaterY = a.clipWaterY();
+        ZombieWaterRipple waterRipple = a.waterRipple();
+        float rippleDrawX = a.rippleDrawX();
+        float rippleDrawY = a.rippleDrawY();
+        float boardTileWidth = a.boardTileWidth();
+        float boardTileHeight = a.boardTileHeight();
+        float delta = a.delta();
+
+        boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
+       boolean tinted = hypnotized || chilled;
+        Color tint = hypnotized ? HYPNO_TINT : FREEZE_TINT;
+        try {
+            drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
+            drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
+            if (tinted) screen.batch.setColor(tint);
+            boolean pamDrawn;
+            if (zombie.isFacingRight()) {
+               pamDrawn = screen.drawPamMirrored(path, preferred, animationTime,
+                        x - 10f, zombieDrawY, 0.52f);
+            } else {
+                pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
+                        0.52f, false, elementVisibility);
+            }
+            if (tinted) screen.batch.setColor(Color.WHITE);
+            if (pamDrawn && plantHead != null) {
+                drawPlantHead(plantHead, t, x - 10f, zombieDrawY, ZOMBIE_SCALE,
+                        zombie.isFacingRight(), zombie.getZombieState());
+            }
+
+            if (!pamDrawn) {
+                TextureRegion region = GameAssetManager.get().getZombieRegion(zombie.getAlias());
+                Color fallbackTint = hypnotized ? HYPNO_FALLBACK_TINT
+                        : chilled ? FREEZE_FALLBACK_TINT : new Color(0.55f, 0.5f, 0.45f, 1f);
+                screen.drawEntity(region, x, zombieDrawY, boardTileWidth, boardTileHeight,
+                        fallbackTint, GameScreenGraphics.initials(zombie.getAlias()));
+            }
+        } finally {
+            if (waterClipActive) popWaterClip();
+        }
+
+        if (waterRipple != null && (waterRipple.inWater || waterRipple.exiting)) {
+            drawWaterRipple(zombie.getAlias(), rippleDrawX, rippleDrawY,
+                    zombie.isFacingRight(), waterRipple);
+        }
+
+        if (zombie.isSunBeanCarrier()) {
+            final String SUN_BEAN_CARRIER_PAM =
+                    "768/FULL/EFFECTS/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1/SUNBEAN_PLANTFOOD_EFFECT_OVERLAY1.PAM";
+            float haloTime = t;
+            float haloDuration = AnimationFactory.clipDurationForPath(SUN_BEAN_CARRIER_PAM, "animation");
+            if (haloDuration > 0f) haloTime %= haloDuration;
+            screen.drawPam(SUN_BEAN_CARRIER_PAM, "animation", haloTime,
+                    x - 10f, zombieDrawY, 0.52f, zombie.isFacingRight());
+        }
+
+        if (screen.session.isZombieInSandStorm(zombie)) {
+            double stormTime = screen.session.getSandStormAnimationTime(zombie);
+            if (stormTime >= 0.0) {
+                float stormX = x + boardTileWidth * 0.5f - 60f;
+                float stormY = zombieOffsetY + boardTileHeight * 0.78f - 40f;
+                drawZombieSandStorm(stormX, stormY,
+                        boardTileWidth, boardTileHeight, (float) stormTime, System.identityHashCode(zombie), true, zombie.isFacingRight());
+            }
+        }
     }
 
     void trackZombieDeaths(List<Zombie> aliveBeforeTick) {
@@ -441,12 +476,13 @@ class ZombieRenderer {
             float x = GameScreen.BOARD_X + (float) dz.position.x() * boardTileWidth;
             float y = screen.cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
+            int row = (int) dz.position.y();
 
             boolean inShockPhase = dz.shockPath != null && dz.time < dz.shockDuration;
             if (inShockPhase) {
-                screen.drawPam(dz.shockPath, ZombieShockAnimationRegistry.SHOCK_STATE,
-                        Math.min(dz.time, dz.shockDuration),
-                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+                float shockTime = Math.min(dz.time, dz.shockDuration);
+                screen.queueRowDraw(row, () -> screen.drawPam(dz.shockPath, ZombieShockAnimationRegistry.SHOCK_STATE,
+                        shockTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
                 continue;
             }
 
@@ -455,8 +491,8 @@ class ZombieRenderer {
             if (dz.ashPath != null) {
                 // Shock is complete; play the ash-death animation next.
                 float ashTime = Math.min(postShockTime, dz.ashDuration);
-                screen.drawPam(dz.ashPath, ZombieAshAnimationRegistry.ASH_STATE, ashTime,
-                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+                screen.queueRowDraw(row, () -> screen.drawPam(dz.ashPath, ZombieAshAnimationRegistry.ASH_STATE,
+                        ashTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
                 continue;
             }
 
@@ -472,22 +508,26 @@ class ZombieRenderer {
 
             ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
             if (plantHead == null) {
-                screen.drawPam(path, "particles", normalDeathTime, x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight);
+                screen.queueRowDraw(row, () -> screen.drawPam(path, "particles", normalDeathTime,
+                        x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight));
             }
             float dieTime = Math.min(normalDeathTime, normalDeathDuration);
             if (plantHead != null) {
-                screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
-                        ZombotanyArt.headlessBodyMask());
                 float fade = Math.max(0f, 1f - normalDeathTime / normalDeathDuration);
-                screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
-                drawPlantHead(plantHead, normalDeathTime, x - 10f, zombieOffsetY - particleDrop,
-                        ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
-                screen.batch.setColor(Color.WHITE);
+                screen.queueRowDraw(row, () -> {
+                    screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
+                            ZombotanyArt.headlessBodyMask());
+                    screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
+                    drawPlantHead(plantHead, normalDeathTime, x - 10f, zombieOffsetY - particleDrop,
+                            ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
+                    screen.batch.setColor(Color.WHITE);
+                });
             } else {
-                screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight);
+                screen.queueRowDraw(row, () -> screen.drawPam(path, "die", dieTime,
+                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
             }
             if (ZOMBIE_PIANO_ALIAS.equals(dz.alias)) {
-                drawPianoDying(dieTime, x - 10f, zombieOffsetY, dz.facingRight);
+                screen.queueRowDraw(row, () -> drawPianoDying(dieTime, x - 10f, zombieOffsetY, dz.facingRight));
             }
         }
         dyingZombies.removeIf(dz -> dz.time > dz.duration);

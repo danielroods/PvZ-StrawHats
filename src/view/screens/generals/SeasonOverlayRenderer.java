@@ -118,8 +118,12 @@ class SeasonOverlayRenderer {
             screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X, GameScreen.BOARD_Y, bw, bh);
             screen.batch.setColor(Color.WHITE);
         }
-        if (isEgypt() || isDarkAge()) drawEgyptGraves();
         drawSandStorm(bw, bh);
+    }
+
+    void drawGraves() {
+        if (!isEgypt() && !isDarkAge()) return;
+        drawEgyptGraves();
     }
 
     private void drawSandStorm(float bw, float bh) {
@@ -160,11 +164,14 @@ class SeasonOverlayRenderer {
                 float drawX = GameScreen.BOARD_X + c * boardTileWidth + (boardTileWidth - 60f) / 2f;
                 float drawY = screen.cellY(r) + (boardTileHeight - 78f) / 2f;
 
-                if (grave != null) {
-                    screen.batch.draw(grave, drawX, drawY, 60, 78);
-                } else {
-                    screen.drawFallback(drawX, drawY, 60, 78, new Color(0.55f, 0.52f, 0.48f, 1f));
-                }
+                TextureRegion finalGrave = grave;
+                screen.queueRowDraw(r, () -> {
+                    if (finalGrave != null) {
+                        screen.batch.draw(finalGrave, drawX, drawY, 60, 78);
+                    } else {
+                        screen.drawFallback(drawX, drawY, 60, 78, new Color(0.55f, 0.52f, 0.48f, 1f));
+                    }
+                });
             }
         }
     }

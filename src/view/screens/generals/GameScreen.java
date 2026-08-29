@@ -30,6 +30,7 @@ import view.hud.MatchHud;
 import view.screens.match.after.MatchEndSequence;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -81,6 +82,31 @@ public class GameScreen extends UiScreen {
     public boolean matchFinished;
     private float sandStormAnimTime;
     private final Map<String, Float> clipTimes = new java.util.HashMap<>();
+
+    private static final class QueuedRowDraw {
+        final int row;
+        final Runnable draw;
+
+        QueuedRowDraw(int row, Runnable draw) {
+            this.row = row;
+            this.draw = draw;
+        }
+    }
+
+    private final List<QueuedRowDraw> rowDrawQueue = new ArrayList<>();
+
+    void queueRowDraw(int row, Runnable draw) {
+        rowDrawQueue.add(new QueuedRowDraw(row, draw));
+    }
+
+    private void flushRowDrawQueue() {
+        if (rowDrawQueue.isEmpty()) return;
+        rowDrawQueue.sort(Comparator.comparingInt(q -> q.row));
+        for (QueuedRowDraw queued : rowDrawQueue) {
+            queued.draw.run();
+        }
+        rowDrawQueue.clear();
+    }
 
     @Override
     public void initParticles() {
@@ -400,21 +426,24 @@ public class GameScreen extends UiScreen {
         frostbite.drawFrostbiteTileArt(delta);
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
+        zomboss.drawBackdrop();
+        overlays.drawGraves();
         effects.drawScorchedTileEffects(delta);
         effects.drawHotPotatoMeltEffects(delta);
-        zomboss.drawBackdrop();
         plants.drawPlants(delta, bw, bh);
         effects.drawExplodingPlantEffects(delta);
-        zomboss.drawBoss();
         zombies.drawZombies(delta, bw, bh);
         zombies.drawDyingZombies(delta);
         effects.drawForegroundEffects(delta);
         groundItems.drawGroundItems(delta, bw, bh);
         effects.drawProjectiles(delta, bw, bh);
-        zomboss.drawEffects(delta);
-        nukeEffect.drawMissile();
         mowers.drawMowers(bw, bh);
         frostbite.drawFrostbiteIceBlocks(delta);
+        flushRowDrawQueue();
+
+        zomboss.drawBoss();
+        zomboss.drawEffects(delta);
+        nukeEffect.drawMissile();
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         zomboss.drawNpc();
