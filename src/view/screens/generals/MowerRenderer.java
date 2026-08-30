@@ -1,6 +1,8 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.graphics.Color;
+import service.resource_manager.AudioEnum;
+import service.resource_manager.AudioManager;
 
 /**
  * Draws the row of lawn mowers, picking the season's mower art and the idle/transition/
@@ -57,6 +59,9 @@ class MowerRenderer {
     }
 
     private final GameScreen screen;
+    // Edge-detection so SFX_LAWN_MOWER plays once per row when a mower is
+    // triggered (IDLE -> TRANSITION), not every frame it's drawn.
+    private final java.util.Map<Integer, model.pitches.LawnMower.MowerState> lastMowerState = new java.util.HashMap<>();
 
     MowerRenderer(GameScreen screen) {
         this.screen = screen;
@@ -72,12 +77,19 @@ class MowerRenderer {
 
         float manualXOffset = -35f;
         float manualYOffset = 35f;
+        float mowerScale = 0.60f;
 
         for (int r = 0; r < screen.session.getRows(); r++) {
             if (mowers == null || r >= mowers.length) continue;
             model.pitches.LawnMower mower = mowers[r];
 
             if (mower == null || mower.getState() == model.pitches.LawnMower.MowerState.DEAD) continue;
+
+            model.pitches.LawnMower.MowerState lastState = lastMowerState.put(r, mower.getState());
+            if (mower.getState() == model.pitches.LawnMower.MowerState.TRANSITION
+                    && lastState != model.pitches.LawnMower.MowerState.TRANSITION) {
+                AudioManager.get().playSound(AudioEnum.SFX_LAWN_MOWER);
+            }
 
             float baseX = GameScreen.BOARD_X + (float) mower.getXPosition() * boardTileWidth + manualXOffset;
             float baseY = screen.cellY(r) + 8f + manualYOffset;
@@ -88,26 +100,21 @@ class MowerRenderer {
                     ? time
                     : (float) mower.getStateTimer();
 
-            screen.queueRowDraw(r, () -> drawMowerVisual(mower, mowerPaths, clipName, animTime, time, baseX, baseY));
-        }
-    }
-
-    private void drawMowerVisual(model.pitches.LawnMower mower, String[] mowerPaths, String clipName,
-                                 float animTime, float time, float baseX, float baseY) {
-        boolean pamDrawn = false;
-        if (screen.pamPlayer != null && mowerPaths != null) {
-            for (String pamPath : mowerPaths) {
-                if (screen.drawPam(pamPath, clipName, animTime, baseX + 27f, baseY + 10f, 0.60f, false)) {
-                    pamDrawn = true;
-                    break;
+            boolean pamDrawn = false;
+            if (screen.pamPlayer != null && mowerPaths != null) {
+                for (String pamPath : mowerPaths) {
+                    if (screen.drawPam(pamPath, clipName, animTime, baseX + 27f, baseY + 10f, mowerScale, false)) {
+                        pamDrawn = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (!pamDrawn) {
-            float bob = (mower.getState() == model.pitches.LawnMower.MowerState.IDLE) ? 0f : (float) Math.sin(time * 15f) * 2f;
-            float wheelTurn = (mower.getState() == model.pitches.LawnMower.MowerState.IDLE) ? 0f : time * 4.0f;
-            drawProceduralLawnMower(baseX, baseY + bob, wheelTurn);
+            if (!pamDrawn) {
+                float bob = (mower.getState() == model.pitches.LawnMower.MowerState.IDLE) ? 0f : (float) Math.sin(time * 15f) * 2f;
+                float wheelTurn = (mower.getState() == model.pitches.LawnMower.MowerState.IDLE) ? 0f : time * 4.0f;
+                drawProceduralLawnMower(baseX, baseY + bob, wheelTurn);
+            }
         }
     }
 

@@ -2190,9 +2190,10 @@
         }
       ],
       "effect": {
-        "type": "SunThief",
-        "isBankThief": true,
-        "laserDamage": 4001
+        "type": "CrystalSkullBeamEffect",
+        "laserDamage": 4001,
+        "chargingTime": 5,
+        "laserCooldownTime": 5
       }
     }
   },
