@@ -33,7 +33,8 @@ public enum AudioEnum {
     SFX_ZOMBOSS_NPC("assets/audio/sfx/npc.mp3"),
     SFX_WAVE_START("assets/audio/sfx/zombie_wave.mp3"),
     SFX_MATCH_WIN("assets/audio/sfx/win.mp3"),
-    SFX_MATCH_LOSE("assets/audio/sfx/lose.mp3");
+    SFX_MATCH_LOSE("assets/audio/sfx/lose.mp3"),
+    SFX_LAWN_MOWER("assets/audio/sfx/lawn-mower.mp3");
 
     private final String filePath;
 
