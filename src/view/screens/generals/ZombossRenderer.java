@@ -26,6 +26,28 @@ class ZombossRenderer {
     private static final float NPC_MARGIN_X = 190f;
     private static final float NPC_MARGIN_Y = 40f;
 
+
+    private static final float GLACIER_TOP_OFFSET_X = 80f;
+    private static final float GLACIER_TOP_OFFSET_Y = -45f;
+    private static final float GLACIER_TOP_SCALE = 0.80f;
+
+    private static final float GLACIER_MIDDLE_OFFSET_X = 140f;
+    private static final float GLACIER_MIDDLE_OFFSET_Y = 15f;
+    private static final float GLACIER_MIDDLE_SCALE = 1f;
+
+    private static final float GLACIER_BOTTOM_OFFSET_X = 140f;
+    private static final float GLACIER_BOTTOM_OFFSET_Y = 50f;
+    private static final float GLACIER_BOTTOM_SCALE = 1f;
+
+    private static final float GLACIER_FOG_OFFSET_X = 800f;
+    private static final float GLACIER_FOG_OFFSET_Y = 30f;
+    private static final float GLACIER_FOG_SCALE = 1.1f;
+
+    private static final float ICE_AGE_BOSS_OFFSET_X = -5f;
+    private static final float ICE_AGE_BOSS_OFFSET_Y = 30f;
+    private static final float ICE_AGE_BOSS_SCALE = 0.52f;
+
+
     private static final String GLACIER_TOP =
             "768/FULL/EFFECTS/ZOMBOSS_GLACIER_TOP/ZOMBOSS_GLACIER_TOP.PAM";
     private static final String GLACIER_MIDDLE =
@@ -81,11 +103,20 @@ class ZombossRenderer {
         String clip = fight.getBossClip();
         if (clip == null) return;
 
+
         Position position = fight.getBossPosition();
         float x = bossX(position);
         float y = bossY(position);
+        float scale = BOSS_SCALE;
+
+        if (fight.getChapter() == ZombossChapter.ICE_AGE) {
+            x += ICE_AGE_BOSS_OFFSET_X;
+            y += ICE_AGE_BOSS_OFFSET_Y;
+            scale = ICE_AGE_BOSS_SCALE;
+        }
+
         screen.drawPam(fight.getChapter().getBossPam(), clip,
-                (float) fight.getBossClipTime(), x, y, BOSS_SCALE, false);
+                (float) fight.getBossClipTime(), x, y, scale ,false);
     }
 
     void drawEffects(float delta) {
@@ -120,18 +151,28 @@ class ZombossRenderer {
         float tileH = screen.getBoardTileHeight();
         float wallX = GameScreen.BOARD_X + (cols - 0.4f) * tileW;
 
-        screen.drawPam(GLACIER_MIDDLE, GLACIER_CLIP, effectTime,
-                wallX, screen.cellY(rows / 2.0) + ZOMBIE_ANCHOR_Y, WORLD_SCALE, false);
         screen.drawPam(GLACIER_TOP, GLACIER_CLIP, effectTime,
-                wallX, screen.cellY(0) + tileH * 0.9f, WORLD_SCALE, false);
+                wallX + GLACIER_TOP_OFFSET_X,
+                screen.cellY(0) + tileH * 0.9f + GLACIER_TOP_OFFSET_Y,
+                GLACIER_TOP_SCALE, false);
+
+        screen.drawPam(GLACIER_MIDDLE, GLACIER_CLIP, effectTime,
+                wallX + GLACIER_MIDDLE_OFFSET_X,
+                screen.cellY(rows / 2.0) + ZOMBIE_ANCHOR_Y + GLACIER_MIDDLE_OFFSET_Y,
+                GLACIER_MIDDLE_SCALE, false);
+
+
         screen.drawPam(GLACIER_BOTTOM, GLACIER_CLIP, effectTime,
-                wallX, screen.cellY(rows - 1) + tileH * 0.1f, WORLD_SCALE, false);
+                wallX + GLACIER_BOTTOM_OFFSET_X,
+                screen.cellY(rows - 1) + tileH * 0.1f + GLACIER_BOTTOM_OFFSET_Y,
+                GLACIER_BOTTOM_SCALE, false);
 
         for (int row = 0; row < rows; row++) {
             for (int col = sealedColumnStart; col < cols; col++) {
                 screen.drawPam(GLACIER_FOG, GLACIER_CLIP, effectTime + row * 0.3f,
-                        GameScreen.BOARD_X + (col + 0.5f) * tileW,
-                        screen.cellY(row) + tileH * 0.35f, TILE_FX_SCALE, false);
+                        GameScreen.BOARD_X + (col + 0.5f) * tileW + GLACIER_FOG_OFFSET_X,
+                        screen.cellY(row) + tileH * 0.35f + GLACIER_FOG_OFFSET_Y,
+                        GLACIER_FOG_SCALE, false);
             }
         }
     }
