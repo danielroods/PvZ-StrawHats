@@ -731,7 +731,7 @@ class PlantRenderer {
                         : new Position(col, row);
                 if (pos == null) pos = new Position(col, row);
 
-                float x = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth - 10f;
+                float x = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth + 20f;
                 float y = screen.cellY(pos.y()) + 40f;
 
                 if (!wrap.isDead()) {
