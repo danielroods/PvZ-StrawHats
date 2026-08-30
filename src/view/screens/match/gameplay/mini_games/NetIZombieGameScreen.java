@@ -64,13 +64,15 @@ public class NetIZombieGameScreen extends GameScreen {
         final Image unavailable;
         final Image selected;
         final Label costLabel;
+        final Label cooldownLabel;
 
-        CardView(String key, Stack stack, Image unavailable, Image selected, Label costLabel) {
+        CardView(String key, Stack stack, Image unavailable, Image selected, Label costLabel, Label cooldownLabel) {
             this.key = key;
             this.stack = stack;
             this.unavailable = unavailable;
             this.selected = selected;
             this.costLabel = costLabel;
+            this.cooldownLabel = cooldownLabel;
         }
     }
 
@@ -82,6 +84,7 @@ public class NetIZombieGameScreen extends GameScreen {
     private Table tray;
     private Label trayTitle;
     private Label opponentLabel;
+    private Table reactionBar;
     private ReactionOverlay reactionOverlay;
     private Texture brainTexture;
     private Texture textureRight;
@@ -92,6 +95,7 @@ public class NetIZombieGameScreen extends GameScreen {
     private boolean shovelArmed;
     private boolean foodArmed;
     private boolean endHandled;
+    private MatchStartOverlay matchStartOverlay;
 
     @Override
     protected String getSeasonGameplayFolder() {
@@ -153,6 +157,9 @@ public class NetIZombieGameScreen extends GameScreen {
         buildReactionBar();
         reactionOverlay = new ReactionOverlay(skin, this::loadTextureSafe);
         stage.addActor(reactionOverlay);
+
+        matchStartOverlay = new MatchStartOverlay(this);
+        matchStartOverlay.start();
     }
 
     private Texture loadBrainTexture() {
@@ -193,13 +200,18 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     public void render(float delta) {
+        boolean starting = matchStartOverlay != null && matchStartOverlay.isActive();
+        if (starting) matchStartOverlay.advance(delta);
+
         if (state != null) {
             GameSession.setCurrent(state.getShadowSession());
             List<model.collections.zombie.Zombie> removed = state.drainRemovedZombies();
             if (!removed.isEmpty()) trackZombieDeaths(removed);
             List<model.collections.plant.Plant> uprooted = state.drainRemovedPlants();
             if (!uprooted.isEmpty()) trackPlantDeaths(uprooted);
-            state.advance(delta);
+            // Freeze the board's own visible progress while the VS splash plays;
+            // the server-side match keeps running underneath regardless.
+            if (!starting) state.advance(delta);
 
             String rejection = state.pollRejection();
             if (rejection != null && stage != null) Toast.show(stage, rejection);
@@ -209,6 +221,11 @@ public class NetIZombieGameScreen extends GameScreen {
             }
         }
         super.render(delta);
+    }
+
+    @Override
+    protected void drawMatchStartOverlay() {
+        if (matchStartOverlay != null) matchStartOverlay.draw();
     }
 
     @Override
@@ -282,6 +299,7 @@ public class NetIZombieGameScreen extends GameScreen {
             return;
         }
         client.sendIntent(Protocol.INTENT_PLACE_ZOMBIE, selectedKey, row, col);
+        selectedKey = null;
         AudioManager.get().playSound(AudioEnum.SFX_CLICK, 0.6f);
     }
 
@@ -302,12 +320,12 @@ public class NetIZombieGameScreen extends GameScreen {
         drawSideTexture();
         if (state == null) return;
         brainAnimTime += delta;
+        drawPlacementZone(bh);
         for (int col = IZombieMatch.BRAIN_COLUMN + 1;
              col <= IZombieMatch.REDLINE_COLUMN; col++) {
             drawFallback(getCellX(col), getBoardBottom(), getBoardTileWidth(), bh, PLANT_ZONE);
         }
-        drawFallback(getCellX(IZombieMatch.REDLINE_COLUMN + 1) - 2f, getBoardBottom(),
-                4f, bh, RED_LINE_COLOR);
+        drawRedLine(bh);
         drawBrains();
     }
 
@@ -362,6 +380,24 @@ public class NetIZombieGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
+    /**
+     * Highlights the drop zone while a card is held. Only the zombie player needs it -
+     * the plant player's own columns are already tinted for the whole match below, and
+     * painting them twice just doubled the tint.
+     */
+    private void drawPlacementZone(float bh) {
+        if (selectedKey == null || isPlantSide()) return;
+        for (int col = IZombieMatch.REDLINE_COLUMN + 1; col < session.getCols(); col++) {
+            drawFallback(getCellX(col), getBoardBottom(), getBoardTileWidth(), bh,
+                    PLANT_ZONE);
+        }
+    }
+
+    private void drawRedLine(float bh) {
+        float redLineX = getCellX(IZombieMatch.REDLINE_COLUMN + 1);
+        drawFallback(redLineX - 2f, getBoardBottom(), 4f, bh, RED_LINE_COLOR);
+    }
+
     private void drawBrains() {
         MatchSnapshot snapshot = state.getSnapshot();
         if (snapshot == null || snapshot.brains == null) return;
@@ -412,7 +448,7 @@ public class NetIZombieGameScreen extends GameScreen {
         panel.add(opponentLabel).width(126f).center();
         panel.pack();
         panel.setPosition(stage.getWidth() - SIDE_AREA_WIDTH
-                + (SIDE_AREA_WIDTH - panel.getWidth()) * 0.5f,
+                        + (SIDE_AREA_WIDTH - panel.getWidth()) * 0.5f,
                 stage.getHeight() - panel.getHeight() - 96f);
         stage.addActor(panel);
     }
@@ -545,6 +581,15 @@ public class NetIZombieGameScreen extends GameScreen {
         costTable.setTouchable(Touchable.disabled);
         stack.add(costTable);
 
+        Label cooldownLabel = new Label("", skin, "title");
+        cooldownLabel.setFontScale(0.85f);
+        cooldownLabel.setAlignment(Align.center);
+        Table cooldownTable = new Table();
+        cooldownTable.setFillParent(true);
+        cooldownTable.setTouchable(Touchable.disabled);
+        cooldownTable.add(cooldownLabel).center().expand();
+        stack.add(cooldownTable);
+
         stack.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 selectedKey = key.equalsIgnoreCase(selectedKey) ? null : key;
@@ -554,7 +599,7 @@ public class NetIZombieGameScreen extends GameScreen {
             }
         });
 
-        return new CardView(key, stack, unavailable, selected, costLabel);
+        return new CardView(key, stack, unavailable, selected, costLabel, cooldownLabel);
     }
 
     private Actor wrapWithCardFrame(Actor content, float outerW, float outerH) {
@@ -596,6 +641,12 @@ public class NetIZombieGameScreen extends GameScreen {
             view.selected.setVisible(view.key.equalsIgnoreCase(selectedKey));
             view.costLabel.setText(ready ? String.valueOf(cost)
                     : String.format("%.1fs", cooldown));
+            if (!ready) {
+                view.cooldownLabel.setText(String.format("%.1f", cooldown));
+                view.cooldownLabel.setVisible(true);
+            } else {
+                view.cooldownLabel.setVisible(false);
+            }
         }
         if (trayTitle != null) {
             trayTitle.setText("SUN " + sun);
@@ -605,30 +656,35 @@ public class NetIZombieGameScreen extends GameScreen {
     private void buildReactionBar() {
         Table bar = new Table();
         bar.setBackground(skin.getDrawable("card-background"));
-        bar.pad(4f);
+        bar.pad(6f);
+
+        Label title = new Label("SAY SOMETHING", skin, "main");
+        title.setFontScale(0.6f);
+        bar.add(title).colspan(3).padBottom(4f).row();
 
         for (int i = 0; i < Protocol.REACTION_TEXTS.length; i++) {
             int index = i;
             bar.add(reactionButton(Protocol.REACTION_TEXTS[i], 104f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_TEXT, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_TEXT, index)))
                     .padRight(3f);
         }
         for (int i = 0; i < 3; i++) {
             int index = i;
             bar.add(reactionButton(ReactionOverlay.EMOJI_LABELS[i], 34f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_EMOJI, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_EMOJI, index)))
                     .padRight(3f);
         }
         for (int i = 0; i < 3; i++) {
             int index = i;
             bar.add(reactionButton(ReactionOverlay.STICKER_LABELS[i], 34f,
-                    () -> NetworkClient.get().sendReaction(Protocol.REACTION_STICKER, index)))
+                            () -> NetworkClient.get().sendReaction(Protocol.REACTION_STICKER, index)))
                     .padRight(3f);
         }
 
         bar.pack();
         bar.setPosition(stage.getWidth() - SIDE_AREA_WIDTH - bar.getWidth() - 10f, 6f);
-        stage.addActor(bar);
+        reactionBar = bar;
+        stage.addActor(reactionBar);
     }
 
     private Table reactionButton(String label, float width, Runnable action) {
