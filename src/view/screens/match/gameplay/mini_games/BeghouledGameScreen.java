@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -12,9 +13,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
+import com.badlogic.gdx.utils.Align;
 import controller.ScreenManager;
 import controller.match.mini_games.BeghouledController;
 import model.App;
+import model.collections.plant.PlantFactory;
+import model.collections.plant.PlantJsonParser;
 import model.collections.plant.Plant;
 import model.match.mini_games.Beghouled;
 import model.match_mechanisms.vector.Position;
@@ -50,14 +54,21 @@ public class BeghouledGameScreen extends GameScreen {
     private static final float UPGRADE_CARD_H = 60f;
 
     private static final class UpgradeCardView {
-        final int cost;
-        final Actor unaffordableOverlay;
+        final int upgradeCost;
+        final int plantCost;
+        final double recharge;
+        final Image unaffordableOverlay;
         final Label costLabel;
+        final Label rechargeLabel;
 
-        UpgradeCardView(int cost, Actor unaffordableOverlay, Label costLabel) {
-            this.cost = cost;
+        UpgradeCardView(int upgradeCost, int plantCost, double recharge,
+                        Image unaffordableOverlay, Label costLabel, Label rechargeLabel) {
+            this.upgradeCost = upgradeCost;
+            this.plantCost = plantCost;
+            this.recharge = recharge;
             this.unaffordableOverlay = unaffordableOverlay;
             this.costLabel = costLabel;
+            this.rechargeLabel = rechargeLabel;
         }
     }
 
@@ -313,21 +324,36 @@ public class BeghouledGameScreen extends GameScreen {
 
     /** Builds one upgrade option as the same seed-packet card used on the loadout/match screens,
      *  with a sun-cost badge and a dim overlay when the player can't currently afford it. */
-    private Actor buildUpgradeCard(String plantName, int cost) {
-        Stack stack = new Stack();
+    private Actor buildUpgradeCard(String plantName, int upgradeCost) {
+        Group stack = new Group();
         stack.setTouchable(Touchable.enabled);
+        stack.setSize(UPGRADE_CARD_W, UPGRADE_CARD_H);
 
         SeedPacketCard card = null;
         try { card = upgradeCardFactory.buildCardForDisplayName(plantName); } catch (Throwable ignored) {}
         if (card != null) {
             card.setSize(UPGRADE_CARD_W, UPGRADE_CARD_H);
             card.setTouchable(Touchable.disabled);
-            stack.add(card);
+            card.setBounds(0f, 0f, UPGRADE_CARD_W, UPGRADE_CARD_H);
+            stack.addActor(card);
         } else {
             Table fallback = new Table();
             fallback.setBackground(skin.getDrawable("card-background"));
             fallback.add(new Label(plantName, skin, "main")).center();
-            stack.add(fallback);
+            fallback.setBounds(0f, 0f, UPGRADE_CARD_W, UPGRADE_CARD_H);
+            stack.addActor(fallback);
+        }
+
+        int plantCost = 0;
+        double recharge = 0.0;
+        try {
+            int plantId = PlantFactory.findPlantIdByName(plantName);
+            PlantJsonParser.PlantConfig config = PlantFactory.getBlueprints().get(plantId);
+            if (config != null) {
+                plantCost = Math.max(0, config.cost);
+                recharge = Math.max(0.0, config.recharge);
+            }
+        } catch (Throwable ignored) {
         }
 
         Image unaffordable = new Image(new TextureRegionDrawable(whitePixel));
@@ -335,14 +361,28 @@ public class BeghouledGameScreen extends GameScreen {
         unaffordable.setFillParent(true);
         unaffordable.setTouchable(Touchable.disabled);
         unaffordable.setVisible(false);
-        stack.add(unaffordable);
+        unaffordable.setBounds(0f, 0f, UPGRADE_CARD_W, UPGRADE_CARD_H);
+        stack.addActor(unaffordable);
+        Label costLabel = new Label(String.valueOf(plantCost), skin, "main");
+        costLabel.setFontScale(0.72f);
+        costLabel.setAlignment(Align.bottomRight);
+        costLabel.setTouchable(Touchable.disabled);
+        costLabel.setBounds(0f, 0f, UPGRADE_CARD_W - 2f, UPGRADE_CARD_H - 2f);
+        stack.addActor(costLabel);
 
-        Label costLabel = new Label(String.valueOf(cost), skin, "main");
-        Table costTable = new Table();
-        costTable.bottom().right();
-        costTable.add(costLabel).pad(2);
-        costTable.setTouchable(Touchable.disabled);
-        stack.add(costTable);
+        Label rechargeLabel = new Label(recharge > 0.0 ? String.format("%.1f", recharge) : "", skin, "title");
+        rechargeLabel.setFontScale(0.72f);
+        rechargeLabel.setAlignment(Align.center);
+        rechargeLabel.setTouchable(Touchable.disabled);
+        rechargeLabel.setBounds(0f, 0f, UPGRADE_CARD_W, UPGRADE_CARD_H);
+        stack.addActor(rechargeLabel);
+
+        Label upgradeLabel = new Label("UP " + upgradeCost, skin, "muted");
+        upgradeLabel.setFontScale(0.48f);
+        upgradeLabel.setAlignment(Align.topLeft);
+        upgradeLabel.setTouchable(Touchable.disabled);
+        upgradeLabel.setBounds(0f, 0f, UPGRADE_CARD_W, UPGRADE_CARD_H);
+        stack.addActor(upgradeLabel);
 
         stack.addListener(new ClickListener() {
             @Override
@@ -351,7 +391,8 @@ public class BeghouledGameScreen extends GameScreen {
             }
         });
 
-        upgradeCardViews.add(new UpgradeCardView(cost, unaffordable, costLabel));
+        upgradeCardViews.add(new UpgradeCardView(
+                upgradeCost, plantCost, recharge, unaffordable, costLabel, rechargeLabel));
         return stack;
     }
 
@@ -366,7 +407,7 @@ public class BeghouledGameScreen extends GameScreen {
         matchesLabel.setText("Matches: " + game.getMatchesMade() + "/" + game.getMatchesNeeded());
 
         for (UpgradeCardView view : upgradeCardViews) {
-            boolean affordable = sun >= view.cost;
+            boolean affordable = sun >= view.upgradeCost;
             view.unaffordableOverlay.setVisible(!affordable);
             view.costLabel.setColor(affordable ? Color.WHITE : Color.RED);
         }

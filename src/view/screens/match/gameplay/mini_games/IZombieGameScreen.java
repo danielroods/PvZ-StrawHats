@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -72,13 +73,13 @@ public class IZombieGameScreen extends GameScreen {
 
     private static final class PacketView {
         final ZombiePacket packet;
-        final Stack stack;
+        final Group stack;
         final Image unavailable;
         final Image selected;
         final Label costLabel;
         final Label cooldownLabel;
 
-        PacketView(ZombiePacket packet, Stack stack, Image unavailable, Image selected,
+        PacketView(ZombiePacket packet, Group stack, Image unavailable, Image selected,
                    Label costLabel, Label cooldownLabel) {
             this.packet = packet;
             this.stack = stack;
@@ -405,8 +406,9 @@ public class IZombieGameScreen extends GameScreen {
     }
 
     private PacketView buildPacketCard(ZombiePacket packet) {
-        Stack stack = new Stack();
+        Group stack = new Group();
         stack.setTouchable(Touchable.enabled);
+        stack.setSize(PACKET_CARD_W, PACKET_CARD_H);
 
         ZombieIconCard card = null;
         try {
@@ -420,42 +422,43 @@ public class IZombieGameScreen extends GameScreen {
         }
         if (card != null) {
             card.setTouchable(Touchable.disabled);
-            stack.add(card);
+            card.setBounds(0f, 0f, PACKET_CARD_W, PACKET_CARD_H);
+            stack.addActor(card);
         } else {
             Table fallback = new Table();
             fallback.setBackground(skin.getDrawable("card-background"));
             fallback.add(new Label(packet.getDisplayName(), skin, "main")).center();
-            stack.add(fallback);
+            fallback.setBounds(0f, 0f, PACKET_CARD_W, PACKET_CARD_H);
+            stack.addActor(fallback);
         }
 
         Image unavailable = new Image(new TextureRegionDrawable(whitePixelRegion()));
         unavailable.setColor(0f, 0f, 0f, 0.6f);
         unavailable.setFillParent(true);
         unavailable.setTouchable(Touchable.disabled);
-        stack.add(unavailable);
+        unavailable.setBounds(0f, 0f, PACKET_CARD_W, PACKET_CARD_H);
+        stack.addActor(unavailable);
 
         Image selected = new Image(new TextureRegionDrawable(whitePixelRegion()));
         selected.setColor(0.25f, 1f, 0.25f, 0.30f);
         selected.setFillParent(true);
         selected.setTouchable(Touchable.disabled);
-        stack.add(selected);
+        selected.setBounds(0f, 0f, PACKET_CARD_W, PACKET_CARD_H);
+        stack.addActor(selected);
 
         Label costLabel = new Label(String.valueOf(packet.getCost()), skin, "main");
         costLabel.setFontScale(0.85f);
-        Table costTable = new Table();
-        costTable.bottom().right();
-        costTable.add(costLabel).padRight(4f).padBottom(2f);
-        costTable.setTouchable(Touchable.disabled);
-        stack.add(costTable);
+        costLabel.setAlignment(Align.bottomRight);
+        costLabel.setTouchable(Touchable.disabled);
+        costLabel.setBounds(0f, 0f, PACKET_CARD_W - 2f, PACKET_CARD_H - 2f);
+        stack.addActor(costLabel);
 
         Label cooldownLabel = new Label("", skin, "title");
         cooldownLabel.setFontScale(0.85f);
         cooldownLabel.setAlignment(Align.center);
-        Table cooldownTable = new Table();
-        cooldownTable.setFillParent(true);
-        cooldownTable.setTouchable(Touchable.disabled);
-        cooldownTable.add(cooldownLabel).center().expand();
-        stack.add(cooldownTable);
+        cooldownLabel.setTouchable(Touchable.disabled);
+        cooldownLabel.setBounds(0f, 0f, PACKET_CARD_W, PACKET_CARD_H);
+        stack.addActor(cooldownLabel);
 
         stack.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {

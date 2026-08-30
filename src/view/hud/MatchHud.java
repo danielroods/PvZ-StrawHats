@@ -53,6 +53,8 @@ public final class MatchHud extends Table implements Disposable {
     private final Button nukeButton;
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
+    private final Texture overlayPixelTexture;
+    private final TextureRegionDrawable overlayPixelDrawable;
     private final Table loadoutRow = new Table();
     private final Label sunLabel;
     private final Label foodLabel;
@@ -108,21 +110,85 @@ public final class MatchHud extends Table implements Disposable {
         final String name;
         final int id;
         final int cost;
-        final Stack stack;
-        final Image unavailable;
-        final Image selected;
-        final Label costLabel;
-        final Label cooldownLabel;
-        SlotView(String name, int id, int cost, Stack stack, Image unavailable, Image selected,
-                 Label costLabel, Label cooldownLabel) {
-            this.name = name; this.id = id; this.cost = cost; this.stack = stack;
-            this.unavailable = unavailable; this.selected = selected;
-            this.costLabel = costLabel; this.cooldownLabel = cooldownLabel;
+        final PlantCardSlot card;
+        SlotView(String name, int id, int cost, PlantCardSlot card) {
+            this.name = name; this.id = id; this.cost = cost; this.card = card;
         }
+    }
+
+    private final class PlantCardSlot extends Group {
+        private final Actor artwork;
+        private final Image unavailable;
+        private final Image selected;
+        private final Label costLabel;
+        private final Label cooldownLabel;
+
+        PlantCardSlot(Actor artwork, Skin skin, int cost, float width, float height) {
+            this.artwork = artwork;
+            setSize(width, height);
+            setTouchable(Touchable.enabled);
+
+            if (artwork != null) {
+                artwork.setTouchable(Touchable.disabled);
+                addActor(artwork);
+            }
+
+            unavailable = new Image(overlayPixelDrawable);
+            unavailable.setColor(0f, 0f, 0f, 0.60f);
+            unavailable.setTouchable(Touchable.disabled);
+            addActor(unavailable);
+
+            selected = new Image(overlayPixelDrawable);
+            selected.setColor(0.25f, 1f, 0.25f, 0.30f);
+            selected.setTouchable(Touchable.disabled);
+            addActor(selected);
+
+            costLabel = new Label(String.valueOf(cost), skin, "main");
+            costLabel.setFontScale(0.82f);
+            costLabel.setAlignment(Align.bottomRight);
+            costLabel.setTouchable(Touchable.disabled);
+            addActor(costLabel);
+
+            cooldownLabel = new Label("", skin, "title");
+            cooldownLabel.setAlignment(Align.center);
+            cooldownLabel.setTouchable(Touchable.disabled);
+            addActor(cooldownLabel);
+
+            layoutChildren();
+        }
+
+        @Override
+        protected void sizeChanged() {
+            super.sizeChanged();
+            layoutChildren();
+        }
+
+        private void layoutChildren() {
+            if (artwork != null) artwork.setBounds(0f, 0f, getWidth(), getHeight());
+            if (unavailable != null) unavailable.setBounds(0f, 0f, getWidth(), getHeight());
+            if (selected != null) selected.setBounds(0f, 0f, getWidth(), getHeight());
+            if (costLabel != null) costLabel.setBounds(0f, 0f, getWidth() - 2f, getHeight() - 2f);
+            if (cooldownLabel != null) cooldownLabel.setBounds(0f, 0f, getWidth(), getHeight());
+        }
+
+        void setUnavailable(boolean visible) { unavailable.setVisible(visible); }
+        void setSelected(boolean visible) { selected.setVisible(visible); }
+        void setCostColor(Color color) { costLabel.setColor(color); }
+        void setCooldown(double seconds) {
+            cooldownLabel.setText(String.format("%.1f", seconds));
+            cooldownLabel.setVisible(true);
+        }
+        void clearCooldown() { cooldownLabel.setVisible(false); }
     }
 
     public MatchHud(Skin skin) {
         this.skin = skin;
+        Pixmap overlayPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        overlayPixmap.setColor(Color.WHITE);
+        overlayPixmap.fill();
+        overlayPixelTexture = new Texture(overlayPixmap);
+        overlayPixmap.dispose();
+        overlayPixelDrawable = new TextureRegionDrawable(new TextureRegion(overlayPixelTexture));
         setFillParent(true);
         setTouchable(Touchable.childrenOnly);
         top().left();
@@ -508,14 +574,13 @@ public final class MatchHud extends Table implements Disposable {
         for (SlotView slot : slotViews) {
             boolean ready = slot.id < 0 || session.isPlantReady(slot.id);
             boolean affordable = session.getSunCount() >= slot.cost;
-            slot.unavailable.setVisible(!ready || !affordable);
-            slot.selected.setVisible(selectedPlant != null && selectedPlant.equalsIgnoreCase(slot.name));
-            slot.costLabel.setColor(affordable ? Color.WHITE : Color.RED);
+            slot.card.setUnavailable(!ready || !affordable);
+            slot.card.setSelected(selectedPlant != null && selectedPlant.equalsIgnoreCase(slot.name));
+            slot.card.setCostColor(affordable ? Color.WHITE : Color.RED);
             if (!ready && slot.id >= 0) {
-                slot.cooldownLabel.setText(String.format("%.1f", session.getPlantCooldown(slot.id)));
-                slot.cooldownLabel.setVisible(true);
+                slot.card.setCooldown(session.getPlantCooldown(slot.id));
             } else {
-                slot.cooldownLabel.setVisible(false);
+                slot.card.clearCooldown();
             }
         }
     }
@@ -528,7 +593,7 @@ public final class MatchHud extends Table implements Disposable {
         for (String name : selectedPlants) {
             SlotView slot = createPlantSlot(session, name);
             slotViews.add(slot);
-            loadoutRow.add(slot.stack).size(CARD_W, CARD_H).pad(2f).row();
+            loadoutRow.add(slot.card).size(CARD_W, CARD_H).pad(2f).row();
         }
         for (int i = selectedPlants.size(); i < 8; i++) {
             Table empty = new Table();
@@ -538,54 +603,34 @@ public final class MatchHud extends Table implements Disposable {
     }
 
     private SlotView createPlantSlot(GameSession session, String plantName) {
-        Stack stack = new Stack();
-        stack.setTouchable(Touchable.enabled);
-
-        SeedPacketCard card = null;
-        try { card = cardFactory.buildCardForDisplayName(plantName); } catch (Throwable ignored) {}
-        if (card != null) {
-            card.setSize(CARD_W, CARD_H);
-            card.setTouchable(Touchable.disabled);
-            stack.add(card);
-        } else {
-            Table fallback = new Table();
-            fallback.setBackground(skin.getDrawable("card-background"));
-            fallback.add(new Label(plantName, skin, "main")).center();
-            stack.add(fallback);
-        }
-
         PlantJsonParser.PlantConfig config = findConfig(plantName);
         int cost = config == null ? 0 : config.cost;
         int id = config == null ? -1 : config.id;
 
-        Image unavailable = new Image(new TextureRegionDrawable(solid(new Color(0f, 0f, 0f, 0.60f))));
-        unavailable.setFillParent(true);
-        unavailable.setTouchable(Touchable.disabled);
-        stack.add(unavailable);
+        SeedPacketCard card = null;
+        try {
+            card = cardFactory.buildCardForDisplayName(plantName);
+        } catch (Throwable ignored) {
+        }
 
-        Image selected = new Image(new TextureRegionDrawable(solid(new Color(0.25f, 1f, 0.25f, 0.30f))));
-        selected.setFillParent(true);
-        selected.setTouchable(Touchable.disabled);
-        stack.add(selected);
+        Actor artwork;
+        if (card != null) {
+            card.setSize(CARD_W, CARD_H);
+            artwork = card;
+        } else {
+            Table fallback = new Table();
+            fallback.setBackground(skin.getDrawable("card-background"));
+            fallback.add(new Label(plantName, skin, "main")).center();
+            artwork = fallback;
+        }
 
-        Label costLabel = new Label(String.valueOf(cost), skin, "main");
-        Table costTable = new Table();
-        costTable.bottom().right();
-        costTable.add(costLabel).pad(2);
-        costTable.setTouchable(Touchable.disabled);
-        stack.add(costTable);
-
-        Label cooldownLabel = new Label("", skin, "title");
-        cooldownLabel.setAlignment(Align.center);
-        Table cd = new Table();
-        cd.setFillParent(true);
-        cd.setTouchable(Touchable.disabled);
-        cd.add(cooldownLabel).center().expand();
-        stack.add(cd);
+        PlantCardSlot slotCard = new PlantCardSlot(artwork, skin, cost, CARD_W, CARD_H);
+        slotCard.setUnavailable(true);
+        slotCard.setSelected(false);
 
         final int slotId = id;
         final int slotCost = cost;
-        stack.addListener(new InputListener() {
+        slotCard.addListener(new InputListener() {
             private boolean dragging;
 
             @Override
@@ -613,7 +658,8 @@ public final class MatchHud extends Table implements Disposable {
                 }
             }
         });
-        return new SlotView(plantName, id, cost, stack, unavailable, selected, costLabel, cooldownLabel);
+
+        return new SlotView(plantName, id, cost, slotCard);
     }
 
     private PlantJsonParser.PlantConfig findConfig(String name) {
@@ -973,6 +1019,7 @@ public final class MatchHud extends Table implements Disposable {
     }
     @Override public void dispose() {
         if (conveyorWidget != null) conveyorWidget.dispose();
+        overlayPixelTexture.dispose();
         progressZombieHeadTexture.dispose();
         progressFlagPoleTexture.dispose();
         progressFlagTexture.dispose();

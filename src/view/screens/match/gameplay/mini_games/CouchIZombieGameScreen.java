@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -58,9 +59,10 @@ public class CouchIZombieGameScreen extends GameScreen {
 
     private final SeedPacketCardFactory seedCards = new SeedPacketCardFactory();
     private final ZombieIconCardFactory zombieCards = new ZombieIconCardFactory();
-    private final List<Stack> seedViews = new ArrayList<>();
+    private final List<Group> seedViews = new ArrayList<>();
     private final List<Image> seedDim = new ArrayList<>();
     private final List<Image> seedSel = new ArrayList<>();
+    private final List<Label> seedCooldownLabels = new ArrayList<>();
 
     private Texture brainTexture;
     private Texture textureRight;
@@ -68,10 +70,11 @@ public class CouchIZombieGameScreen extends GameScreen {
     private Label plantTrayTitle;
     private Table zombieTray;
     private Label zombieTrayTitle;
-    private final List<Stack> zombieViews = new ArrayList<>();
+    private final List<Group> zombieViews = new ArrayList<>();
     private final List<Image> zombieDim = new ArrayList<>();
     private final List<Image> zombieSel = new ArrayList<>();
     private final List<Label> zombieCostLabels = new ArrayList<>();
+    private final List<Label> zombieCooldownLabels = new ArrayList<>();
     private String selectedSeed;
     private int packetIndex;
     private int cursorRow = 2;
@@ -332,9 +335,15 @@ public class CouchIZombieGameScreen extends GameScreen {
         tray.setBackground(skin.getDrawable("card-background"));
         tray.pad(2f).top();
 
+        seedViews.clear();
+        seedDim.clear();
+        seedSel.clear();
+        seedCooldownLabels.clear();
+
         for (SeedCard card : match.getSeeds()) {
-            Stack stack = new Stack();
+            Group stack = new Group();
             stack.setTouchable(Touchable.enabled);
+            stack.setSize(PLANT_CARD_W, PLANT_CARD_H);
             SeedPacketCard art = null;
             try {
                 art = seedCards.buildCardByPlantName(card.name());
@@ -344,7 +353,8 @@ public class CouchIZombieGameScreen extends GameScreen {
             if (art != null) {
                 art.setSize(PLANT_CARD_W, PLANT_CARD_H);
                 art.setTouchable(Touchable.disabled);
-                stack.add(art);
+                art.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+                stack.addActor(art);
             } else {
                 Table fallback = new Table();
                 fallback.setBackground(skin.getDrawable("card-background"));
@@ -353,28 +363,39 @@ public class CouchIZombieGameScreen extends GameScreen {
                 label.setFontScale(0.7f);
                 label.setWrap(true);
                 fallback.add(label).width(PLANT_CARD_W).center();
-                stack.add(fallback);
+                fallback.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+                stack.addActor(fallback);
             }
 
             Image dim = new Image(new TextureRegionDrawable(whitePixelRegion()));
             dim.setColor(0f, 0f, 0f, 0.6f);
             dim.setFillParent(true);
             dim.setTouchable(Touchable.disabled);
-            stack.add(dim);
+            dim.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+            stack.addActor(dim);
 
             Image sel = new Image(new TextureRegionDrawable(whitePixelRegion()));
             sel.setColor(0.25f, 1f, 0.25f, 0.30f);
             sel.setFillParent(true);
             sel.setTouchable(Touchable.disabled);
-            stack.add(sel);
+            sel.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+            stack.addActor(sel);
 
             Label cost = new Label(String.valueOf(card.cost()), skin, "main");
-            cost.setFontScale(0.7f);
-            Table costTable = new Table();
-            costTable.bottom().right();
-            costTable.add(cost).padRight(3f).padBottom(1f);
-            costTable.setTouchable(Touchable.disabled);
-            stack.add(costTable);
+            cost.setFontScale(0.72f);
+            cost.setAlignment(Align.bottomRight);
+            cost.setTouchable(Touchable.disabled);
+            cost.setBounds(0f, 0f, PLANT_CARD_W - 2f, PLANT_CARD_H - 2f);
+            stack.addActor(cost);
+
+            Label cooldown = new Label("", skin, "title");
+            cooldown.setFontScale(0.78f);
+            cooldown.setAlignment(Align.center);
+            cooldown.setTouchable(Touchable.disabled);
+            cooldown.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+            stack.addActor(cooldown);
+
+            seedCooldownLabels.add(cooldown);
 
             stack.addListener(new ClickListener() {
                 @Override public void clicked(InputEvent event, float x, float y) {
@@ -407,6 +428,12 @@ public class CouchIZombieGameScreen extends GameScreen {
         tray.setBackground(skin.getDrawable("card-background"));
         tray.pad(2f).top();
 
+        zombieViews.clear();
+        zombieDim.clear();
+        zombieSel.clear();
+        zombieCostLabels.clear();
+        zombieCooldownLabels.clear();
+
         zombieTrayTitle = new Label("P2 KEYBOARD", skin, "main");
         zombieTrayTitle.setFontScale(0.7f);
         zombieTrayTitle.setAlignment(Align.center);
@@ -417,13 +444,15 @@ public class CouchIZombieGameScreen extends GameScreen {
             ZombiePacket packet = roster.get(i);
             final int slotIndex = i;
 
-            Stack stack = new Stack();
+            Group stack = new Group();
             stack.setTouchable(Touchable.enabled);
+            stack.setSize(ZOMBIE_CARD_W, ZOMBIE_CARD_H);
             try {
                 ZombieIconCard art = zombieCards.buildCardForAlias(packet.getAlias(), ZOMBIE_CARD_W, ZOMBIE_CARD_H);
                 if (art != null) {
                     art.setTouchable(Touchable.disabled);
-                    stack.add(art);
+                    art.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+                    stack.addActor(art);
                 }
             } catch (Throwable ignored) {
             }
@@ -435,28 +464,37 @@ public class CouchIZombieGameScreen extends GameScreen {
                 label.setFontScale(0.6f);
                 label.setWrap(true);
                 fallback.add(label).width(ZOMBIE_CARD_W).center();
-                stack.add(fallback);
+                fallback.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+                stack.addActor(fallback);
             }
 
             Image dim = new Image(new TextureRegionDrawable(whitePixelRegion()));
             dim.setColor(0f, 0f, 0f, 0.6f);
             dim.setFillParent(true);
             dim.setTouchable(Touchable.disabled);
-            stack.add(dim);
+            dim.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+            stack.addActor(dim);
 
             Image sel = new Image(new TextureRegionDrawable(whitePixelRegion()));
             sel.setColor(0.95f, 0.55f, 0.25f, 0.30f);
             sel.setFillParent(true);
             sel.setTouchable(Touchable.disabled);
-            stack.add(sel);
+            sel.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+            stack.addActor(sel);
 
-            Label cost = new Label(index1(slotIndex) + " " + packet.getCost(), skin, "main");
+            Label cost = new Label(String.valueOf(packet.getCost()), skin, "main");
             cost.setFontScale(0.6f);
-            Table costTable = new Table();
-            costTable.bottom().right();
-            costTable.add(cost).padRight(3f).padBottom(1f);
-            costTable.setTouchable(Touchable.disabled);
-            stack.add(costTable);
+            cost.setAlignment(Align.bottomRight);
+            cost.setTouchable(Touchable.disabled);
+            cost.setBounds(0f, 0f, ZOMBIE_CARD_W - 2f, ZOMBIE_CARD_H - 2f);
+            stack.addActor(cost);
+
+            Label cooldown = new Label("", skin, "title");
+            cooldown.setFontScale(0.78f);
+            cooldown.setAlignment(Align.center);
+            cooldown.setTouchable(Touchable.disabled);
+            cooldown.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+            stack.addActor(cooldown);
 
             stack.addListener(new ClickListener() {
                 @Override public void clicked(InputEvent event, float x, float y) {
@@ -469,6 +507,7 @@ public class CouchIZombieGameScreen extends GameScreen {
             zombieDim.add(dim);
             zombieSel.add(sel);
             zombieCostLabels.add(cost);
+            zombieCooldownLabels.add(cooldown);
             tray.add(stack).size(ZOMBIE_CARD_W, ZOMBIE_CARD_H).pad(1f).row();
         }
 
@@ -513,6 +552,13 @@ public class CouchIZombieGameScreen extends GameScreen {
             boolean affordable = match.getPlantSun() >= card.cost();
             seedDim.get(i).setVisible(!ready || !affordable);
             seedSel.get(i).setVisible(card.name().equalsIgnoreCase(selectedSeed));
+            Label cooldown = seedCooldownLabels.get(i);
+            if (!ready) {
+                cooldown.setText(String.format("%.1f", match.getSession().getPlantCooldown(card.plantId())));
+                cooldown.setVisible(true);
+            } else {
+                cooldown.setVisible(false);
+            }
         }
 
         List<ZombiePacket> roster = match.getRoster();
@@ -522,8 +568,15 @@ public class CouchIZombieGameScreen extends GameScreen {
             boolean affordable = match.getZombieSun() >= packet.getCost();
             zombieDim.get(i).setVisible(!ready || !affordable);
             zombieSel.get(i).setVisible(i == packetIndex);
-            zombieCostLabels.get(i).setText((i + 1) + " " + packet.getCost()
-                    + (ready ? "" : String.format(" %.1fs", packet.getCooldown())));
+            zombieCostLabels.get(i).setText(String.valueOf(packet.getCost()));
+            zombieCostLabels.get(i).setColor(affordable ? Color.WHITE : Color.RED);
+            Label cooldown = zombieCooldownLabels.get(i);
+            if (!ready) {
+                cooldown.setText(String.format("%.1f", packet.getCooldown()));
+                cooldown.setVisible(true);
+            } else {
+                cooldown.setVisible(false);
+            }
         }
         if (zombieTrayTitle != null) {
             zombieTrayTitle.setText("P2  sun " + match.getZombieSun());

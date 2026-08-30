@@ -14,7 +14,6 @@ public class RemoteUserStore implements UserStore {
 
     @Override
     public void load() {
-        // The server is the source of truth; LOGIN already delivered the account.
     }
 
     @Override

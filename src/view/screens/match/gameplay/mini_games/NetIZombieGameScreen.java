@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -60,13 +61,13 @@ public class NetIZombieGameScreen extends GameScreen {
 
     private static final class CardView {
         final String key;
-        final Stack stack;
+        final Group stack;
         final Image unavailable;
         final Image selected;
         final Label costLabel;
         final Label cooldownLabel;
 
-        CardView(String key, Stack stack, Image unavailable, Image selected, Label costLabel, Label cooldownLabel) {
+        CardView(String key, Group stack, Image unavailable, Image selected, Label costLabel, Label cooldownLabel) {
             this.key = key;
             this.stack = stack;
             this.unavailable = unavailable;
@@ -514,38 +515,46 @@ public class NetIZombieGameScreen extends GameScreen {
     }
 
     private CardView buildPacketCard(MatchSnapshot.PacketDto packet) {
-        Stack stack = new Stack();
+        Group stack = new Group();
         stack.setTouchable(Touchable.enabled);
+        stack.setSize(ZOMBIE_CARD_W, ZOMBIE_CARD_H);
         try {
             ZombieIconCard card = zombieCards.buildCardForAlias(packet.alias,
                     ZOMBIE_CARD_W, ZOMBIE_CARD_H);
             if (card != null) {
                 card.setTouchable(Touchable.disabled);
-                stack.add(card);
+                card.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+                stack.addActor(card);
             }
         } catch (Throwable ignored) {
             // Falls through to the text placeholder below.
         }
         if (stack.getChildren().isEmpty()) {
-            stack.add(placeholderCard(packet.label, ZOMBIE_CARD_W));
+            Actor fallback = placeholderCard(packet.label, ZOMBIE_CARD_W);
+            fallback.setBounds(0f, 0f, ZOMBIE_CARD_W, ZOMBIE_CARD_H);
+            stack.addActor(fallback);
         }
         return finishCard(stack, packet.alias, String.valueOf(packet.cost), 0.6f);
     }
 
     private CardView buildSeedCard(MatchSnapshot.SeedDto seed) {
-        Stack stack = new Stack();
+        Group stack = new Group();
         stack.setTouchable(Touchable.enabled);
+        stack.setSize(PLANT_CARD_W, PLANT_CARD_H);
         try {
             SeedPacketCard card = seedCards.buildCardByPlantName(seed.name);
             if (card != null) {
                 card.setSize(PLANT_CARD_W, PLANT_CARD_H);
                 card.setTouchable(Touchable.disabled);
-                stack.add(card);
+                card.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+                stack.addActor(card);
             }
         } catch (Throwable ignored) {
         }
         if (stack.getChildren().isEmpty()) {
-            stack.add(placeholderCard(seed.name, PLANT_CARD_W));
+            Actor fallback = placeholderCard(seed.name, PLANT_CARD_W);
+            fallback.setBounds(0f, 0f, PLANT_CARD_W, PLANT_CARD_H);
+            stack.addActor(fallback);
         }
         return finishCard(stack, seed.name, String.valueOf(seed.cost), 0.7f);
     }
@@ -561,35 +570,34 @@ public class NetIZombieGameScreen extends GameScreen {
         return fallback;
     }
 
-    private CardView finishCard(Stack stack, String key, String cost, float costScale) {
+    private CardView finishCard(Group stack, String key, String cost, float costScale) {
         Image unavailable = new Image(new TextureRegionDrawable(whitePixelRegion()));
         unavailable.setColor(0f, 0f, 0f, 0.6f);
         unavailable.setFillParent(true);
         unavailable.setTouchable(Touchable.disabled);
-        stack.add(unavailable);
+        unavailable.setBounds(0f, 0f, stack.getWidth(), stack.getHeight());
+        stack.addActor(unavailable);
 
         Image selected = new Image(new TextureRegionDrawable(whitePixelRegion()));
         selected.setColor(isPlantSide() ? 0.25f : 0.95f, isPlantSide() ? 1f : 0.55f, 0.25f, 0.30f);
         selected.setFillParent(true);
         selected.setTouchable(Touchable.disabled);
-        stack.add(selected);
+        selected.setBounds(0f, 0f, stack.getWidth(), stack.getHeight());
+        stack.addActor(selected);
 
         Label costLabel = new Label(cost, skin, "main");
         costLabel.setFontScale(costScale);
-        Table costTable = new Table();
-        costTable.bottom().right();
-        costTable.add(costLabel).padRight(3f).padBottom(1f);
-        costTable.setTouchable(Touchable.disabled);
-        stack.add(costTable);
+        costLabel.setAlignment(Align.bottomRight);
+        costLabel.setTouchable(Touchable.disabled);
+        costLabel.setBounds(0f, 0f, stack.getWidth() - 2f, stack.getHeight() - 2f);
+        stack.addActor(costLabel);
 
         Label cooldownLabel = new Label("", skin, "title");
         cooldownLabel.setFontScale(0.85f);
         cooldownLabel.setAlignment(Align.center);
-        Table cooldownTable = new Table();
-        cooldownTable.setFillParent(true);
-        cooldownTable.setTouchable(Touchable.disabled);
-        cooldownTable.add(cooldownLabel).center().expand();
-        stack.add(cooldownTable);
+        cooldownLabel.setTouchable(Touchable.disabled);
+        cooldownLabel.setBounds(0f, 0f, stack.getWidth(), stack.getHeight());
+        stack.addActor(cooldownLabel);
 
         stack.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
@@ -640,8 +648,8 @@ public class NetIZombieGameScreen extends GameScreen {
             boolean affordable = sun >= cost;
             view.unavailable.setVisible(!ready || !affordable);
             view.selected.setVisible(view.key.equalsIgnoreCase(selectedKey));
-            view.costLabel.setText(ready ? String.valueOf(cost)
-                    : String.format("%.1fs", cooldown));
+            view.costLabel.setText(String.valueOf(cost));
+            view.costLabel.setVisible(true);
             if (!ready) {
                 view.cooldownLabel.setText(String.format("%.1f", cooldown));
                 view.cooldownLabel.setVisible(true);
