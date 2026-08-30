@@ -100,7 +100,10 @@ public class WallnutBowlingGameScreen extends GameScreen {
     public void show() {
         super.show();
         AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
-        if (hud != null) hud.setLoadoutBankVisible(false);
+        if (hud != null) {
+            hud.setLoadoutBankVisible(false);
+            hud.setCheatButtonsVisible(false, false, true);
+        }
         buildConveyorPanel();
     }
 

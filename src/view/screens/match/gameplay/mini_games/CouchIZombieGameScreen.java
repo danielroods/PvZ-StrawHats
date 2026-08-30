@@ -126,6 +126,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         if (hud != null) {
             hud.setLoadoutBankVisible(false);
             hud.setShovelVisible(false);
+            hud.setCheatButtonsVisible(false, false, false);
             hud.setStartButtonAvailable(false);
             hud.setObjectiveOverride("P1 PLANTS  vs  P2 ZOMBIES");
         }

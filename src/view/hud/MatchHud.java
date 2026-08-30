@@ -100,6 +100,9 @@ public final class MatchHud extends Table implements Disposable {
     private String progressLabelOverride;
     private Float progressValueOverride;
     private boolean startButtonAvailable = true;
+    private boolean sunCheatVisible = true;
+    private boolean plantFoodCheatVisible = true;
+    private boolean nukeCheatVisible = true;
 
     private static final class SlotView {
         final String name;
@@ -370,7 +373,11 @@ public final class MatchHud extends Table implements Disposable {
         shovelButton.setChecked(shovelActive);
         foodButton.setChecked(foodActive);
         foodButton.setDisabled(session.getPlantFoodCount() <= 0);
-        debugRow.setVisible(model.utils.GameSettings.get().isDebugMode());
+        debugAddSunButton.setVisible(sunCheatVisible);
+        debugAddFoodButton.setVisible(plantFoodCheatVisible);
+        debugRow.setVisible(model.utils.GameSettings.get().isDebugMode()
+                && (sunCheatVisible || plantFoodCheatVisible));
+        nukeButton.setVisible(nukeCheatVisible);
         updateLoadout(session, selectedPlants);
         updateConveyor(session);
     }
@@ -644,7 +651,21 @@ public final class MatchHud extends Table implements Disposable {
     }
 
     public void setShovelVisible(boolean visible) {
-        if (rightArea != null) rightArea.setVisible(visible);
+        if (shovelButton != null) shovelButton.setVisible(visible);
+        if (rightArea != null) rightArea.setVisible(true);
+    }
+
+    public void setCheatButtonsVisible(boolean sun, boolean plantFood, boolean nuke) {
+        sunCheatVisible = sun;
+        plantFoodCheatVisible = plantFood;
+        nukeCheatVisible = nuke;
+        if (debugAddSunButton != null) debugAddSunButton.setVisible(sun);
+        if (debugAddFoodButton != null) debugAddFoodButton.setVisible(plantFood);
+        if (nukeButton != null) nukeButton.setVisible(nuke);
+        if (debugRow != null) {
+            debugRow.setVisible(model.utils.GameSettings.get().isDebugMode()
+                    && (sun || plantFood));
+        }
     }
 
     public void setStartButtonAvailable(boolean available) {

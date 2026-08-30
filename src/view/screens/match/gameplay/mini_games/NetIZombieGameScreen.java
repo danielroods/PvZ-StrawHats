@@ -138,6 +138,7 @@ public class NetIZombieGameScreen extends GameScreen {
         if (hud != null) {
             hud.setLoadoutBankVisible(false);
             hud.setShovelVisible(isPlantSide());
+            hud.setCheatButtonsVisible(false, false, false);
             hud.setFoodVisible(isPlantSide());
             hud.setStartButtonAvailable(false);
             hud.setObjectiveOverride(isPlantSide() ? "PROTECT THE BRAINZ" : "EAT ALL THE BRAINZ");

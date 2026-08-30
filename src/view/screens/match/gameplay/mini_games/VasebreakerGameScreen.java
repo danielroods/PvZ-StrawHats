@@ -83,6 +83,7 @@ public class VasebreakerGameScreen extends GameScreen {
             hud.setLoadoutBankVisible(false);
             hud.setFoodVisible(false);
             hud.setShovelVisible(false);
+            hud.setCheatButtonsVisible(false, false, true);
             hud.setStartButtonAvailable(false);
         }
         buildSeedPanel();
