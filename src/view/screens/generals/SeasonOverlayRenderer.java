@@ -13,6 +13,7 @@ import model.match.main.levels.special_levels.PlantWhatYouGetLevel;
 import model.match.main.levels.special_levels.SaveOurSeedsLevel;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.obstacles.Grave;
 import model.utils.GameSettings;
 
 /**
@@ -123,7 +124,7 @@ class SeasonOverlayRenderer {
 
     void drawGraves() {
         if (!isEgypt() && !isDarkAge()) return;
-        drawEgyptGraves();
+        drawSeasonGraves();
     }
 
     private void drawSandStorm(float bw, float bh) {
@@ -147,24 +148,25 @@ class SeasonOverlayRenderer {
                 && "Dark Ages".equalsIgnoreCase(screen.session.getLevel().getSeason().getName());
     }
 
-    private void drawEgyptGraves() {
+    private void drawSeasonGraves() {
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
+        boolean darkAge = isDarkAge();
         for (int r = 0; r < screen.session.getRows(); r++) {
             for (int c = 0; c < screen.session.getCols(); c++) {
                 Cell cell = screen.session.getEnvironment().getCell(r, c);
                 if (cell == null || cell.getObstacle() == null) continue;
-                if (!"Grave".equalsIgnoreCase(cell.getObstacle().getName())) continue;
+                if (!(cell.getObstacle() instanceof Grave grave)) continue;
 
-                TextureRegion grave = screen.assets().graveRegion();
-                if (grave == null) {
-                    grave = GameAssetManager.get().getUiRegion("grave");
+                TextureRegion graveArt = screen.assets().graveRegionForPath(graveImagePath(grave, darkAge));
+                if (graveArt == null) {
+                    graveArt = GameAssetManager.get().getUiRegion("grave");
                 }
 
                 float drawX = GameScreen.BOARD_X + c * boardTileWidth + (boardTileWidth - 60f) / 2f;
                 float drawY = screen.cellY(r) + (boardTileHeight - 78f) / 2f;
 
-                TextureRegion finalGrave = grave;
+                TextureRegion finalGrave = graveArt;
                 screen.queueRowDraw(r, () -> {
                     if (finalGrave != null) {
                         screen.batch.draw(finalGrave, drawX, drawY, 60, 78);
@@ -174,6 +176,25 @@ class SeasonOverlayRenderer {
                 });
             }
         }
+    }
+
+    /**
+     * Resolves the correct staged grave art (1-5) for a given grave,
+     * depending on the current season and, for the Dark Ages, the grave's
+     * reward type.
+     */
+    private String graveImagePath(Grave grave, boolean darkAge) {
+        int stage = grave.getStage();
+
+        if (!darkAge) {
+            return "assets/images/chapters/egypt/gameplay/egypt_grave/egyptgrave" + stage + ".png";
+        }
+
+        return switch (grave.getReward()) {
+            case PLANT_FOOD -> "assets/images/chapters/darkage/gameplay/plantfood_grave/darkgraveplantfood" + stage + ".png";
+            case SUN -> "assets/images/chapters/darkage/gameplay/sun_grave/darkgravesun" + stage + ".png";
+            case NONE -> "assets/images/chapters/darkage/gameplay/dark_grave/darknoop" + stage + ".png";
+        };
     }
 
     private void drawBeachProtectTile(int row, int col) {

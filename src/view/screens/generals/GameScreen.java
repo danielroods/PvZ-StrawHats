@@ -120,7 +120,6 @@ public class GameScreen extends UiScreen {
         AnimationFactory.autoInit();
         pam.initPam();
         assets.initBoardTexture();
-        assets.initGraveTexture();
         createHud();
         createBoardInput();
         initParticles();

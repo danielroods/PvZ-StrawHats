@@ -24,8 +24,7 @@ class GameScreenAssets {
 
     private final GameScreen screen;
 
-    private Texture graveTexture;
-    private TextureRegion graveRegion;
+    private final Map<String, Texture> graveTextureCache = new HashMap<>();
 
     private Texture sliderUpTexture;
     private Texture sliderDownTexture;
@@ -46,8 +45,23 @@ class GameScreenAssets {
         this.screen = screen;
     }
 
-    TextureRegion graveRegion() {
-        return graveRegion;
+    /**
+     * Lazily loads and caches a grave texture for the given asset path (one
+     * of the per-stage/per-type grave images), returning a fresh
+     * {@link TextureRegion} wrapping the shared, cached {@link Texture}.
+     * Returns null if the asset doesn't exist.
+     */
+    TextureRegion graveRegionForPath(String path) {
+        if (path == null || path.isBlank()) return null;
+        Texture texture = graveTextureCache.get(path);
+        if (texture == null) {
+            String resolved = resolveExistingAssetPath(path);
+            if (resolved == null || resolved.isBlank() || !Gdx.files.internal(resolved).exists()) return null;
+            texture = new Texture(Gdx.files.internal(resolved));
+            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            graveTextureCache.put(path, texture);
+        }
+        return new TextureRegion(texture);
     }
 
     Texture shovelIconTexture() {
@@ -105,18 +119,6 @@ class GameScreenAssets {
         if (Gdx.files.internal(path).exists()) {
             screen.boardTexture = new Texture(Gdx.files.internal(path));
             screen.boardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        }
-    }
-
-    void initGraveTexture() {
-        String path = resolveExistingAssetPath(screen.getGraveIconPath());
-        if (path != null && !path.isEmpty() && Gdx.files.internal(path).exists()) {
-            graveTexture = new Texture(Gdx.files.internal(path));
-            graveTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-            graveRegion = new TextureRegion(graveTexture);
-        } else {
-            graveTexture = null;
-            graveRegion = null;
         }
     }
 
@@ -222,7 +224,10 @@ class GameScreenAssets {
     }
 
     void dispose() {
-        if (graveTexture != null) graveTexture.dispose();
+        for (Texture texture : graveTextureCache.values()) {
+            if (texture != null) texture.dispose();
+        }
+        graveTextureCache.clear();
         if (shovelIconTexture != null) shovelIconTexture.dispose();
         if (potTexture != null) potTexture.dispose();
         if (sliderUpTexture != null) sliderUpTexture.dispose();
