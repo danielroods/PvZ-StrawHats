@@ -611,7 +611,7 @@ class PlantRenderer {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                     plantOffsetX, plantOffsetY, 0.55f, squashMirror);
         } else if (pumpkinPlantFoodState) {
-            java.util.Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
+            Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
             pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
             pumpkinPfVisibility.put("pumpkin_armor_02", "idle_plantfood2".equals(preferredState));
             pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
@@ -1344,7 +1344,7 @@ class PlantRenderer {
             default -> "pumpkin_armor_04";
         };
 
-        java.util.Map<String, Boolean> visibility = new java.util.HashMap<>();
+        Map<String, Boolean> visibility = new java.util.HashMap<>();
         visibility.put("pumpkin_body", false);
         visibility.put("pumpkin_body_2", false);
         visibility.put("pumpkin_body_3", false);
@@ -1519,6 +1519,7 @@ class PlantRenderer {
                 int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
                 screen.effects().addDoomExplosion(plant.getPosition(), stage);
                 screen.effects().addScorchedTileEffect(plant.getPosition());
+                AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
                 doomSpawnAnimTimes.remove(plant);
@@ -1543,6 +1544,7 @@ class PlantRenderer {
                 }
                 screen.effects().addTorchwoodRowFireEffect((int) Math.round(plant.getPosition().y()),
                         EXPLODING_PLANT_EFFECT_DURATION);
+                AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
                 continue;
@@ -1551,6 +1553,7 @@ class PlantRenderer {
             if (plant.isExplodeONut()) {
                 if (plant.isExplodeONutDetonated()) {
                     screen.effects().addExplodeONutExplosion(plant.getPosition());
+                    AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 }
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
@@ -1563,12 +1566,14 @@ class PlantRenderer {
             if ("Jalapeno".equalsIgnoreCase(plant.getName())) {
                 screen.effects().addJalapenoRowFireEffect(
                         (int) Math.round(plant.getPosition().y()));
+                AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
                 continue;
             }
 
             if ("Grapeshot".equalsIgnoreCase(plant.getName())) {
+                AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
                 continue;
@@ -1593,6 +1598,7 @@ class PlantRenderer {
                 if (resolved > 0f) effectDuration = resolved;
             }
             screen.effects().addExplodingPlantEffect(entry, loop, position, effectDuration);
+            AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
             plantAnimTimes.remove(plant);
             plantAttackAnimTimes.remove(plant);
         }
