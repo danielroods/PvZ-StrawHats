@@ -53,6 +53,12 @@ class EffectRenderer {
     private static final float GENERIC_EXPLOSION_OFFSET_X = 30f;
     private static final float GENERIC_EXPLOSION_OFFSET_Y = 40f;
 
+    private static final String RADIOACTIVE_SUN_EXPLOSION_PAM =
+            "768/INITIAL/EFFECTS/ZOMBOSS_MISSILE_EXPLOSION_EGYPT/ZOMBOSS_MISSILE_EXPLOSION_EGYPT.PAM";
+    private static final String RADIOACTIVE_SUN_EXPLOSION_CLIP = "missile_explosion";
+    private static final float RADIOACTIVE_SUN_EXPLOSION_SCALE = 0.65f;
+    private static final float RADIOACTIVE_SUN_EXPLOSION_FALLBACK_DURATION = 1.0f;
+
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
     private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
     private static final String GRAPESHOT = "Grapeshot";
@@ -192,6 +198,7 @@ class EffectRenderer {
     private final List<TimedPamEffect> impactEffects = new ArrayList<>();
     private final List<PlacedPamEffect> behindZombieEffects = new ArrayList<>();
     private final List<PlacedPamEffect> foregroundEffects = new ArrayList<>();
+    private final List<PlacedPamEffect> radioactiveSunExplosionEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
     private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
     private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
@@ -291,6 +298,25 @@ class EffectRenderer {
                 GENERIC_EXPLOSION_SCALE, GENERIC_EXPLOSION_OFFSET_X, GENERIC_EXPLOSION_OFFSET_Y));
     }
 
+    void addRadioactiveSunExplosion(Position position) {
+        if (position == null) return;
+
+        Position at = new Position(
+                Math.round(position.x()),
+                Math.round(position.y()));
+        float duration = AnimationFactory.exactClipDurationForPath(
+                RADIOACTIVE_SUN_EXPLOSION_PAM, RADIOACTIVE_SUN_EXPLOSION_CLIP);
+        if (duration <= 0f) duration = RADIOACTIVE_SUN_EXPLOSION_FALLBACK_DURATION;
+        radioactiveSunExplosionEffects.add(new PlacedPamEffect(
+                RADIOACTIVE_SUN_EXPLOSION_PAM,
+                RADIOACTIVE_SUN_EXPLOSION_CLIP,
+                at,
+                duration,
+                RADIOACTIVE_SUN_EXPLOSION_SCALE,
+                screen.getBoardTileWidth() * 0.5f,
+                screen.getBoardTileHeight() * 0.5f));
+    }
+
     void addScorchedTileEffect(Position position) {
         if (position == null) return;
         scorchedTileEffects.add(new ScorchedTileEffect(
@@ -343,6 +369,7 @@ class EffectRenderer {
 
     void drawForegroundEffects(float delta) {
         drawPlacedEffects(foregroundEffects, delta);
+        drawPlacedEffects(radioactiveSunExplosionEffects, delta);
     }
 
     private void drawPlacedEffects(List<PlacedPamEffect> effects, float delta) {

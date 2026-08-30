@@ -79,6 +79,7 @@ public class GroundSun extends GroundItem {
     private double fallSecondsRemaining;
     private boolean redStealAnimation;
     private double redStealAnimationTime;
+    private Position collectionDetonationPosition;
 
     public GroundSun(Position position, int sunValue) {
         this(position, sunValue, false);
@@ -155,23 +156,48 @@ public class GroundSun extends GroundItem {
         session.addSun(sunValue);
     }
 
-    private void explodeRadioactive(GameSession session) {
-        Position center = getPosition();
-        if (center == null) return;
+    private static final int RADIOACTIVE_BLAST_RADIUS_TILES = 1;
 
-        for (Zombie zombie : session.getZombies()) {
-            if (!zombie.isAlive() || zombie.getPosition() == null) continue;
-            if (Math.abs(zombie.getPosition().y() - center.y()) <= 2
-                    && Math.abs(zombie.getPosition().x() - center.x()) <= 2) {
-                zombie.takeDamage(150, null);
+    public void setCollectionDetonationPosition(Position position) {
+        if (position == null) {
+            collectionDetonationPosition = null;
+            return;
+        }
+        collectionDetonationPosition = new Position(
+                Math.round(position.x()), Math.round(position.y()));
+    }
+
+    private void explodeRadioactive(GameSession session) {
+        Position center = collectionDetonationPosition != null
+                ? collectionDetonationPosition
+                : getPosition();
+        collectionDetonationPosition = null;
+        if (center == null || session == null) return;
+
+        for (Zombie zombie : new java.util.ArrayList<>(session.getZombies())) {
+            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            Position zombiePosition = zombie.getPosition();
+            if (Math.abs(Math.round(zombiePosition.x()) - Math.round(center.x()))
+                    <= RADIOACTIVE_BLAST_RADIUS_TILES
+                    && Math.abs(Math.round(zombiePosition.y()) - Math.round(center.y()))
+                    <= RADIOACTIVE_BLAST_RADIUS_TILES) {
+                zombie.takeDamage(Integer.MAX_VALUE / 2, null);
             }
         }
 
-        for (Plant plant : session.getPlants()) {
-            if (!plant.isAlive() || plant.getPosition() == null) continue;
-            if (Math.abs(plant.getPosition().y() - center.y()) <= 1
-                    && Math.abs(plant.getPosition().x() - center.x()) <= 1) {
-                plant.takeDamage(80, null);
+        for (Plant plant : new java.util.ArrayList<>(session.getPlants())) {
+            if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
+            Position plantPosition = plant.getPosition();
+            if (Math.abs(Math.round(plantPosition.x()) - Math.round(center.x()))
+                    <= RADIOACTIVE_BLAST_RADIUS_TILES
+                    && Math.abs(Math.round(plantPosition.y()) - Math.round(center.y()))
+                    <= RADIOACTIVE_BLAST_RADIUS_TILES) {
+                int requiredDamage = plant.getHP();
+                if (plant.getArmor() != null && !plant.getArmor().isDestroyed()) {
+                    requiredDamage = Math.max(requiredDamage,
+                            plant.getHP() + Math.max(0, plant.getArmor().getHP()));
+                }
+                plant.takeDamage(Math.max(1, requiredDamage), null);
             }
         }
     }

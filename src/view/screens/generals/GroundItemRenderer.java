@@ -1,5 +1,6 @@
 package view.screens.generals;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -12,17 +13,16 @@ import model.match_mechanisms.vector.Position;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/**
- * Draws the collectables lying on (or falling onto) the lawn - suns, plant food, coins,
- * diamonds, seed pots - each with its own PAM clip and its own bob/pulse.
- */
 class GroundItemRenderer {
 
     private static final float SUN_PAM_SCALE_MULTIPLIER = 1.35f;
     private static final float SUN_PAM_LOOP_SECONDS = 1.0f;
     private static final float SUN_RED_TRANSITION_SECONDS = 0.24f;
 
+    private static final String SEED_PACK_PNG_PATH = "images/ui/seedpacket.png";
+
     private final GameScreen screen;
+    private Texture seedPackTexture;
 
     private final Map<GroundItem, Float> itemAnimTimes = new IdentityHashMap<>();
 
@@ -123,6 +123,21 @@ class GroundItemRenderer {
             if (!screen.drawPam(pamPath, "animation", age, drawX + size * 0.5f, drawY + size * 0.5f, pamScale, false)) {
                 screen.drawFallback(drawX, drawY, size, size, GameScreenGraphics.itemColor("COIN"));
             }
+        } else if (typeName.contains("SEED_PACK") || typeName.contains("SEEDPACK")) {
+            if (seedPackTexture == null && Gdx.files.internal(SEED_PACK_PNG_PATH).exists()) {
+                seedPackTexture = new Texture(Gdx.files.internal(SEED_PACK_PNG_PATH));
+            }
+
+            if (seedPackTexture != null) {
+                float packPulse = 1f + 0.04f * (float) Math.sin(age * 3.5f);
+                float pSize = size * packPulse;
+                float pDrawX = x + (boardTileWidth * 0.45f - pSize) * 0.5f;
+                float pDrawY = y + (boardTileHeight * 0.45f - pSize) * 0.5f;
+                screen.batch.draw(seedPackTexture, pDrawX, pDrawY, pSize, pSize);
+            } else {
+                screen.drawFallback(drawX, drawY, size, size,
+                        GameScreenGraphics.itemColor("SEED_PACK"));
+            }
         } else if (typeName.contains("POT") || typeName.contains("STACK")) {
             Texture pTex = screen.assets().getPotTexture();
             if (pTex != null) {
@@ -141,6 +156,13 @@ class GroundItemRenderer {
             } else {
                 screen.drawFallback(drawX, drawY, size, size, GameScreenGraphics.itemColor(item.getItemType().name()));
             }
+        }
+    }
+
+    void dispose() {
+        if (seedPackTexture != null) {
+            seedPackTexture.dispose();
+            seedPackTexture = null;
         }
     }
 }

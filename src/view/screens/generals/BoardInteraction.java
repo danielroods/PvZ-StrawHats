@@ -184,9 +184,42 @@ class BoardInteraction {
     boolean collectUnderMouse(Vector2 click) {
         GroundItem item = itemUnderMouse(click);
         if (item == null) return false;
+
+       if (item instanceof GroundSun sun
+                && sun.getDropType() == GroundSun.SunDropType.RADIOACTIVE
+                && sun.isFalling()) {
+            Position detonationTile = tilePositionAt(click);
+            if (detonationTile != null) {
+                sun.setCollectionDetonationPosition(detonationTile);
+                screen.effects().addRadioactiveSunExplosion(detonationTile);
+            }
+        }
+
         screen.session.collectItemsNear(item.getPosition());
         AudioManager.get().playSound(AudioEnum.SFX_ITEM_COLLECT);
         return true;
+    }
+
+
+    private Position tilePositionAt(Vector2 click) {
+        if (click == null) return null;
+
+        float tileWidth = screen.getBoardTileWidth();
+        float tileHeight = screen.getBoardTileHeight();
+        if (tileWidth <= 0f || tileHeight <= 0f) return null;
+
+        float localX = click.x - GameScreen.BOARD_X;
+        float localY = click.y - GameScreen.BOARD_Y;
+
+        int col = Math.max(0, Math.min(screen.session.getCols() - 1,
+                (int) (localX / tileWidth)));
+        int row = screen.session.getRows() - 1 - (int) (localY / tileHeight);
+        row = Math.max(0, Math.min(screen.session.getRows() - 1, row));
+
+        if (localX < 0f) col = 0;
+        if (localX >= screen.boardWidth()) col = screen.session.getCols() - 1;
+
+        return new Position(col, row);
     }
 
     GroundItem itemUnderMouse(Vector2 click) {
