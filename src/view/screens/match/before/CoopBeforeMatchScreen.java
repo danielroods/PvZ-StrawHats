@@ -48,26 +48,31 @@ import java.util.Set;
  */
 public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
-    private static final float ZOMBIE_LOADOUT_CARD_W = 72f;
-    private static final float ZOMBIE_LOADOUT_CARD_H = 92f;
+    protected static final int PLANT_SLOTS = 8;
 
-    // Scaled up (keeping the original 92x130 aspect ratio) so 6 columns of zombie cards
-    // add up to the exact same row width as the plant grid's 6 columns of 104-wide cards
-    // (104 + 2*2px padding = 108 per cell, x6 = 648 either way).
-    private static final float ZOMBIE_GRID_CARD_W = 104f;
-    private static final float ZOMBIE_GRID_CARD_H = 147f;
-    private static final int ZOMBIE_GRID_COLUMNS = 6;
+    protected static final float ZOMBIE_LOADOUT_CARD_W = 72f;
+    protected static final float ZOMBIE_LOADOUT_CARD_H = 92f;
+    protected static final float ZOMBIE_GRID_CARD_W = 104f;
+    protected static final float ZOMBIE_GRID_CARD_H = 147f;
+    protected static final int ZOMBIE_GRID_COLUMNS = 6;
 
-    /** Nudges the whole before-match layout a bit to the right for co-op. */
-    private static final float SCREEN_SHIFT_RIGHT = 60f;
+    protected static final float SCREEN_SHIFT_RIGHT = 60f;
 
-    /** Same background co-op's actual match uses (CouchIZombieGameScreen), not a level's season. */
-    private static final String COOP_GAMEPLAY_FOLDER = "assets/images/backg/mini_games/izombie/";
-    /** The dedicated right-side loadout texture for co-op's before-match screen. */
-    private static final String TEXTURE_RIGHT = "assets/images/ui/texture_right.png";
+    protected static final String COOP_GAMEPLAY_FOLDER = "assets/images/backg/mini_games/izombie/";
+    protected static final String TEXTURE_RIGHT = "assets/images/ui/texture_right.png";
 
-    private final ZombieIconCardFactory zombieCardFactory = new ZombieIconCardFactory();
-    private String previewZombieAlias = null;
+    protected final ZombieIconCardFactory zombieCardFactory = new ZombieIconCardFactory();
+    protected String previewZombieAlias = null;
+
+    @Override
+    protected boolean allCollectionsUnlocked() {
+        return true;
+    }
+
+    @Override
+    protected int loadoutSlots() {
+        return PLANT_SLOTS;
+    }
 
     @Override
     protected void configureSeasonFolder() {
@@ -138,7 +143,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
     }
 
     /** Plant loadout (left) | plant grid + zombie grid stacked (middle) | zombie loadout (right). */
-    private Table buildCoopMiddleSection(Level level) {
+    protected Table buildCoopMiddleSection(Level level) {
         Table board = new Table();
         board.top().left();
 
@@ -150,7 +155,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
     }
 
     /** First the plant selection (same as the normal screen), then the zombie selection below it. */
-    private Table buildCoopSelectionColumn(Level level) {
+    protected Table buildCoopSelectionColumn(Level level) {
         Table column = new Table();
         column.top().left();
 
@@ -169,9 +174,10 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return column;
     }
 
-    private Actor buildZombieGrid() {
+    protected Actor buildZombieGrid() {
         UserState state = User.currentUser != null ? User.currentUser.userState : null;
-        Set<String> seen = state != null ? collectionManager.getSeenZombieAliases(state) : Collections.emptySet();
+        Set<String> seen = state != null && !allCollectionsUnlocked()
+                ? collectionManager.getSeenZombieAliases(state) : Collections.emptySet();
 
         List<String> aliases = new ArrayList<>(collectionManager.getAllZombieAliases());
         Collections.sort(aliases);
@@ -186,7 +192,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
                 grid.add(currentRow).left().padBottom(SPACE_XS).row();
             }
             String alias = aliases.get(i);
-            boolean locked = !seen.contains(alias);
+            boolean locked = !allCollectionsUnlocked() && !seen.contains(alias);
             Actor card = buildZombieCard(alias, locked);
             currentRow.add(card).padLeft(2f).padRight(2f);
         }
@@ -201,7 +207,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         gridContainer.add(scrollPane).expand().fill().top().left();
         return gridContainer;
     }
-    private float getPlantCardWidth() {
+    protected float getPlantCardWidth() {
         try {
             SeedPacketCard sample = cardFactory.buildCardForDisplayName("Peashooter");
             if (sample != null && sample.getWidth() > 0) {
@@ -211,7 +217,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return 104f;
     }
 
-    private Actor buildZombieCard(String alias, boolean locked) {
+    protected Actor buildZombieCard(String alias, boolean locked) {
         Stack cardStack = new Stack();
 
         float cardW = getPlantCardWidth();
@@ -269,7 +275,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return cell;
     }
 
-    private Table buildZombieLoadoutPanel() {
+    protected Table buildZombieLoadoutPanel() {
         Table panel = new Table();
         panel.setBackground(skin.getDrawable("card-background"));
         panel.pad(2f).top();
@@ -334,7 +340,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return panel;
     }
 
-    private void toggleZombie(String alias) {
+    protected void toggleZombie(String alias) {
         if (BeforeMenu.selectedZombies.stream().anyMatch(z -> z.equalsIgnoreCase(alias))) {
             removeZombie(alias);
             return;
@@ -347,7 +353,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         scheduleBuild();
     }
 
-    private void removeZombie(String alias) {
+    protected void removeZombie(String alias) {
         runCommand("remove zombie -t " + alias);
         scheduleBuild();
     }

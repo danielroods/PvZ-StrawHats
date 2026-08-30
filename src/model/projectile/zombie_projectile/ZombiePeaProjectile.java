@@ -36,6 +36,10 @@ public class ZombiePeaProjectile extends ZombieProjectile {
         return splatted;
     }
 
+    public void setSplatted(boolean splatted) {
+        this.splatted = splatted;
+    }
+
     @Override
     protected void updateFlightPath(double progress) {
         double currentX = startPosition.x()

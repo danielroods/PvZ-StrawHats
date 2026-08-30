@@ -1,24 +1,12 @@
 package net.server;
 
-import model.collections.armour.Armour;
-import model.collections.armour.ZombieArmour;
-import model.collections.item.GroundItem;
-import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
-import model.collections.zombie.Zombie;
-import model.match.mini_games.izombie.Brain;
 import model.match.mini_games.izombie.IZombieMatch;
 import model.match.mini_games.izombie.IZombieMatch.Role;
-import model.match.mini_games.izombie.IZombieMatch.SeedCard;
-import model.match.mini_games.izombie.ZombiePacket;
-import model.projectile.Projectile;
-import model.utils.GameSession;
+import model.projectile.zombie_projectile.ZombieProjectile;
 import net.dto.MatchSnapshot;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -28,18 +16,22 @@ public class MatchSession {
                          ClientSession from) { }
 
     private final String matchId;
-    private final IZombieMatch match = new IZombieMatch();
     private final ClientSession plantsClient;
     private final ClientSession zombiesClient;
     private final String plantsUsername;
     private final String zombiesUsername;
     private final Queue<Intent> inbox = new ConcurrentLinkedQueue<>();
-    private final Map<Object, Integer> entityIds = new IdentityHashMap<>();
+    private final MatchSnapshotBuilder snapshots = new MatchSnapshotBuilder();
 
-    private boolean plantsReady;
-    private boolean zombiesReady;
+    private volatile List<String> plantLoadout = List.of();
+    private volatile List<String> zombieLoadout = List.of();
+    private volatile boolean plantsReady;
+    private volatile boolean zombiesReady;
+    private volatile Role leaver;
+    private volatile String leaveReason = "Your opponent left the match.";
+
+    private IZombieMatch match;
     private boolean started;
-    private int nextEntityId = 1;
     private int tickCount;
 
     public MatchSession(String matchId, ClientSession plantsClient, ClientSession zombiesClient) {
@@ -76,9 +68,23 @@ public class MatchSession {
         return session == plantsClient || session == zombiesClient;
     }
 
-    public void markReady(Role role) {
-        if (role == Role.PLANTS) plantsReady = true;
-        if (role == Role.ZOMBIES) zombiesReady = true;
+    public void markReady(Role role, List<String> loadout) {
+        List<String> picks = loadout == null ? List.of() : List.copyOf(loadout);
+        if (role == Role.PLANTS) {
+            plantLoadout = picks;
+            plantsReady = true;
+        } else if (role == Role.ZOMBIES) {
+            zombieLoadout = picks;
+            zombiesReady = true;
+        }
+    }
+
+    public boolean isReady(Role role) {
+        return role == Role.PLANTS ? plantsReady : zombiesReady;
+    }
+
+    public List<String> loadoutFor(Role role) {
+        return role == Role.PLANTS ? plantLoadout : zombieLoadout;
     }
 
     public boolean isStarted() {
@@ -86,11 +92,28 @@ public class MatchSession {
     }
 
     public boolean canStart() {
-        return plantsReady && zombiesReady;
+        return plantsReady && zombiesReady && leaver == null;
     }
 
-    public void markStarted() {
+    public boolean startIfReady() {
+        if (started || !canStart()) return false;
+        match = new IZombieMatch(IZombieMatch.ONLINE_MATCH_SECONDS, plantLoadout, zombieLoadout);
         started = true;
+        return true;
+    }
+
+    public void requestLeave(Role role, String reason) {
+        if (role == null || leaver != null) return;
+        if (reason != null && !reason.isBlank()) leaveReason = reason;
+        leaver = role;
+    }
+
+    public Role pendingLeaver() {
+        return leaver;
+    }
+
+    public String leaveReason() {
+        return leaveReason;
     }
 
     public void submit(Intent intent) {
@@ -109,130 +132,20 @@ public class MatchSession {
         tickCount++;
     }
 
-    private int idOf(Object entity) {
-        Integer id = entityIds.get(entity);
-        if (id == null) {
-            id = nextEntityId++;
-            entityIds.put(entity, id);
-        }
-        return id;
+    public void captureRemovals(List<Plant> plantsBefore, List<ZombieProjectile> shotsBefore) {
+        snapshots.captureRemovals(match, plantsBefore, shotsBefore);
+    }
+
+    public void clearRemovals() {
+        snapshots.clearRemovals();
     }
 
     public void forgetDeadEntities() {
-        GameSession session = match.getSession();
-        entityIds.keySet().removeIf(entity -> {
-            if (entity instanceof Plant plant) return !session.getPlants().contains(plant);
-            if (entity instanceof Zombie zombie) return !session.getZombies().contains(zombie);
-            if (entity instanceof Projectile projectile) {
-                return !session.getProjectiles().contains(projectile);
-            }
-            if (entity instanceof GroundItem item) return !session.getItems().contains(item);
-            return false;
-        });
+        snapshots.forgetDeadEntities(match);
     }
 
-    public MatchSnapshot snapshot() {
-        GameSession session = match.getSession();
-        MatchSnapshot snapshot = new MatchSnapshot();
-        snapshot.tick = tickCount;
-        snapshot.clock = match.getElapsedSeconds();
-        snapshot.remaining = match.getRemainingSeconds();
-        snapshot.zombieSun = match.getZombieSun();
-        snapshot.plantSun = match.getPlantSun();
-        snapshot.plantFood = session.getPlantFoodCount();
-        snapshot.brainsEaten = match.getBrainsEaten();
-
-        Brain[] brains = match.getBrains();
-        snapshot.brains = new int[brains.length];
-        for (int i = 0; i < brains.length; i++) {
-            snapshot.brains[i] = brains[i] == null || brains[i].isEaten() ? 0 : brains[i].getHP();
-        }
-
-        for (ZombiePacket packet : match.getRoster()) {
-            MatchSnapshot.PacketDto dto = new MatchSnapshot.PacketDto();
-            dto.alias = packet.getAlias();
-            dto.label = packet.getDisplayName();
-            dto.cost = packet.getCost();
-            dto.cooldown = packet.getCooldown();
-            dto.recharge = packet.getRecharge();
-            snapshot.packets.add(dto);
-        }
-
-        for (SeedCard card : match.getSeeds()) {
-            MatchSnapshot.SeedDto dto = new MatchSnapshot.SeedDto();
-            dto.plantId = card.plantId();
-            dto.name = card.name();
-            dto.cost = card.cost();
-            dto.cooldown = session.getPlantCooldown(card.plantId());
-            dto.recharge = card.recharge();
-            snapshot.seeds.add(dto);
-        }
-
-        for (Plant plant : new ArrayList<>(session.getPlants())) {
-            if (!plant.isAlive() || plant.getPosition() == null) continue;
-            MatchSnapshot.PlantDto dto = new MatchSnapshot.PlantDto();
-            dto.id = idOf(plant);
-            dto.name = plant.getName();
-            dto.plantId = plant.getId();
-            dto.col = (int) Math.round(plant.getPosition().x());
-            dto.row = (int) Math.round(plant.getPosition().y());
-            dto.hp = plant.getHP();
-            dto.maxHp = plant.getMaxHp();
-            dto.plantFoodActive = plant.isPlantFoodActive();
-            snapshot.plants.add(dto);
-        }
-
-        for (Zombie zombie : new ArrayList<>(session.getZombies())) {
-            if (!zombie.isAlive() || zombie.getPosition() == null) continue;
-            snapshot.zombies.add(zombieDto(zombie));
-        }
-
-        for (Projectile projectile : new ArrayList<>(session.getProjectiles())) {
-            if (!projectile.isAlive() || projectile.getPosition() == null) continue;
-            if (!projectile.isVisible()) continue;
-            MatchSnapshot.ProjectileDto dto = new MatchSnapshot.ProjectileDto();
-            dto.id = idOf(projectile);
-            dto.type = projectile.getDisplayPath();
-            dto.x = projectile.getPosition().x();
-            dto.y = projectile.getPosition().y();
-            snapshot.projectiles.add(dto);
-        }
-
-        for (Object raw : new ArrayList<>(session.getItems())) {
-            if (!(raw instanceof GroundItem item)) continue;
-            if (!item.isAlive() || item.isCollected() || item.getPosition() == null) continue;
-            MatchSnapshot.GroundItemDto dto = new MatchSnapshot.GroundItemDto();
-            dto.id = idOf(item);
-            dto.type = item.getItemType().name();
-            dto.x = item.getPosition().x();
-            dto.y = item.getPosition().y();
-            dto.value = item instanceof GroundSun sun ? sun.getSunValue() : 0;
-            dto.falling = item instanceof GroundSun sun2 && sun2.isFalling();
-            snapshot.items.add(dto);
-        }
-
-        return snapshot;
-    }
-
-    private MatchSnapshot.ZombieDto zombieDto(Zombie zombie) {
-        MatchSnapshot.ZombieDto dto = new MatchSnapshot.ZombieDto();
-        dto.id = idOf(zombie);
-        dto.alias = zombie.getAlias();
-        dto.x = zombie.getPosition().x();
-        dto.row = (int) Math.round(zombie.getPosition().y());
-        dto.hp = zombie.getHp();
-        dto.maxHp = zombie.getMaxHp();
-        dto.state = zombie.getZombieState() == null ? "WALKING" : zombie.getZombieState().name();
-        dto.status = zombie.getStatus() == null ? "NORMAL" : zombie.getStatus().name();
-        dto.facingRight = zombie.isFacingRight();
-        dto.glowing = zombie.isGlowing();
-        Armour armour = zombie.getArmour();
-        if (armour instanceof ZombieArmour zombieArmour && armour.getHP() > 0) {
-            dto.armourType = zombieArmour.getArmorType().getName();
-            dto.armourHp = armour.getHP();
-            dto.armourMaxHp = armour.getMaxHP();
-        }
-        return dto;
+    public MatchSnapshot snapshot(Role viewer) {
+        return snapshots.build(match, viewer, tickCount);
     }
 
     public List<Role> roles() {

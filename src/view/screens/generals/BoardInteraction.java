@@ -182,8 +182,16 @@ class BoardInteraction {
     }
 
     boolean collectUnderMouse(Vector2 click) {
-        if (screen.paused || screen.matchFinished || click == null) return false;
-        if (isCutscene()) return false;
+        GroundItem item = itemUnderMouse(click);
+        if (item == null) return false;
+        screen.session.collectItemsNear(item.getPosition());
+        AudioManager.get().playSound(AudioEnum.SFX_ITEM_COLLECT);
+        return true;
+    }
+
+    GroundItem itemUnderMouse(Vector2 click) {
+        if (screen.paused || screen.matchFinished || click == null) return null;
+        if (isCutscene()) return null;
 
         float boardTileWidth = screen.getBoardTileWidth();
         float boardTileHeight = screen.getBoardTileHeight();
@@ -222,13 +230,11 @@ class BoardInteraction {
             float radius = Math.max(boardTileWidth, boardTileHeight) * 0.55f;
 
             if (Math.abs(world.x - centerX) <= radius && Math.abs(world.y - centerY) <= radius) {
-                screen.session.collectItemsNear(p);
-                AudioManager.get().playSound(AudioEnum.SFX_ITEM_COLLECT);
-                return true;
+                return item;
             }
         }
 
-        return false;
+        return null;
     }
 
     Vector2 mouseWorld() {

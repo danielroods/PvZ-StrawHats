@@ -35,11 +35,26 @@ public class MatchHandlers {
     }
 
     private void ready(ClientSession session, Envelope envelope, MatchSession match, Role role) {
-        match.markReady(role);
-        session.sendOk(envelope.id, Envelope.obj("matchId", match.getMatchId()));
-        if (match.canStart() && !match.isStarted()) {
-            match.markStarted();
+        if (role == null) {
+            session.sendError(envelope.id, Protocol.ERR_BAD_REQUEST, "You are not in that match.");
+            return;
         }
+        match.markReady(role, readLoadout(envelope));
+        session.sendOk(envelope.id, Envelope.obj("matchId", match.getMatchId(),
+                "role", role.name(), "ready", true));
+        server.matches().broadcastLobby(match);
+    }
+
+    private java.util.List<String> readLoadout(Envelope envelope) {
+        java.util.List<String> picks = new java.util.ArrayList<>();
+        com.google.gson.JsonElement element = envelope.payload().get("loadout");
+        if (element == null || !element.isJsonArray()) return picks;
+        for (com.google.gson.JsonElement entry : element.getAsJsonArray()) {
+            if (entry == null || entry.isJsonNull()) continue;
+            String value = entry.getAsString();
+            if (value != null && !value.isBlank()) picks.add(value);
+        }
+        return picks;
     }
 
     private void intent(ClientSession session, Envelope envelope, MatchSession match, Role role) {
@@ -53,13 +68,8 @@ public class MatchHandlers {
     }
 
     private void leave(ClientSession session, Envelope envelope, MatchSession match, Role role) {
-        match.getMatch().forfeit(role, "Your opponent left the match.");
+        match.requestLeave(role, "Your opponent left the match.");
         session.sendOk(envelope.id, Envelope.obj("left", true));
-        if (!match.isStarted()) {
-            match.markReady(Role.PLANTS);
-            match.markReady(Role.ZOMBIES);
-            match.markStarted();
-        }
     }
 
     private void reaction(ClientSession session, Envelope envelope, MatchSession match, Role role) {

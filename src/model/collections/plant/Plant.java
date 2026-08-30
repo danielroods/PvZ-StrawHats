@@ -122,6 +122,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public double getIntervalTimer() { return this.internalTimer; }
     public void setInternalTimer(double internalTimer) { this.internalTimer = internalTimer; }
     public int getMaxHp() { return (int) hpStat.getValue(); }
+    public void setMaxHp(int maxHp) { hpStat.setBaseValue(Math.max(1, maxHp)); }
 
     public Position getPosition() {
         return new Position(getLocation().x(), getLocation().y());
@@ -268,6 +269,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return explodeONutDetonated;
     }
 
+    public void setExplodeONutDetonated(boolean detonated) {
+        this.explodeONutDetonated = detonated;
+    }
+
     private void detonateExplodeONut() {
         if (explodeONutDetonated) return;
         explodeONutDetonated = true;
@@ -364,6 +369,18 @@ public abstract class Plant extends Item implements Pluck, Attack {
         potatoMineDetonationPending = false;
     }
 
+    public void setPotatoMineArmed(boolean armed) {
+        this.potatoMineArmed = armed;
+    }
+
+    public void setPotatoMineDetonationPending(boolean pending) {
+        this.potatoMineDetonationPending = pending;
+    }
+
+    public void setPotatoMineEatenByZombie(boolean eaten) {
+        this.potatoMineEatenByZombie = eaten;
+    }
+
     public boolean activatePlant(GameSession session) {
         if (this.plantFoodEffect == null || this.plantFoodTimer > 0 || session == null || !isAlive()) return false;
         this.plantFoodEffect.reset();
@@ -427,6 +444,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return activatePlant(session);
     }
     public boolean isPlantFoodActive() { return this.plantFoodTimer > 0; }
+
+    public double getPlantFoodTimer() { return this.plantFoodTimer; }
+
+    public void setPlantFoodTimer(double seconds) { this.plantFoodTimer = Math.max(0.0, seconds); }
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public String getName() { return name; }
@@ -465,6 +486,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public void setBottom(Plant bottom) { this.bottom = bottom; }
     public ArrayList<PlantTag> getTags() { return tags; }
     public int getStackNumber() { return stackNumber; }
+    public void setStackNumber(int stackNumber) {
+        this.stackNumber = Math.max(1, Math.min(this.maxStackNumber, stackNumber));
+    }
     public int getMaxStackNumber() { return maxStackNumber; }
     public void setMaxStackNumber(int maxStackNumber) {
         this.maxStackNumber = Math.max(1, maxStackNumber);
@@ -502,6 +526,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.remainingLifeSeconds = this.lifespanSeconds;
     }
     public double getRemainingLifeSeconds() { return remainingLifeSeconds; }
+    public void setRemainingLifeSeconds(double seconds) {
+        this.remainingLifeSeconds = Math.max(0, seconds);
+    }
     public void resetLifespan() { this.remainingLifeSeconds = this.lifespanSeconds; }
     public double getAbilityValue() {
         if (growthTracker != null) {
@@ -676,6 +703,11 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return cactusStretching;
     }
 
+    public void setCactusPosture(boolean underground, boolean stretching) {
+        this.cactusUnderground = underground;
+        this.cactusStretching = stretching;
+    }
+
     /**
      * Cactus has two situational postures on top of its normal idle/attack:
      * - it ducks underground (down -> down_idle/down_attack loop -> up) for as long as a
@@ -788,6 +820,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isEndurianUnderAttack() {
         return isEndurian() && endurianAttackVisualTimer > 0;
+    }
+
+    public void setEndurianAttackVisualTimer(double seconds) {
+        this.endurianAttackVisualTimer = Math.max(0, seconds);
     }
 
     public int getEndurianDamageTier() {
@@ -934,6 +970,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.visualAnimationElapsed = 0.0;
     }
 
+    public void setVisualAnimationProgress(String state, double remainingSeconds,
+                                           double elapsedSeconds) {
+        this.visualAnimationState = state;
+        this.visualAnimationRemaining = Math.max(0.0, remainingSeconds);
+        this.visualAnimationElapsed = Math.max(0.0, elapsedSeconds);
+    }
+
     public void clearVisualAnimationState() {
         this.visualAnimationState = null;
         this.visualAnimationRemaining = 0.0;
@@ -969,6 +1012,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public int getGrowthStage() {
         return growthTracker == null ? 1 : growthTracker.getCurrentStage();
+    }
+
+    public void setGrowthStage(int stage) {
+        if (growthTracker != null) growthTracker.setCurrentStage(stage);
     }
 
     private void advanceKiwibeastGrowthOnDamage() {

@@ -65,6 +65,10 @@ public class GrowthTracker {
         return currentStage;
     }
 
+    public void setCurrentStage(int stage) {
+        this.currentStage = Math.max(1, stage);
+    }
+
     public double getAgeInSeconds() {
         return ageInSeconds;
     }

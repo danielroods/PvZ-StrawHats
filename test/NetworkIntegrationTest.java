@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -220,16 +221,31 @@ class NetworkIntegrationTest {
         Peer zombies = challenger;
         Peer plants = target;
 
-        zombies.awaitOk(zombies.send(Protocol.MATCH_READY, Envelope.obj("matchId", matchId)));
-        plants.awaitOk(plants.send(Protocol.MATCH_READY, Envelope.obj("matchId", matchId)));
+        List<String> zombieLoadout = List.of("ZombieDefault", "ZombieImp", "ZombieArmor1");
+        List<String> plantLoadout = List.of("Sunflower", "Peashooter", "Wall-nut");
+
+        zombies.awaitOk(zombies.send(Protocol.MATCH_READY,
+                readyPayload(matchId, zombieLoadout)));
+        assertFalse(sawWithin(zombies, e -> e.isType(Protocol.MATCH_START), 600L),
+                "one ready player is not enough to start the match");
+
+        plants.awaitOk(plants.send(Protocol.MATCH_READY, readyPayload(matchId, plantLoadout)));
+        zombies.await(e -> e.isType(Protocol.MATCH_START));
+        plants.await(e -> e.isType(Protocol.MATCH_START));
 
         MatchSnapshot first = awaitSnapshot(zombies, matchId);
         assertEquals(400, first.zombieSun, "the zombie player starts with a fixed budget");
         assertEquals(150, first.plantSun, "the plant player starts small");
-        assertEquals(6, first.packets.size(), "six zombie packets");
-        assertEquals(6, first.seeds.size(), "six seed cards");
+        assertEquals(zombieLoadout.size(), first.packets.size(),
+                "the zombie player gets exactly the roster they picked");
+        assertTrue(first.seeds.isEmpty(), "the zombie player never sees the plant cards");
         assertTrue(first.plants.size() >= 10, "the lawn opens already defended");
         assertEquals(5, first.brains.length);
+
+        MatchSnapshot plantsFirst = awaitSnapshot(plants, matchId);
+        assertEquals(plantLoadout.size(), plantsFirst.seeds.size(),
+                "the plant player gets exactly the seed bank they picked");
+        assertTrue(plantsFirst.packets.isEmpty(), "the plant player never sees the zombie cards");
 
         zombies.forget();
         zombies.send(Protocol.MATCH_INTENT, Envelope.obj(
@@ -238,8 +254,14 @@ class NetworkIntegrationTest {
 
         MatchSnapshot afterPlace = awaitSnapshotMatching(zombies, matchId,
                 snapshot -> !snapshot.zombies.isEmpty());
-        assertEquals(1700, afterPlace.zombieSun, "the browncoat costs 50 sun");
+        assertEquals(350, afterPlace.zombieSun, "the browncoat costs 50 sun");
         assertEquals(2, afterPlace.zombies.get(0).row);
+
+        MatchSnapshot firing = awaitSnapshotMatching(zombies, matchId,
+                snapshot -> !snapshot.projectiles.isEmpty());
+        MatchSnapshot.ProjectileDto pea = firing.projectiles.get(0);
+        assertNotNull(pea.sourceName, "a projectile carries the plant that fired it");
+        assertTrue(pea.vx > 0, "a projectile carries its own velocity for client-side motion");
 
         plants.forget();
         MatchSnapshot beforePlant = awaitSnapshot(plants, matchId);
@@ -347,6 +369,27 @@ class NetworkIntegrationTest {
                 "a player who never played the bonus game must have no score at all");
 
         peer.close();
+    }
+
+    private JsonObject readyPayload(String matchId, List<String> loadout) {
+        JsonObject payload = Envelope.obj("matchId", matchId);
+        com.google.gson.JsonArray picks = new com.google.gson.JsonArray();
+        loadout.forEach(picks::add);
+        payload.add("loadout", picks);
+        return payload;
+    }
+
+    private boolean sawWithin(Peer peer, Predicate<Envelope> predicate, long millis)
+            throws Exception {
+        long deadline = System.currentTimeMillis() + millis;
+        while (System.currentTimeMillis() < deadline) {
+            peer.drain();
+            for (Envelope envelope : new ArrayList<>(peer.received)) {
+                if (predicate.test(envelope)) return true;
+            }
+            Thread.sleep(10);
+        }
+        return false;
     }
 
     private MatchSnapshot awaitSnapshot(Peer peer, String matchId) throws Exception {

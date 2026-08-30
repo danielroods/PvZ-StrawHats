@@ -76,9 +76,21 @@ public class BeforeMenu extends Menu {
         return GameSession.getInstance().getLevel();
     }
 
+    protected boolean allCollectionsUnlocked() {
+        return false;
+    }
+
+    private List<PlantJsonParser.PlantConfig> pickablePlants(UserState state) {
+        return allCollectionsUnlocked() ? manager.getAllPlants() : manager.getUnlockedPlants(state);
+    }
+
+    private boolean isUnlocked(UserState state, PlantJsonParser.PlantConfig config) {
+        return config != null && (allCollectionsUnlocked() || state.isPlantUnlocked(config.id));
+    }
+
     private void showAllPlants() {
         UserState state = User.currentUser.userState;
-        for (PlantJsonParser.PlantConfig config : manager.getUnlockedPlants(state)) {
+        for (PlantJsonParser.PlantConfig config : pickablePlants(state)) {
             GeneralPrinter.print(manager.formatPlant(config, true, state.getPlantLevel(config.id)));
         }
     }
@@ -99,7 +111,7 @@ public class BeforeMenu extends Menu {
         }
 
         UserState state = User.currentUser.userState;
-        for (PlantJsonParser.PlantConfig config : manager.getUnlockedPlants(state)) {
+        for (PlantJsonParser.PlantConfig config : pickablePlants(state)) {
             if (isAllowedInCurrentLevel(config.name)) {
                 GeneralPrinter.print(manager.formatPlant(config, true, state.getPlantLevel(config.id)));
             }
@@ -109,7 +121,7 @@ public class BeforeMenu extends Menu {
     private void addPlant(String plantName) {
         UserState state = User.currentUser.userState;
         PlantJsonParser.PlantConfig config = manager.findPlant(plantName);
-        if (config == null || !state.isPlantUnlocked(config.id)) {
+        if (!isUnlocked(state, config)) {
             throw new GameException("plant not available.");
         } else if (!isAllowedInCurrentLevel(config.name)) {
             throw new GameException("plant is locked for this stage.");
@@ -143,7 +155,7 @@ public class BeforeMenu extends Menu {
 
         GameSession session = GameSession.getInstance();
         PlantJsonParser.PlantConfig config = manager.findPlant(plantName);
-        if (config == null || !state.isPlantUnlocked(config.id)) {
+        if (!isUnlocked(state, config)) {
             throw new GameException("plant not available.");
         } else if (!isAllowedInCurrentLevel(config.name)) {
             throw new GameException("plant is locked for this stage.");

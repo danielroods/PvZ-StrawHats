@@ -38,6 +38,11 @@ public class CoopBeforeMenu extends BeforeMenu {
     }
 
     @Override
+    protected boolean allCollectionsUnlocked() {
+        return true;
+    }
+
+    @Override
     public void handleCommand(String text) {
         if (text == null) {
             super.handleCommand(text);

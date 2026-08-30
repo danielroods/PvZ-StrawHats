@@ -37,10 +37,6 @@ public class NetIZombieController extends Menu {
         return "Online I, Zombie";
     }
 
-    public void sendReady() {
-        NetworkClient.get().sendMatchReady();
-    }
-
     @Override
     public void handleCommand(String text) {
         super.handleCommand(text);

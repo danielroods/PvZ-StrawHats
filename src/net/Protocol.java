@@ -35,6 +35,8 @@ public final class Protocol {
     public static final String MATCH_FOUND = "MATCH_FOUND";
 
     public static final String MATCH_READY = "MATCH_READY";
+    public static final String MATCH_LOBBY = "MATCH_LOBBY";
+    public static final String MATCH_START = "MATCH_START";
     public static final String MATCH_INTENT = "MATCH_INTENT";
     public static final String MATCH_SNAPSHOT = "MATCH_SNAPSHOT";
     public static final String MATCH_EVENT = "MATCH_EVENT";

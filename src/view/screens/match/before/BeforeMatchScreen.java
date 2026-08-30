@@ -616,6 +616,14 @@ public class BeforeMatchScreen extends GameScreen {
         return box;
     }
 
+    protected boolean allCollectionsUnlocked() {
+        return false;
+    }
+
+    protected int loadoutSlots() {
+        return 7;
+    }
+
     protected Actor buildPlantGrid(Level level) {
         UserState state = User.currentUser != null ? User.currentUser.userState : null;
 
@@ -641,9 +649,9 @@ public class BeforeMatchScreen extends GameScreen {
             return buildLockedPlantsGrid(names, lockedLevel);
         }
 
-        return buildGridContainer(names,
-                name -> state != null && !state.isPlantUnlocked(findId(allPlants, name)),
-                name -> state != null && !state.isPlantUnlocked(findId(allPlants, name)));
+        java.util.function.Predicate<String> locked = name -> !allCollectionsUnlocked()
+                && state != null && !state.isPlantUnlocked(findId(allPlants, name));
+        return buildGridContainer(names, locked, locked);
     }
 
     protected Actor buildLockedPlantsGrid(List<String> names, LockedPlantsLevel lockedLevel) {
@@ -790,7 +798,8 @@ public class BeforeMatchScreen extends GameScreen {
         Table slots = new Table();
         slots.top();
 
-        for (int i = 0; i < 7; i++) {
+        int slotCount = loadoutSlots();
+        for (int i = 0; i < slotCount; i++) {
             String name = i < BeforeMenu.selectedPlants.size()
                     ? BeforeMenu.selectedPlants.get(i) : "Empty";
 
@@ -810,7 +819,9 @@ public class BeforeMatchScreen extends GameScreen {
             }
         }
 
-        if (BeforeMenu.selectedPlants.size() == 8) {
+        if (slotCount >= 8) {
+            // Every slot is a normal one here, so there is nothing left to rent.
+        } else if (BeforeMenu.selectedPlants.size() == 8) {
             String rentedPlantName = BeforeMenu.selectedPlants.get(7);
             Actor rentedCardActor = createLoadoutCard(rentedPlantName, new ClickListener() {
                 @Override public void clicked(InputEvent event, float x, float y) {
@@ -839,8 +850,8 @@ public class BeforeMatchScreen extends GameScreen {
 
         panel.add(scrollPane).expand().fill().row();
 
-        int currentSelected = Math.min(BeforeMenu.selectedPlants.size(), 7);
-        Label info = new Label(currentSelected + "/7", skin, "main");
+        int currentSelected = Math.min(BeforeMenu.selectedPlants.size(), slotCount);
+        Label info = new Label(currentSelected + "/" + slotCount, skin, "main");
         info.setAlignment(Align.center);
         info.setFontScale(0.8f);
         panel.add(info).padTop(2).padBottom(2);
@@ -1074,7 +1085,7 @@ public class BeforeMatchScreen extends GameScreen {
             removePlant(name);
             return;
         }
-        if (BeforeMenu.selectedPlants.size() >= 7) {
+        if (BeforeMenu.selectedPlants.size() >= loadoutSlots()) {
             scheduleBuild();
             return;
         }

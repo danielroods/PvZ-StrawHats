@@ -1,9 +1,11 @@
 package net.server;
 
 import com.google.gson.JsonObject;
+import model.collections.plant.Plant;
 import model.match.mini_games.izombie.IZombieMatch;
 import model.match.mini_games.izombie.IZombieMatch.MatchEvent;
 import model.match.mini_games.izombie.IZombieMatch.Role;
+import model.projectile.zombie_projectile.ZombieProjectile;
 import model.user_data.User;
 import net.Envelope;
 import net.JsonLine;
@@ -11,15 +13,18 @@ import net.Protocol;
 import service.GameClock;
 import service.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 public class MatchRegistry {
 
     private static final long TICK_NANOS = (long) (GameClock.SECONDS_PER_TICK * 1_000_000_000L);
-    private static final int SNAPSHOT_EVERY_TICKS = 2;
+    private static final int SNAPSHOT_EVERY_TICKS = 1;
+    private static final int MAX_CATCH_UP_TICKS = 5;
 
     private final GameServer server;
     private final Map<String, MatchSession> matches = new ConcurrentHashMap<>();
@@ -80,35 +85,53 @@ public class MatchRegistry {
     private void runLoop() {
         long nextTick = System.nanoTime();
         while (running) {
-            nextTick += TICK_NANOS;
-            try {
-                stepAllMatches();
-            } catch (Exception e) {
-                Log.error("MatchRunner", "Tick failed", e);
+            int steps = 0;
+            while (System.nanoTime() - nextTick >= 0 && steps < MAX_CATCH_UP_TICKS) {
+                try {
+                    stepAllMatches();
+                } catch (Exception e) {
+                    Log.error("MatchRunner", "Tick failed", e);
+                }
+                nextTick += TICK_NANOS;
+                steps++;
+            }
+            if (steps >= MAX_CATCH_UP_TICKS) {
+                nextTick = System.nanoTime();
             }
             long sleepNanos = nextTick - System.nanoTime();
             if (sleepNanos > 0) {
-                try {
-                    Thread.sleep(sleepNanos / 1_000_000L, (int) (sleepNanos % 1_000_000L));
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            } else {
-                nextTick = System.nanoTime();
+                LockSupport.parkNanos(Math.min(sleepNanos, TICK_NANOS));
             }
+            if (Thread.currentThread().isInterrupted()) return;
         }
     }
 
     private void stepAllMatches() {
         for (MatchSession session : matches.values()) {
-            if (!session.isStarted()) continue;
+            Role leaver = session.pendingLeaver();
+            if (leaver != null && !session.isStarted()) {
+                abandon(session, leaver);
+                continue;
+            }
+            if (!session.isStarted()) {
+                if (session.startIfReady()) announceStart(session);
+                continue;
+            }
+
             IZombieMatch match = session.getMatch();
             model.utils.GameSession.setCurrent(match.getSession());
 
+            if (leaver != null && !match.isFinished()) {
+                match.forfeit(leaver, session.leaveReason());
+            }
+
             drainIntents(session, match);
+            List<Plant> plantsBeforeTick = new ArrayList<>(match.getSession().getPlants());
+            List<ZombieProjectile> shotsBeforeTick =
+                    new ArrayList<>(match.getSession().getZombieProjectiles());
             match.tick();
             session.countTick();
+            session.captureRemovals(plantsBeforeTick, shotsBeforeTick);
             session.forgetDeadEntities();
 
             for (MatchEvent event : match.drainEvents()) {
@@ -119,12 +142,33 @@ public class MatchRegistry {
 
             if (session.tickCount() % SNAPSHOT_EVERY_TICKS == 0) {
                 broadcastSnapshot(session);
+                session.clearRemovals();
             }
 
             if (match.isFinished()) {
                 finish(session);
             }
         }
+    }
+
+    private void announceStart(MatchSession session) {
+        IZombieMatch match = session.getMatch();
+        for (Role role : session.roles()) {
+            ClientSession client = session.clientFor(role);
+            if (client == null || !client.isRunning()) continue;
+            client.push(Protocol.MATCH_START, Envelope.obj(
+                    "matchId", session.getMatchId(),
+                    "role", role.name(),
+                    "matchSeconds", match.getMatchSeconds()));
+        }
+        broadcastSnapshot(session);
+    }
+
+    public void broadcastLobby(MatchSession session) {
+        broadcast(session, Protocol.MATCH_LOBBY, Envelope.obj(
+                "matchId", session.getMatchId(),
+                "plantsReady", session.isReady(Role.PLANTS),
+                "zombiesReady", session.isReady(Role.ZOMBIES)));
     }
 
     private void drainIntents(MatchSession session, IZombieMatch match) {
@@ -142,10 +186,14 @@ public class MatchRegistry {
     }
 
     private void broadcastSnapshot(MatchSession session) {
-        JsonObject payload = new JsonObject();
-        payload.addProperty("matchId", session.getMatchId());
-        payload.add("snapshot", JsonLine.toTree(session.snapshot()));
-        broadcast(session, Protocol.MATCH_SNAPSHOT, payload);
+        for (Role role : session.roles()) {
+            ClientSession client = session.clientFor(role);
+            if (client == null || !client.isRunning()) continue;
+            JsonObject payload = new JsonObject();
+            payload.addProperty("matchId", session.getMatchId());
+            payload.add("snapshot", JsonLine.compactTree(session.snapshot(role)));
+            client.push(Protocol.MATCH_SNAPSHOT, payload);
+        }
     }
 
     private void broadcast(MatchSession session, String type, JsonObject payload) {
@@ -184,24 +232,8 @@ public class MatchRegistry {
         }
     }
 
-    public void onSessionClosed(ClientSession client) {
-        List<MatchSession> live = List.copyOf(matches.values());
-        for (MatchSession session : live) {
-            if (!session.involves(client)) continue;
-            Role role = session.roleOf(client);
-            if (role == null) continue;
-            IZombieMatch match = session.getMatch();
-            if (!match.isFinished()) {
-                match.forfeit(role, "Your opponent left the match.");
-            }
-            if (!session.isStarted()) {
-                matches.remove(session.getMatchId());
-                notifyOpponentLeft(session, role);
-            }
-        }
-    }
-
-    private void notifyOpponentLeft(MatchSession session, Role leaver) {
+    private void abandon(MatchSession session, Role leaver) {
+        matches.remove(session.getMatchId());
         Role other = leaver == Role.PLANTS ? Role.ZOMBIES : Role.PLANTS;
         ClientSession client = session.clientFor(other);
         if (client == null || !client.isRunning()) return;
@@ -209,9 +241,19 @@ public class MatchRegistry {
                 "matchId", session.getMatchId(),
                 "winnerRole", other.name(),
                 "youWon", true,
-                "reason", "Your opponent left the match.",
-                "brainsEaten", session.getMatch().getBrainsEaten(),
-                "brainCount", session.getMatch().getBrainCount(),
-                "elapsed", session.getMatch().getElapsedSeconds()));
+                "reason", session.leaveReason(),
+                "brainsEaten", 0,
+                "brainCount", IZombieMatch.ROWS,
+                "elapsed", 0.0));
+    }
+
+    public void onSessionClosed(ClientSession client) {
+        List<MatchSession> live = List.copyOf(matches.values());
+        for (MatchSession session : live) {
+            if (!session.involves(client)) continue;
+            Role role = session.roleOf(client);
+            if (role == null) continue;
+            session.requestLeave(role, "Your opponent left the match.");
+        }
     }
 }

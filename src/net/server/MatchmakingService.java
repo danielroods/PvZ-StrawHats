@@ -147,7 +147,7 @@ public class MatchmakingService {
                 "role", role.name(),
                 "opponentUsername", other.getUsername(),
                 "opponentNickname", nicknameOf(other.getUsername()),
-                "matchSeconds", model.match.mini_games.izombie.IZombieMatch.MATCH_SECONDS));
+                "matchSeconds", model.match.mini_games.izombie.IZombieMatch.ONLINE_MATCH_SECONDS));
     }
 
     private String nicknameOf(String username) {

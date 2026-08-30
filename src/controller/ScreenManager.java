@@ -101,6 +101,9 @@ public final class ScreenManager {
             return new view.screens.match.gameplay.mini_games.NetIZombieGameScreen();
         }
 
+        if (menu instanceof controller.match.NetBeforeMenu) {
+            return new view.screens.match.before.NetBeforeMatchScreen();
+        }
         if (menu instanceof controller.match.CoopBeforeMenu) {
             return new view.screens.match.before.CoopBeforeMatchScreen();
         }

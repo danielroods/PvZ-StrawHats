@@ -303,9 +303,17 @@ public final class NetworkClient {
         send(Protocol.BONUS_SCORE_SUBMIT, Envelope.obj("score", score), reply);
     }
 
-    public void sendMatchReady() {
+    public void sendMatchReady(List<String> loadout) {
         if (matchState == null) return;
-        fireAndForget(Protocol.MATCH_READY, Envelope.obj("matchId", matchState.getMatchId()));
+        com.google.gson.JsonArray picks = new com.google.gson.JsonArray();
+        if (loadout != null) {
+            for (String pick : loadout) {
+                if (pick != null && !pick.isBlank()) picks.add(pick);
+            }
+        }
+        JsonObject payload = Envelope.obj("matchId", matchState.getMatchId());
+        payload.add("loadout", picks);
+        fireAndForget(Protocol.MATCH_READY, payload);
     }
 
     public void sendIntent(String action, String target, int row, int col) {
@@ -385,6 +393,8 @@ public final class NetworkClient {
                 GeneralPrinter.print("The match invite expired.");
             }
             case Protocol.MATCH_FOUND -> onMatchFound(envelope);
+            case Protocol.MATCH_LOBBY -> onMatchLobby(envelope);
+            case Protocol.MATCH_START -> onMatchStart(envelope);
             case Protocol.MATCH_SNAPSHOT -> onSnapshot(envelope);
             case Protocol.MATCH_EVENT -> onMatchEvent(envelope);
             case Protocol.MATCH_END -> onMatchEnd(envelope);
@@ -409,7 +419,26 @@ public final class NetworkClient {
                 role,
                 envelope.getString("opponentUsername"),
                 envelope.getString("opponentNickname"));
+        matchState.setMatchSeconds(envelope.getDouble("matchSeconds", 0));
         if (onMatchFound != null) onMatchFound.run();
+        App.currentMenu = controller.match.NetBeforeMenu.open(matchState);
+    }
+
+    private void onMatchLobby(Envelope envelope) {
+        if (matchState == null) return;
+        if (!matchState.getMatchId().equals(envelope.getString("matchId"))) return;
+        matchState.setReadyFlags(envelope.getBoolean("plantsReady", false),
+                envelope.getBoolean("zombiesReady", false));
+    }
+
+    private void onMatchStart(Envelope envelope) {
+        if (matchState == null) return;
+        if (!matchState.getMatchId().equals(envelope.getString("matchId"))) return;
+        if (matchState.isStarted()) return;
+        matchState.setMatchSeconds(envelope.getDouble("matchSeconds", 0));
+        matchState.markStarted();
+        controller.match.BeforeMenu.selectedPlants.clear();
+        controller.match.BeforeMenu.selectedZombies.clear();
         App.currentMenu = new controller.match.mini_games.NetIZombieController(matchState);
     }
 

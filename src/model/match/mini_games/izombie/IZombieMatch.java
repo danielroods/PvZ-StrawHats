@@ -32,6 +32,7 @@ public class IZombieMatch {
     public static final int REDLINE_COLUMN = 5;
     public static final double MATCH_SECONDS = 120.0;
     public static final double COUCH_MATCH_SECONDS = 360.0;
+    public static final double ONLINE_MATCH_SECONDS = COUCH_MATCH_SECONDS;
 
     private static final int ZOMBIE_STAT_TIER = 3;
     private static final int ZOMBIE_START_SUN = 400;

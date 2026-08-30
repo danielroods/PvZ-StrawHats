@@ -379,6 +379,10 @@ public class GameScreen extends UiScreen {
         return interaction.collectUnderMouse(click);
     }
 
+    protected model.collections.item.GroundItem itemUnderMouse(Vector2 click) {
+        return interaction.itemUnderMouse(click);
+    }
+
     public boolean runCommand(String command) {
         try {
             App.currentMenu.handleCommand(command);
@@ -402,6 +406,10 @@ public class GameScreen extends UiScreen {
 
     protected void trackZombieDeaths(List<Zombie> aliveBefore) {
         zombies.trackZombieDeaths(aliveBefore);
+    }
+
+    protected void trackPlantDeaths(List<Plant> alivePlantsBefore) {
+        plants.trackExplodedPlants(alivePlantsBefore);
     }
 
     protected void startMatchEndSequence(boolean won) {

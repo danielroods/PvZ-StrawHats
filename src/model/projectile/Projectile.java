@@ -147,6 +147,15 @@ public class Projectile extends Item {
         this.assetVariant = Math.max(0, assetVariant);
     }
 
+    public void setSourcePlant(Plant sourcePlant) {
+        this.sourcePlant = sourcePlant;
+    }
+
+    public void setDisplay(String displayPath, String displayState) {
+        this.displayPath = displayPath;
+        this.displayState = displayState;
+    }
+
     @Override
     public void tick() {
         if (!isAlive) return;

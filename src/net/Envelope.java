@@ -44,6 +44,11 @@ public class Envelope {
         return element == null || element.isJsonNull() ? fallback : element.getAsInt();
     }
 
+    public double getDouble(String key, double fallback) {
+        JsonElement element = payload().get(key);
+        return element == null || element.isJsonNull() ? fallback : element.getAsDouble();
+    }
+
     public long getLong(String key, long fallback) {
         JsonElement element = payload().get(key);
         return element == null || element.isJsonNull() ? fallback : element.getAsLong();
