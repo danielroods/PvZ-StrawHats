@@ -104,8 +104,6 @@ class SessionTicker {
                 int row = GameSession.ITEM_RANDOM.nextInt(session.getEnvironment().getRows());
                 GroundSun sun = GroundSun.fallFromSky(new Position(col, row));
                 session.getItems().add(sun);
-                view.GeneralPrinter.print("New " + sun.getDropType().name().toLowerCase()
-                        + " sun is dropping at position (" + (col + 1) + ", " + (row + 1) + ").");
             }
         }
 

@@ -124,14 +124,10 @@ public class GroundSun extends GroundItem {
         if (wasFalling) {
             fallSecondsRemaining = GameClock.countDown(fallSecondsRemaining, GameClock.SECONDS_PER_TICK);
             if (!isFalling() && isAlive()) {
-                if (dropType == SunDropType.RADIOACTIVE) {
+                if (dropType == SunDropType.RADIOACTIVE)
                     dropType = SunDropType.REGULAR;
-                }
-                Position position = getPosition();
-                if (position != null) {
-                    GeneralPrinter.print("Sun reached the ground at position ("
-                            + ((int) position.x() + 1) + ", " + ((int) position.y() + 1) + ").");
-                }
+
+
             }
         }
     }

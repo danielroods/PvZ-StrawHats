@@ -159,7 +159,6 @@ public class VasebreakerController extends Menu {
             App.currentMenu = new MiniGameEndMenu("Vasebreaker", true,
                     "Every vase was opened safely.");
         } else if (game.isLost()) {
-            GeneralPrinter.print("A zombie reached the house. You lose!");
             App.currentMenu = new MiniGameEndMenu("Vasebreaker", false,
                     "A zombie reached the house.");
         }

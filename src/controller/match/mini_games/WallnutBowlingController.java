@@ -125,7 +125,6 @@ public class WallnutBowlingController extends Menu {
             App.currentMenu = new MiniGameEndMenu("Wall-nut Bowling", true,
                     "Every zombie wave was cleared.", restart);
         } else if (game.isLost()) {
-            GeneralPrinter.print("A zombie reached the house. You lose!");
             App.currentMenu = new MiniGameEndMenu("Wall-nut Bowling", false,
                     "A zombie reached the house.", restart);
         }

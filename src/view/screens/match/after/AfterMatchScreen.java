@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -83,6 +84,9 @@ public class AfterMatchScreen extends UiScreen {
 
     private static final float PINATA_INTRO_DURATION = 0.45f;
     private static final float PINATA_EXIT_DURATION = 0.35f;
+    // How far up the actor's box (0 = bottom edge, 1 = top edge) the piñata/pile is anchored.
+    // Raise this to push the piñata higher on screen; lower it to bring it back down.
+    private static final float PINATA_ANCHOR_HEIGHT_RATIO = 0.35f;
     // Fallback durations used only when animations.json has no explode/tap_pile entry for
     // the piñata path (resolved automatically via AnimationFactory.clipDurationForPath
     // whenever it does) - tune these against the real clip lengths if they feel off.
@@ -171,8 +175,12 @@ public class AfterMatchScreen extends UiScreen {
 
         pinataActor = new PinataActor(resolvePinataPamPath());
         Table pinataCell = new Table();
-        pinataCell.add(pinataActor).size(260f, 260f);
-        layer.add(pinataCell).padBottom(SPACE_SM + 50f).row();
+        // Deliberately generous: PamPlayer.draw() has no way to query a clip's native pixel
+        // size from here, so this box is sized well beyond the piñata's expected footprint
+        // rather than tightly fitted - a slightly oversized tap target is harmless, while an
+        // undersized one is exactly what caused taps to miss the sprite before.
+        pinataCell.add(pinataActor).size(360f, 420f);
+        layer.add(pinataCell).padBottom(SPACE_SM + 20f).row();
 
         pinataHintLabel = new Label("Tap the pinata!", skin, "main");
         pinataHintLabel.setAlignment(Align.center);
@@ -410,44 +418,69 @@ public class AfterMatchScreen extends UiScreen {
         rootTable.clear();
         rootTable.setBackground(new TextureRegionDrawable(loadTextureSafe(BACKGROUND)));
 
+        Image dim = new Image(solidColorDrawable(new Color(0f, 0f, 0f, 0.45f)));
+        dim.setFillParent(true);
+
         Table panel = new Table();
         panel.setBackground(skin.getDrawable("modal-background"));
-        panel.pad(34);
+        panel.pad(40, 46, 34, 46);
 
-        Label title = new Label(wonMatch ? "LEVEL COMPLETE!" : "LEVEL FAILED", skin, "title");
-        title.setColor(wonMatch ? Color.GREEN : Color.RED);
-        panel.add(title).center().padBottom(16).row();
+        Label banner = new Label(wonMatch ? "LEVEL COMPLETE!" : "LEVEL FAILED", skin, "title");
+        banner.setFontScale(1.35f);
+        banner.setColor(wonMatch ? new Color(0.45f, 1f, 0.5f, 1f) : new Color(1f, 0.4f, 0.35f, 1f));
+        panel.add(banner).center().padBottom(6).row();
+
+        // Thin accent rule under the title, tinted to match the win/lose banner colour,
+        // so the panel reads as one deliberate block instead of title-then-text.
+        Image rule = new Image(solidColorDrawable(wonMatch
+                ? new Color(0.45f, 1f, 0.5f, 0.55f) : new Color(1f, 0.4f, 0.35f, 0.55f)));
+        panel.add(rule).width(220f).height(2f).padBottom(18).row();
 
         Label summary = new Label(resultText, skin, "main");
         summary.setWrap(true);
-        summary.setAlignment(1);
-        panel.add(summary).width(650).padBottom(22).row();
+        summary.setAlignment(Align.center);
+        panel.add(summary).width(620).padBottom(28).row();
 
         Table buttons = new Table();
 
         if (!wonMatch) {
-            TextButton retry = new TextButton("Retry", skin);
-            retry.addListener(new ClickListener() {
-                @Override public void clicked(InputEvent event, float x, float y) {
-                    MatchMenu menu = new MatchMenu();
-                    App.currentMenu = menu;
-                    runCommand("start game");
-                }
+            TextButton retry = primaryButton("Retry", () -> {
+                MatchMenu menu = new MatchMenu();
+                App.currentMenu = menu;
+                runCommand("start game");
             });
-            buttons.add(retry).width(190).height(54).pad(6);
+            buttons.add(retry).width(200).height(56).pad(6);
         }
 
-        TextButton exit = new TextButton("Back to " + currentChapterMapLabel(), skin);
-        exit.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) {
-                App.currentMenu = new MatchMenu();
-                controller.ScreenManager.syncWithCurrentMenu();
-            }
-        });
-        buttons.add(exit).width(240).height(54).pad(6);
+        TextButton exit = wonMatch
+                ? primaryButton("Back to " + currentChapterMapLabel(), this::returnToMap)
+                : secondaryButton("Back to " + currentChapterMapLabel(), this::returnToMap);
+        buttons.add(exit).width(250).height(56).pad(6);
 
         panel.add(buttons);
-        rootTable.add(panel).center();
+
+        // Small pop-in: starts slightly smaller and transparent, settles into place. Kept
+        // short and subtle so it reads as "arriving" rather than a distracting bounce.
+        panel.setTransform(true);
+        panel.setOrigin(Align.center);
+        panel.getColor().a = 0f;
+        panel.setScale(0.9f);
+        panel.addAction(Actions.parallel(
+                Actions.fadeIn(0.25f),
+                Actions.scaleTo(1f, 1f, 0.25f, Interpolation.swingOut)));
+
+        Stack layers = new Stack();
+        layers.add(dim);
+        Table centered = new Table();
+        centered.add(panel).center();
+        layers.add(centered);
+
+        rootTable.add(layers).expand().fill();
+    }
+
+    private void returnToMap() {
+        App.currentMenu = new MatchMenu();
+        controller.ScreenManager.syncWithCurrentMenu();
     }
 
     private String currentChapterMapLabel() {
@@ -596,19 +629,28 @@ public class AfterMatchScreen extends UiScreen {
                 // Grows in from 60% to 100% scale on intro, shrinks slightly again on exit.
                 float visualScale = (0.6f + 0.4f * introProgress) * (1f - 0.25f * exitProgress) * 0.8f;
 
-                float centerX = getX() + getWidth() / 2f;
-                float centerY = getY() + getHeight() / 2f;
+                // ClickListener hit-tests this actor's own fixed getX()/getY()/getWidth()/
+                // getHeight() rectangle (set once by the Table cell in buildPinataStage()) -
+                // it has no visibility into the batch.setTransformMatrix() trick below, which
+                // only affects what gets *drawn*, not the actor's scene2d bounds. Anchoring at
+                // a fixed point inside that rectangle - one that never moves regardless of
+                // visualScale - keeps the sprite pinned inside the clickable area at every
+                // point in the animation. The anchor sits above the box's bottom edge (not
+                // exactly on it) so the piñata/pile reads higher on screen instead of hugging
+                // the very bottom of its cell.
+                float anchorX = getX() + getWidth() / 2f;
+                float anchorY = getY() + getHeight() * PINATA_ANCHOR_HEIGHT_RATIO;
 
                 Matrix4 original = batch.getTransformMatrix().cpy();
                 Matrix4 scaled = new Matrix4(original)
-                        .translate(centerX, centerY, 0f)
+                        .translate(anchorX, anchorY, 0f)
                         .scale(visualScale, visualScale, 1f)
-                        .translate(-centerX, -centerY, 0f);
+                        .translate(-anchorX, -anchorY, 0f);
                 batch.setTransformMatrix(scaled);
 
                 Color prevColor = batch.getColor().cpy();
                 batch.setColor(1f, 1f, 1f, alpha);
-                pamPlayer.draw(batch, clip, stateTime, centerX, centerY, false);
+                pamPlayer.draw(batch, clip, stateTime, anchorX, anchorY, false);
                 batch.setColor(prevColor);
 
                 batch.setTransformMatrix(original);

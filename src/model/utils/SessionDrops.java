@@ -75,24 +75,9 @@ class SessionDrops {
                     && groundItem.isNear(target)) {
                 groundItem.collect(session, state);
                 collectedItems.add(groundItem);
-                announceCollection(groundItem, state);
             }
         }
         return collectedItems;
     }
 
-    private void announceCollection(GroundItem item, UserState state) {
-        switch (item.getItemType()) {
-            case SUN -> GeneralPrinter.print("You collected a sun; you have " + session.getSunCount() + " sun now.");
-            case PLANT_FOOD -> GeneralPrinter.print("The glowing zombie dropped a plant food; you have " + session.getPlantFoodCount() + " plant foods now.");
-            case COIN -> GeneralPrinter.print("A zombie dropped a coin; you have " + state.coins + " coins now.");
-            case DIAMOND -> GeneralPrinter.print("A zombie dropped a diamond; you have " + state.diamonds + " diamonds now.");
-            case SEED_PACK -> {
-                int totalPots = state.seedPacketInventory.values().stream().mapToInt(Integer::intValue).sum();
-                GeneralPrinter.print("A zombie dropped a pot; you have " + totalPots + " pots now.");
-            }
-            default -> {
-            }
-        }
-    }
 }

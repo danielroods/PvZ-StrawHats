@@ -57,7 +57,6 @@ public final class Protocol {
 
     public static final String EVENT_BRAIN_EATEN = "BRAIN_EATEN";
     public static final String EVENT_INTENT_REJECTED = "INTENT_REJECTED";
-    public static final String EVENT_SUN_COLLECTED = "SUN_COLLECTED";
 
     public static final String ERR_VERSION = "VERSION";
     public static final String ERR_NOT_LOGGED_IN = "NOT_LOGGED_IN";
