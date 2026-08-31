@@ -48,6 +48,7 @@ public class Projectile extends Item {
     private int remainingHits = Integer.MIN_VALUE;
 
     private double spawnDelaySeconds = DEFAULT_SPAWN_DELAY_SECONDS;
+    private final boolean firedBackwards;
 
     public void deflectTowardsPlant(Zombie deflector) {
         if (deflector != null) hitZombies.add(deflector);
@@ -79,6 +80,11 @@ public class Projectile extends Item {
         this.moveStrategy = moveStrategy;
         this.hitEffectStrategy = hitEffectStrategy;
         this.isStunning = false;
+        this.firedBackwards = velocity != null && velocity.x() < 0;
+    }
+
+    public boolean isFiredBackwards() {
+        return firedBackwards;
     }
 
     public void setSpawnDelaySeconds(double seconds) {
@@ -368,14 +374,17 @@ public class Projectile extends Item {
         Position center = primary.getPosition();
         for (Zombie zombie : session.getZombies()) {
             if (zombie == primary || !isValidTarget(zombie) || zombie.getPosition() == null) continue;
+            if (hitZombies.contains(zombie)) continue;
             if (Math.abs(zombie.getPosition().x() - center.x()) <= radius
                     && Math.abs(zombie.getPosition().y() - center.y()) <= radius) {
                 applyDamageAndEffect(zombie);
+                hitZombies.add(zombie);
             }
         }
     }
 
     private void applyDamageAndEffect(Zombie zombie) {
+        if (hitEffectStrategy != null) hitEffectStrategy.beforeDamage(zombie);
         int effectiveDamage = getEffectiveDamage();
         if (hitEffectStrategy != null && hitEffectStrategy.bypassesArmor()) {
             zombie.takeDamage(effectiveDamage, true);

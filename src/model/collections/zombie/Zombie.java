@@ -87,6 +87,7 @@ public class Zombie extends Item implements Attack {
     // them the moment one shows up in its path.
     private boolean ignoreTargetAcquisition = false;
     private int sunBeanCarrierValue = 0;
+    private double sunBeanTimer = 0.0;
 
     private boolean boss;
     private double damageTakenMultiplier = 1.0;
@@ -351,6 +352,7 @@ public class Zombie extends Item implements Attack {
         }
 
         updateActionAnimation(deltaTimeSeconds);
+        updateSunBeanCarrier(deltaTimeSeconds, session);
 
         ZombieFactory.respawnPushedStructureIfNeeded(this);
 
@@ -383,9 +385,8 @@ public class Zombie extends Item implements Attack {
             if (moveBehavior instanceof model.collections.zombie.zombie_move.SnorkelMove) {
                 vulnerabilityState = VulnerabilityType.FULLY_VULNERABLE;
             }
-            // Butter-stunned zombies hold whatever they were doing (here,
-            // about to eat) but don't actually act until it wears off.
-            if (status != Status.BUTTER) {
+
+            if (status != Status.BUTTER && status != Status.FROZEN) {
                 if (attackBehavior != null) {
                     attackBehavior.attack(this, session);
                 } else {
@@ -530,6 +531,19 @@ public class Zombie extends Item implements Attack {
     public void markSunBeanCarrier(int sunValue) {
         if (sunValue > 0 && sunBeanCarrierValue <= 0) {
             sunBeanCarrierValue = sunValue;
+            sunBeanTimer = 0.0;
+        }
+    }
+
+    private static final double SUN_BEAN_INTERVAL_SECONDS = 5.0;
+
+    private void updateSunBeanCarrier(double deltaTimeSeconds, GameSession session) {
+        if (sunBeanCarrierValue <= 0 || session == null || getPosition() == null) return;
+        sunBeanTimer += deltaTimeSeconds;
+        while (sunBeanTimer >= SUN_BEAN_INTERVAL_SECONDS) {
+            sunBeanTimer -= SUN_BEAN_INTERVAL_SECONDS;
+            session.getItems().add(new model.collections.item.GroundSun(
+                    getPosition(), sunBeanCarrierValue, true));
         }
     }
 
@@ -601,6 +615,9 @@ public class Zombie extends Item implements Attack {
         }
         if (status == Status.HYPNOTIZED) {
             hypnotize();
+            return;
+        }
+        if (status == Status.FREEZE && this.status == Status.FROZEN && statusTimer > 0) {
             return;
         }
         if (status == Status.FIRED) {

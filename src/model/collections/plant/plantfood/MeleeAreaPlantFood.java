@@ -3,30 +3,31 @@ package model.collections.plant.plantfood;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFoodEffect;
 import model.collections.zombie.Zombie;
+import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
-/**
- * Plant Food implementation for the two custom melee AOE behaviors:
- * Bonk Choy: all eight neighboring tiles.
- * Phat Beet: two-tile radius on the same row and five-second stun.
- */
-public class MeleeAreaPlantFood implements PlantFoodEffect {
-    private final boolean phatBeet;
-    private final boolean kiwibeast;
-    private final int damage;
-    private final double duration;
-    private double elapsed = 0.0;
+import java.util.ArrayList;
+import java.util.List;
 
-    public MeleeAreaPlantFood(boolean phatBeet, int damage) {
-        this(phatBeet, damage, false);
+public class MeleeAreaPlantFood implements PlantFoodEffect {
+
+    /** Per-plant tuning for one melee superpower. */
+    public record Profile(double reachX, double reachY, int hits, double activeSeconds,
+                          int damagePerHit, Zombie.Status status, double statusSeconds,
+                          double knockbackTiles, String onState, String loopState,
+                          String offState) {
     }
 
-    public MeleeAreaPlantFood(boolean phatBeet, int damage, boolean kiwibeast) {
-        this.phatBeet = phatBeet;
-        this.kiwibeast = kiwibeast;
-        this.damage = damage;
-        this.duration = phatBeet ? 5.0 : (kiwibeast ? 1.2 : 2.0);
+    private final Profile profile;
+    private PlantFoodClipSequence clips;
+    private double elapsed = 0.0;
+    private int landed = 0;
+    private double duration;
+
+    public MeleeAreaPlantFood(Profile profile) {
+        this.profile = profile;
+        this.duration = profile.activeSeconds();
     }
 
     @Override
@@ -35,69 +36,91 @@ public class MeleeAreaPlantFood implements PlantFoodEffect {
     }
 
     @Override
-    public void triggerSuperpower(Plant plant, GameSession session) {
+    public boolean drivesActStrategy() {
+        return true;
+    }
+
+    @Override
+    public void reset() {
         elapsed = 0.0;
-        if (kiwibeast) {
-            plant.setVisualAnimationState("plantfood_stage3", duration);
-        } else if (phatBeet) {
-            plant.setVisualAnimationState("plantfood", duration);
-        } else {
-            plant.setVisualAnimationState("plantfood_on", 0.35);
-        }
-        Position center = plant.getPosition();
-        if (center == null || session == null) return;
+        landed = 0;
+        if (clips != null) clips.reset();
+    }
 
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position p = zombie.getPosition();
-
-            if (phatBeet) {
-                if (Math.abs(p.y() - center.y()) < 0.5
-                        && Math.abs(p.x() - center.x()) <= 2.0
-                        && Math.abs(p.x() - center.x()) > 0.01) {
-                    zombie.takeDamage(damage, plant);
-                    zombie.applyStatus(Zombie.Status.BUTTER, 5.0);
-                }
-            } else if (kiwibeast) {
-                if (Math.abs(p.y() - center.y()) < 0.5
-                        && Math.abs(p.x() - center.x()) <= 1.0
-                        && Math.abs(p.x() - center.x()) > 0.01) {
-                    zombie.takeDamage(damage, plant);
-                    if (zombie.isAlive()) {
-                        int hitNumber = plant.incrementKiwibeastHitCounter();
-                        if (hitNumber % 2 == 0) {
-                            double dir = Math.signum(p.x() - center.x());
-                            if (dir == 0) dir = 1;
-                            zombie.setPosition(new Position(p.x() + dir, p.y()));
-                        }
-                    }
-                }
-            } else {
-                // Exactly the 8 neighboring board cells, excluding the plant's own cell.
-                int dx = (int) Math.round(p.x() - center.x());
-                int dy = (int) Math.round(p.y() - center.y());
-                if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx != 0 || dy != 0)) {
-                    zombie.takeDamage(damage, plant);
-                }
-            }
+    @Override
+    public void triggerSuperpower(Plant plant, GameSession session) {
+        clips = PlantFoodClipSequence.forPlant(plant, profile.onState(), profile.loopState(),
+                profile.offState(), profile.activeSeconds());
+        duration = clips.totalDuration();
+        clips.apply(plant);
+       if (clips.introDuration() <= 0) {
+            landed = 1;
+            strike(plant, session);
         }
     }
 
     @Override
     public void tickDurationEffect(Plant plant, double deltaTimeSeconds) {
         elapsed += deltaTimeSeconds;
-        if (!kiwibeast && !phatBeet) {
-            if (elapsed < 0.35) {
-                if (!"plantfood_on".equals(plant.getVisualAnimationState()))
-                    plant.setVisualAnimationState("plantfood_on", 0.35 - elapsed);
-            } else if (elapsed < duration - 0.35) {
-                if (!"plantfood".equals(plant.getVisualAnimationState()))
-                    plant.setVisualAnimationState("plantfood", duration - 0.35 - elapsed);
-            } else if (!"plantfood_off".equals(plant.getVisualAnimationState())) {
-                plant.setVisualAnimationState("plantfood_off", Math.max(0.05, duration - elapsed));
+        if (clips != null) clips.advance(plant, deltaTimeSeconds);
+
+        double intro = clips == null ? 0.0 : clips.introDuration();
+        double intoActive = elapsed - intro;
+        if (intoActive < 0) return;
+
+        int expected = expectedHits(intoActive);
+        GameSession session = GameSession.peekInstance();
+        while (landed < expected) {
+            landed++;
+            strike(plant, session);
+        }
+    }
+
+    private int expectedHits(double intoActive) {
+        int hits = Math.max(1, profile.hits());
+        double active = Math.max(0.0001, profile.activeSeconds());
+        double step = active / hits;
+        return Math.min(hits, (int) Math.floor(intoActive / step) + 1);
+    }
+
+    private void strike(Plant plant, GameSession session) {
+        Position center = plant.getPosition();
+        if (center == null || session == null) return;
+
+        for (Zombie zombie : targets(session, center)) {
+            zombie.takeDamage(profile.damagePerHit(), plant);
+            if (!zombie.isAlive()) continue;
+            if (profile.status() != null) {
+                zombie.applyStatus(profile.status(), profile.statusSeconds());
+            }
+            if (profile.knockbackTiles() > 0) {
+                Position at = zombie.getPosition();
+                double direction = Math.signum(at.x() - center.x());
+                if (direction == 0) direction = 1;
+                zombie.startKnockback(direction * profile.knockbackTiles(), 0.25);
             }
         }
-        // Phat Beet's five-second stun is applied directly above.
+
+        for (PushableStructure structure : new ArrayList<>(session.getPushableStructures())) {
+            if (structure == null || !structure.isAlive() || structure.getPosition() == null) continue;
+            if (!inReach(center, structure.getPosition())) continue;
+            structure.takeDamage(profile.damagePerHit(), plant, session);
+        }
+    }
+
+    private List<Zombie> targets(GameSession session, Position center) {
+        List<Zombie> hit = new ArrayList<>();
+        for (Zombie zombie : new ArrayList<>(session.getZombies())) {
+            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) continue;
+            if (zombie.getPosition() == null || !inReach(center, zombie.getPosition())) continue;
+            hit.add(zombie);
+        }
+        return hit;
+    }
+
+    private boolean inReach(Position center, Position at) {
+        return Math.abs(at.x() - center.x()) <= profile.reachX()
+                && Math.abs(at.y() - center.y()) <= profile.reachY();
     }
 
     @Override

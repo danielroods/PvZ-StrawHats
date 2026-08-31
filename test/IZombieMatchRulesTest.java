@@ -1,3 +1,4 @@
+import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
 import model.collections.zombie.ZombieFactory;
 import model.match.mini_games.izombie.IZombieMatch;
@@ -6,10 +7,13 @@ import model.utils.GameSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IZombieMatchRulesTest {
@@ -113,6 +117,51 @@ class IZombieMatchRulesTest {
         assertEquals(Role.PLANTS, match.getWinner(),
                 "surviving the clock with a brain intact is a plant win");
         assertTrue(match.getRemainingSeconds() <= 0.0001);
+    }
+
+
+    @Test
+    void aPeaPodStacksOntoAnotherPeaPodJustAsItDoesOffline() {
+        IZombieMatch peaPodMatch = new IZombieMatch(IZombieMatch.ONLINE_MATCH_SECONDS,
+                List.of("Pea Pod"), List.of());
+        GameSession.setCurrent(peaPodMatch.getSession());
+
+        int row = 1;
+        int col = 4;
+        assertNull(peaPodMatch.getSession().getPlantAt(row, col),
+                "the test needs an empty tile inside the plant zone");
+
+        bankSunAndRecharge(peaPodMatch);
+        assertNull(peaPodMatch.applyIntent(Role.PLANTS, "PLANT", "Pea Pod", row, col));
+        Plant peaPod = peaPodMatch.getSession().getPlantAt(row, col);
+        assertNotNull(peaPod, "the first Pea Pod went down");
+        assertEquals(1, peaPod.getStackNumber());
+
+        bankSunAndRecharge(peaPodMatch);
+        assertNull(peaPodMatch.applyIntent(Role.PLANTS, "PLANT", "Pea Pod", row, col),
+                "a second Pea Pod on the same tile stacks instead of being refused");
+        assertSame(peaPod, peaPodMatch.getSession().getPlantAt(row, col),
+                "stacking upgrades the plant that is already there");
+        assertEquals(2, peaPod.getStackNumber(), "and the stack grew by one head");
+    }
+
+    @Test
+    void somethingElseStillCannotBeDroppedOnAPlantedTile() {
+        IZombieMatch peaPodMatch = new IZombieMatch(IZombieMatch.ONLINE_MATCH_SECONDS,
+                List.of("Pea Pod", "Peashooter"), List.of());
+        GameSession.setCurrent(peaPodMatch.getSession());
+
+        bankSunAndRecharge(peaPodMatch);
+        assertNull(peaPodMatch.applyIntent(Role.PLANTS, "PLANT", "Pea Pod", 1, 4));
+        bankSunAndRecharge(peaPodMatch);
+        assertEquals("There is already a plant there.",
+                peaPodMatch.applyIntent(Role.PLANTS, "PLANT", "Peashooter", 1, 4));
+    }
+
+    private static void bankSunAndRecharge(IZombieMatch match) {
+        for (int tick = 0; tick < 400 && match.getPlantSun() < 400; tick++) {
+            match.tick();
+        }
     }
 
     @Test

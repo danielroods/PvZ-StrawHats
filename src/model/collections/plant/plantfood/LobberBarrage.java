@@ -5,14 +5,16 @@ import model.collections.plant.PlantFoodEffect;
 import model.utils.GameSession;
 
 public class LobberBarrage implements PlantFoodEffect {
-    private static final double FIRE_INTERVAL = 0.4;
+    private static final double TAIL_SECONDS = 0.6;
 
     private final int shots;
+    private final double fireInterval;
     private double elapsed = 0;
     private int fired = 0;
 
-    public LobberBarrage(int shots) {
+    public LobberBarrage(int shots, double fireInterval) {
         this.shots = Math.max(1, shots);
+        this.fireInterval = fireInterval > 0 ? fireInterval : 0.4;
     }
 
     @Override
@@ -23,8 +25,8 @@ public class LobberBarrage implements PlantFoodEffect {
     @Override
     public void tickDurationEffect(Plant plant, double deltaTimeSeconds) {
         elapsed += deltaTimeSeconds;
-        if (elapsed >= FIRE_INTERVAL && fired < shots) {
-            elapsed = 0;
+        while (elapsed >= fireInterval && fired < shots) {
+            elapsed -= fireInterval;
             fireOnce(plant, GameSession.peekInstance());
         }
     }
@@ -38,10 +40,7 @@ public class LobberBarrage implements PlantFoodEffect {
 
     @Override
     public double getDurationSeconds() {
-        // +2.5s beyond the last shot so the boosted state (and "plantfood" animation)
-        // stays visible for a moment after the barrage finishes firing, not just for the
-        // exact span of the shots themselves.
-        return Math.max(0.0, (shots - 1) * FIRE_INTERVAL + 0.1) + 2.5;
+        return shots * fireInterval + TAIL_SECONDS;
     }
 
     @Override

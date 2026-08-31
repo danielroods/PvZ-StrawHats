@@ -101,7 +101,43 @@ class EffectRenderer {
         return MUZZLE_OFFSETS.getOrDefault(plantName.toLowerCase(), DEFAULT_MUZZLE_OFFSET);
     }
 
+    private static final float[] NO_MUZZLE_NUDGE = {0f, 0f};
+    private static final float[] PEA_MUZZLE_NUDGE = {30f, 0f};
+    private static final float[] PULT_MUZZLE_NUDGE = {-30f, 50f};
+    private static final Map<String, float[]> MUZZLE_NUDGES = buildMuzzleNudges();
+
+    private static Map<String, float[]> buildMuzzleNudges() {
+        Map<String, float[]> nudges = new java.util.HashMap<>();
+        for (String pea : new String[] {"Peashooter", "Repeater", "Threepeater", "Split Pea",
+                "Pea Pod", "Mega Gatling Pea", "Snow Pea", "Fire Peashooter", "Goo Peashooter"}) {
+            nudges.put(pea.toLowerCase(), PEA_MUZZLE_NUDGE);
+        }
+        for (String pult : new String[] {"Cabbage-pult", "Kernel-pult", "Melon-pult",
+                "Winter Melon", "Pepper-pult"}) {
+            nudges.put(pult.toLowerCase(), PULT_MUZZLE_NUDGE);
+        }
+        return nudges;
+    }
+
+    private static float[] muzzleNudgeFor(String plantName) {
+        if (plantName == null) return NO_MUZZLE_NUDGE;
+        return MUZZLE_NUDGES.getOrDefault(plantName.toLowerCase(), NO_MUZZLE_NUDGE);
+    }
+
+    private static float muzzleX(float[] offset, boolean backwards) {
+        return backwards ? 1f - offset[0] : offset[0];
+    }
+
     private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
+    private static final float DEFAULT_PROJECTILE_SCALE_FACTOR = 1f;
+    private static final Map<String, Float> PROJECTILE_SCALE_FACTORS =
+            Map.of("cat-tail", 0.5f);
+
+    private static float projectileScaleFactor(String plantName) {
+        if (plantName == null) return DEFAULT_PROJECTILE_SCALE_FACTOR;
+        return PROJECTILE_SCALE_FACTORS.getOrDefault(plantName.toLowerCase(),
+                DEFAULT_PROJECTILE_SCALE_FACTOR);
+    }
     private static final String GRAPESHOT = "Grapeshot";
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
     private static final String ZOMBIE_PEA_PAM =
@@ -234,10 +270,13 @@ class EffectRenderer {
         final float scale;
         final float offsetX;
         final float offsetY;
+        final float nudgeX;
+        final float nudgeY;
         float time;
 
         ProjectileImpactEffect(String path, String state, boolean staticImage, Position position,
-                               float duration, float scale, float offsetX, float offsetY) {
+                               float duration, float scale, float offsetX, float offsetY,
+                               float nudgeX, float nudgeY) {
             this.path = path;
             this.state = state;
             this.staticImage = staticImage;
@@ -246,6 +285,8 @@ class EffectRenderer {
             this.scale = scale;
             this.offsetX = offsetX;
             this.offsetY = offsetY;
+            this.nudgeX = nudgeX;
+            this.nudgeY = nudgeY;
         }
     }
 
@@ -859,7 +900,9 @@ class EffectRenderer {
                     projectile.getPosition(), alpha);
             if (drawAt == null) continue;
             int row = (int) Math.round(drawAt.y());
-            screen.queueRowDraw(row, () -> {
+            int layer = drawsBehindPlants(projectile, drawAt)
+                    ? GameScreen.ROW_LAYER_BEHIND_PLANTS : GameScreen.ROW_LAYER_DEFAULT;
+            screen.queueRowDraw(row, layer, () -> {
                 if (!drawProjectilePam(projectile, drawAt, age)) {
                     drawSmallDot(drawAt, new Color(0.95f, 0.9f, 0.18f, 1f));
                 }
@@ -902,9 +945,10 @@ class EffectRenderer {
                 if (exact > 0f) duration = exact;
             }
             float[] offset = muzzleOffsetFor(impact.plantName());
+            float[] nudge = muzzleNudgeFor(impact.plantName());
             projectileImpactEffects.add(new ProjectileImpactEffect(entry.path(), entry.state(),
                     entry.isStaticImage(), at, duration, PROJECTILE_DRAW_SCALE,
-                    offset[0], offset[1]));
+                    offset[0], offset[1], nudge[0], nudge[1]));
         }
     }
 
@@ -915,8 +959,9 @@ class EffectRenderer {
         for (ProjectileImpactEffect effect : projectileImpactEffects) {
             effect.time += delta;
             float x = GameScreen.BOARD_X + (float) effect.position.x() * tileWidth
-                    + tileWidth * effect.offsetX;
-            float y = screen.cellY(effect.position.y()) + tileHeight * effect.offsetY;
+                    + tileWidth * effect.offsetX + effect.nudgeX;
+            float y = screen.cellY(effect.position.y()) + tileHeight * effect.offsetY
+                    + effect.nudgeY;
             float time = effect.time;
             int row = (int) Math.round(effect.position.y());
             screen.queueRowDraw(row, () -> {
@@ -947,10 +992,10 @@ class EffectRenderer {
                         ProjectileEffectAssets.Variant.PLANT_FOOD);
                 if (!pfEntries.isEmpty()) {
                     ProjectileEffectAssets.AssetEntry entry = pfEntries.get(0);
+                    float pulseSeconds = Math.max(1.0f, (float) plant.getPlantFoodTimer());
                     impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
                             entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
-                            entry.isStaticImage(), plant.getPosition(),
-                            ("Phat Beet".equalsIgnoreCase(name) ? 5.0f : 1.2f),
+                            entry.isStaticImage(), plant.getPosition(), pulseSeconds,
                             PROJECTILE_PAM_SCALE));
                 }
             }
@@ -1024,7 +1069,8 @@ class EffectRenderer {
             if (position == null || isOffBoard(position)) continue;
             projectileImpactEffects.add(new ProjectileImpactEffect(ZOMBIE_PEA_SPLAT_PAM,
                     "animation", false, position, IMPACT_EFFECT_DURATION, PROJECTILE_DRAW_SCALE,
-                    DEFAULT_MUZZLE_OFFSET[0], DEFAULT_MUZZLE_OFFSET[1]));
+                    DEFAULT_MUZZLE_OFFSET[0], DEFAULT_MUZZLE_OFFSET[1],
+                    NO_MUZZLE_NUDGE[0], NO_MUZZLE_NUDGE[1]));
             AudioManager.get().playSound(AudioEnum.SFX_BUBBLE_HIT);
         }
         zombieProjectileAnimTimes.keySet().removeIf(p -> !live.contains(p));
@@ -1163,20 +1209,26 @@ class EffectRenderer {
                 : ProjectileEffectAssets.Variant.NORMAL;
 
         float[] muzzle = muzzleOffsetFor(sourceName);
+        float[] nudge = muzzleNudgeFor(sourceName);
+        boolean backwards = projectile.isFiredBackwards();
         float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                + screen.getBoardTileWidth() * muzzle[0];
+                + screen.getBoardTileWidth() * muzzleX(muzzle, backwards)
+                + (backwards ? -nudge[0] : nudge[0]);
         // cellY takes the fractional row, so a lobbed shot's arc and a lane-shifting
         // shot's slide render as the smooth curves the model computes rather than being
         // truncated onto whole rows.
-        float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * muzzle[1];
+        float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * muzzle[1] + nudge[1];
+
+        float scaleFactor = projectileScaleFactor(sourceName);
 
         if (projectile.getDisplayPath() != null && projectile.getDisplayState() != null) {
+            float displayScale = PROJECTILE_DRAW_SCALE * scaleFactor;
             if (flip) {
                 screen.drawPamMirrored(projectile.getDisplayPath(), projectile.getDisplayState(), age,
-                        x, y, PROJECTILE_DRAW_SCALE);
+                        x, y, displayScale);
             } else {
                 screen.drawPam(projectile.getDisplayPath(), projectile.getDisplayState(), age,
-                        x, y, PROJECTILE_DRAW_SCALE, false);
+                        x, y, displayScale, false);
             }
             return true;
         }
@@ -1192,11 +1244,12 @@ class EffectRenderer {
                 entries.get(Math.min(projectile.getAssetVariant(), entries.size() - 1));
 
         boolean freeFlying = projectile instanceof GrapeshotProjectile;
-        float drawScale = freeFlying
-                ? PROJECTILE_PAM_SCALE * GRAPE_PROJECTILE_SCALE_FACTOR : PROJECTILE_DRAW_SCALE;
+        float drawScale = scaleFactor * (freeFlying
+                ? PROJECTILE_PAM_SCALE * GRAPE_PROJECTILE_SCALE_FACTOR : PROJECTILE_DRAW_SCALE);
 
         if (entry.isStaticImage()) {
-            return screen.assets().drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE, flip);
+            return screen.assets().drawStaticEffect(entry.path(), x, y,
+                    STATIC_PROJECTILE_SCALE * scaleFactor, flip);
         }
         // Note: this used to (incorrectly) pass entry.playMode()==LOOP into the "flip"
         // slot, which had nothing to do with travel direction — that's why deflected
@@ -1213,6 +1266,15 @@ class EffectRenderer {
         }
         return screen.drawPam(entry.path(), entry.state(), age, x, y, drawScale, false);
     }
+
+    private boolean drawsBehindPlants(Projectile projectile, Position drawAt) {
+        if (!"Cat-tail".equalsIgnoreCase(projectile.getSourcePlantName())) return false;
+        Plant source = projectile.getSourcePlant();
+        if (source == null || source.getPosition() == null || drawAt == null) return true;
+        return drawAt.distanceTo(source.getPosition()) <= CAT_TAIL_BEHIND_RADIUS;
+    }
+
+    private static final float CAT_TAIL_BEHIND_RADIUS = 0.8f;
 
     /** True once a projectile's horizontal speed has gone negative (e.g. after a Jester deflection). */
     private boolean isTravellingLeft(Projectile projectile) {

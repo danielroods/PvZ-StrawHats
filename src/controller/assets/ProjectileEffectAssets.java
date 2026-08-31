@@ -132,10 +132,9 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "plain pea shot (fires twice)"),
-                entry("768/INITIAL/EFFECTS/REPEATER_PLANTFOOD_GIANTPEA/"
-                                + "REPEATER_PLANTFOOD_GIANTPEA.PAM",
-                        "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
-                        "giant pea, repeater-specific PF"),
+                entry("768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM",
+                        "animation2", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
+                        "plant food pea shot (giant pea finisher sets its own display)"),
                 entry(SPLAT_PEA, "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "pea impact splat")
         );
@@ -155,10 +154,9 @@ public final class ProjectileEffectAssets {
                 entry("768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "plain pea shot"),
-                entry("768/FULL/EFFECTS/PEAPOD_PLANTFOOD_GIANTPEA/"
-                                + "PEAPOD_PLANTFOOD_GIANTPEA.PAM",
-                        "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
-                        "giant pea, pea-pod-specific PF (note: FULL, not INITIAL, folder)"),
+                entry("768/INITIAL/EFFECTS/T_PEA_PROJECTILE/T_PEA_PROJECTILE.PAM",
+                        "animation2", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
+                        "plant food pea shot (giant pea finisher sets its own display)"),
                 entry(SPLAT_PEA, "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "pea impact splat")
         );
@@ -408,7 +406,10 @@ public final class ProjectileEffectAssets {
                         "piercing gas cloud (no hit-effect asset given)"),
                 entry("768/INITIAL/EFFECTS/FUMESHROOM_BUBBLES/FUMESHROOM_BUBBLES.PAM",
                         "plantfood", PlayMode.LOOP, Kind.PROJECTILE, Variant.PLANT_FOOD,
-                        "PF piercing gas cloud")
+                        "PF piercing gas cloud"),
+                entry("768/INITIAL/EFFECTS/FUMESHROOM_BUBBLES_HIT/FUMESHROOM_BUBBLES_HIT.PAM",
+                        "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
+                        "gas impact puff, used by both the normal fume and the PF cloud")
         );
     }
 

@@ -230,7 +230,7 @@ class SessionBoard {
         boolean flooded = cell.getTile() != null
                 && cell.getTile().type() == TileType.Water;
 
-        if (plant.getName().equalsIgnoreCase("Sea-shroom") && !flooded) {
+        if (plant.getTags().contains(PlantTag.WATER) && !flooded) {
             return false;
         }
 

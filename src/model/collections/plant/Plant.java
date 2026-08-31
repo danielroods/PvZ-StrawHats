@@ -384,15 +384,20 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public boolean activatePlant(GameSession session) {
         if (this.plantFoodEffect == null || this.plantFoodTimer > 0 || session == null || !isAlive()) return false;
         this.plantFoodEffect.reset();
-        if (this.growthTracker != null && !"Kiwibeast".equalsIgnoreCase(name)) this.growthTracker.skipToMaxStage();
-        for (Plant sibling : session.getPlants()) {
+        if (this.growthTracker != null) this.growthTracker.skipToMaxStage();
+        for (Plant sibling : new ArrayList<>(session.getPlants())) {
             if (sibling != null && sibling.isAlive() && sibling.getId() == this.id
                     && sibling.getLifespanSeconds() > 0) {
                 sibling.resetLifespan();
             }
         }
         this.plantFoodEffect.applyStatusModifiers(this);
-        this.plantFoodEffect.triggerSuperpower(this, session);
+        this.plantFoodTimer = Double.POSITIVE_INFINITY;
+        try {
+            this.plantFoodEffect.triggerSuperpower(this, session);
+        } finally {
+            this.plantFoodTimer = 0.0;
+        }
         if (isPotatoMine()) {
             this.plantFoodTimer = 0.0;
             setVisualAnimationState("plantfood2", 0.67);
@@ -418,17 +423,19 @@ public abstract class Plant extends Item implements Pluck, Attack {
             setVisualAnimationState("plantfood", visualDuration);
         }
 
-        // Puff-shroom: feeding any one of them applies the full Plant Food boost (burst +
-        // "plantfood" animation), not just the lifespan reset every shroom already gets
-        // above, to every other live Puff-shroom currently on the field.
         if ("Puff-shroom".equalsIgnoreCase(name)) {
-            for (Plant sibling : session.getPlants()) {
+            for (Plant sibling : new ArrayList<>(session.getPlants())) {
                 if (sibling == this || sibling == null || !sibling.isAlive()) continue;
                 if (sibling.getId() != this.id || sibling.plantFoodEffect == null) continue;
                 if (sibling.plantFoodTimer > 0) continue;
                 sibling.plantFoodEffect.reset();
                 sibling.plantFoodEffect.applyStatusModifiers(sibling);
-                sibling.plantFoodEffect.triggerSuperpower(sibling, session);
+                sibling.plantFoodTimer = Double.POSITIVE_INFINITY;
+                try {
+                    sibling.plantFoodEffect.triggerSuperpower(sibling, session);
+                } finally {
+                    sibling.plantFoodTimer = 0.0;
+                }
                 sibling.plantFoodTimer = Math.max(0.0, sibling.plantFoodEffect.getDurationSeconds());
             }
         }

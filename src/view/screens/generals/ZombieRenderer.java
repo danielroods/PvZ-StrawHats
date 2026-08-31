@@ -89,6 +89,7 @@ class ZombieRenderer {
     // frames (transparent pixels stay transparent) instead of drawing a flat colored shape
     // over it.
     private static final Color FREEZE_TINT = new Color(0.55f, 0.78f, 1f, 1f);
+    private static final Color FROZEN_TINT = new Color(0.42f, 0.68f, 1f, 1f);
     private static final Color FREEZE_FALLBACK_TINT = new Color(0.35f, 0.55f, 0.85f, 1f);
 
     // Same idea as FREEZE_TINT, but for a hypnotized zombie's body - a purple/pink wash
@@ -316,7 +317,11 @@ class ZombieRenderer {
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
-            boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE;
+            // FROZEN is the solid freeze (Ice-shroom, Iceberg Lettuce's and Snow Pea's
+            // Plant Food); FREEZE is the chill a snow projectile leaves. Both read as ice,
+            // so both get the blue wash - previously a zombie frozen stiff looked untouched.
+            boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE
+                    || zombie.getStatus() == Zombie.Status.FROZEN;
             ZombieVisualArgs visualArgs = new ZombieVisualArgs(t, x, zombieDrawY, zombieOffsetY,
                     submerged, hypnotized, chilled, preferred, path, animationTime, elementVisibility,
                     plantHead, clipWaterY, waterRipple, rippleDrawX, rippleDrawY,
@@ -366,8 +371,9 @@ class ZombieRenderer {
         float delta = a.delta();
 
         boolean waterClipActive = submerged && pushWaterClip(clipWaterY);
-       boolean tinted = hypnotized || chilled;
-        Color tint = hypnotized ? HYPNO_TINT : FREEZE_TINT;
+        boolean tinted = hypnotized || chilled;
+        boolean frozenSolid = zombie.getStatus() == Zombie.Status.FROZEN;
+        Color tint = hypnotized ? HYPNO_TINT : frozenSolid ? FROZEN_TINT : FREEZE_TINT;
         try {
             drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
             drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());

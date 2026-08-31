@@ -84,6 +84,7 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
         offDuration = offClip > 0f ? offClip : OFF_DURATION_FALLBACK;
 
         plant.setVisualAnimationState("plantfood_on", onDuration);
+        plant.setSpecialInvulnerable(true);
 
         Position center = plant.getPosition();
         if (center == null || session == null) return;
@@ -126,6 +127,10 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
             if (!"plantfood_on".equals(plant.getVisualAnimationState())) {
                 plant.setVisualAnimationState("plantfood_on", onDuration - elapsed);
             }
+            for (Zombie zombie : grabbed) {
+                if (zombie == null || !zombie.isAlive()) continue;
+                zombie.applyStatus(Zombie.Status.BUTTER, Math.max(0.1, deltaTimeSeconds * 2.0));
+            }
             return;
         }
 
@@ -149,11 +154,15 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
                 if (zombie == null || !zombie.isAlive()) continue;
                 zombie.setDragUnderWaterProgress(1.0);
                 zombie.markDragUnderWaterDeath();
-                zombie.takeDamage(LETHAL_DAMAGE, plant);
+                zombie.takeDamage(Math.max(LETHAL_DAMAGE, plant.getDamage()), plant);
             }
         }
         if (!"plantfood_off".equals(plant.getVisualAnimationState())) {
             plant.setVisualAnimationState("plantfood_off", Math.max(0.05, getDurationSeconds() - elapsed));
+        }
+        if (elapsed >= getDurationSeconds()) {
+            plant.setSpecialInvulnerable(false);
+            plant.setAlive(false);
         }
     }
 

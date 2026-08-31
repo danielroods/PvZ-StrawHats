@@ -209,7 +209,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 60.0,
+    "plantFoodValue": 300.0,
     "upgrades": [
       {
         "level": 2,
@@ -246,7 +246,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 2.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 120.0,
+    "plantFoodValue": 400.0,
     "upgrades": [
       {
         "level": 2,
@@ -283,7 +283,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 3.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 180.0,
+    "plantFoodValue": 300.0,
     "upgrades": [
       {
         "level": 2,
@@ -321,7 +321,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 60.0,
+    "plantFoodValue": 300.0,
     "upgrades": [
       {
         "level": 2,
@@ -350,13 +350,13 @@
     "tags": [],
     "cost": 150,
     "baseHp": 300,
-    "damage": 10,
+    "damage": 25,
     "actionInterval": 1.5,
     "recharge": 5.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 4.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 40.0,
+    "plantFoodValue": 60.0,
     "upgrades": [
       {
         "level": 2,
@@ -394,7 +394,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 5.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 100.0,
+    "plantFoodValue": 400.0,
     "upgrades": [
       {
         "level": 2,
@@ -431,7 +431,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 3.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 90.0,
+    "plantFoodValue": 300.0,
     "upgrades": [
       {
         "level": 2,
@@ -543,7 +543,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
     "plantFoodType": "RANDOM_INSTANT_KILL",
-    "plantFoodValue": 3.0,
+    "plantFoodValue": 0.0,
     "upgrades": [
       {
         "level": 2,
@@ -653,7 +653,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 120.0,
+    "plantFoodValue": 400.0,
     "upgrades": [
       {
         "level": 2,
@@ -762,7 +762,7 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 4.0,
     "plantFoodType": "PROJECTILE_BURST",
-    "plantFoodValue": 350.0,
+    "plantFoodValue": 500.0,
     "upgrades": [
       {
         "level": 2,
@@ -878,8 +878,8 @@
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 3.0,
     "attackRange": 4.5,
-    "plantFoodType": "KNOCKBACK_BLAST",
-    "plantFoodValue": 100.0,
+    "plantFoodType": "LOCAL_AOE_ATTACK",
+    "plantFoodValue": 200.0,
     "upgrades": [
       {
         "level": 2,
@@ -948,7 +948,7 @@
     "recharge": 5.0,
     "abilityType": "SHOOT_PROJECTILE",
     "abilityValue": 1.0,
-    "plantFoodType": "MAP_WIDE_BUTTER",
+    "plantFoodType": "LOBBER_BARRAGE",
     "plantFoodValue": 5.0,
     "upgrades": [
       {
@@ -1362,7 +1362,7 @@
     "abilityType": "DELAYED_EXPLOSIVE",
     "abilityValue": 1.0,
     "plantFoodType": "PULL_UNDERWATER",
-    "plantFoodValue": 4.0,
+    "plantFoodValue": 5.0,
     "upgrades": [
       {
         "level": 2,
@@ -1399,8 +1399,8 @@
     "recharge": 5.0,
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 1.0,
-    "plantFoodType": "MAP_WIDE_BUTTER",
-    "plantFoodValue": 5.0,
+    "plantFoodType": "MAP_WIDE_FREEZE",
+    "plantFoodValue": 12.0,
     "upgrades": [
       {
         "level": 2,
@@ -1435,7 +1435,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 1.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 9.0,
+    "plantFoodValue": 45.0,
     "upgrades": [
       {
         "level": 2,
@@ -1472,7 +1472,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 2.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 60.0,
+    "plantFoodValue": 90.0,
     "upgrades": [
       {
         "level": 2,
@@ -1544,7 +1544,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 1.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 9.0,
+    "plantFoodValue": 80.0,
     "upgrades": [
       {
         "level": 2,
@@ -1582,7 +1582,7 @@
     "abilityType": "MELEE_ATTACK",
     "abilityValue": 2.0,
     "plantFoodType": "LOCAL_AOE_ATTACK",
-    "plantFoodValue": 90.0,
+    "plantFoodValue": 400.0,
     "wramp-up": [
       {
         "stage": 2,
@@ -1884,7 +1884,7 @@
     "abilityType": "PASSIVE_SHIELD",
     "abilityValue": 5.0,
     "plantFoodType": "GRANT_PERMANENT_ARMOR",
-    "plantFoodValue": 1000.0,
+    "plantFoodValue": 4000.0,
     "upgrades": [
       {
         "level": 2,

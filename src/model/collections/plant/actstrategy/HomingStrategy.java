@@ -58,8 +58,7 @@ public class HomingStrategy implements ActStrategy {
     }
 
     private Zombie randomTarget(List<Zombie> zombies) {
-        List<Zombie> alive = zombies.stream()
-                .filter(z -> z != null && z.isAlive() && z.getPosition() != null).toList();
+        List<Zombie> alive = zombies.stream().filter(HomingStrategy::isTargetable).toList();
         if (alive.isEmpty()) return null;
         return alive.get(ThreadLocalRandom.current().nextInt(alive.size()));
     }
@@ -68,7 +67,7 @@ public class HomingStrategy implements ActStrategy {
         Zombie nearest = null;
         double shortest = Double.MAX_VALUE;
         for (Zombie z : zombies) {
-            if (z == null || !z.isAlive() || z.getPosition() == null) continue;
+            if (!isTargetable(z)) continue;
             double dist = z.getPosition().distanceTo(user.getPosition());
             if (dist < shortest) {
                 shortest = dist;
@@ -76,5 +75,10 @@ public class HomingStrategy implements ActStrategy {
             }
         }
         return nearest;
+    }
+
+    private static boolean isTargetable(Zombie zombie) {
+        return zombie != null && zombie.isAlive() && !zombie.isHypnotized()
+                && zombie.getPosition() != null;
     }
 }

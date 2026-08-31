@@ -83,12 +83,17 @@ public class GameScreen extends UiScreen {
     private float sandStormAnimTime;
     private final Map<String, Float> clipTimes = new java.util.HashMap<>();
 
+    static final int ROW_LAYER_BEHIND_PLANTS = -1;
+    static final int ROW_LAYER_DEFAULT = 0;
+
     private static final class QueuedRowDraw {
         final int row;
+        final int layer;
         final Runnable draw;
 
-        QueuedRowDraw(int row, Runnable draw) {
+        QueuedRowDraw(int row, int layer, Runnable draw) {
             this.row = row;
+            this.layer = layer;
             this.draw = draw;
         }
     }
@@ -96,12 +101,18 @@ public class GameScreen extends UiScreen {
     private final List<QueuedRowDraw> rowDrawQueue = new ArrayList<>();
 
     void queueRowDraw(int row, Runnable draw) {
-        rowDrawQueue.add(new QueuedRowDraw(row, draw));
+        queueRowDraw(row, ROW_LAYER_DEFAULT, draw);
+    }
+
+    void queueRowDraw(int row, int layer, Runnable draw) {
+        rowDrawQueue.add(new QueuedRowDraw(row, layer, draw));
     }
 
     private void flushRowDrawQueue() {
         if (rowDrawQueue.isEmpty()) return;
-        rowDrawQueue.sort(Comparator.comparingInt(q -> q.row));
+        // A stable sort, so within one row+layer everything keeps its submission order.
+        rowDrawQueue.sort(Comparator.<QueuedRowDraw>comparingInt(q -> q.row)
+                .thenComparingInt(q -> q.layer));
         for (QueuedRowDraw queued : rowDrawQueue) {
             queued.draw.run();
         }

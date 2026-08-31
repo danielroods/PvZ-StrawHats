@@ -255,10 +255,13 @@ public class IZombieMatch {
         if (card.cost() > plantSun) return "Not enough sun for " + card.name() + ".";
         Cell cell = session.getEnvironment().getCell(row, col);
         if (cell == null) return "That tile does not exist.";
-        if (cell.hasPlant()) return "There is already a plant there.";
 
         Plant plant = PlantFactory.createPlant(card.plantId(), 1, new Position(col, row));
-        if (!session.plantAt(row, col, plant)) return "You cannot plant there.";
+        if (!session.plantAt(row, col, plant)) {
+            return cell.hasPlant()
+                    ? "There is already a plant there."
+                    : "You cannot plant there.";
+        }
         plantSun -= card.cost();
         session.startPlantCooldown(card.plantId(), card.recharge());
         return null;

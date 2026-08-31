@@ -9,6 +9,7 @@ import controller.assets.ProjectileEffectAssets;
 import model.collections.animations.AnimationFactory;
 import model.collections.plant.AbilityType;
 import model.collections.plant.Plant;
+import model.collections.plant.PlantFoodEffect;
 import model.collections.plant.PlantTag;
 import model.collections.plant.PlantType;
 import model.collections.plant.plantfood.TangleKelpPlantFood;
@@ -439,6 +440,13 @@ class PlantRenderer {
             float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
             animTime = t;
             if (clipDuration > 0f) animTime %= clipDuration;
+        } else if (sunBeanHasPlantFoodShield(plant) && plant.getVisualAnimationState() == null) {
+            // Sun Bean's Plant Food shell is the "plantfood" clip, and it stays up for as
+            // long as the armour it granted survives - not just for the boost window. The
+            // "plantfood_on" intro GrantArmor sets runs first through the visual-state
+            // branch below, which is why this only takes over once that has finished.
+            preferredState = "plantfood";
+            animTime = t;
         } else if (plant.isWallNut() && plant.getVisualAnimationState() != null) {
             preferredState = plant.getVisualAnimationState();
             animTime = (float) plant.getVisualAnimationElapsed();
@@ -659,8 +667,16 @@ class PlantRenderer {
             drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
                     0.55f, false, endurianVisibility(plant, preferredState));
         } else if (isMagnetShroom(plant)) {
-           Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
-            magnetVisibility.put("Magnet_Item", plant.isMagnetItemVisible());
+            // The "Magnet_Item" slot is where the real game swaps in whatever metal object
+            // the magnet just pulled off a zombie. The shipped atlas has no such artwork
+            // for it - MAGNETSHROOM_67X67, the image the PAM points that slot at, is a flat
+            // purple placeholder square - so showing it drew a purple block over the plant.
+            // Keep it hidden; the catch still reads through the plant's own catch/plantfood
+            // clips and the metal the zombie loses. Plant#isMagnetItemVisible stays as the
+            // model's record of "holding something" (it is synced to online clients), it
+            // just has no artwork to draw for it.
+            Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
+            magnetVisibility.put(MAGNET_ITEM_ELEMENT, false);
             drawn = screen.drawPam(path, preferredState, animTime,
                     plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
         } else {
@@ -1035,6 +1051,11 @@ class PlantRenderer {
         if (isHeadbutterLettuce(plant)) {
             return "plantfood_loop";
         }
+        // Cat-tail borrows Homing Thistle's rig, whose sustained-fire clip is the one
+        // meant to be repeated for the length of the volley.
+        if (isCatTail(plant)) {
+            return "plantfood_loop";
+        }
         if (isSunShroom(plant)) {
             return switch (plant.getGrowthStage()) {
                 case 2 -> "plantfood_stage2";
@@ -1054,15 +1075,32 @@ class PlantRenderer {
         return "plantfood";
     }
 
-    /**
-     * The family of plants that show their Plant Food clip ({@link #plantFoodClipState})
-     * for the entire Plant Food duration rather than just the brief fire-event window
-     * handled by the "attacking" branch above.
-     */
     private boolean showsPlantFoodLoopForFullDuration(Plant plant) {
-        return isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant) || isFumeShroom(plant)
-                || isMagnetShroom(plant);
+        if (plant == null) return false;
+        if (plant.isCactus() || "Torchwood".equalsIgnoreCase(plant.getName())) return false;
+        if (isSunProducerFamily(plant) || isSeaShroom(plant) || isPuffShroom(plant)
+                || isFumeShroom(plant) || isMagnetShroom(plant) || isCatTail(plant)
+                || isElectricBlueberry(plant)) {
+            return true;
+        }
+        PlantFoodEffect effect = plant.getPlantFoodEffect();
+        return effect != null && effect.drivesActStrategy();
     }
+
+    private boolean isCatTail(Plant plant) {
+        return plant != null && "Cat-tail".equalsIgnoreCase(plant.getName());
+    }
+
+    private boolean isElectricBlueberry(Plant plant) {
+        return plant != null && "Electric Blueberry".equalsIgnoreCase(plant.getName());
+    }
+
+    private boolean sunBeanHasPlantFoodShield(Plant plant) {
+        return plant != null && "Sun Bean".equalsIgnoreCase(plant.getName())
+                && plant.getArmor() != null && plant.getArmor().getHP() > 0;
+    }
+
+    private static final String MAGNET_ITEM_ELEMENT = "Magnet_Item";
 
     private boolean isMagnetShroom(Plant plant) {
         return plant != null && "Magnet-shroom".equalsIgnoreCase(plant.getName());

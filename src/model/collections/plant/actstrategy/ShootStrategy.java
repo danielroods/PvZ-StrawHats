@@ -85,7 +85,7 @@ public class ShootStrategy implements ActStrategy {
     private MoveStrategy buildMoveStrategy(Plant user, Position direction, double speed) {
         double dx = direction.x();
         double dy = direction.y();
-        if (dx == 0 || Math.abs(Math.abs(dy) - 1.0) > LANE_EPSILON) return new StraightMove();
+        if (!isLaneShift(dx, dy)) return new StraightMove();
 
         double laneY = Math.round(user.getPosition().y()) + dy;
         return new LaneShiftMove(laneY, Math.signum(dx) * speed);
@@ -164,7 +164,7 @@ public class ShootStrategy implements ActStrategy {
             return Math.abs(relY) < 0.75 && Math.signum(relX) == Math.signum(dx);
         }
 
-        if (dx != 0 && Math.abs(dy) <= 1.5) {
+        if (isLaneShift(dx, dy)) {
             boolean correctXDir = Math.signum(relX) == Math.signum(dx) && Math.abs(relX) > 0;
             boolean correctRow = Math.abs(relY - dy) < 0.75;
             return correctXDir && correctRow;
@@ -176,5 +176,9 @@ public class ShootStrategy implements ActStrategy {
         double ndy = dy / dirLen;
         double dot = (relX / relLen) * ndx + (relY / relLen) * ndy;
         return dot > 0.6;
+    }
+
+    private static boolean isLaneShift(double dx, double dy) {
+        return dx != 0 && Math.abs(Math.abs(dy) - 1.0) <= LANE_EPSILON;
     }
 }

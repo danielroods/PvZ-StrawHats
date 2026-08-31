@@ -10,26 +10,14 @@ import model.pitches.TileType;
 import model.utils.GameSession;
 import service.GameClock;
 
-/**
- * Tangle Kelp's normal (non-Plant-Food) attack.
- *
- * Timeline: "idle" (lurking, nothing in reach) -> a zombie steps onto its water tile ->
- * "attack_submerge" (prepping the grab) -> "attack" (the grab itself - the target is
- * dragged smoothly under the fixed water ripple over this window and dies once fully
- * submerged) -> the plant is consumed, same as the real game.
- *
- * Gargantuars can't be dragged under and are ignored entirely, same as
- * {@link model.collections.plant.plantfood.TangleKelpPlantFood}.
- *
- * There is no deltaTime parameter on {@link ActStrategy#act}, but every simulation tick is
- * a fixed {@link GameClock#SECONDS_PER_TICK} (see SessionTicker), so that constant is used
- * directly to advance the phase timers here.
- */
 public class TangleKelpStrategy implements ActStrategy {
-    private static final double TRAP_ACTIVATION_RADIUS = 0.3;
     private static final double SUBMERGE_DURATION_FALLBACK = 0.4;
     private static final double ATTACK_DURATION_FALLBACK = 0.6;
     private static final int LETHAL_DAMAGE = 9999;
+
+    private static int lethalDamage(Plant user) {
+        return Math.max(LETHAL_DAMAGE, user.getDamage());
+    }
 
     private enum Phase { WAITING, SUBMERGING, ATTACKING, DONE }
 
@@ -51,9 +39,10 @@ public class TangleKelpStrategy implements ActStrategy {
                 if (grabbedZombie == null || !grabbedZombie.isAlive()) {
                     // The target died or was otherwise removed before the grab landed;
                     // go back to lurking instead of grabbing an empty tile.
-                    resetToWaiting();
+                    resetToWaiting(user);
                     return;
                 }
+                holdVictim(delta);
                 if (phaseTimer >= submergeDuration) {
                     beginAttack(user);
                 }
@@ -61,17 +50,18 @@ public class TangleKelpStrategy implements ActStrategy {
             case ATTACKING -> {
                 phaseTimer += delta;
                 if (grabbedZombie != null && grabbedZombie.isAlive()) {
-                    grabbedZombie.applyStatus(Zombie.Status.BUTTER, Math.max(0.1, delta * 2.0));
+                    holdVictim(delta);
                     double progress = attackDuration > 0
                             ? Math.min(1.0, phaseTimer / attackDuration) : 1.0;
                     grabbedZombie.setDragUnderWaterProgress(progress);
                     if (phaseTimer >= attackDuration) {
                         grabbedZombie.markDragUnderWaterDeath();
-                        grabbedZombie.takeDamage(LETHAL_DAMAGE, user);
+                        grabbedZombie.takeDamage(lethalDamage(user), user);
                     }
                 }
                 if (phaseTimer >= attackDuration) {
                     phase = Phase.DONE;
+                    user.setSpecialInvulnerable(false);
                     user.setAlive(false);
                 }
             }
@@ -79,10 +69,17 @@ public class TangleKelpStrategy implements ActStrategy {
         }
     }
 
-    private void resetToWaiting() {
+    private void holdVictim(double delta) {
+        if (grabbedZombie == null || !grabbedZombie.isAlive()) return;
+        grabbedZombie.applyStatus(Zombie.Status.BUTTER, Math.max(0.1, delta * 2.0));
+    }
+
+    private void resetToWaiting(Plant user) {
         phase = Phase.WAITING;
         phaseTimer = 0.0;
         grabbedZombie = null;
+        user.setSpecialInvulnerable(false);
+        user.clearVisualAnimationState();
     }
 
     private void tryGrab(Plant user, GameSession session) {
@@ -92,6 +89,7 @@ public class TangleKelpStrategy implements ActStrategy {
         grabbedZombie = target;
         phase = Phase.SUBMERGING;
         phaseTimer = 0.0;
+        user.setSpecialInvulnerable(true);
 
         float submergeClip = AnimationFactory.clipDurationForDisplayName(user.getName(), "attack_submerge");
         submergeDuration = submergeClip > 0f ? submergeClip : SUBMERGE_DURATION_FALLBACK;
@@ -112,16 +110,22 @@ public class TangleKelpStrategy implements ActStrategy {
         double shortest = Double.MAX_VALUE;
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
+            if (zombie.isHypnotized()) continue;
             if (zombie.getRace() == ZombieRace.GARGANTUAR) continue;
             if (!isOnWaterTile(zombie.getPosition(), session)) continue;
+            if (!isOnTile(zombie.getPosition(), user.getPosition())) continue;
             double distance = zombie.getPosition().distanceTo(user.getPosition());
-            if (distance >= TRAP_ACTIVATION_RADIUS) continue;
             if (distance < shortest) {
                 shortest = distance;
                 closest = zombie;
             }
         }
         return closest;
+    }
+
+    private boolean isOnTile(Position zombie, Position plant) {
+        return Math.round(zombie.x()) == Math.round(plant.x())
+                && Math.round(zombie.y()) == Math.round(plant.y());
     }
 
     private boolean isOnWaterTile(Position position, GameSession session) {

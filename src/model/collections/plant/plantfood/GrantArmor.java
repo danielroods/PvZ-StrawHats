@@ -20,6 +20,15 @@ public class GrantArmor implements PlantFoodEffect {
     public void triggerSuperpower(Plant plant, GameSession session) {
         if (plant == null) return;
 
+        if (isSunBean(plant)) {
+            float intro = AnimationFactory.exactClipDurationForPath(
+                    AnimationFactory.pathForDisplayName(plant.getName()), "plantfood_on");
+            double introSeconds = intro > 0f ? intro : 1.0;
+            runtimeDuration = introSeconds + 1.0;
+            plant.setVisualAnimationState("plantfood_on", introSeconds);
+            return;
+        }
+
         if (plant.isPumpkin() || plant.isWallNut() || plant.isTallNut() || plant.isEndurian()
                 || plant.isExplodeONut()) {
             String initialState = resolveInitialState(plant);
@@ -37,6 +46,10 @@ public class GrantArmor implements PlantFoodEffect {
                 bottom.activatePlantFoodFromPumpkin(session);
             }
         }
+    }
+
+    private static boolean isSunBean(Plant plant) {
+        return plant != null && "Sun Bean".equalsIgnoreCase(plant.getName());
     }
 
     private static String resolveInitialState(Plant plant) {

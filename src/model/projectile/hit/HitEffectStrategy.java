@@ -5,6 +5,8 @@ import model.collections.zombie.Zombie;
 public interface HitEffectStrategy {
     void apply(Zombie zombie);
 
+    default void beforeDamage(Zombie zombie) { }
+
     default int getAreaLength() { return 1; }
     default int getPierceCount() { return 1; }
     default double getKnockbackDistance() { return 0; }
