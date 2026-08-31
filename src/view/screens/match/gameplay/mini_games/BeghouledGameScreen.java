@@ -93,6 +93,26 @@ public class BeghouledGameScreen extends GameScreen {
     private final Map<Plant, Position> lastKnownGridPos = new IdentityHashMap<>();
     private final Map<Plant, VisualAnim> activeAnims = new IdentityHashMap<>();
 
+    // --- "Plants matched" effect --------------------------------------------------
+    // MOONFLOWER_EFFECT plays "spawn" then "end" on every tile that's currently
+    // highlighted as part of a resolved match (same positions drawMatchHighlight
+    // already pulses), so the match reads as a little burst of light before those
+    // plants clear off the board.
+    private static final String MATCH_EFFECT_PAM = "768/INITIAL/EFFECTS/MOONFLOWER_EFFECT/MOONFLOWER_EFFECT.PAM";
+    private static final String MATCH_EFFECT_SPAWN_STATE = "spawn";
+    private static final String MATCH_EFFECT_END_STATE = "end";
+    private static final float MATCH_EFFECT_SPAWN_DURATION = 0.45f;
+    private static final float MATCH_EFFECT_END_DURATION = 0.55f;
+
+    private enum MatchEffectPhase { SPAWN, END }
+
+    private static final class MatchEffectState {
+        MatchEffectPhase phase = MatchEffectPhase.SPAWN;
+        float phaseElapsed = 0f;
+    }
+
+    private final Map<String, MatchEffectState> matchEffects = new java.util.HashMap<>();
+
     public BeghouledGameScreen() {
         seasonFolder = "beghouled";
     }
@@ -189,6 +209,7 @@ public class BeghouledGameScreen extends GameScreen {
     protected void drawSeasonForegroundEffects(float delta, float bw, float bh) {
         updatePlantAnimations(delta);
         drawMatchHighlight(delta);
+        drawMatchEffects(delta);
 
         if (selectedRow < 0 || selectedCol < 0 || whitePixel == null) return;
 
@@ -230,6 +251,46 @@ public class BeghouledGameScreen extends GameScreen {
     }
 
     private boolean boardSeeded = false;
+    /** Advances/draws the MOONFLOWER_EFFECT "spawn" -> "end" sequence on every tile
+     *  currently reported as part of a resolved match, keyed by "row,col" so it
+     *  survives the Position objects themselves changing identity between frames. */
+    private void drawMatchEffects(float delta) {
+        if (!(App.currentMenu instanceof BeghouledController controller)) {
+            matchEffects.clear();
+            return;
+        }
+        var positions = controller.getGame().getMatchHighlightPositions();
+
+        java.util.Set<String> currentKeys = new java.util.HashSet<>();
+        float tileW = getBoardTileWidth();
+        float tileH = getBoardTileHeight();
+
+        for (Position pos : positions) {
+            int col = (int) Math.round(pos.x());
+            int row = (int) Math.round(pos.y());
+            String key = row + "," + col;
+            currentKeys.add(key);
+
+            MatchEffectState state = matchEffects.computeIfAbsent(key, k -> new MatchEffectState());
+            state.phaseElapsed += delta;
+            if (state.phase == MatchEffectPhase.SPAWN && state.phaseElapsed >= MATCH_EFFECT_SPAWN_DURATION) {
+                state.phase = MatchEffectPhase.END;
+                state.phaseElapsed = 0f;
+            }
+
+            String clipState = state.phase == MatchEffectPhase.SPAWN
+                    ? MATCH_EFFECT_SPAWN_STATE : MATCH_EFFECT_END_STATE;
+
+            float x = BOARD_X + col * tileW + tileW * 0.5f;
+            float y = getCellCenterY(row);
+            float scale = tileW / 100f * 1.4f;
+            drawPam(MATCH_EFFECT_PAM, clipState, state.phaseElapsed, x, y, scale, false);
+        }
+
+        // Match resolved and those tiles cleared off the board (no longer highlighted)
+        // -> drop their effect state so a future match at the same tile starts fresh.
+        matchEffects.keySet().removeIf(key -> !currentKeys.contains(key));
+    }
 
     private void updatePlantAnimations(float delta) {
         if (session == null) return;
