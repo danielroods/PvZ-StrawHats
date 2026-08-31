@@ -113,6 +113,9 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
         try {
+            // Flush any pending online progress (and close the connection cleanly)
+            // before the game shuts down, so closing the window can't drop it.
+            net.client.NetworkClient.get().disconnect();
             ScreenManager.dispose();
             GameAssetManager.get().dispose();
             Gdx.app.log("Main", "Game disposed successfully.");

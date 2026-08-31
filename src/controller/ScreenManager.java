@@ -44,6 +44,18 @@ public final class ScreenManager {
         }
     }
 
+    /**
+     * Refreshes whatever screen is currently on-screen with the latest model data, without
+     * changing which screen it is. Used by things that update the account from outside the
+     * normal menu flow (e.g. the local TA offer web server), so the player sees the change
+     * immediately instead of needing to leave and reopen the screen.
+     */
+    public static void refreshCurrentScreen() {
+        if (currentScreen instanceof view.screens.generals.UiScreen uiScreen) {
+            uiScreen.refresh();
+        }
+    }
+
     public static void syncWithCurrentMenu() {
         Menu menu = App.currentMenu;
         Class<? extends Menu> menuClass = menu == null ? null : menu.getClass();

@@ -34,6 +34,7 @@ public class ServerConnection {
     private volatile boolean running = true;
     private volatile String failure;
     private volatile long lastPingSentMillis;
+    private Thread writerThread;
 
     public ServerConnection(String host, int port) throws IOException {
         socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MILLIS);
@@ -48,6 +49,7 @@ public class ServerConnection {
         Thread writer = new Thread(this::writeLoop, "client-net-writer");
         writer.setDaemon(true);
         writer.start();
+        this.writerThread = writer;
     }
 
     private void readLoop() {
@@ -113,6 +115,17 @@ public class ServerConnection {
         if (!running) return;
         running = false;
         outbound.offer(POISON);
+        // Give the writer thread a chance to flush whatever was already queued
+        // (e.g. a STATE_PUSH with fresh progress) before we tear down the socket -
+        // otherwise closing right after queuing a message could cut it off mid-write
+        // and silently drop it, since the write happens on a separate thread.
+        if (writerThread != null) {
+            try {
+                writerThread.join(1000);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
         try {
             socket.close();
         } catch (IOException ignored) {

@@ -43,6 +43,18 @@ public class User {
         }
     }
 
+    /**
+     * Rebuilds a User whose password is already hashed (e.g. an offline account being
+     * mirrored into the server's account data center). Never re-hashes/derives from a
+     * plaintext password - the caller already has the canonical hash.
+     */
+    public static User withHash(String username, String passwordHash, String nickname,
+                                String email, String gender) {
+        User user = new User(username, "", nickname, email, gender);
+        user.passwordHash = passwordHash;
+        return user;
+    }
+
     public boolean checkPassword(String password) {
         return this.passwordHash.equals(hashPassword(password));
     }
