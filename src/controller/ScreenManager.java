@@ -57,6 +57,17 @@ public final class ScreenManager {
     }
 
     public static void syncWithCurrentMenu() {
+        // Don't swap screens out from under an in-flight win/lose sequence: some menus (mini
+        // games in particular) flip App.currentMenu to their end-of-game menu as soon as the
+        // outcome is known, well before the board-hold/fade/title animation on the current
+        // GameScreen finishes playing. This is polled every frame (see Main#render), so
+        // without this guard the very next frame would tear the animation down after a
+        // single frame. Once the sequence itself finishes it triggers a sync, so this never
+        // gets permanently stuck.
+        if (currentScreen instanceof GameScreen gameScreen && gameScreen.isMatchEndSequenceActive()) {
+            return;
+        }
+
         Menu menu = App.currentMenu;
         Class<? extends Menu> menuClass = menu == null ? null : menu.getClass();
         if (currentScreen != null && menuClass == currentMenuClass) {
@@ -149,7 +160,8 @@ public final class ScreenManager {
             return new view.screens.generals.LoadingScreen(ZombotanyGameScreen::new);
         }
         if (menu instanceof MiniGameEndMenu) {
-            return new MiniGameEndScreen();
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.gameplay.mini_games.MiniGameEndScreen::new);
         }
 
         if (menu instanceof MatchMenu) {

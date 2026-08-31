@@ -20,6 +20,7 @@ import com.badlogic.gdx.utils.Align;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.item.GroundItem;
+import controller.match.mini_games.MiniGameEndMenu;
 import model.match.mini_games.izombie.Brain;
 import model.match.mini_games.izombie.IZombieMatch;
 import model.utils.GameSession;
@@ -232,14 +233,18 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     protected void checkMatchEnd() {
-        if (endHandled || state == null || !state.isEnded()) return;
-        endHandled = true;
-        matchFinished = true;
+        if (matchFinished || !isMatchEndSequenceIdle() || endHandled) return;
+        if (state == null || !state.isEnded()) return;
+
+        // Set the end-of-game menu and kick off the win/lose sequence in the same call so
+        // ScreenManager never observes App.currentMenu having changed while the sequence is
+        // still idle - see GameScreen#isMatchEndSequenceActive for why that ordering matters.
         boolean won = state.isWon();
         String reason = state.getEndReason();
         NetworkClient.get().clearMatchState();
-        model.App.currentMenu = new controller.match.mini_games.MiniGameEndMenu(
-                "Online I, Zombie", won, reason);
+        endHandled = true;
+        model.App.currentMenu = new MiniGameEndMenu("Online I, Zombie", won, reason);
+        startMatchEndSequence(won);
     }
 
     @Override

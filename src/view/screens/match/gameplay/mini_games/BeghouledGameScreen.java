@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import controller.ScreenManager;
 import controller.match.mini_games.BeghouledController;
+import controller.match.mini_games.MiniGameEndMenu;
 import model.App;
 import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantJsonParser;
@@ -142,11 +143,19 @@ public class BeghouledGameScreen extends GameScreen {
 
     @Override
     protected void checkMatchEnd() {
-        if (matchFinished) return;
-        if (!(App.currentMenu instanceof BeghouledController)) {
-            matchFinished = true;
-            ScreenManager.syncWithCurrentMenu();
+        if (matchFinished || !isMatchEndSequenceIdle()) return;
+        if (App.currentMenu instanceof BeghouledController) return;
+
+        if (App.currentMenu instanceof MiniGameEndMenu end) {
+            startMatchEndSequence(end.isWon());
+            return;
         }
+        matchFinished = true;
+        ScreenManager.syncWithCurrentMenu();
+    }
+
+    @Override
+    public void onMatchEndSequenceFinished(boolean won) {
     }
 
     @Override

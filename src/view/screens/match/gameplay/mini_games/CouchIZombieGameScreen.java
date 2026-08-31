@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 
 import controller.match.mini_games.CouchIZombieController;
+import controller.match.mini_games.MiniGameEndMenu;
 import model.App;
 import model.match.mini_games.izombie.Brain;
 import model.match.mini_games.izombie.IZombieMatch;
@@ -246,10 +247,16 @@ public class CouchIZombieGameScreen extends GameScreen {
 
     @Override
     protected void checkMatchEnd() {
+        if (matchFinished || !isMatchEndSequenceIdle() || endHandled) return;
+
+        if (App.currentMenu instanceof MiniGameEndMenu end) {
+            endHandled = true;
+            startMatchEndSequence(end.isWon());
+            return;
+        }
+
         IZombieMatch match = match();
-        if (endHandled || match == null || !match.isFinished()) return;
-        endHandled = true;
-        matchFinished = true;
+        if (match == null || !match.isFinished()) return;
     }
 
     @Override

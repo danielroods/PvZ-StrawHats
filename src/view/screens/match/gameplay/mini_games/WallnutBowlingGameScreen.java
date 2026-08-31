@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Disposable;
 
 import controller.ScreenManager;
+import controller.match.mini_games.MiniGameEndMenu;
 import controller.match.mini_games.WallnutBowlingController;
 import model.App;
 import model.match.mini_games.wallnutbowlling.WallnutBowling;
@@ -134,11 +135,19 @@ public class WallnutBowlingGameScreen extends GameScreen {
 
     @Override
     protected void checkMatchEnd() {
-        if (matchFinished) return;
-        if (!(App.currentMenu instanceof WallnutBowlingController)) {
-            matchFinished = true;
-            ScreenManager.syncWithCurrentMenu();
+        if (matchFinished || !isMatchEndSequenceIdle()) return;
+        if (App.currentMenu instanceof WallnutBowlingController) return;
+
+        if (App.currentMenu instanceof MiniGameEndMenu end) {
+            startMatchEndSequence(end.isWon());
+            return;
         }
+        matchFinished = true;
+        ScreenManager.syncWithCurrentMenu();
+    }
+
+    @Override
+    public void onMatchEndSequenceFinished(boolean won) {
     }
 
     @Override

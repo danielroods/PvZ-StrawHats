@@ -440,6 +440,20 @@ public class GameScreen extends UiScreen {
         return matchEnd.isIdle();
     }
 
+    /**
+     * Whether the win/lose sequence (board hold -> fade -> "YOU WON"/"YOU LOST" title) is
+     * currently mid-flight. Public so {@link controller.ScreenManager} can hold off swapping
+     * screens while it plays - some menus (mini games in particular) flip {@link
+     * model.App#currentMenu} to the end-of-game menu as soon as the outcome is known, well
+     * before this sequence finishes, and {@code ScreenManager} is polled every frame
+     * independently of this screen's own render loop. Without this guard that per-frame poll
+     * swaps the screen away after a single frame, and the animation never gets a chance to
+     * play.
+     */
+    public boolean isMatchEndSequenceActive() {
+        return !matchEnd.isIdle();
+    }
+
     public void onMatchEndSequenceFinished(boolean won) {
         runCommand(won ? "end game -r win" : "end game -r lose");
     }
