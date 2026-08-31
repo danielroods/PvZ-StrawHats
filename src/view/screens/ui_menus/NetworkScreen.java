@@ -41,6 +41,8 @@ public class NetworkScreen extends UiScreen {
     private Label statusLabel;
     private Table playersTable;
     private long shownInviteId = -1;
+    private boolean shownConnected = false;
+    private boolean shownSignedIn = false;
     private float refreshTimer = 3f;
 
     @Override
@@ -67,6 +69,8 @@ public class NetworkScreen extends UiScreen {
         rootTable.add(buildTopBar()).fillX().padTop(12).padLeft(20).padRight(20).row();
 
         NetworkClient client = NetworkClient.get();
+        shownConnected = client.isConnected();
+        shownSignedIn = client.isSignedIn();
         if (!client.isConnected()) {
             rootTable.add(buildHubSection(client)).expand().fill().padTop(SPACE_MD).row();
         } else if (!client.isSignedIn()) {
@@ -83,7 +87,7 @@ public class NetworkScreen extends UiScreen {
                     ? "You are playing offline. Connect to a server to play against someone."
                     : message;
         }
-        if (!client.isSignedIn()) return "Connected. Sign in with your online account.";
+        if (!client.isSignedIn()) return "Connected. Signing you in with your account...";
         return "Signed in as " + client.getSignedInUsername()
                 + (client.isQueued() ? "  -  waiting for an opponent..." : "");
     }
@@ -155,8 +159,9 @@ public class NetworkScreen extends UiScreen {
         board.add(buttons).colspan(2).padTop(SPACE_MD).row();
         board.add(secondaryButton("Disconnect", this::disconnect))
                 .colspan(2).width(BUTTON_WIDTH).padTop(SPACE_SM).row();
-        board.add(createLabel("Creating an account online uses the details above plus your "
-                        + "current offline profile's email and nickname.", "muted"))
+        board.add(createLabel("You're normally signed in automatically with the account you made in "
+                        + "Authentication. Only use the fields above if you want a separate, "
+                        + "online-only account instead.", "muted"))
                 .colspan(2).width(PANEL_WIDTH - 200).padTop(SPACE_SM).row();
 
         Table wrap = new Table();
@@ -371,6 +376,11 @@ public class NetworkScreen extends UiScreen {
         }
 
         if (statusLabel != null) statusLabel.setText(statusText(client));
+
+        if (client.isConnected() != shownConnected || client.isSignedIn() != shownSignedIn) {
+            build();
+            return;
+        }
 
         refreshTimer += delta;
         if (refreshTimer >= 3f) {

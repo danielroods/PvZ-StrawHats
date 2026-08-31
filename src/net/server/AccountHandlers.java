@@ -21,6 +21,7 @@ public class AccountHandlers {
         switch (envelope.t) {
             case Protocol.REGISTER -> register(session, envelope);
             case Protocol.LOGIN -> login(session, envelope);
+            case Protocol.AUTO_LOGIN -> autoLogin(session, envelope);
             case Protocol.LOGOUT -> logout(session, envelope);
             case Protocol.FORGOT_PASSWORD_START -> forgotStart(session, envelope);
             case Protocol.FORGOT_PASSWORD_ANSWER -> forgotAnswer(session, envelope);
@@ -56,6 +57,51 @@ public class AccountHandlers {
         if (user == null) {
             session.sendError(envelope.id, Protocol.ERR_BAD_CREDENTIALS,
                     "Wrong username or password.");
+            return;
+        }
+        if (server.sessions().isOnline(user.username)) {
+            session.sendError(envelope.id, Protocol.ERR_ALREADY_ONLINE,
+                    "That account is already signed in somewhere else.");
+            return;
+        }
+        server.sessions().release(session);
+        server.sessions().bind(user.username, session);
+        session.setUsername(user.username);
+        session.sendOk(envelope.id, accountPayload(user));
+    }
+
+    /**
+     * Signs the offline account straight into the hub: no separate online registration/login
+     * step. Authenticates by the password hash the offline profile already has, and if this
+     * server's account data center doesn't know the account yet, adds it on the spot using
+     * that same hash so it never has to be "made online" separately.
+     */
+    private void autoLogin(ClientSession session, Envelope envelope) {
+        String username = envelope.getString("username");
+        String passwordHash = envelope.getString("passwordHash");
+        if (username == null || username.isEmpty()) {
+            session.sendError(envelope.id, Protocol.ERR_VALIDATION, "Missing account.");
+            return;
+        }
+
+        User user = server.accounts().authenticateByHash(username, passwordHash);
+        if (user == null && !server.accounts().exists(username)) {
+            String error = server.accounts().provisionFromLocal(
+                    username, passwordHash,
+                    envelope.getString("nickname"),
+                    envelope.getString("email"),
+                    envelope.getString("gender"),
+                    envelope.getString("securityQuestion"),
+                    envelope.getString("securityAnswerHash"));
+            if (error != null) {
+                session.sendError(envelope.id, Protocol.ERR_VALIDATION, error);
+                return;
+            }
+            user = server.accounts().authenticateByHash(username, passwordHash);
+        }
+        if (user == null) {
+            session.sendError(envelope.id, Protocol.ERR_BAD_CREDENTIALS,
+                    "Could not sign this account into the server.");
             return;
         }
         if (server.sessions().isOnline(user.username)) {
@@ -208,6 +254,9 @@ public class AccountHandlers {
             return;
         }
         server.accounts().replaceState(session.getUsername(), state);
+        // Persist right away instead of waiting for the periodic flush, so a server
+        // restart shortly after this push can never lose it.
+        server.accounts().saveNow();
         session.sendOk(envelope.id, Envelope.obj());
     }
 

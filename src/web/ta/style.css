@@ -1,0 +1,635 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+    --moss: #4f6f38;
+    --moss-dark: #29421d;
+    --moss-mid: #3d5c2b;
+    --moss-soft: #eaf2e4;
+    --moss-border: #d4e0cc;
+    --white: #ffffff;
+    --text: #263126;
+    --muted: #667164;
+    --danger: #b63b36;
+    --shadow: 0 18px 45px rgba(41, 66, 29, 0.11);
+    --shadow-hover: 0 24px 55px rgba(41, 66, 29, 0.17);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: var(--text);
+    font-family: 'Nunito', Arial, sans-serif;
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #ffffff 18%,
+            #fcfdfb 34%,
+            #f7faf5 50%,
+            #f0f6ed 68%,
+            #eaf3e5 84%,
+            #e3efde 100%
+        );
+}
+
+/* =========================
+   TOP BAR
+   ========================= */
+
+.top-bar {
+    position: relative;
+    z-index: 20;
+    width: 100%;
+    height: 105px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    background: linear-gradient(180deg, #304a23 0%, var(--moss-dark) 100%);
+    border-bottom: 7px solid #71865f;
+    box-shadow: 0 8px 28px rgba(25, 40, 19, 0.22);
+}
+
+.top-bar::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -7px;
+    height: 7px;
+    background: linear-gradient(90deg, #647b53 0%, #8b9d7b 50%, #647b53 100%);
+}
+
+.header-logo {
+    position: absolute;
+    z-index: 30;
+    left: 50%;
+    bottom: -50px;
+    width: min(410px, 72vw);
+    height: auto;
+    transform: translateX(-50%);
+    object-fit: contain;
+    filter: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.28));
+    transition: transform 0.25s ease;
+}
+
+.header-logo:hover {
+    transform: translateX(-50%) scale(1.035);
+}
+
+/* =========================
+   DECORATIVE PLANTS
+   ========================= */
+
+.deco-asset {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 12px 14px rgba(34, 52, 27, 0.18));
+}
+
+/*
+   The plants occupy separate side zones.
+   The central content never extends into these zones.
+*/
+
+.chomper {
+    top: 155px;
+    left: max(20px, calc(50% - 650px));
+    width: 205px;
+}
+
+.repeater {
+    top: 165px;
+    right: max(20px, calc(50% - 650px));
+    width: 195px;
+}
+
+.sunflower {
+    top: 500px;
+    left: max(15px, calc(50% - 635px));
+    width: 205px;
+}
+
+/* =========================
+   MAIN CONTENT
+   ========================= */
+
+.main-wrapper {
+    position: relative;
+    z-index: 5;
+    width: min(760px, calc(100% - 40px));
+    margin: 88px auto 90px;
+}
+
+.page-title {
+    margin: 0 0 30px;
+    text-align: center;
+    color: var(--moss-dark);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: -0.6px;
+}
+
+.page-title::after {
+    content: "";
+    display: block;
+    width: 78px;
+    height: 5px;
+    margin: 14px auto 0;
+    border-radius: 999px;
+    background: var(--moss);
+}
+
+/* =========================
+   ALL CARDS
+   ========================= */
+
+section {
+    position: relative;
+    margin: 0 0 30px;
+    padding: 32px 34px;
+    overflow: hidden;
+    border: 1px solid rgba(79, 111, 56, 0.16);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    text-align: right;
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease;
+}
+
+section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--moss-dark), var(--moss), var(--moss-dark));
+    opacity: 0.9;
+}
+
+section:hover {
+    transform: translateY(-3px);
+    border-color: rgba(79, 111, 56, 0.30);
+    box-shadow: var(--shadow-hover);
+}
+
+section h2 {
+    margin: 0 0 19px;
+    padding-bottom: 13px;
+    border-bottom: 2px solid var(--moss-soft);
+    color: var(--moss-dark);
+    font-size: clamp(1.4rem, 3vw, 1.75rem);
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+section h3 {
+    margin: 28px 0 12px;
+    color: var(--moss-mid);
+    font-size: 1.15rem;
+    font-weight: 900;
+}
+
+section p {
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.85;
+}
+
+/* =========================
+   LOGIN CARD
+   ========================= */
+
+#login {
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#login::after {
+    content: "TA ACCESS";
+    position: absolute;
+    top: 27px;
+    left: 30px;
+    padding: 5px 10px;
+    border: 1px solid var(--moss-border);
+    border-radius: 999px;
+    color: var(--moss);
+    background: var(--moss-soft);
+    font-size: 0.70rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+#login input {
+    margin-top: 16px;
+}
+
+/* =========================
+   DASHBOARD
+   ========================= */
+
+#dashboard {
+    max-width: 760px;
+}
+
+#dashboard > p {
+    margin-bottom: 8px;
+}
+
+#taName,
+#taEmail {
+    color: var(--moss-dark);
+    font-weight: 900;
+}
+
+#currentAccount,
+#currentCoins {
+    display: inline-block;
+    min-width: 55px;
+    padding: 3px 9px;
+    border-radius: 8px;
+    background: var(--moss-soft);
+    color: var(--moss-dark);
+    font-weight: 900;
+}
+
+#currentCoins {
+    direction: ltr;
+}
+
+/* =========================
+   INPUTS
+   ========================= */
+
+label {
+    display: block;
+    color: #465145;
+    font-size: 0.94rem;
+    font-weight: 800;
+    line-height: 1.7;
+}
+
+input[type="password"],
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    height: 52px;
+    margin: 8px 0 15px;
+    padding: 0 16px;
+    border: 1.5px solid #d4ded0;
+    border-radius: 13px;
+    outline: none;
+    background: #fbfdf9;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.025);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+input:hover {
+    border-color: #b9c9b1;
+}
+
+input:focus {
+    border-color: var(--moss);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(79, 111, 56, 0.10);
+}
+
+input::placeholder {
+    color: #9aa59a;
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+
+button {
+    min-height: 50px;
+    padding: 0 25px;
+    border: 0;
+    border-radius: 13px;
+    background: linear-gradient(180deg, #587d3f 0%, var(--moss) 100%);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 9px 20px rgba(63, 92, 43, 0.20);
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        filter 0.18s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.94);
+    box-shadow: 0 13px 27px rgba(63, 92, 43, 0.26);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Make the first/login action visually prominent */
+#login button {
+    width: 100%;
+    margin-top: 4px;
+}
+
+/* Reward action */
+#submitBtn {
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Existing inline logout style is overridden here */
+#dashboard button[onclick="logout()"] {
+    width: 100%;
+    margin-top: 18px !important;
+    background: linear-gradient(180deg, #ca5049 0%, var(--danger) 100%) !important;
+}
+
+/* =========================
+   STATUS MESSAGES
+   ========================= */
+
+#loginMessage,
+#submitMessage,
+#paymentNote {
+    min-height: 24px;
+    margin-top: 12px;
+    color: var(--moss-mid);
+    font-weight: 800;
+    line-height: 1.65;
+}
+
+/* =========================
+   PAYMENT / OFFER AREA
+   ========================= */
+
+#dashboard h3:nth-of-type(2) {
+    margin-top: 35px;
+}
+
+#dashboard h3:nth-of-type(2)::before {
+    content: "COINS";
+    display: inline-block;
+    margin-left: 9px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #edf4e9;
+    color: var(--moss);
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    vertical-align: middle;
+}
+
+#paymentNote {
+    padding: 13px 15px;
+    border: 1px solid var(--moss-border);
+    border-radius: 12px;
+    background: #f5f9f2;
+}
+
+/* =========================
+   PVZ DESCRIPTION
+   ========================= */
+
+.pvz-description {
+    margin-top: 10px;
+}
+
+.pvz-description p {
+    margin: 0 0 19px;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+.pvz-description p:last-child {
+    margin-bottom: 0;
+}
+
+.pvz-description h2 {
+    text-align: center;
+}
+
+.pvz-description h2::before {
+    content: "PVZ2";
+    display: block;
+    margin-bottom: 7px;
+    color: var(--moss);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+/* =========================
+   FOOTER
+   ========================= */
+
+.bottom-bar {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 82px;
+    margin-top: auto;
+    background: linear-gradient(180deg, #304a23 0%, var(--moss-dark) 100%);
+    border-top: 7px solid #71865f;
+    box-shadow: 0 -8px 25px rgba(28, 46, 21, 0.13);
+}
+
+.bottom-bar::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -7px;
+    width: 110px;
+    height: 7px;
+    transform: translateX(-50%);
+    background: #91a582;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 1180px) {
+    .deco-asset {
+        opacity: 0.28;
+    }
+
+    .chomper {
+        left: -25px;
+    }
+
+    .repeater {
+        right: -25px;
+    }
+
+    .sunflower {
+        left: -30px;
+    }
+}
+
+@media (max-width: 900px) {
+    .deco-asset {
+        opacity: 0.12;
+        transform: scale(0.82);
+    }
+
+    .main-wrapper {
+        width: min(760px, calc(100% - 30px));
+    }
+}
+
+@media (max-width: 680px) {
+    .top-bar {
+        height: 85px;
+    }
+
+    .header-logo {
+        bottom: -39px;
+        width: min(320px, 78vw);
+    }
+
+    .main-wrapper {
+        width: calc(100% - 24px);
+        margin-top: 64px;
+        margin-bottom: 55px;
+    }
+
+    .page-title {
+        font-size: 1.85rem;
+    }
+
+    section {
+        padding: 27px 20px;
+        border-radius: 19px;
+    }
+
+    #login::after {
+        display: none;
+    }
+
+    .deco-asset {
+        display: none;
+    }
+
+    .pvz-description p {
+        text-align: right;
+        line-height: 1.8;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+    }
+}
+
+
+/* =========================
+   DASHBOARD INFO GRID
+   ========================= */
+
+.account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 4px 0 28px;
+}
+
+.info-item {
+    min-width: 0;
+    padding: 15px 16px;
+    border: 1px solid var(--moss-border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fbfdf9 0%, #f4f8f1 100%);
+}
+
+.info-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #7a8578;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.info-item strong {
+    display: block;
+    overflow: hidden;
+    color: var(--moss-dark);
+    font-size: .98rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.message {
+    min-height: 24px;
+    margin-top: 12px;
+    color: var(--danger);
+    font-weight: 800;
+    line-height: 1.6;
+}
+
+.message.success {
+    color: var(--moss-mid);
+}
+
+.logout-button {
+    margin-top: 18px;
+    width: 100%;
+}
+
+@media (max-width: 680px) {
+    .account-grid {
+        grid-template-columns: 1fr;
+    }
+}

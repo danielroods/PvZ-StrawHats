@@ -51,7 +51,6 @@ public class AccountStore {
                             if (user.userState == null) {
                                 user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
                             }
-                            user.stayLoggedIn = false;
                             users.add(user);
                         }
                     }
@@ -71,11 +70,33 @@ public class AccountStore {
     public void saveNow() {
         synchronized (lock) {
             dirty = false;
+            mergeFromDisk();
             try (Writer writer = new FileWriter(file)) {
                 GSON.toJson(users, writer);
             } catch (IOException e) {
                 Log.error("AccountStore", "Could not write " + file.getAbsolutePath(), e);
             }
+        }
+    }
+
+    /** Pulls in any accounts that exist on disk but aren't known to this process yet,
+     *  so saving here doesn't wipe out changes another process (e.g. a client running
+     *  LocalUserStore against the same file) made in the meantime. */
+    private void mergeFromDisk() {
+        if (!file.isFile()) return;
+        try (Reader reader = new FileReader(file)) {
+            ArrayList<User> onDisk = GSON.fromJson(reader, LIST_TYPE);
+            if (onDisk == null) return;
+            for (User diskUser : onDisk) {
+                if (diskUser == null || diskUser.username == null) continue;
+                boolean knownInMemory = false;
+                for (User memUser : users) {
+                    if (memUser.username.equalsIgnoreCase(diskUser.username)) { knownInMemory = true; break; }
+                }
+                if (!knownInMemory) users.add(diskUser);
+            }
+        } catch (Exception e) {
+            Log.error("AccountStore", "Could not merge " + file.getAbsolutePath(), e);
         }
     }
 
@@ -118,6 +139,58 @@ public class AccountStore {
         User user = find(username);
         if (user == null || password == null || !user.checkPassword(password)) return null;
         return user;
+    }
+
+    /**
+     * Authenticates using an already-hashed password instead of plaintext. This is how a
+     * player's offline account signs into the online hub: the client never has to ask for
+     * (or resend) the password, it just proves it holds the same hash already saved locally.
+     */
+    public User authenticateByHash(String username, String passwordHash) {
+        User user = find(username);
+        if (user == null || passwordHash == null || passwordHash.isEmpty()) return null;
+        return passwordHash.equals(user.passwordHash) ? user : null;
+    }
+
+    /**
+     * Adds an account to this server's data center on behalf of an offline account that the
+     * server hasn't seen before, using the same password hash the offline profile already has
+     * - no separate online account/registration is ever required. Skips plaintext password-
+     * strength validation, since that was already enforced when the account was first created
+     * offline and no plaintext is available here.
+     */
+    public String provisionFromLocal(String username, String passwordHash, String nickname, String email,
+                                     String gender, String securityQuestion, String securityAnswerHash) {
+        String error = AccountValidation.usernameError(username);
+        if (error == null) error = AccountValidation.nicknameError(nickname);
+        if (error == null) error = AccountValidation.emailError(email);
+        if (error == null) error = AccountValidation.genderError(gender);
+        if (error != null) return error;
+        if (passwordHash == null || passwordHash.isEmpty()) return "Missing account credentials.";
+        synchronized (lock) {
+            if (exists(username)) return "Username already exists. Please choose a different one.";
+            User user = User.withHash(username, passwordHash, nickname, email, gender);
+            if (securityQuestion != null && securityAnswerHash != null) {
+                user.securityQuestion = securityQuestion;
+                user.securityAnswerHash = securityAnswerHash;
+            }
+            users.add(user);
+            markDirty();
+        }
+        saveNow();
+        return null;
+    }
+
+    public int addCoins(String username, int amount) {
+        if (amount <= 0) return 0;
+        synchronized (lock) {
+            User user = find(username);
+            if (user == null) return 0;
+            if (user.userState == null) user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
+            user.userState.coins += amount;
+            markDirty();
+            return user.userState.coins;
+        }
     }
 
     public void replaceState(String username, UserState state) {

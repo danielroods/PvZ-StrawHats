@@ -64,7 +64,6 @@ public class GameServer {
         matches.start();
         startMaintenanceThread();
         Log.info("Server", "Listening on port " + port);
-
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "net-shutdown"));
 
         while (running) {
@@ -152,7 +151,13 @@ public class GameServer {
         if (!running) return;
         running = false;
         matches.stop();
-        accounts.saveNow();
+        // Use flushIfDirty (not saveNow) here: saveNow() unconditionally writes this
+        // server's in-memory snapshot to disk. If nobody registered/logged into this
+        // server instance this session, that in-memory snapshot is just whatever was
+        // loaded at startup - stale. Writing it unconditionally would clobber any
+        // progress a client saved directly to the same Data.json in the meantime
+        // (e.g. offline play). Only persist if the server actually changed something.
+        accounts.flushIfDirty();
         for (ClientSession session : allSessions) {
             session.close();
         }

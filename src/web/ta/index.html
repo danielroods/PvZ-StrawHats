@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PVZ2 TA Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-bar">
+  <img src="pvz2_logo_horizontal.png" alt="Plants vs Zombies 2" class="header-logo">
+</header>
+
+<img src="chomper.png" alt="" class="deco-asset chomper">
+<img src="repeater.png" alt="" class="deco-asset repeater">
+<img src="primalsunflower.png" alt="" class="deco-asset sunflower">
+
+<main class="main-wrapper">
+  <h1 class="page-title">TA Portal</h1>
+
+  <section id="login">
+    <h2>TA Login</h2>
+
+    <label for="taCode">TA Student Code</label>
+    <input type="text" id="taCode" placeholder="Enter your student code" autocomplete="off">
+
+    <button id="loginBtn" type="button">Sign In</button>
+    <div id="loginMessage"></div>
+  </section>
+
+  <section id="dashboard" style="display:none;">
+    <h2>TA Dashboard</h2>
+
+    <div class="account-grid">
+      <div class="info-item">
+        <span class="info-label">TA</span>
+        <strong id="taName">-</strong>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Email</span>
+        <strong id="taEmail">-</strong>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Game Account</span>
+        <strong id="currentAccount">Not signed in</strong>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Coins</span>
+        <strong id="currentCoins">0</strong>
+      </div>
+    </div>
+
+    <h3>Add Grade</h3>
+
+    <label for="groupId">Group ID</label>
+    <input type="text" id="groupId" placeholder="Enter the group ID">
+
+    <label for="gradeAmount">Grade amount</label>
+    <input type="number" id="gradeAmount" min="0.25" step="0.25" placeholder="0.25">
+
+    <button id="submitBtn" type="button">Submit Grade</button>
+    <div id="submitMessage"></div>
+
+    <h3>Special Coin Offer</h3>
+    <p>
+      Every completed 0.25 score unit awards 10,000 in-game coins to the
+      game account currently signed in to the game.
+    </p>
+
+    <button id="paymentBtn" type="button">Open Special TA Coin Offer</button>
+    <div id="paymentNote"></div>
+
+    <button id="logoutBtn" type="button" class="logout-button">Log Out</button>
+  </section>
+
+  <section class="pvz-description">
+    <h2>Plants vs. Zombies 2</h2>
+    <p>
+      Plants vs. Zombies 2 is a tower-defense game built around the simple
+      idea of defending your home with plants against increasingly unusual
+      waves of zombies. Players collect sunlight, place plants strategically,
+      and combine different defensive abilities to create a formation capable
+      of surviving each wave.
+    </p>
+    <p>
+      Every plant has a specific role on the battlefield. Some provide
+      resources, some attack from a distance, while others slow, block, burn,
+      freeze, or otherwise disrupt approaching enemies. Successful gameplay
+      depends on understanding these roles and placing each plant in the
+      correct position at the correct time.
+    </p>
+    <p>
+      The game expands this basic formula through different worlds,
+      environments, enemies, and gameplay mechanics. Each environment can
+      introduce new challenges that require players to adapt their strategy
+      rather than relying on a single fixed team of plants.
+    </p>
+    <p>
+      A major part of the experience is experimentation. Different
+      combinations of plants can produce dramatically different results,
+      and a strategy that works in one level may be ineffective in another.
+      Managing limited resources and understanding enemy behavior are both
+      essential parts of the experience.
+    </p>
+    <p>
+      This project recreates the Plants vs. Zombies style of gameplay while
+      extending it with additional environments, multiplayer functionality,
+      account progression, and custom systems implemented specifically for
+      the project.
+    </p>
+  </section>
+</main>
+
+<footer class="bottom-bar"></footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  async function request(path, options = {}) {
+    const response = await fetch(path, {
+      credentials: "same-origin",
+      ...options
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = { ok: false, error: await response.text() };
+    }
+
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `Request failed (${response.status})`);
+    }
+    return data;
+  }
+
+  function message(element, text, success = false) {
+    element.textContent = text;
+    element.className = success ? "message success" : "message";
+  }
+
+  async function refreshAccount() {
+    try {
+      const data = await request("/api/ta/whoami");
+      if (data.signedIn) {
+        $("currentAccount").textContent = data.username;
+        $("currentCoins").textContent = Number(data.coins || 0).toLocaleString();
+      } else {
+        $("currentAccount").textContent = "Not signed in";
+        $("currentCoins").textContent = "0";
+      }
+    } catch (_) {
+      $("currentAccount").textContent = "Not available";
+    }
+  }
+
+  $("loginBtn").addEventListener("click", async () => {
+    const code = $("taCode").value.trim();
+    if (!code) {
+      message($("loginMessage"), "Enter your TA student code.");
+      return;
+    }
+
+    $("loginBtn").disabled = true;
+    try {
+      const data = await request("/api/ta/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ code })
+      });
+
+      $("taName").textContent = data.taName || "-";
+      $("taEmail").textContent = data.taEmail || "-";
+      $("login").style.display = "none";
+      $("dashboard").style.display = "block";
+      message($("loginMessage"), "", true);
+      await refreshAccount();
+    } catch (e) {
+      message($("loginMessage"), e.message);
+    } finally {
+      $("loginBtn").disabled = false;
+    }
+  });
+
+  $("submitBtn").addEventListener("click", async () => {
+    const groupId = $("groupId").value.trim();
+    const addedScore = $("gradeAmount").value.trim();
+
+    if (!groupId) {
+      message($("submitMessage"), "Enter a group ID.");
+      return;
+    }
+    if (!addedScore || Number(addedScore) < 0.25 || Number(addedScore) % 0.25 !== 0) {
+      message($("submitMessage"), "Grade amount must be a multiple of 0.25.");
+      return;
+    }
+
+    $("submitBtn").disabled = true;
+    try {
+      const data = await request("/api/ta/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ groupId, addedScore })
+      });
+
+      $("currentCoins").textContent = Number(data.totalCoins || 0).toLocaleString();
+      message(
+        $("submitMessage"),
+        `${Number(data.coinsAdded).toLocaleString()} coins added to ${data.username}. Group score: ${data.newGroupScore}.`,
+        true
+      );
+
+      $("paymentNote").textContent = data.emailSent
+        ? `Confirmation email sent to ${$("taEmail").textContent}.`
+        : (data.emailError || "Reward saved, but no email was sent.");
+    } catch (e) {
+      message($("submitMessage"), e.message);
+    } finally {
+      $("submitBtn").disabled = false;
+    }
+  });
+
+  $("paymentBtn").addEventListener("click", () => {
+    $("paymentNote").textContent =
+      "This is the fictional TA coin offer. No real payment is processed.";
+  });
+
+  $("logoutBtn").addEventListener("click", async () => {
+    try {
+      await request("/api/ta/logout", { method: "POST" });
+    } catch (_) {}
+    $("dashboard").style.display = "none";
+    $("login").style.display = "block";
+    $("taCode").value = "";
+    $("groupId").value = "";
+    $("gradeAmount").value = "";
+  });
+
+  // If the browser was refreshed while the TA session cookie still exists.
+  fetch("/api/ta/whoami", { credentials: "same-origin" })
+    .then(r => {
+      if (!r.ok) throw new Error();
+      return r.json();
+    })
+    .then(data => {
+      if (data.ok) refreshAccount();
+    })
+    .catch(() => {});
+})();
+</script>
+
+</body>
+</html>

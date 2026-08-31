@@ -6,6 +6,10 @@ public final class Protocol {
     public static final int DEFAULT_PORT = 7777;
     public static final String DEFAULT_HOST = "127.0.0.1";
 
+    // Client-local TA offer web portal. It does not depend on GameServer.
+    public static final String TA_WEB_HOST = "127.0.0.1";
+    public static final String TA_WEB_PATH = "/ta";
+
     public static final long PING_INTERVAL_MILLIS = 10_000L;
     public static final long SILENCE_TIMEOUT_MILLIS = 30_000L;
 
@@ -17,6 +21,11 @@ public final class Protocol {
 
     public static final String REGISTER = "REGISTER";
     public static final String LOGIN = "LOGIN";
+    /** Signs in using the account already created offline (by password hash, no
+     *  plaintext ever sent). If the server hub doesn't know this account yet -
+     *  e.g. it was created offline after the server last loaded its account file -
+     *  it is auto-provisioned into the server's account data center on the spot. */
+    public static final String AUTO_LOGIN = "AUTO_LOGIN";
     public static final String LOGOUT = "LOGOUT";
     public static final String FORGOT_PASSWORD_START = "FORGOT_PASSWORD_START";
     public static final String FORGOT_PASSWORD_ANSWER = "FORGOT_PASSWORD_ANSWER";
@@ -48,6 +57,7 @@ public final class Protocol {
 
     public static final String LEADERBOARD = "LEADERBOARD";
     public static final String BONUS_SCORE_SUBMIT = "BONUS_SCORE_SUBMIT";
+    public static final String TA_REWARD = "TA_REWARD";
 
     public static final String INTENT_PLACE_ZOMBIE = "PLACE_ZOMBIE";
     public static final String INTENT_PLANT = "PLANT";
@@ -82,9 +92,9 @@ public final class Protocol {
     public static final String REACTION_STICKER = "STICKER";
 
     public static final String[] REACTION_TEXTS = {
-        "Nice try!",
-        "Brainz incoming!",
-        "Too easy.",
+            "Nice try!",
+            "Brainz incoming!",
+            "Too easy.",
     };
 
     private Protocol() {

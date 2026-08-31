@@ -70,11 +70,13 @@ public class MainMenuScreen extends UiScreen {
         Actor onlineMatchBtn = createBannerCard("assets/images/ui/calendar_card_7day_lunar_new_year.png", "Online Match", () -> runCommand("menu enter network"));
         Actor coopBtn = createBannerCard("assets/images/ui/calendar_card_7day_foodfight.png", "Co-op", () -> runCommand("menu enter coop"));
         Actor travelBtn = createBannerCard("assets/images/ui/calendar_card_7day_bigwavebeach.png", "Travel Log", () -> runCommand("menu enter travellog"));
+        Actor offerBtn = createBannerCard("assets/images/ui/calendar_card_7day_blackfriday.png", "TA Coin Offer", this::openTaOffer);
 
         carouselContent.add(gameBtn).size(420, 260).pad(20);
         carouselContent.add(onlineMatchBtn).size(420, 260).pad(20);
         carouselContent.add(coopBtn).size(420, 260).pad(20);
         carouselContent.add(travelBtn).size(420, 260).pad(20);
+        carouselContent.add(offerBtn).size(420, 260).pad(20);
 
         carouselPane = new ScrollPane(carouselContent);
         carouselPane.setOverscroll(false, false);
@@ -196,6 +198,10 @@ public class MainMenuScreen extends UiScreen {
             }
         });
         return container;
+    }
+
+    private void openTaOffer() {
+        net.client.TaWebLauncher.open();
     }
 
     private void confirmLogout() {

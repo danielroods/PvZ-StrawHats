@@ -119,10 +119,12 @@ public class NetworkMenu extends Menu {
             builder.append("Invite from ").append(client.getPendingInvite().fromNickname())
                     .append(" - use 'invite accept' or 'invite reject'.\n");
         }
+        builder.append("Connecting signs in with the account you made in Authentication - ")
+                .append("no separate online account needed.\n");
         builder.append("Commands:\n")
                 .append("  connect [-h <host>] [-p <port>] | disconnect\n")
-                .append("  net register -u <u> -p <p> -n <n> -e <e> -g <g>\n")
-                .append("  net login -u <username> -p <password>\n")
+                .append("  net register -u <u> -p <p> -n <n> -e <e> -g <g>  (only for a separate, online-only account)\n")
+                .append("  net login -u <username> -p <password>  (only for a separate, online-only account)\n")
                 .append("  challenge -u <username> | invite accept | invite reject\n")
                 .append("  find match | cancel match | who\n")
                 .append("  menu exit | menu show current");
