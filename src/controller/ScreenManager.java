@@ -95,62 +95,46 @@ public final class ScreenManager {
             return new view.screens.ui_menus.NetworkScreen();
         }
         if (menu instanceof controller.match.mini_games.CouchIZombieController) {
-            return new view.screens.match.gameplay.mini_games.CouchIZombieGameScreen();
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.gameplay.mini_games.CouchIZombieGameScreen::new);
         }
         if (menu instanceof controller.match.mini_games.NetIZombieController) {
-            return new view.screens.match.gameplay.mini_games.NetIZombieGameScreen();
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.gameplay.mini_games.NetIZombieGameScreen::new);
         }
 
         if (menu instanceof controller.match.NetBeforeMenu) {
-            return new view.screens.match.before.NetBeforeMatchScreen();
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.before.NetBeforeMatchScreen::new);
         }
         if (menu instanceof controller.match.CoopBeforeMenu) {
-            return new view.screens.match.before.CoopBeforeMatchScreen();
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.before.CoopBeforeMatchScreen::new);
         }
         if (menu instanceof BeforeMenu) {
-            return new BeforeMatchScreen();
+            return new view.screens.generals.LoadingScreen(BeforeMatchScreen::new);
         }
         if (menu instanceof GameplayMenu) {
-            Level level = model.utils.GameSession.peekInstance() == null
-                    ? null : model.utils.GameSession.peekInstance().getLevel();
-
-            if (isDangerOrLotteryLevel(level)) {
-                return new LotteryGameScreen(model.utils.GameSession.peekInstance());
-            }
-
-            String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
-            if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
-                return new EgyptGameScreen();
-            }
-            if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
-                return new DarkAgesGameScreen();
-            }
-            if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
-                return new BigWaveBeachGameScreen();
-            }
-            if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
-                return new FrostbiteCavesGameScreen();
-            }
-            return new GameScreen();
+            return new view.screens.generals.LoadingScreen(ScreenManager::buildGameplayScreen);
         }
         if (menu instanceof AfterMenu) {
-            return new AfterMatchScreen();
+            return new view.screens.generals.LoadingScreen(AfterMatchScreen::new);
         }
 
         if (menu instanceof VasebreakerController) {
-            return new VasebreakerGameScreen();
+            return new view.screens.generals.LoadingScreen(VasebreakerGameScreen::new);
         }
         if (menu instanceof WallnutBowlingController) {
-            return new WallnutBowlingGameScreen();
+            return new view.screens.generals.LoadingScreen(WallnutBowlingGameScreen::new);
         }
         if (menu instanceof ImZombieController) {
-            return new IZombieGameScreen();
+            return new view.screens.generals.LoadingScreen(IZombieGameScreen::new);
         }
         if (menu instanceof BeghouledController) {
-            return new BeghouledGameScreen();
+            return new view.screens.generals.LoadingScreen(BeghouledGameScreen::new);
         }
         if (menu instanceof ZombotanyController) {
-            return new ZombotanyGameScreen();
+            return new view.screens.generals.LoadingScreen(ZombotanyGameScreen::new);
         }
         if (menu instanceof MiniGameEndMenu) {
             return new MiniGameEndScreen();
@@ -173,6 +157,34 @@ public final class ScreenManager {
             }
         }
         return new PlaceholderScreen(menu);
+    }
+
+    private static BaseScreen buildGameplayScreen() {
+        Level level = model.utils.GameSession.peekInstance() == null
+                ? null : model.utils.GameSession.peekInstance().getLevel();
+
+        if (isDangerOrLotteryLevel(level)) {
+            return new LotteryGameScreen(model.utils.GameSession.peekInstance());
+        }
+
+        String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
+        if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
+            return new EgyptGameScreen();
+        }
+        if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
+            return new DarkAgesGameScreen();
+        }
+        if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
+            return new BigWaveBeachGameScreen();
+        }
+        if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
+            return new FrostbiteCavesGameScreen();
+        }
+        // Regular season game screen also handles ConveyorBeltLevel special levels -
+        // that level type is a gameplay mechanic (see model.match.main.levels.special_levels.
+        // ConveyorBeltLevel), not a separate screen, so it rides along with whatever
+        // season screen (or the plain GameScreen fallback) the level belongs to.
+        return new GameScreen();
     }
 
     private static boolean isDangerOrLotteryLevel(Level level) {

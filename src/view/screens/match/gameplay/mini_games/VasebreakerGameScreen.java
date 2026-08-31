@@ -27,7 +27,9 @@ import view.screens.generals.GameScreen;
 import view.screens.generals.Toast;
 
 import java.util.Map;
-
+import java.util.Set;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 
 public class VasebreakerGameScreen extends GameScreen {
 
@@ -38,6 +40,14 @@ public class VasebreakerGameScreen extends GameScreen {
     private Table seedPanel;
     private String selectedSeedName;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
+
+    private static final String PRIZE_SPAWN_PAM = "768/INITIAL/EFFECTS/PRIZE_SPAWN/PRIZE_SPAWN.PAM";
+    private static final String PRIZE_SPAWN_STATE = "animation";
+    private static final float PRIZE_SPAWN_DURATION = 1.0f;
+
+    private final Map<Vase, Float> prizeSpawnEffects = new IdentityHashMap<>();
+    private final Set<Vase> handledVases = Collections.newSetFromMap(new IdentityHashMap<>());
+    private float vaseEffectClock = 0f;
 
     @Override
     protected boolean areLawnMowersVisible() {
@@ -125,8 +135,6 @@ public class VasebreakerGameScreen extends GameScreen {
         buildSeedPanel();
     }
 
-    // Dropped-packet preview is the same seed packet card used in the loadout (same
-    // plant icon + packet skin, same proportions), just shown smaller on the board.
     private static final float DROPPED_PACKET_SCALE = 0.42f;
 
     @Override
@@ -134,19 +142,44 @@ public class VasebreakerGameScreen extends GameScreen {
         Vasebreaker game = currentGame();
         if (game == null) return;
 
+        vaseEffectClock += delta;
+
         for (Vase vase : game.getVases()) {
-            if (vase.isBroken()) continue;
+            if (vase.isBroken()) {
+                if (handledVases.add(vase)) {
+                    prizeSpawnEffects.put(vase, vaseEffectClock);
+                }
+                continue;
+            }
             float x = getCellX((int) vase.getPosition().x());
             float y = getCellY((int) vase.getPosition().y());
             drawEntity(vaseRegion(vase), x + getBoardTileWidth() * 0.22f, y + getBoardTileHeight() * 0.12f,
                     getBoardTileWidth() * 0.56f, getBoardTileHeight() * 0.7f, vaseColor(vase), "");
         }
 
+        drawPrizeSpawnEffects();
+
         for (Vasebreaker.DroppedSeedPacket packet : game.getDroppedPackets()) {
             if (packet.collected) continue;
             float x = getCellX((int) packet.position.x());
             float y = getCellY((int) packet.position.y());
             drawDroppedSeedPacket(packet, x, y);
+        }
+    }
+
+    private void drawPrizeSpawnEffects() {
+        if (prizeSpawnEffects.isEmpty()) return;
+
+        prizeSpawnEffects.entrySet().removeIf(
+                entry -> vaseEffectClock - entry.getValue() >= PRIZE_SPAWN_DURATION);
+
+        float scale = getBoardTileWidth() / 100f * 1.4f;
+        for (Map.Entry<Vase, Float> entry : prizeSpawnEffects.entrySet()) {
+            Vase vase = entry.getKey();
+            float age = vaseEffectClock - entry.getValue();
+            float x = getCellX((int) vase.getPosition().x()) + getBoardTileWidth() * 0.5f;
+            float y = getCellY((int) vase.getPosition().y()) + getBoardTileHeight() * 0.35f;
+            drawPam(PRIZE_SPAWN_PAM, PRIZE_SPAWN_STATE, age, x, y, scale, false);
         }
     }
 
@@ -157,7 +190,6 @@ public class VasebreakerGameScreen extends GameScreen {
         try {
             card = cardFactory.buildCardByPlantName(name);
         } catch (Throwable ignored) {
-            // Falls through to the plain-square fallback below.
         }
 
         if (card == null) {
@@ -244,9 +276,6 @@ public class VasebreakerGameScreen extends GameScreen {
         Stack stack = new Stack();
         boolean selected = name.equalsIgnoreCase(selectedSeedName);
 
-        // Same card, same intrinsic size/scale as the plant-picker cards on the
-        // before-match loadout screen (BeforeMatchScreen#buildCard) - no forced
-        // .size() override here, just take the card's own native dimensions.
         float cardW = 104f;
         float cardH = cardW * 1.38f;
 
@@ -254,7 +283,6 @@ public class VasebreakerGameScreen extends GameScreen {
         try {
             card = cardFactory.buildCardByPlantName(name);
         } catch (Throwable ignored) {
-            // Falls through to the text-button fallback below.
         }
 
         if (card != null) {
@@ -291,7 +319,6 @@ public class VasebreakerGameScreen extends GameScreen {
         });
         return stack;
     }
-
 
     private String plantName(int plantId) {
         PlantJsonParser.PlantConfig config = PlantFactory.getBlueprints().get(plantId);
