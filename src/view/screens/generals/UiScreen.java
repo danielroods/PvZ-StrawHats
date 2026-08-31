@@ -229,6 +229,16 @@ public abstract class UiScreen extends BaseScreen {
     protected void refreshContent() {
     }
 
+    /**
+     * Public entry point so code outside this screen (e.g. the local TA offer web server,
+     * which updates the account from a background HTTP thread) can ask an already-open
+     * screen to redraw itself with fresh model data, instead of the player having to leave
+     * and reopen the screen to see the change.
+     */
+    public void refresh() {
+        refreshContent();
+    }
+
     private Drawable roundedPanel(int tile, int radius, int border, Color fill, Color borderColor) {
         Pixmap outer = new Pixmap(tile, tile, Pixmap.Format.RGBA8888);
         outer.setColor(borderColor);

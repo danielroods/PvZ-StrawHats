@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TA Coin Offer</title>
+</head>
+<body>
+<h1>TA Coin Offer</h1>
+
+<section id="login">
+  <h2>TA Login</h2>
+  <p>Enter your TA code to continue.</p>
+  <input id="taCode" type="password" placeholder="TA code">
+  <button onclick="login()">Enter</button>
+  <p id="loginMessage"></p>
+</section>
+
+<section id="dashboard" hidden>
+  <h2>TA Dashboard</h2>
+  <p>Signed in as: <strong id="taName"></strong></p>
+  <p>TA email: <strong id="taEmail"></strong></p>
+
+  <h3>Coin Reward</h3>
+  <label>Group ID<br><input id="groupId" placeholder="group-1"></label><br><br>
+  <label>Game account username<br><input id="username" placeholder="username from server Data.json"></label><br><br>
+  <label>Score added to the group<br><input id="addedScore" type="number" min="0.25" step="0.01" placeholder="0.25"></label><br><br>
+  <button onclick="submitReward()">Register Score</button>
+  <p id="submitMessage"></p>
+
+  <h3>Mock Payment</h3>
+  <p>This project-only payment section does not charge real money.</p>
+  <button onclick="showPaymentNote()">Open Payment Details</button>
+  <p id="paymentNote"></p>
+
+  <button onclick="logout()">Log out</button>
+</section>
+
+<script>
+async function login() {
+  const code = document.getElementById('taCode').value;
+  const res = await fetch('/api/ta/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({code})
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    document.getElementById('loginMessage').textContent = data.error || 'Login failed.';
+    return;
+  }
+  document.getElementById('taName').textContent = data.taName;
+  document.getElementById('taEmail').textContent = data.taEmail || 'Not configured';
+  document.getElementById('login').hidden = true;
+  document.getElementById('dashboard').hidden = false;
+}
+
+async function submitReward() {
+  const groupId = document.getElementById('groupId').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const addedScore = document.getElementById('addedScore').value;
+  const res = await fetch('/api/ta/submit', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({groupId, username, addedScore})
+  });
+  const data = await res.json();
+  const message = document.getElementById('submitMessage');
+  if (!data.ok) {
+    message.textContent = data.error || 'Submission failed.';
+    return;
+  }
+  message.textContent = `Success. ${data.coinsAdded} coins added to ${data.username}. Group score: ${data.newGroupScore}. Email sent to TA: ${data.emailSent}.`;
+}
+
+function showPaymentNote() {
+  document.getElementById('paymentNote').textContent =
+    'Demo purchase: every completed 0.25 score unit credits 10,000 in-game coins. No real payment is processed.';
+}
+
+async function logout() {
+  await fetch('/api/ta/logout', {method:'POST'});
+  location.reload();
+}
+</script>
+</body>
+</html>

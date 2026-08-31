@@ -119,7 +119,10 @@ public final class NetworkClient {
                 if (envelope.isType(Protocol.ERR)) {
                     statusMessage = envelope.getString("message", "Handshake refused.");
                     disconnect();
+                    return;
                 }
+                statusMessage = "Connected to " + host + ":" + port;
+                autoSignIn(null);
             });
             return true;
         } catch (IOException e) {
@@ -131,6 +134,11 @@ public final class NetworkClient {
     }
 
     public void disconnect() {
+        // Flush any unsaved progress to the server before the connection goes away,
+        // so closing the game can't drop it.
+        if (User.isRemote() && User.currentUser != null) {
+            User.save();
+        }
         if (connection != null) {
             connection.close();
             connection = null;
@@ -179,6 +187,45 @@ public final class NetworkClient {
                 });
     }
 
+    /**
+     * Signs the current offline account into the server hub automatically - the account you
+     * made in Authentication is what plays online, no separate online account needed. Sends
+     * only the password hash (never the plaintext), so this works silently right after
+     * connecting, including with a "stay logged in" account restored on startup. If the
+     * server's account data center doesn't have this account yet, it is added there using
+     * that same hash. No-op (with an OFFLINE-style reply) if there's no local account signed
+     * in, or if we're already using a remote account.
+     */
+    public void autoSignIn(Consumer<Envelope> reply) {
+        User local = User.currentUser;
+        if (local == null || User.isRemote()) {
+            if (reply != null) {
+                reply.accept(new Envelope(Protocol.ERR, 0, null, Envelope.obj(
+                        "code", "NO_LOCAL_ACCOUNT",
+                        "message", "Log in to your account first, then connect to play online.")));
+            }
+            return;
+        }
+        send(Protocol.AUTO_LOGIN, Envelope.obj(
+                        "username", local.username,
+                        "passwordHash", local.passwordHash,
+                        "nickname", local.nickname,
+                        "email", local.email,
+                        "gender", local.gender,
+                        "securityQuestion", local.securityQuestion,
+                        "securityAnswerHash", local.securityAnswerHash),
+                envelope -> {
+                    if (envelope.isType(Protocol.OK)) {
+                        adoptAccount(envelope);
+                        statusMessage = "Signed in as " + signedInUsername;
+                    } else {
+                        statusMessage = "Connected. Could not sign in automatically: "
+                                + envelope.getString("message", "");
+                    }
+                    if (reply != null) reply.accept(envelope);
+                });
+    }
+
     private void adoptAccount(Envelope envelope) {
         JsonObject account = envelope.getObject("account");
         JsonObject stateJson = envelope.getObject("userState");
@@ -191,16 +238,27 @@ public final class NetworkClient {
         User user = new User(dto.username, "", dto.nickname, dto.email, dto.gender);
         dto.applyTo(user);
         if (state != null) user.userState = state;
+        // Carry over the "stay logged in" choice from the local session that connected
+        // online, instead of losing it the moment we switch to the remote store.
+        user.stayLoggedIn = User.currentUser != null
+                && dto.username.equalsIgnoreCase(User.currentUser.username)
+                && User.currentUser.stayLoggedIn;
 
         signedInUsername = dto.username;
         User.users.clear();
         User.users.add(user);
         User.useStore(new RemoteUserStore(this));
         User.setUser(user);
+        // Mirror this authoritative server state into the local file immediately, so it's
+        // never left stale even if nothing else triggers a save before the server goes down.
+        User.save();
         statusMessage = "Signed in as " + dto.username;
     }
 
     public void logout() {
+        if (User.isRemote() && User.currentUser != null) {
+            User.save();
+        }
         if (isConnected()) fireAndForget(Protocol.LOGOUT, Envelope.obj());
         signedInUsername = null;
         queued = false;
@@ -346,11 +404,19 @@ public final class NetworkClient {
         if (!connection.isRunning()) {
             String failure = connection.getFailure();
             statusMessage = failure == null ? "Disconnected." : failure;
+            // The server just disappeared - the connection is already dead, so a remote
+            // save would just try to push over that dead connection and silently fail.
+            // Switch to the local store FIRST, then save, so this actually writes the
+            // in-memory progress straight to disk instead of losing it.
+            boolean wasRemote = User.isRemote();
+            User.useLocalStore();
+            if (wasRemote && User.currentUser != null) {
+                User.save();
+            }
             connection = null;
             signedInUsername = null;
             matchState = null;
             queued = false;
-            User.useLocalStore();
             if (onDisconnected != null) onDisconnected.accept(statusMessage);
             return;
         }
@@ -398,6 +464,12 @@ public final class NetworkClient {
             case Protocol.MATCH_SNAPSHOT -> onSnapshot(envelope);
             case Protocol.MATCH_EVENT -> onMatchEvent(envelope);
             case Protocol.MATCH_END -> onMatchEnd(envelope);
+            case Protocol.TA_REWARD -> {
+                if (User.currentUser != null && User.currentUser.userState != null) {
+                    User.currentUser.userState.coins = envelope.getInt("totalCoins", User.currentUser.userState.coins);
+                    statusMessage = "TA offer credited " + envelope.getInt("coins", 0) + " coins.";
+                }
+            }
             case Protocol.REACTION -> {
                 if (matchState != null) {
                     matchState.setReaction(envelope.getString("fromUsername", "?"),

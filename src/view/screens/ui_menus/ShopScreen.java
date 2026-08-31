@@ -153,6 +153,9 @@ public class ShopScreen extends UiScreen {
         for (Product product : productsForTab(currentTab)) {
             row.add(buildItemCard(product, state)).width(CARD_W).height(CARD_H).padRight(SPACE_MD);
         }
+        if (currentTab == ShopTab.CURRENCY) {
+            row.add(buildTaOfferCard()).width(CARD_W).height(CARD_H).padRight(SPACE_MD);
+        }
 
         ScrollPane scrollPane = new ScrollPane(row);
         scrollPane.setScrollingDisabled(false, true);
@@ -167,6 +170,31 @@ public class ShopScreen extends UiScreen {
             case PLANTS -> List.of(Product.POT, Product.PLANT_FOOD, Product.SEED_RANDOM, Product.SEED_CHOICE);
             case CURRENCY -> List.of(Product.CURRENCY_EXCHANGE);
         };
+    }
+
+    private Table buildTaOfferCard() {
+        Table card = new Table();
+        card.setBackground(skin.getDrawable("card-background"));
+        card.pad(SPACE_SM);
+        card.top();
+
+        Label nameLabel = new Label("Special TA Coin Offer", skin, "main");
+        nameLabel.setFontScale(0.85f);
+        nameLabel.setWrap(true);
+        card.add(nameLabel).width(CARD_W - 40f).left().row();
+
+        Image icon = new Image(loadTextureSafe("assets/images/ui/offerwall_treasure_chest_coins.png"));
+        card.add(icon).size(CARD_IMAGE_SIZE, CARD_IMAGE_SIZE).padTop(SPACE_SM).padBottom(SPACE_SM).row();
+
+        Label detail = new Label("Open the project web portal for the TA coin offer.", skin, "muted");
+        detail.setWrap(true);
+        detail.setFontScale(0.85f);
+        card.add(detail).width(CARD_W - 40f).height(DETAILS_H).padBottom(SPACE_SM).row();
+        card.add().expandY().row();
+
+        TextButton open = primaryButton("Open Offer", () -> net.client.TaWebLauncher.open());
+        card.add(open).width(150).height(44);
+        return card;
     }
 
     private Table buildDailyOfferCard(UserState state) {
