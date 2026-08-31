@@ -94,9 +94,7 @@ class SeasonOverlayRenderer {
                 drawIceAgeDeadlineFlowers(delta, deadline);
             } else {
                 int c = (int) deadline.getDeadLine().x();
-                screen.batch.setColor(1f, 0.12f, 0.08f, 0.75f);
-                screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth, GameScreen.BOARD_Y, 5f, bh);
-                screen.batch.setColor(Color.WHITE);
+                screen.drawDeadlineFlowerLine(c, screen.session.getRows());
             }
         }
         if (level instanceof IntroductionLevel) {

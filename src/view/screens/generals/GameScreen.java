@@ -541,6 +541,29 @@ public class GameScreen extends UiScreen {
         return plant.getPosition();
     }
 
+    private static final String DEADLINE_FLOWER_PAM =
+            "768/INITIAL/EFFECTS/STAR_OBJECTIVE_FLOWER/STAR_OBJECTIVE_FLOWER.PAM";
+    private static final float DEADLINE_FLOWER_SCALE = 0.52f;
+    private float deadlineFlowerLineClock = 0f;
+
+    /**
+     * Draws the Ice Age (Frostbite Caves) dead-line marker - a STAR_OBJECTIVE_FLOWER
+     * effect on every row of the given column - instead of a plain colored bar.
+     * Used everywhere a "line you can't cross" needs to be shown: PvP/campaign dead
+     * lines, Wall-nut Bowling's red line, and I, Zombie's red line.
+     */
+    protected void drawDeadlineFlowerLine(int col, int rows) {
+        deadlineFlowerLineClock += Gdx.graphics.getDeltaTime();
+        float loopDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, "idle");
+        float clipTime = loopDuration > 0f ? deadlineFlowerLineClock % loopDuration : deadlineFlowerLineClock;
+        float boardTileWidth = getBoardTileWidth();
+        for (int row = 0; row < rows; row++) {
+            float x = BOARD_X + col * boardTileWidth - 10f;
+            float y = cellY(row) + 40f;
+            drawPam(DEADLINE_FLOWER_PAM, "idle", clipTime, x, y, DEADLINE_FLOWER_SCALE, false);
+        }
+    }
+
     public boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip) {
         return drawPam(path, preferred, time, x, y, scale, flip, null);
     }

@@ -277,8 +277,7 @@ public class CouchIZombieGameScreen extends GameScreen {
              col <= IZombieMatch.REDLINE_COLUMN; col++) {
             drawFallback(getCellX(col), getBoardBottom(), getBoardTileWidth(), bh, PLANT_ZONE);
         }
-        drawFallback(getCellX(IZombieMatch.REDLINE_COLUMN + 1) - 2f, getBoardBottom(),
-                4f, bh, RED_LINE_COLOR);
+        drawDeadlineFlowerLine(IZombieMatch.REDLINE_COLUMN + 1, session.getRows());
         drawFallback(getCellX(cursorCol), getCellY(cursorRow), getBoardTileWidth(),
                 getBoardTileHeight(), ZOMBIE_CURSOR);
         drawBrains(match);

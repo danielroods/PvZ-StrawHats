@@ -184,8 +184,7 @@ public class WallnutBowlingGameScreen extends GameScreen {
         WallnutBowling game = currentGame();
         if (game == null) return;
 
-        float redLineX = getCellX(game.getRedLineColumn() + 1);
-        drawFallback(redLineX - 2f, getBoardBottom(), 4f, bh, new Color(0.85f, 0.2f, 0.2f, 0.85f));
+        drawDeadlineFlowerLine(game.getRedLineColumn() + 1, session.getRows());
 
         Map<Nut, Position> aliveExplodeNuts = new HashMap<>();
         for (Nut nut : game.getActiveNuts()) {

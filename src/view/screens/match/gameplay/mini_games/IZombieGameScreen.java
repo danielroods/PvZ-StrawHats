@@ -298,8 +298,7 @@ public class IZombieGameScreen extends GameScreen {
     }
 
     private void drawRedLine(IZombie game, float bh) {
-        float redLineX = getCellX(game.getRedLineColumn() + 1);
-        drawFallback(redLineX - 2f, getBoardBottom(), 4f, bh, RED_LINE_COLOR);
+        drawDeadlineFlowerLine(game.getRedLineColumn() + 1, session.getRows());
     }
 
     private void drawBrains(IZombie game, float delta) {

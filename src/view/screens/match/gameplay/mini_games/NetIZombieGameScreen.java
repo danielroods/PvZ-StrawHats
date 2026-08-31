@@ -396,8 +396,7 @@ public class NetIZombieGameScreen extends GameScreen {
     }
 
     private void drawRedLine(float bh) {
-        float redLineX = getCellX(IZombieMatch.REDLINE_COLUMN + 1);
-        drawFallback(redLineX - 2f, getBoardBottom(), 4f, bh, RED_LINE_COLOR);
+        drawDeadlineFlowerLine(IZombieMatch.REDLINE_COLUMN + 1, session.getRows());
     }
 
     private void drawBrains() {
