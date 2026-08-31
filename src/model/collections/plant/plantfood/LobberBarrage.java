@@ -25,7 +25,7 @@ public class LobberBarrage implements PlantFoodEffect {
         elapsed += deltaTimeSeconds;
         if (elapsed >= FIRE_INTERVAL && fired < shots) {
             elapsed = 0;
-            fireOnce(plant, GameSession.getInstance());
+            fireOnce(plant, GameSession.peekInstance());
         }
     }
 

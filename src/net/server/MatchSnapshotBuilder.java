@@ -14,7 +14,10 @@ import model.match.mini_games.izombie.IZombieMatch.SeedCard;
 import model.match.mini_games.izombie.ZombiePacket;
 import model.match_mechanisms.vector.Position;
 import model.projectile.GrapeshotProjectile;
+import model.projectile.LaneShiftMove;
+import model.projectile.LobArcMove;
 import model.projectile.Projectile;
+import model.projectile.ProjectileImpact;
 import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.OctopusProjectile;
@@ -34,6 +37,7 @@ public class MatchSnapshotBuilder {
     private final Map<Object, Integer> entityIds = new IdentityHashMap<>();
     private final List<MatchSnapshot.PlantDto> removedPlants = new ArrayList<>();
     private final List<MatchSnapshot.ZombieProjectileDto> removedZombieShots = new ArrayList<>();
+    private final List<MatchSnapshot.ImpactDto> impacts = new ArrayList<>();
 
     private int nextEntityId = 1;
 
@@ -50,6 +54,9 @@ public class MatchSnapshotBuilder {
                                 List<ZombieProjectile> shotsBefore) {
         if (match == null) return;
         GameSession session = match.getSession();
+        for (ProjectileImpact impact : session.drainProjectileImpacts()) {
+            impacts.add(impactDto(impact));
+        }
         if (plantsBefore != null) {
             List<Plant> stillAlive = session.getPlants();
             for (Plant plant : plantsBefore) {
@@ -71,6 +78,7 @@ public class MatchSnapshotBuilder {
     public void clearRemovals() {
         removedPlants.clear();
         removedZombieShots.clear();
+        impacts.clear();
     }
 
     public void forgetDeadEntities(IZombieMatch match) {
@@ -157,6 +165,7 @@ public class MatchSnapshotBuilder {
         }
 
         snapshot.removedZombieProjectiles.addAll(removedZombieShots);
+        snapshot.impacts.addAll(impacts);
 
         for (Object raw : new ArrayList<>(session.getItems())) {
             if (!(raw instanceof GroundItem item)) continue;
@@ -227,7 +236,12 @@ public class MatchSnapshotBuilder {
             dto.sourcePlantId = source.getId();
             dto.plantFood = source.isPlantFoodActive();
         }
-        dto.kind = projectile instanceof GrapeshotProjectile ? "GRAPESHOT" : "STRAIGHT";
+        if (source == null) {
+            dto.sourceName = projectile.getSourcePlantName();
+            dto.plantFood = projectile.isPlantFoodShot();
+        }
+        dto.kind = kindOf(projectile);
+        dto.motion = motionOf(projectile);
         dto.assetVariant = projectile.getAssetVariant();
         dto.displayPath = projectile.getDisplayPath();
         dto.displayState = projectile.getDisplayState();
@@ -237,6 +251,35 @@ public class MatchSnapshotBuilder {
         Position speed = projectile.getSpeed();
         dto.vx = speed == null ? 0 : finite(speed.x());
         dto.vy = speed == null ? 0 : finite(speed.y());
+        return dto;
+    }
+
+    private String kindOf(Projectile projectile) {
+        if (projectile instanceof GrapeshotProjectile) return "GRAPESHOT";
+        if (projectile.getMoveStrategy() instanceof LobArcMove) return "LOB";
+        if (projectile.getMoveStrategy() instanceof LaneShiftMove) return "LANE";
+        return "STRAIGHT";
+    }
+
+    private double[] motionOf(Projectile projectile) {
+        if (projectile.getMoveStrategy() instanceof LobArcMove arc) {
+            return new double[] {finite(arc.getStartX()), finite(arc.getStartY()),
+                    finite(arc.getEndX()), finite(arc.getEndY()), finite(arc.getPeakHeight()),
+                    finite(arc.getHorizontalSpeed()), finite(arc.getTravelledX())};
+        }
+        if (projectile.getMoveStrategy() instanceof LaneShiftMove lane) {
+            return new double[] {finite(lane.getTargetY()), finite(lane.getForwardSpeed())};
+        }
+        return null;
+    }
+
+    private MatchSnapshot.ImpactDto impactDto(ProjectileImpact impact) {
+        MatchSnapshot.ImpactDto dto = new MatchSnapshot.ImpactDto();
+        dto.plantName = impact.plantName();
+        dto.plantFood = impact.plantFood();
+        dto.assetVariant = impact.assetVariant();
+        dto.x = finite(impact.position().x());
+        dto.y = finite(impact.position().y());
         return dto;
     }
 

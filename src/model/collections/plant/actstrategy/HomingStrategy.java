@@ -4,8 +4,8 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.projectile.HomingMove;
 import model.projectile.Projectile;
-import model.projectile.StraightMove;
 import model.projectile.hit.HypnotizeHit;
 import model.projectile.hit.NormalHit;
 import model.utils.GameSession;
@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class HomingStrategy implements ActStrategy {
+
+    public static final double HOMING_SPEED = 5.0;
+    private static final double TURN_RATE_PER_SECOND = 6.0;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -27,30 +30,36 @@ public class HomingStrategy implements ActStrategy {
         Zombie target = randomTargeting ? randomTarget(zombies) : nearestTarget(user, zombies);
         if (target == null) return;
 
-        session.getProjectiles().add(buildProjectile(user, target, isMagic));
+        session.getProjectiles().add(buildProjectile(user, target, isMagic, session));
         user.setInternalTimer(user.getActionInterval());
     }
 
-    private Projectile buildProjectile(Plant user, Zombie target, boolean isMagic) {
-        Position direction = target.getPosition().sub(user.getPosition()).normalize();
-        Position velocity = direction.scale(20.0);
+    private Projectile buildProjectile(Plant user, Zombie target, boolean isMagic,
+                                       GameSession session) {
+        double speed = session.projectileSpeed(HOMING_SPEED);
+        Position toTarget = target.getPosition().sub(user.getPosition());
+        Position direction = toTarget.length() > 0 ? toTarget.normalize() : Position.of(1, 0);
+        Position velocity = direction.scale(speed);
 
         if (isMagic) {
             int pierceCount = (int) user.getAbilityValue();
             return new Projectile(user,
                     user.getPosition(), velocity, target,
-                    user.getDamage(), new StraightMove(), new HypnotizeHit(pierceCount)
+                    user.getDamage(), new HomingMove(target, speed, TURN_RATE_PER_SECOND),
+                    new HypnotizeHit(pierceCount)
             );
         }
 
         return new Projectile(user,
                 user.getPosition(), velocity, target,
-                user.getDamage(), new StraightMove(), new NormalHit(1)
+                user.getDamage(), new HomingMove(target, speed, TURN_RATE_PER_SECOND),
+                new NormalHit(1)
         );
     }
 
     private Zombie randomTarget(List<Zombie> zombies) {
-        List<Zombie> alive = zombies.stream().filter(z -> z != null && z.isAlive()).toList();
+        List<Zombie> alive = zombies.stream()
+                .filter(z -> z != null && z.isAlive() && z.getPosition() != null).toList();
         if (alive.isEmpty()) return null;
         return alive.get(ThreadLocalRandom.current().nextInt(alive.size()));
     }
@@ -59,7 +68,7 @@ public class HomingStrategy implements ActStrategy {
         Zombie nearest = null;
         double shortest = Double.MAX_VALUE;
         for (Zombie z : zombies) {
-            if (z == null || !z.isAlive()) continue;
+            if (z == null || !z.isAlive() || z.getPosition() == null) continue;
             double dist = z.getPosition().distanceTo(user.getPosition());
             if (dist < shortest) {
                 shortest = dist;

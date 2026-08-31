@@ -24,7 +24,7 @@ public class GrapeshotProjectile extends Projectile {
         super(source, origin, velocity, (Zombie) null, damage, null, null);
         this.remainingZombieBounces = Math.max(1, bounces);
         this.lifetimeSeconds = Math.max(0.1, lifetimeSeconds);
-        setSpawnDelayTicks(0.0);
+        setSpawnDelaySeconds(0.0);
     }
 
     public int getRemainingBounces() {
@@ -57,8 +57,9 @@ public class GrapeshotProjectile extends Projectile {
             setAlive(false);
             return;
         }
+        setPreviousPosition(start);
 
-        Position end = advance(session, start, velocity);
+        Position end = advance(session, start, velocity, GameClock.SECONDS_PER_TICK);
         setPosition(end);
         if (!isAlive()) return;
 
@@ -66,6 +67,7 @@ public class GrapeshotProjectile extends Projectile {
         if (hit == null) return;
 
         hit.takeDamage(getDamage(), this);
+        recordShrapnelImpact(session, hit.getPosition());
         lastHitZombie = hit;
         remainingZombieBounces--;
         if (remainingZombieBounces <= 0) {
@@ -75,8 +77,23 @@ public class GrapeshotProjectile extends Projectile {
         setSpeed(bounceOffZombie(session, hit, end, getSpeed()));
     }
 
-    private Position advance(GameSession session, Position start, Position velocity) {
-        double delta = GameClock.SECONDS_PER_TICK;
+    @Override
+    public void advanceVisual(double deltaSeconds) {
+        if (!isAlive() || deltaSeconds <= 0) return;
+        Position position = getPosition();
+        Position velocity = getSpeed();
+        if (position == null || velocity == null) return;
+        setPosition(position.add(velocity.scale(deltaSeconds)));
+        setPreviousPosition(getPosition());
+    }
+
+    private void recordShrapnelImpact(GameSession session, Position at) {
+        if (at == null || getSourcePlantName() == null) return;
+        session.recordProjectileImpact(new ProjectileImpact(getSourcePlantName(),
+                isPlantFoodShot(), getAssetVariant(), at));
+    }
+
+    private Position advance(GameSession session, Position start, Position velocity, double delta) {
         double x = start.x() + velocity.x() * delta;
         double y = start.y() + velocity.y() * delta;
         double vx = velocity.x();

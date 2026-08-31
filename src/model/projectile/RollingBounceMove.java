@@ -1,7 +1,6 @@
 package model.projectile;
 
 import model.match_mechanisms.vector.Position;
-import service.GameClock;
 
 import java.util.Random;
 
@@ -25,13 +24,12 @@ public class RollingBounceMove implements MoveStrategy {
     }
 
     @Override
-    public void move(Projectile projectile) {
+    public void move(Projectile projectile, double deltaSeconds) {
         Position pos = projectile.getPosition();
         Position velocity = projectile.getSpeed();
         if (pos == null || velocity == null) return;
 
-        Position newPos = pos.add(velocity.scale(GameClock.SECONDS_PER_TICK));
-        projectile.setPosition(newPos);
+        projectile.setPosition(pos.add(velocity.scale(deltaSeconds)));
     }
 
     @Override

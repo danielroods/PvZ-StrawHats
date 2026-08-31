@@ -14,7 +14,11 @@ import model.collections.zombie.ZombieFactory;
 import model.collections.zombie.ZombieState;
 import model.match_mechanisms.vector.Position;
 import model.projectile.GrapeshotProjectile;
+import model.projectile.LaneShiftMove;
+import model.projectile.LobArcMove;
+import model.projectile.MoveStrategy;
 import model.projectile.Projectile;
+import model.projectile.ProjectileImpact;
 import model.projectile.StraightMove;
 import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
@@ -24,6 +28,7 @@ import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import model.utils.GameSession;
 import net.dto.MatchSnapshot;
+import service.GameClock;
 import service.Log;
 
 import java.util.ArrayList;
@@ -38,7 +43,8 @@ public class SnapshotApplier {
     private static final double PLANT_FOOD_DISPLAY_SECONDS = 1.0;
     private static final double MIN_ACTIVE_PLANT_FOOD_SECONDS = 0.001;
     private static final double ENDURIAN_ATTACK_DISPLAY_SECONDS = 0.3;
-    private static final double PROJECTILE_SNAP_DISTANCE = 0.9;
+    private static final double MIN_PROJECTILE_SNAP_DISTANCE = 0.5;
+    private static final double PROJECTILE_SNAP_TICKS = 1.5;
     private static final double PROJECTILE_CORRECTION = 0.35;
     private static final double ZOMBIE_SHOT_FLIGHT_SECONDS = 9999.0;
 
@@ -64,6 +70,7 @@ public class SnapshotApplier {
         applyProjectiles(snapshot);
         applyZombieProjectiles(snapshot);
         applyItems(snapshot);
+        applyImpacts(snapshot);
     }
 
     private void applyPlants(MatchSnapshot snapshot) {
@@ -287,10 +294,10 @@ public class SnapshotApplier {
                 projectiles.put(dto.id, projectile);
                 session.getProjectiles().add(projectile);
             } else {
-                projectile.setPosition(correctedPosition(projectile.getPosition(), dto));
+                reconcile(projectile, dto);
             }
-            projectile.setSpeed(new Position(dto.vx, dto.vy));
             projectile.setSourcePlant(resolveSource(dto));
+            projectile.setSourceDisplay(dto.sourceName, dto.plantFood);
             projectile.setAssetVariant(dto.assetVariant);
             if (dto.displayPath != null) projectile.setDisplay(dto.displayPath, dto.displayState);
         }
@@ -303,15 +310,37 @@ public class SnapshotApplier {
         });
     }
 
+    private void reconcile(Projectile projectile, MatchSnapshot.ProjectileDto dto) {
+        if (projectile.getMoveStrategy() instanceof LobArcMove arc
+                && dto.motion != null && dto.motion.length >= 7) {
+            double local = arc.getTravelledX();
+            double authoritative = dto.motion[6];
+            arc.setTravelledX(local + (authoritative - local) * PROJECTILE_CORRECTION);
+            arc.applyTo(projectile);
+            projectile.setSpeed(new Position(dto.vx, dto.vy));
+            return;
+        }
+
+        projectile.setPosition(correctedPosition(projectile.getPosition(), dto));
+        projectile.setSpeed(new Position(dto.vx, dto.vy));
+    }
+
     private Position correctedPosition(Position rendered, MatchSnapshot.ProjectileDto dto) {
         if (rendered == null) return new Position(dto.x, dto.y);
         double dx = dto.x - rendered.x();
         double dy = dto.y - rendered.y();
-        if (Math.abs(dx) > PROJECTILE_SNAP_DISTANCE || Math.abs(dy) > PROJECTILE_SNAP_DISTANCE) {
+        double tolerance = snapToleranceFor(dto);
+        if (Math.abs(dx) > tolerance || Math.abs(dy) > tolerance) {
             return new Position(dto.x, dto.y);
         }
         return new Position(rendered.x() + dx * PROJECTILE_CORRECTION,
                 rendered.y() + dy * PROJECTILE_CORRECTION);
+    }
+
+    private double snapToleranceFor(MatchSnapshot.ProjectileDto dto) {
+        double speed = Math.hypot(dto.vx, dto.vy);
+        return Math.max(MIN_PROJECTILE_SNAP_DISTANCE,
+                speed * GameClock.SECONDS_PER_TICK * PROJECTILE_SNAP_TICKS);
     }
 
     private Projectile createProjectile(MatchSnapshot.ProjectileDto dto) {
@@ -319,11 +348,25 @@ public class SnapshotApplier {
         Position velocity = new Position(dto.vx, dto.vy);
         Projectile projectile = "GRAPESHOT".equals(dto.kind)
                 ? new GrapeshotProjectile(null, at, velocity, 0, 1, 1.0)
-                : new Projectile((Item) null, at, velocity, 0, new StraightMove(), null);
-        projectile.setSpawnDelayTicks(0);
+                : new Projectile((Item) null, at, velocity, 0, rebuildMotion(dto), null);
+        projectile.setSpawnDelaySeconds(0);
         projectile.setPosition(at);
         projectile.setSpeed(velocity);
         return projectile;
+    }
+
+    private MoveStrategy rebuildMotion(MatchSnapshot.ProjectileDto dto) {
+        String kind = dto.kind == null ? "" : dto.kind;
+        if ("LOB".equals(kind) && dto.motion != null && dto.motion.length >= 7) {
+            LobArcMove arc = new LobArcMove(dto.motion[0], dto.motion[1], dto.motion[2],
+                    dto.motion[3], dto.motion[4], dto.motion[5]);
+            arc.setTravelledX(dto.motion[6]);
+            return arc;
+        }
+        if ("LANE".equals(kind) && dto.motion != null && dto.motion.length >= 2) {
+            return new LaneShiftMove(dto.motion[0], dto.motion[1]);
+        }
+        return new StraightMove();
     }
 
     private Plant resolveSource(MatchSnapshot.ProjectileDto dto) {
@@ -345,6 +388,15 @@ public class SnapshotApplier {
             detachedSources.put(key, detached);
         }
         return detached;
+    }
+
+    private void applyImpacts(MatchSnapshot snapshot) {
+        if (snapshot.impacts == null) return;
+        for (MatchSnapshot.ImpactDto dto : snapshot.impacts) {
+            if (dto.plantName == null) continue;
+            session.recordProjectileImpact(new ProjectileImpact(dto.plantName, dto.plantFood,
+                    dto.assetVariant, new Position(dto.x, dto.y)));
+        }
     }
 
     private void applyZombieProjectiles(MatchSnapshot snapshot) {
@@ -440,11 +492,7 @@ public class SnapshotApplier {
     public void advanceProjectiles(float delta) {
         if (delta <= 0f) return;
         for (Projectile projectile : projectiles.values()) {
-            Position position = projectile.getPosition();
-            Position speed = projectile.getSpeed();
-            if (position == null || speed == null) continue;
-            projectile.setPosition(new Position(position.x() + speed.x() * delta,
-                    position.y() + speed.y() * delta));
+            projectile.advanceVisual(delta);
         }
     }
     public void advancePlantVisuals(float delta) {

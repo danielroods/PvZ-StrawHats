@@ -37,7 +37,6 @@ class GrapeshotTest {
     @BeforeEach
     void setUp() {
         session = new GameSession(ROWS, COLS);
-        Projectile.setGlobalSpeedMultiplier(0.60);
     }
 
     private Plant plantGrapeshot(int level, int row, int col) {

@@ -12,6 +12,7 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.projectile.GrapeshotProjectile;
 import model.projectile.Projectile;
+import model.projectile.ProjectileImpact;
 import model.projectile.zombie_projectile.GargantuarImpProjectile;
 import model.projectile.zombie_projectile.OctopusProjectile;
 import model.projectile.zombie_projectile.SnowballProjectile;
@@ -60,6 +61,46 @@ class EffectRenderer {
     private static final float RADIOACTIVE_SUN_EXPLOSION_FALLBACK_DURATION = 1.0f;
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
+
+    /**
+     * One scale for a shot and for the splat it leaves behind. They used to differ by a
+     * factor of two, so every impact popped at half the size of the projectile that
+     * caused it.
+     */
+    static final float PROJECTILE_DRAW_SCALE = PROJECTILE_PAM_SCALE * 2.0f;
+
+    /**
+     * Where a shot sits inside its tile, as a fraction of tile width/height. The default
+     * is the whole-lawn calibration every projectile used to share; the per-plant entries
+     * lift a shot to the muzzle it actually leaves from instead of drawing it at the
+     * plant's base. The splat a shot leaves reuses the same offset, so the impact lands
+     * exactly where the projectile was drawn.
+     */
+    private static final float[] DEFAULT_MUZZLE_OFFSET = {0.41f, 0.42f};
+    private static final float[] PEA_MUZZLE_OFFSET = {0.47f, 0.55f};
+    private static final float[] PULT_MUZZLE_OFFSET = {0.45f, 0.50f};
+    private static final float[] LOW_MUZZLE_OFFSET = {0.41f, 0.30f};
+    private static final Map<String, float[]> MUZZLE_OFFSETS = buildMuzzleOffsets();
+
+    private static Map<String, float[]> buildMuzzleOffsets() {
+        Map<String, float[]> offsets = new java.util.HashMap<>();
+        for (String pea : new String[] {"Peashooter", "Repeater", "Threepeater", "Split Pea",
+                "Pea Pod", "Mega Gatling Pea", "Snow Pea", "Fire Peashooter", "Goo Peashooter"}) {
+            offsets.put(pea.toLowerCase(), PEA_MUZZLE_OFFSET);
+        }
+        for (String pult : new String[] {"Cabbage-pult", "Kernel-pult", "Melon-pult",
+                "Winter Melon", "Pepper-pult"}) {
+            offsets.put(pult.toLowerCase(), PULT_MUZZLE_OFFSET);
+        }
+        offsets.put("bowling bulb", LOW_MUZZLE_OFFSET);
+        return offsets;
+    }
+
+    private static float[] muzzleOffsetFor(String plantName) {
+        if (plantName == null) return DEFAULT_MUZZLE_OFFSET;
+        return MUZZLE_OFFSETS.getOrDefault(plantName.toLowerCase(), DEFAULT_MUZZLE_OFFSET);
+    }
+
     private static final float GRAPE_PROJECTILE_SCALE_FACTOR = 1.6f;
     private static final String GRAPESHOT = "Grapeshot";
     private static final float STATIC_PROJECTILE_SCALE = 0.80f;
@@ -178,17 +219,33 @@ class EffectRenderer {
         }
     }
 
-    private static final class ProjectileTrace {
-        final String plantName;
-        final boolean boosted;
-        final int variant;
+    /**
+     * A splat queued by the model when a shot actually connected. Unlike the old
+     * "the projectile vanished from the list, so draw a splat" guess, a shot that simply
+     * ran out of range or left the lawn queues nothing, and the position is the exact
+     * point of impact rather than wherever the shot happened to be a tick earlier.
+     */
+    private static final class ProjectileImpactEffect {
+        final String path;
+        final String state;
+        final boolean staticImage;
         final Position position;
+        final float duration;
+        final float scale;
+        final float offsetX;
+        final float offsetY;
+        float time;
 
-        ProjectileTrace(String plantName, boolean boosted, int variant, Position position) {
-            this.plantName = plantName;
-            this.boosted = boosted;
-            this.variant = variant;
+        ProjectileImpactEffect(String path, String state, boolean staticImage, Position position,
+                               float duration, float scale, float offsetX, float offsetY) {
+            this.path = path;
+            this.state = state;
+            this.staticImage = staticImage;
             this.position = position;
+            this.duration = duration;
+            this.scale = scale;
+            this.offsetX = offsetX;
+            this.offsetY = offsetY;
         }
     }
 
@@ -201,7 +258,7 @@ class EffectRenderer {
     private final List<PlacedPamEffect> radioactiveSunExplosionEffects = new ArrayList<>();
     private final List<ScorchedTileEffect> scorchedTileEffects = new ArrayList<>();
     private final List<HotPotatoMeltEffect> hotPotatoMeltEffects = new ArrayList<>();
-    private final Map<Projectile, ProjectileTrace> projectileTraces = new IdentityHashMap<>();
+    private final List<ProjectileImpactEffect> projectileImpactEffects = new ArrayList<>();
     private final Map<Projectile, Float> projectileAnimTimes = new IdentityHashMap<>();
     private final Map<ZombieProjectile, Float> zombieProjectileAnimTimes = new IdentityHashMap<>();
     private final Map<String, Texture> zombieProjectileTextures = new java.util.HashMap<>();
@@ -557,7 +614,6 @@ class EffectRenderer {
                                        boolean potatoMineExplosion) {
         if (effect.staticImage) {
             screen.assets().drawStaticEffect(effect.path, x, y, drawScale);
-            screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
         } else {
             boolean drawn = screen.drawPam(effect.path, effect.state, effect.time,
                     x, y, drawScale, effect.loop);
@@ -570,7 +626,6 @@ class EffectRenderer {
                 }
                 screen.drawPam(effect.path, fallback, effect.time, x, y, drawScale, effect.loop);
             }
-            screen.drawPam(effect.path, effect.state, effect.time, x, y, effect.scale, effect.loop);
         }
     }
 
@@ -795,30 +850,84 @@ class EffectRenderer {
     }
 
     void drawProjectiles(float delta, float bw, float bh) {
+        float alpha = screen.tickAlpha();
         for (Projectile projectile : screen.session.getProjectiles()) {
-            Plant source = projectile.getSourcePlant();
-            if (source != null && projectile.getPosition() != null) {
-                projectileTraces.put(projectile, new ProjectileTrace(source.getName(),
-                        source.isPlantFoodActive(), projectile.getAssetVariant(),
-                        projectile.getPosition()));
-            }
             if (!projectile.isVisible()) continue;
             float age = projectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             projectileAnimTimes.put(projectile, age);
-            Position projectilePosition = projectile.getPosition();
-            if (projectilePosition == null) continue;
-            int row = (int) Math.round(projectilePosition.y());
+            Position drawAt = interpolated(projectile.getPreviousPosition(),
+                    projectile.getPosition(), alpha);
+            if (drawAt == null) continue;
+            int row = (int) Math.round(drawAt.y());
             screen.queueRowDraw(row, () -> {
-                if (!drawProjectilePam(projectile, age)) {
-                    drawSmallDot(projectilePosition, new Color(0.95f, 0.9f, 0.18f, 1f));
+                if (!drawProjectilePam(projectile, drawAt, age)) {
+                    drawSmallDot(drawAt, new Color(0.95f, 0.9f, 0.18f, 1f));
                 }
             });
         }
-        spawnImpactEffectsForSpentProjectiles();
+        queueProjectileImpacts();
+        drawProjectileImpactEffects(delta);
         drawMeleePlantProjectiles(delta);
         drawZombieProjectiles(delta);
         projectileAnimTimes.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
-        projectileTraces.keySet().removeIf(p -> !screen.session.getProjectiles().contains(p));
+    }
+
+    private static Position interpolated(Position previous, Position current, float alpha) {
+        if (current == null) return null;
+        if (previous == null) return current;
+        return Position.of(previous.x() + (current.x() - previous.x()) * alpha,
+                previous.y() + (current.y() - previous.y()) * alpha);
+    }
+
+    private void queueProjectileImpacts() {
+        List<ProjectileImpact> impacts = screen.session.drainProjectileImpacts();
+        if (impacts.isEmpty()) return;
+
+        boolean playedSound = false;
+        for (ProjectileImpact impact : impacts) {
+            Position at = impact.position();
+            if (at == null || isOffBoard(at)) continue;
+            if (!playedSound) {
+                AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_HIT);
+                playedSound = true;
+            }
+
+            ProjectileEffectAssets.AssetEntry entry = resolveImpactEntry(impact);
+            if (entry == null) continue;
+
+            float duration = IMPACT_EFFECT_DURATION;
+            if (GRAPESHOT.equalsIgnoreCase(impact.plantName())) {
+                float exact = AnimationFactory.exactClipDurationForPath(entry.path(),
+                        entry.state());
+                if (exact > 0f) duration = exact;
+            }
+            float[] offset = muzzleOffsetFor(impact.plantName());
+            projectileImpactEffects.add(new ProjectileImpactEffect(entry.path(), entry.state(),
+                    entry.isStaticImage(), at, duration, PROJECTILE_DRAW_SCALE,
+                    offset[0], offset[1]));
+        }
+    }
+
+    private void drawProjectileImpactEffects(float delta) {
+        if (projectileImpactEffects.isEmpty()) return;
+        float tileWidth = screen.getBoardTileWidth();
+        float tileHeight = screen.getBoardTileHeight();
+        for (ProjectileImpactEffect effect : projectileImpactEffects) {
+            effect.time += delta;
+            float x = GameScreen.BOARD_X + (float) effect.position.x() * tileWidth
+                    + tileWidth * effect.offsetX;
+            float y = screen.cellY(effect.position.y()) + tileHeight * effect.offsetY;
+            float time = effect.time;
+            int row = (int) Math.round(effect.position.y());
+            screen.queueRowDraw(row, () -> {
+                if (effect.staticImage) {
+                    screen.assets().drawStaticEffect(effect.path, x, y, effect.scale);
+                } else {
+                    screen.drawPam(effect.path, effect.state, time, x, y, effect.scale, false);
+                }
+            });
+        }
+        projectileImpactEffects.removeIf(e -> e.time > e.duration);
     }
 
 
@@ -888,12 +997,14 @@ class EffectRenderer {
     }
 
     private void drawZombieProjectiles(float delta) {
+        float alpha = screen.tickAlpha();
         List<ZombieProjectile> live = screen.session.getZombieProjectiles();
         for (ZombieProjectile projectile : live) {
-            Position position = projectile.getPosition();
+            Position position = interpolated(projectile.getPreviousPosition(),
+                    projectile.getPosition(), alpha);
             if (position == null) continue;
             boolean justSpawned = !zombieProjectileAnimTimes.containsKey(projectile);
-            zombieProjectileTraces.put(projectile, position);
+            zombieProjectileTraces.put(projectile, projectile.getPosition());
             float age = zombieProjectileAnimTimes.getOrDefault(projectile, 0f) + delta;
             zombieProjectileAnimTimes.put(projectile, age);
 
@@ -911,8 +1022,9 @@ class EffectRenderer {
             if (!pea.hasSplatted()) continue;
             Position position = spent.getValue();
             if (position == null || isOffBoard(position)) continue;
-            impactEffects.add(new TimedPamEffect(ZOMBIE_PEA_SPLAT_PAM, "animation", false,
-                    false, position, IMPACT_EFFECT_DURATION, PROJECTILE_PAM_SCALE));
+            projectileImpactEffects.add(new ProjectileImpactEffect(ZOMBIE_PEA_SPLAT_PAM,
+                    "animation", false, position, IMPACT_EFFECT_DURATION, PROJECTILE_DRAW_SCALE,
+                    DEFAULT_MUZZLE_OFFSET[0], DEFAULT_MUZZLE_OFFSET[1]));
             AudioManager.get().playSound(AudioEnum.SFX_BUBBLE_HIT);
         }
         zombieProjectileAnimTimes.keySet().removeIf(p -> !live.contains(p));
@@ -933,18 +1045,20 @@ class EffectRenderer {
             }
         } else if (projectile instanceof ZombiePeaProjectile) {
             float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                    + screen.getBoardTileWidth() * 0.41f;
-            float y = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.42f;
+                    + screen.getBoardTileWidth() * DEFAULT_MUZZLE_OFFSET[0];
+            float y = screen.cellY(position.y())
+                    + screen.getBoardTileHeight() * DEFAULT_MUZZLE_OFFSET[1];
             if (!screen.drawPam(ZOMBIE_PEA_PAM, "animation", age, x, y,
-                    PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                    PROJECTILE_DRAW_SCALE, true)) {
                 drawSmallDot(position, new Color(0.55f, 0.85f, 0.25f, 1f));
             }
         } else if (projectile instanceof OctopusProjectile) {
             float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                    + screen.getBoardTileWidth() * 0.41f;
-            float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * 0.42f;
+                    + screen.getBoardTileWidth() * DEFAULT_MUZZLE_OFFSET[0];
+            float y = screen.cellY(position.y())
+                    + screen.getBoardTileHeight() * DEFAULT_MUZZLE_OFFSET[1];
             if (!screen.drawPam(OCTOPUS_PROJECTILE_PAM, "toss", age, x, y,
-                    PROJECTILE_PAM_SCALE * 2.0f, true)) {
+                    PROJECTILE_DRAW_SCALE, true)) {
                 drawSmallDot(position, new Color(0.55f, 0.2f, 0.55f, 1f));
             }
         } else if (projectile instanceof SnowballProjectile) {
@@ -975,7 +1089,8 @@ class EffectRenderer {
                 + boardTileWidth * 0.41f;
         float targetX = GameScreen.BOARD_X + (float) targetPosition.x() * boardTileWidth
                 + boardTileWidth * 0.41f;
-        float y = screen.cellY((int) sourcePosition.y()) + screen.getBoardTileHeight() * 0.42f;
+        float y = screen.cellY(sourcePosition.y())
+                + screen.getBoardTileHeight() * DEFAULT_MUZZLE_OFFSET[1];
 
         // The clip is drawn anchored at the source (zombie) and stretched toward the
         // target (plant); a negative X scale both flips and stretches leftward since
@@ -987,28 +1102,6 @@ class EffectRenderer {
         if (!screen.drawPamStretched(CRYSTALSKULL_BEAM_PAM, CRYSTALSKULL_BEAM_STATE, age,
                 sourceX, y, scaleX, CRYSTALSKULL_BEAM_HEIGHT_SCALE, false)) {
             drawSmallDot(sourcePosition, new Color(0.55f, 0.85f, 0.95f, 1f));
-        }
-    }
-
-    private void spawnImpactEffectsForSpentProjectiles() {
-        if (projectileTraces.isEmpty()) return;
-        for (Map.Entry<Projectile, ProjectileTrace> tracked : projectileTraces.entrySet()) {
-            if (screen.session.getProjectiles().contains(tracked.getKey())) continue;
-            ProjectileTrace trace = tracked.getValue();
-            if (trace.position == null || isOffBoard(trace.position)) continue;
-
-            ProjectileEffectAssets.AssetEntry entry = resolveImpactEntry(trace);
-            if (entry == null) continue;
-            float duration = IMPACT_EFFECT_DURATION;
-            if (GRAPESHOT.equalsIgnoreCase(trace.plantName)) {
-                float exact = AnimationFactory.exactClipDurationForPath(entry.path(), entry.state());
-                if (exact > 0f) duration = exact;
-            }
-            impactEffects.add(new TimedPamEffect(entry.path(), entry.state(),
-                    entry.playMode() == ProjectileEffectAssets.PlayMode.LOOP,
-                    entry.isStaticImage(), trace.position, IMPACT_EFFECT_DURATION,
-                    PROJECTILE_PAM_SCALE));
-            AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_HIT);
         }
     }
 
@@ -1039,22 +1132,22 @@ class EffectRenderer {
                 || position.y() < 0 || position.y() >= screen.session.getEnvironment().getRows();
     }
 
-    private ProjectileEffectAssets.AssetEntry resolveImpactEntry(ProjectileTrace trace) {
-        List<ProjectileEffectAssets.AssetEntry> entries = trace.boosted
-                ? ProjectileEffectAssets.get(trace.plantName, ProjectileEffectAssets.Kind.HIT,
+    private ProjectileEffectAssets.AssetEntry resolveImpactEntry(ProjectileImpact impact) {
+        List<ProjectileEffectAssets.AssetEntry> entries = impact.plantFood()
+                ? ProjectileEffectAssets.get(impact.plantName(), ProjectileEffectAssets.Kind.HIT,
                 ProjectileEffectAssets.Variant.PLANT_FOOD)
                 : List.of();
         if (entries.isEmpty()) {
-            entries = ProjectileEffectAssets.get(trace.plantName,
+            entries = ProjectileEffectAssets.get(impact.plantName(),
                     ProjectileEffectAssets.Kind.HIT, ProjectileEffectAssets.Variant.NORMAL);
         }
-        return entries.isEmpty() ? null : entries.get(Math.min(trace.variant, entries.size() - 1));
+        return entries.isEmpty()
+                ? null : entries.get(Math.min(impact.assetVariant(), entries.size() - 1));
     }
 
-    private boolean drawProjectilePam(Projectile projectile, float age) {
-        Position position = projectile.getPosition();
-        Plant source = projectile.getSourcePlant();
-        if (position == null || source == null || source.getName() == null) return false;
+    private boolean drawProjectilePam(Projectile projectile, Position position, float age) {
+        String sourceName = projectile.getSourcePlantName();
+        if (position == null || sourceName == null) return false;
 
         // Projectiles normally fly left-to-right (positive x speed), which is the
         // orientation the artwork is drawn in. Once something (e.g. a Jester Zombie)
@@ -1062,26 +1155,35 @@ class EffectRenderer {
         // mirror the animation to match the direction it's actually travelling in.
         boolean flip = isTravellingLeft(projectile);
 
-        ProjectileEffectAssets.Variant variant = source.isPlantFoodActive()
+        // The variant is the one the shot was fired with, not the source plant's current
+        // state, so a pea keeps its look when the plant's Plant Food starts or expires
+        // while the pea is still in the air.
+        ProjectileEffectAssets.Variant variant = projectile.isPlantFoodShot()
                 ? ProjectileEffectAssets.Variant.PLANT_FOOD
                 : ProjectileEffectAssets.Variant.NORMAL;
+
+        float[] muzzle = muzzleOffsetFor(sourceName);
+        float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
+                + screen.getBoardTileWidth() * muzzle[0];
+        // cellY takes the fractional row, so a lobbed shot's arc and a lane-shifting
+        // shot's slide render as the smooth curves the model computes rather than being
+        // truncated onto whole rows.
+        float y = screen.cellY(position.y()) + screen.getBoardTileHeight() * muzzle[1];
+
         if (projectile.getDisplayPath() != null && projectile.getDisplayState() != null) {
-            float dpx = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                    + screen.getBoardTileWidth() * 0.41f;
-            float dpy = screen.cellY((int) position.y()) + screen.getBoardTileHeight() * 0.36f;
             if (flip) {
                 screen.drawPamMirrored(projectile.getDisplayPath(), projectile.getDisplayState(), age,
-                        dpx, dpy, PROJECTILE_PAM_SCALE);
+                        x, y, PROJECTILE_DRAW_SCALE);
             } else {
                 screen.drawPam(projectile.getDisplayPath(), projectile.getDisplayState(), age,
-                        dpx, dpy, PROJECTILE_PAM_SCALE, false);
+                        x, y, PROJECTILE_DRAW_SCALE, false);
             }
             return true;
         }
         List<ProjectileEffectAssets.AssetEntry> entries = ProjectileEffectAssets.get(
-                source.getName(), ProjectileEffectAssets.Kind.PROJECTILE, variant);
+                sourceName, ProjectileEffectAssets.Kind.PROJECTILE, variant);
         if (entries.isEmpty() && variant == ProjectileEffectAssets.Variant.PLANT_FOOD) {
-            entries = ProjectileEffectAssets.get(source.getName(),
+            entries = ProjectileEffectAssets.get(sourceName,
                     ProjectileEffectAssets.Kind.PROJECTILE, ProjectileEffectAssets.Variant.NORMAL);
         }
         if (entries.isEmpty()) return false;
@@ -1090,11 +1192,8 @@ class EffectRenderer {
                 entries.get(Math.min(projectile.getAssetVariant(), entries.size() - 1));
 
         boolean freeFlying = projectile instanceof GrapeshotProjectile;
-        float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth()
-                + screen.getBoardTileWidth() * 0.41f;
-        float y = (freeFlying ? screen.cellY(position.y()) : screen.cellY((int) position.y()))
-                + screen.getBoardTileHeight() * 0.42f;
-        float scaleFactor = freeFlying ? GRAPE_PROJECTILE_SCALE_FACTOR : 2.0f;
+        float drawScale = freeFlying
+                ? PROJECTILE_PAM_SCALE * GRAPE_PROJECTILE_SCALE_FACTOR : PROJECTILE_DRAW_SCALE;
 
         if (entry.isStaticImage()) {
             return screen.assets().drawStaticEffect(entry.path(), x, y, STATIC_PROJECTILE_SCALE, flip);
@@ -1110,10 +1209,9 @@ class EffectRenderer {
         // transform scale instead, which always works regardless of the clip's internals).
         // Use that guaranteed path whenever the projectile is actually travelling left.
         if (flip) {
-            return screen.drawPamMirrored(entry.path(), entry.state(), age, x, y,
-                    PROJECTILE_PAM_SCALE * scaleFactor);
+            return screen.drawPamMirrored(entry.path(), entry.state(), age, x, y, drawScale);
         }
-        return screen.drawPam(entry.path(), entry.state(), age, x, y, PROJECTILE_PAM_SCALE * scaleFactor, false);
+        return screen.drawPam(entry.path(), entry.state(), age, x, y, drawScale, false);
     }
 
     /** True once a projectile's horizontal speed has gone negative (e.g. after a Jester deflection). */
@@ -1125,8 +1223,8 @@ class EffectRenderer {
     private void drawSmallDot(Position p, Color color) {
         if (p == null) return;
         float x = GameScreen.BOARD_X + (float) p.x() * screen.getBoardTileWidth()
-                + screen.getBoardTileWidth() * 0.41f;
-        float y = screen.cellY((int) p.y()) + screen.getBoardTileHeight() * 0.42f;
+                + screen.getBoardTileWidth() * DEFAULT_MUZZLE_OFFSET[0];
+        float y = screen.cellY(p.y()) + screen.getBoardTileHeight() * DEFAULT_MUZZLE_OFFSET[1];
         screen.drawFallback(x, y, 18f, 18f, color);
     }
 }

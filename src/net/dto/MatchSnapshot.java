@@ -22,6 +22,7 @@ public class MatchSnapshot {
     public List<ProjectileDto> projectiles = new ArrayList<>();
     public List<ZombieProjectileDto> zombieProjectiles = new ArrayList<>();
     public List<ZombieProjectileDto> removedZombieProjectiles = new ArrayList<>();
+    public List<ImpactDto> impacts = new ArrayList<>();
     public List<GroundItemDto> items = new ArrayList<>();
 
     public static class PointDto {
@@ -122,6 +123,16 @@ public class MatchSnapshot {
         public double y;
         public double vx;
         public double vy;
+
+        public double[] motion;
+    }
+
+    public static class ImpactDto {
+        public String plantName;
+        public boolean plantFood;
+        public int assetVariant;
+        public double x;
+        public double y;
     }
 
     public static class ZombieProjectileDto {

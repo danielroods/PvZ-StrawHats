@@ -13,7 +13,7 @@ import java.util.List;
 public class GrapeshotStrategy implements ActStrategy {
 
     public static final int GRAPE_COUNT = 8;
-    public static final double GRAPE_SPEED = 11.0;
+    public static final double GRAPE_SPEED = 6.6;
     public static final int SHRAPNEL_DAMAGE_DIVISOR = 6;
     public static final int BASE_BOUNCES = 3;
     public static final int EXTENDED_BOUNCES = 5;
@@ -60,10 +60,11 @@ public class GrapeshotStrategy implements ActStrategy {
         double lifetime = extended ? EXTENDED_LIFETIME_SECONDS : BASE_LIFETIME_SECONDS;
         int grapeDamage = Math.max(1, damage / SHRAPNEL_DAMAGE_DIVISOR);
 
+        double grapeSpeed = session.projectileSpeed(GRAPE_SPEED);
         for (int i = 0; i < GRAPE_COUNT; i++) {
             double angle = (2.0 * Math.PI * i) / GRAPE_COUNT;
-            Position velocity = Position.of(Math.cos(angle) * GRAPE_SPEED,
-                    Math.sin(angle) * GRAPE_SPEED);
+            Position velocity = Position.of(Math.cos(angle) * grapeSpeed,
+                    Math.sin(angle) * grapeSpeed);
             GrapeshotProjectile grape = new GrapeshotProjectile(user, center, velocity,
                     grapeDamage, bounces, lifetime);
             grape.setAssetVariant(i % 3);

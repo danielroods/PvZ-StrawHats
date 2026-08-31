@@ -10,6 +10,8 @@ import model.utils.GameSession;
 
 public class StrikeStrategy implements ActStrategy {
 
+    public static final double STRIKE_SPEED = 5.0;
+
     @Override
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0) return;
@@ -22,7 +24,7 @@ public class StrikeStrategy implements ActStrategy {
         int pierceCount = (int) user.getAbilityValue();
         Projectile projectile = new Projectile(user,
                 user.getPosition(),
-                new Position(20, 0), target,
+                new Position(session.projectileSpeed(STRIKE_SPEED), 0), target,
                 user.getDamage(),
                 new StraightMove(),
                 new PierceHit(pierceCount)

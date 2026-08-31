@@ -15,6 +15,7 @@ public abstract class ZombieProjectile extends Item {
     protected double elapsedTimer = 0.0;
     protected String sourceZombieAlias;
     protected GameSession session;
+    private Position previousPosition;
 
     public ZombieProjectile(Position startPosition, Position targetPosition, double flightTime, String sourceZombieAlias, GameSession session) {
         super(startPosition, 1);
@@ -26,10 +27,15 @@ public abstract class ZombieProjectile extends Item {
         this.session = session;
     }
 
+    public Position getPreviousPosition() {
+        return previousPosition == null ? getPosition() : previousPosition;
+    }
+
     @Override
     public void tick() {
         if (!isAlive()) return;
 
+        previousPosition = getPosition();
         elapsedTimer += GameClock.SECONDS_PER_TICK;
         double progress = elapsedTimer / flightTime;
 

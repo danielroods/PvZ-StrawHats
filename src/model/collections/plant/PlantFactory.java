@@ -341,9 +341,9 @@ public class PlantFactory {
             "Split Pea", List.of(new Position(1, 0), new Position(1, 0), new Position(-1, 0)),
             "Rotobaga", List.of(new Position(1, 1), new Position(1, -1), new Position(-1, 1), new Position(-1, -1)),
             "Starfruit", List.of(
-                    new Position(1, 0), new Position(-1, 0),
+                    new Position(-1, 0),
                     new Position(0, 1), new Position(0, -1),
-                    new Position(0.7, 0.7)
+                    new Position(0.7, 0.7), new Position(0.7, -0.7)
             ),
             "Bowling Bulb", List.of(new Position(1, -1), new Position(1, 0), new Position(1, 1))
     );

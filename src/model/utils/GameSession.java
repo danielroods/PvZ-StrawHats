@@ -12,6 +12,7 @@ import model.match_mechanisms.ZombieWave;
 import model.match_mechanisms.vector.Position;
 import model.pitches.*;
 import model.projectile.Projectile;
+import model.projectile.ProjectileImpact;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import service.GameClock;
 
@@ -23,6 +24,7 @@ public class GameSession {
     public static ToIntFunction<? super Zombie> difficulty = Zombie::getMaxHp;
     private static GameSession instance;
     static final Random ITEM_RANDOM = new Random();
+    private static final int MAX_PENDING_PROJECTILE_IMPACTS = 64;
 
     private final GameClock clock = new GameClock();
 
@@ -32,6 +34,8 @@ public class GameSession {
     private List<GroundItem> groundItems = new ArrayList<>();
     private final List<Projectile> projectiles = new ArrayList<>();
     private final List<ZombieProjectile> zombieProjectiles = new ArrayList<>();
+    private final List<ProjectileImpact> projectileImpacts = new ArrayList<>();
+    private double projectileSpeedMultiplier = 1.0;
 
     private Level level;
 
@@ -336,10 +340,10 @@ public class GameSession {
             groundItems.clear();
             projectiles.clear();
             zombieProjectiles.clear();
+            projectileImpacts.clear();
             economy.clearCooldownsAndBoosts();
             IceWind.reset(this);
             hazards.reset();
-            Projectile.setGlobalSpeedMultiplier(0.60f);
             clock.reset();
             gameOver = false;
             gameWon = false;
@@ -379,6 +383,33 @@ public class GameSession {
 
     public List<Projectile> getProjectiles() {
         return projectiles;
+    }
+
+    public double getProjectileSpeedMultiplier() {
+        return projectileSpeedMultiplier;
+    }
+
+    public void setProjectileSpeedMultiplier(double multiplier) {
+        this.projectileSpeedMultiplier = multiplier > 0 ? multiplier : 1.0;
+    }
+
+    public double projectileSpeed(double baseTilesPerSecond) {
+        return baseTilesPerSecond * projectileSpeedMultiplier;
+    }
+
+    public void recordProjectileImpact(ProjectileImpact impact) {
+        if (impact == null) return;
+        if (projectileImpacts.size() >= MAX_PENDING_PROJECTILE_IMPACTS) {
+            projectileImpacts.remove(0);
+        }
+        projectileImpacts.add(impact);
+    }
+
+    public List<ProjectileImpact> drainProjectileImpacts() {
+        if (projectileImpacts.isEmpty()) return List.of();
+        List<ProjectileImpact> drained = new ArrayList<>(projectileImpacts);
+        projectileImpacts.clear();
+        return drained;
     }
 
     public void addZombieProjectile(ZombieProjectile projectile) {

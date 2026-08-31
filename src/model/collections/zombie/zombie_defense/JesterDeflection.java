@@ -5,6 +5,8 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
+import model.projectile.HomingMove;
+import model.projectile.LaneShiftMove;
 import model.projectile.Projectile;
 import model.projectile.StraightMove;
 import model.utils.GameSession;
@@ -26,7 +28,9 @@ public class JesterDeflection implements DefenseBehavior {
     }
 
     private boolean isDeflectable(Projectile projectile) {
-        return projectile.getMoveStrategy() instanceof StraightMove;
+       return projectile.getMoveStrategy() instanceof StraightMove
+                || projectile.getMoveStrategy() instanceof LaneShiftMove
+                || projectile.getMoveStrategy() instanceof HomingMove;
     }
 
     public void activateSpinning(Zombie zombie) {

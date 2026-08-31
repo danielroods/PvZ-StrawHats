@@ -6,17 +6,24 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.Grave;
+import model.projectile.LaneShiftMove;
+import model.projectile.MoveStrategy;
 import model.projectile.Projectile;
 import model.projectile.StraightMove;
 import model.projectile.hit.*;
 import model.utils.GameSession;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ShootStrategy implements ActStrategy {
-    private static final double VOLLEY_STAGGER_TICKS = 2.0;
+
+    public static final double SHOT_SPEED = 3.6;
+
+    private static final double VOLLEY_STAGGER_SECONDS = 0.16;
+    private static final double LANE_EPSILON = 1.0e-6;
 
     @Override
     public void act(Plant user, GameSession session) {
@@ -29,22 +36,31 @@ public class ShootStrategy implements ActStrategy {
         }
 
         boolean boosted = user.isPlantFoodActive();
-        boolean anyTarget = vectors.stream()
-                .anyMatch(v -> findTargetAlongVector(user, v, session) != null
-                        || findGraveAlongVector(user, v, session) != null);
+
+        List<Zombie> targets = new ArrayList<>(vectors.size());
+        boolean anyTarget = false;
+        for (Position direction : vectors) {
+            Zombie target = findTargetAlongVector(user, direction, session);
+            targets.add(target);
+            if (target != null || findGraveAlongVector(user, direction, session) != null) {
+                anyTarget = true;
+            }
+        }
         if (!anyTarget && !boosted) return;
 
         HitEffectStrategy hitEffect = buildHitEffect(user);
         Map<String, Integer> directionCounts = new HashMap<>();
 
-        for (Position direction : vectors) {
-            Zombie target = findTargetAlongVector(user, direction, session);
+        for (int i = 0; i < vectors.size(); i++) {
+            Position direction = vectors.get(i);
+            Zombie target = targets.get(i);
             if (target == null && findGraveAlongVector(user, direction, session) == null && !boosted) {
                 continue;
             }
 
             Position normalizedDirection = direction.normalize();
-            Position velocity = normalizedDirection.scale(20.0);
+            double speed = session.projectileSpeed(SHOT_SPEED);
+            Position velocity = normalizedDirection.scale(speed);
 
             String directionKey = normalizedDirection.x() + "," + normalizedDirection.y();
             int repeatIndex = directionCounts.merge(directionKey, 1, Integer::sum) - 1;
@@ -54,16 +70,25 @@ public class ShootStrategy implements ActStrategy {
                     velocity,
                     target,
                     user.getDamage(),
-                    new StraightMove(),
+                    buildMoveStrategy(user, direction, speed),
                     hitEffect
             );
-            projectile.setSpawnDelayTicks(projectile.getSpawnDelayTicks()
-                    + VOLLEY_STAGGER_TICKS * repeatIndex);
+            projectile.setSpawnDelaySeconds(projectile.getSpawnDelaySeconds()
+                    + VOLLEY_STAGGER_SECONDS * repeatIndex);
             projectile.setMaxTravelDistance(user.getAttackRange());
             session.getProjectiles().add(projectile);
         }
 
         user.setInternalTimer(user.getActionInterval());
+    }
+
+    private MoveStrategy buildMoveStrategy(Plant user, Position direction, double speed) {
+        double dx = direction.x();
+        double dy = direction.y();
+        if (dx == 0 || Math.abs(Math.abs(dy) - 1.0) > LANE_EPSILON) return new StraightMove();
+
+        double laneY = Math.round(user.getPosition().y()) + dy;
+        return new LaneShiftMove(laneY, Math.signum(dx) * speed);
     }
 
     private HitEffectStrategy buildHitEffect(Plant user) {

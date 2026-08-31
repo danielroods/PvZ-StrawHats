@@ -16,7 +16,6 @@ import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.Attack;
 import model.match_mechanisms.vector.Position;
-import model.projectile.ArcMove;
 import model.projectile.Projectile;
 import model.projectile.hit.HitEffectStrategy;
 import model.utils.GameSession;
@@ -196,7 +195,7 @@ public class Zombie extends Item implements Attack {
                 }
 
             } else if (damageSource instanceof Projectile p) {
-                if (p.getMoveStrategy() instanceof ArcMove) {
+                if (p.isLobbed()) {
                     allowDamage = true;
                 } else if (p.getSourcePlant() != null) {
                     String plantName = normalizePlantName(p.getSourcePlant().getName());

@@ -214,6 +214,11 @@ public class GameScreen extends UiScreen {
 
     float cellY(double row) { return layout.cellY(row); }
 
+    float tickAlpha() {
+        double alpha = tickAccumulator / GameClock.SECONDS_PER_TICK;
+        return (float) Math.max(0.0, Math.min(1.0, alpha));
+    }
+
     @Override
     public void render(float delta) {
         if (textureBank != null) {

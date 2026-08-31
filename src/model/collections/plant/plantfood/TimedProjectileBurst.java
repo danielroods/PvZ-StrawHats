@@ -25,7 +25,7 @@ public class TimedProjectileBurst implements PlantFoodEffect {
         elapsed += deltaTimeSeconds;
         if (elapsed >= FIRE_INTERVAL && fired < burstCount) {
             elapsed = 0;
-            fireOnce(plant, GameSession.getInstance());
+            fireOnce(plant, GameSession.peekInstance());
         }
     }
 

@@ -12,6 +12,7 @@ import model.pitches.obstacles.Grave;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.projectile.hit.HitEffectStrategy;
 import model.utils.GameSession;
+import service.GameClock;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -20,9 +21,17 @@ import java.util.List;
 import java.util.Set;
 
 public class Projectile extends Item {
+
+    public static final double DEFAULT_SPAWN_DELAY_SECONDS = 0.39;
+
+    private static final double TILE_HALF_EXTENT = 0.5;
+    private static final double STRUCTURE_HIT_RADIUS = 0.6;
+
     private final int damage;
     private final Item target;
     private Plant sourcePlant;
+    private String sourcePlantName;
+    private boolean plantFoodShot;
     private boolean isStunning;
     private int assetVariant;
     private double damageOverride = Double.NaN;
@@ -33,24 +42,19 @@ public class Projectile extends Item {
     private double travelledDistance;
     private Position previousPosition;
 
-    private final MoveStrategy moveStrategy;
+    private MoveStrategy moveStrategy;
     private HitEffectStrategy hitEffectStrategy;
     private final Set<Zombie> hitZombies = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
     private int remainingHits = Integer.MIN_VALUE;
 
-    private static double SPEED_MULTIPLIER = 1.0;
-
-    private double spawnDelayTicks = 3.9;
-
-    private boolean lobberTargetOnly = false;
-
-    public void setLobberTargetOnly(boolean lobberTargetOnly) {
-        this.lobberTargetOnly = lobberTargetOnly;
-    }
+    private double spawnDelaySeconds = DEFAULT_SPAWN_DELAY_SECONDS;
 
     public void deflectTowardsPlant(Zombie deflector) {
         if (deflector != null) hitZombies.add(deflector);
         remainingHits = 2;
+        // A deflected shot flies back the way it came, so drop whatever steering or
+        // lane-following it had and let it travel straight on its reversed velocity.
+        moveStrategy = new StraightMove();
         setAlive(true);
     }
 
@@ -61,49 +65,40 @@ public class Projectile extends Item {
     public Projectile(Plant sourcePlant, Position position, Position velocity, Zombie zombie, int damage,
                       MoveStrategy moveStrategy, HitEffectStrategy hitEffectStrategy) {
         this(position, velocity, zombie, damage, moveStrategy, hitEffectStrategy);
-        this.sourcePlant = sourcePlant;
+        setSourcePlant(sourcePlant);
     }
 
     public Projectile(Item target, Position position, Position velocity, int damage, MoveStrategy moveStrategy, HitEffectStrategy hitEffectStrategy) {
         super(position, 1);
         this.setPosition(position);
-
-        Position scaledVelocity = scaleVelocity(velocity, SPEED_MULTIPLIER);
-        this.setSpeed(scaledVelocity);
+        this.previousPosition = position;
+        this.setSpeed(velocity);
 
         this.target = target;
         this.damage = damage;
         this.moveStrategy = moveStrategy;
         this.hitEffectStrategy = hitEffectStrategy;
         this.isStunning = false;
-
-        this.spawnDelayTicks = 3.9;
     }
 
-
-    public static void setGlobalSpeedMultiplier(double multiplier) {
-        SPEED_MULTIPLIER = multiplier;
+    public void setSpawnDelaySeconds(double seconds) {
+        this.spawnDelaySeconds = Math.max(0.0, seconds);
     }
 
-    public void setSpawnDelayTicks(double ticks) {
-        this.spawnDelayTicks = Math.max(0.0, ticks);
-    }
-
-    public double getSpawnDelayTicks() {
-        return spawnDelayTicks;
+    public double getSpawnDelaySeconds() {
+        return spawnDelaySeconds;
     }
 
     public boolean isSpawning() {
-        return spawnDelayTicks > 0;
+        return spawnDelaySeconds > 0;
     }
 
     public boolean isVisible() {
-        return isAlive && spawnDelayTicks <= 0;
+        return isAlive && spawnDelaySeconds <= 0;
     }
 
-    private static Position scaleVelocity(Position v, double factor) {
-        if (v == null) return null;
-        return new Position(v.x() * factor, v.y() * factor);
+    public boolean isLobbed() {
+        return moveStrategy instanceof LobArcMove;
     }
 
     public void setStunning(boolean isStunning) {
@@ -112,6 +107,10 @@ public class Projectile extends Item {
 
     public Position getPreviousPosition() {
         return previousPosition == null ? getPosition() : previousPosition;
+    }
+
+    protected void setPreviousPosition(Position previousPosition) {
+        this.previousPosition = previousPosition;
     }
 
     public double distanceFromPathTo(Position point) {
@@ -149,6 +148,23 @@ public class Projectile extends Item {
 
     public void setSourcePlant(Plant sourcePlant) {
         this.sourcePlant = sourcePlant;
+        if (sourcePlant != null) {
+            this.sourcePlantName = sourcePlant.getName();
+            this.plantFoodShot = sourcePlant.isPlantFoodActive();
+        }
+    }
+
+    public void setSourceDisplay(String plantName, boolean plantFood) {
+        this.sourcePlantName = plantName;
+        this.plantFoodShot = plantFood;
+    }
+
+    public String getSourcePlantName() {
+        return sourcePlantName;
+    }
+
+    public boolean isPlantFoodShot() {
+        return plantFoodShot;
     }
 
     public void setDisplay(String displayPath, String displayState) {
@@ -160,29 +176,39 @@ public class Projectile extends Item {
     public void tick() {
         if (!isAlive) return;
 
-        if (spawnDelayTicks > 0) {
-            spawnDelayTicks -= 1.0;
+        if (spawnDelaySeconds > 0) {
+            spawnDelaySeconds = Math.max(0.0, spawnDelaySeconds - GameClock.SECONDS_PER_TICK);
+            previousPosition = getPosition();
             return;
         }
+        step(GameClock.SECONDS_PER_TICK);
+    }
 
-        Position previousPosition = getPosition();
-        if (previousPosition == null) {
+
+    public void advanceVisual(double deltaSeconds) {
+        if (!isAlive || deltaSeconds <= 0 || moveStrategy == null) return;
+        moveStrategy.move(this, deltaSeconds);
+        previousPosition = getPosition();
+    }
+
+    protected void step(double deltaSeconds) {
+        Position start = getPosition();
+        if (start == null) {
             setAlive(false);
             return;
         }
-        this.previousPosition = previousPosition;
+        this.previousPosition = start;
 
-        if (moveStrategy != null) {
-            moveStrategy.move(this);
-        }
+        if (moveStrategy != null) moveStrategy.move(this, deltaSeconds);
 
-        Position currentPosition = getPosition();
-        if (currentPosition == null) {
+        Position end = getPosition();
+        if (end == null) {
             setAlive(false);
             return;
         }
+
         if (maxTravelDistance > 0) {
-            travelledDistance += currentPosition.distanceTo(previousPosition);
+            travelledDistance += end.distanceTo(start);
             if (travelledDistance > maxTravelDistance) {
                 setAlive(false);
                 return;
@@ -190,113 +216,101 @@ public class Projectile extends Item {
         }
 
         GameSession session = GameSession.peekInstance();
-        if (session == null || session.getEnvironment() == null) {
-            hitOriginalTarget(previousPosition);
+        if (session == null || session.getEnvironment() == null) return;
+
+        applyTorchwoodTransform(session, start, end);
+
+        if (isLobbed()) {
+            resolveLobbed(session, start, end);
             return;
         }
+        resolveDirect(session, start, end);
+    }
 
-        applyTorchwoodTransform(session, previousPosition, currentPosition);
+    private void resolveLobbed(GameSession session, Position start, Position end) {
+        LobArcMove arc = (LobArcMove) moveStrategy;
 
-        if (lobberTargetOnly) {
-            // Normal Lobber shots are target-only.
-            // Zombie target: ignore every other collision while flying.
-            if (target != null) {
-                hitOriginalTarget(previousPosition);
-
-                if (!isAlive) return;
-                if (target == null || !target.isAlive()) {
-                    setAlive(false);
-                    return;
-                }
-            } else {
-                // When the normal Lobber has no Zombie target, the existing
-                // game logic targets an obstacle (for example a Grave) by
-                // passing null as the Item target. Keep the old obstacle
-                // damage behaviour, but ONLY on the plant's own row so the
-                // projectile cannot hit obstacles on other rows through its arc.
-                GraveCollision graveCollision = findFirstGraveCollisionOnRow(
-                        session, previousPosition, currentPosition);
-                if (graveCollision != null) {
-                    session.damageGrave(graveCollision.cell(), getEffectiveDamage());
-                    setAlive(false);
-                    return;
-                }
-
-                IceCollision iceCollision = findFirstIceBlockCollisionOnRow(
-                        session, previousPosition, currentPosition);
-                if (iceCollision != null) {
-                    boolean fireDamage = (hitEffectStrategy != null && hitEffectStrategy.isFireDamage())
-                            || (sourcePlant != null && sourcePlant.getTags() != null
-                            && sourcePlant.getTags().contains(model.collections.plant.PlantTag.FIRE));
-                    FrostbiteFreezing.damageIce(iceCollision.cell(), getEffectiveDamage(), fireDamage);
-                    setAlive(false);
-                    return;
-                }
-
-                OctopusCollision octopusCollisionOnRow = findFirstOctopusCollisionOnRow(
-                        session, previousPosition, currentPosition);
-                if (octopusCollisionOnRow != null) {
-                    if (octopusCollisionOnRow.cell().getObstacle() instanceof OctopusWrap wrap) {
-                        wrap.takeDamage(getEffectiveDamage());
-                    }
-                    setAlive(false);
-                    return;
-                }
-
-                PushableStructure structure = findFirstStructureCollisionOnRow(
-                        session, previousPosition, currentPosition);
-                if (structure != null) {
-                    structure.takeDamage(getEffectiveDamage(), sourcePlant, session);
-                    setAlive(false);
-                    return;
-                }
+        if (target instanceof Zombie targetZombie) {
+            if (isValidTarget(targetZombie) && collisionProjection(targetZombie.getPosition(),
+                    start, end, targetZombie.getHitRadius()) >= 0) {
+                resolveLobImpact(session, targetZombie.getPosition(), targetZombie, 0);
+                return;
             }
-
-            if (isOutsideLawnForLobber(session, currentPosition)) {
+        } else if (target != null && target.isAlive()) {
+            Position targetPosition = resolveTargetPosition(target);
+            if (targetPosition != null && collisionProjection(targetPosition, start, end,
+                    Zombie.HIT_RADIUS) >= 0) {
+                target.takeDamage(getEffectiveDamage());
+                recordImpact(session, targetPosition);
                 setAlive(false);
+                return;
             }
-            return;
         }
 
-        GraveCollision graveCollision = findFirstGraveCollision(session, previousPosition, currentPosition);
-        if (graveCollision != null) {
-            session.damageGrave(graveCollision.cell(), getEffectiveDamage());
-            setAlive(false);
-            return;
-        }
-
-        IceCollision iceCollision = findFirstIceBlockCollision(session, previousPosition, currentPosition);
-        if (iceCollision != null) {
-            boolean fireDamage = (hitEffectStrategy != null && hitEffectStrategy.isFireDamage())
-                    || (sourcePlant != null && sourcePlant.getTags() != null
-                    && sourcePlant.getTags().contains(model.collections.plant.PlantTag.FIRE));
-            FrostbiteFreezing.damageIce(iceCollision.cell(), getEffectiveDamage(), fireDamage);
-            setAlive(false);
-            return;
-        }
-
-        OctopusCollision octopusCollision = findFirstOctopusCollision(session, previousPosition, currentPosition);
-        if (octopusCollision != null) {
-            if (octopusCollision.cell().getObstacle() instanceof OctopusWrap wrap) {
-                wrap.takeDamage(getEffectiveDamage());
+        if (target == null) {
+            Blocker blocker = findFirstBlocker(session, start, end, sourceRow());
+            if (blocker != null) {
+                blocker.damage(this, session);
+                recordImpact(session, pointAlong(start, end, blocker.projection()));
+                setAlive(false);
+                return;
             }
-            setAlive(false);
+        }
+
+        if (arc.hasLanded()) {
+            resolveLobImpact(session, end, null, Zombie.HIT_RADIUS);
             return;
         }
 
-        PushableStructure structure = findFirstStructureCollision(session, previousPosition, currentPosition);
-        if (structure != null) {
-            structure.takeDamage(getEffectiveDamage(), sourcePlant, session);
-            setAlive(false);
-            return;
+        if (isOutsideLawnForLobber(session, end)) setAlive(false);
+    }
+
+    private void resolveLobImpact(GameSession session, Position center, Zombie primary,
+                                  double minimumRadius) {
+        boolean connected = false;
+        if (primary != null && isValidTarget(primary) && !hitZombies.contains(primary)) {
+            applyDamageAndEffect(primary);
+            hitZombies.add(primary);
+            connected = true;
         }
+        if (splashAround(session, center, minimumRadius)) connected = true;
+
+        if (connected) recordImpact(session, center);
+        setAlive(false);
+    }
+
+    private boolean splashAround(GameSession session, Position center, double minimumRadius) {
+        if (center == null) return false;
+        int areaLength = hitEffectStrategy == null ? 1 : hitEffectStrategy.getAreaLength();
+        double radius = Math.max(minimumRadius, (areaLength - 1) / 2.0);
+        if (radius <= 0) return false;
+
+        boolean any = false;
+        for (Zombie zombie : session.getZombies()) {
+            if (!isValidTarget(zombie) || hitZombies.contains(zombie)) continue;
+            Position at = zombie.getPosition();
+            if (Math.abs(at.x() - center.x()) <= radius
+                    && Math.abs(at.y() - center.y()) <= radius) {
+                applyDamageAndEffect(zombie);
+                hitZombies.add(zombie);
+                any = true;
+            }
+        }
+        return any;
+    }
+
+    private void resolveDirect(GameSession session, Position start, Position end) {
+        Blocker blocker = findFirstBlocker(session, start, end, -1);
+        double blockerProjection = blocker == null ? Double.MAX_VALUE : blocker.projection();
 
         List<ZombieHit> collisions = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
             if (!isValidTarget(zombie) || hitZombies.contains(zombie)) continue;
-            double projection = collisionProjection(zombie.getPosition(), previousPosition,
-                    currentPosition, zombie.getHitRadius());
-            if (projection >= 0) collisions.add(new ZombieHit(zombie, projection));
+            double projection = collisionProjection(zombie.getPosition(), start, end,
+                    zombie.getHitRadius());
+            if (projection >= 0 && projection <= blockerProjection) {
+                collisions.add(new ZombieHit(zombie, projection));
+            }
         }
         collisions.sort(Comparator.comparingDouble(ZombieHit::projection));
 
@@ -308,35 +322,39 @@ public class Projectile extends Item {
         for (ZombieHit collision : collisions) {
             hitZombie(collision.zombie(), session);
             hitZombies.add(collision.zombie());
+            recordImpact(session, pointAlong(start, end, collision.projection()));
             if (remainingHits > 0) remainingHits--;
             if (remainingHits == 0) {
                 setAlive(false);
-                break;
+                return;
             }
         }
 
-        if (isOutsideLawn(session, currentPosition)) setAlive(false);
-    }
-
-    private void hitOriginalTarget(Position previousPosition) {
-        if (target == null || !target.isAlive()) return;
-        Position targetPosition = resolveTargetPosition(target);
-        Position currentPosition = getPosition();
-        if (targetPosition == null || currentPosition == null) return;
-        double targetRadius = target instanceof Zombie targetZombie
-                ? targetZombie.getHitRadius() : Zombie.HIT_RADIUS;
-        if (collisionProjection(targetPosition, previousPosition, currentPosition,
-                targetRadius) < 0) {
+        if (blocker != null) {
+            blocker.damage(this, session);
+            recordImpact(session, pointAlong(start, end, blockerProjection));
+            setAlive(false);
             return;
         }
 
-        if (target instanceof Zombie zombie) {
-            zombie.takeDamage(getEffectiveDamage(), this);
-            if (hitEffectStrategy != null) hitEffectStrategy.apply(zombie);
-        } else {
-            target.takeDamage(getEffectiveDamage());
-        }
-        setAlive(false);
+        if (isOutsideLawn(session, end)) setAlive(false);
+    }
+
+    private void recordImpact(GameSession session, Position at) {
+        if (session == null || at == null || sourcePlantName == null) return;
+        session.recordProjectileImpact(
+                new ProjectileImpact(sourcePlantName, plantFoodShot, assetVariant, at));
+    }
+
+    private static Position pointAlong(Position start, Position end, double projection) {
+        if (start == null || end == null) return end;
+        double clamped = Math.max(0, Math.min(1, projection));
+        return start.add(end.sub(start).scale(clamped));
+    }
+
+    private int sourceRow() {
+        if (sourcePlant == null || sourcePlant.getPosition() == null) return -1;
+        return (int) Math.round(sourcePlant.getPosition().y());
     }
 
     private void hitZombie(Zombie primary, GameSession session) {
@@ -430,7 +448,11 @@ public class Projectile extends Item {
         }
     }
 
-    private int getEffectiveDamage() {
+    public boolean isTorchwoodTransformed() {
+        return torchwoodTransformed;
+    }
+
+    int getEffectiveDamage() {
         if (!Double.isNaN(damageOverride)) return Math.max(0, (int) Math.round(damageOverride));
         double multiplier = hitEffectStrategy == null ? 1.0 : hitEffectStrategy.getDamageMultiplier();
         return Math.max(0, (int) Math.round(damage * multiplier));
@@ -440,77 +462,61 @@ public class Projectile extends Item {
         return zombie != null && zombie.isAlive() && !zombie.isHypnotized() && zombie.getPosition() != null;
     }
 
-    private record GraveCollision(Cell cell, double projection) {}
-
-    private GraveCollision findFirstGraveCollision(GameSession session, Position start, Position end) {
-        GraveCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-                Cell cell = session.getEnvironment().getCell(row, col);
-                if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
-                double projection = collisionProjection(new Position(col, row), start, end);
-                if (projection >= 0 && projection < bestProjection) {
-                    bestProjection = projection;
-                    best = new GraveCollision(cell, projection);
-                }
+    private record Blocker(Cell cell, PushableStructure structure, double projection) {
+        void damage(Projectile projectile, GameSession session) {
+            int amount = projectile.getEffectiveDamage();
+            if (structure != null) {
+                structure.takeDamage(amount, projectile.getSourcePlant(), session);
+                return;
+            }
+            if (cell == null) return;
+            if (cell.getObstacle() instanceof Grave) {
+                session.damageGrave(cell, amount);
+            } else if (cell.getObstacle() instanceof IceBlock) {
+                FrostbiteFreezing.damageIce(cell, amount, projectile.isFireShot());
+            } else if (cell.getObstacle() instanceof OctopusWrap wrap) {
+                wrap.takeDamage(amount);
             }
         }
-        return best;
     }
 
-    private record IceCollision(Cell cell, double projection) {}
-
-    private IceCollision findFirstIceBlockCollision(GameSession session, Position start, Position end) {
-        IceCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-                Cell cell = session.getEnvironment().getCell(row, col);
-                if (cell == null || !(cell.getObstacle() instanceof IceBlock)) continue;
-                double projection = collisionProjection(new Position(col, row), start, end);
-                if (projection >= 0 && projection < bestProjection) {
-                    bestProjection = projection;
-                    best = new IceCollision(cell, projection);
-                }
-            }
-        }
-        return best;
+    boolean isFireShot() {
+        return (hitEffectStrategy != null && hitEffectStrategy.isFireDamage())
+                || (sourcePlant != null && sourcePlant.getTags() != null
+                && sourcePlant.getTags().contains(model.collections.plant.PlantTag.FIRE));
     }
 
-    private record OctopusCollision(Cell cell, double projection) {}
+    private Blocker findFirstBlocker(GameSession session, Position start, Position end,
+                                     int onlyRow) {
+        int rows = session.getEnvironment().getRows();
+        int cols = session.getEnvironment().getCols();
+        int firstRow = onlyRow >= 0 ? onlyRow : 0;
+        int lastRow = onlyRow >= 0 ? onlyRow : rows - 1;
+        if (firstRow < 0 || lastRow >= rows) return null;
 
-    private OctopusCollision findFirstOctopusCollision(GameSession session, Position start, Position end) {
-        OctopusCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-                Cell cell = session.getEnvironment().getCell(row, col);
-                if (cell == null || !(cell.getObstacle() instanceof OctopusWrap)) continue;
-                double projection = collisionProjection(new Position(col, row), start, end);
-                if (projection >= 0 && projection < bestProjection) {
-                    bestProjection = projection;
-                    best = new OctopusCollision(cell, projection);
-                }
-            }
-        }
-        return best;
-    }
-
-    private PushableStructure findFirstStructureCollision(GameSession session, Position start, Position end) {
-        PushableStructure best = null;
-        double bestProjection = Double.MAX_VALUE;
+        Blocker best = null;
         Set<PushableStructure> seen = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
 
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
+        for (int row = firstRow; row <= lastRow; row++) {
+            for (int col = 0; col < cols; col++) {
                 Cell cell = session.getEnvironment().getCell(row, col);
-                PushableStructure structure = cell == null ? null : cell.getStructure();
+                if (cell == null) continue;
+
+                Object obstacle = cell.getObstacle();
+                if (obstacle instanceof Grave || obstacle instanceof IceBlock
+                        || obstacle instanceof OctopusWrap) {
+                    double projection = tileProjection(col, row, start, end);
+                    if (projection >= 0 && (best == null || projection < best.projection())) {
+                        best = new Blocker(cell, null, projection);
+                    }
+                }
+
+                PushableStructure structure = cell.getStructure();
                 if (structure == null || !structure.isAlive() || !seen.add(structure)) continue;
-                double projection = collisionProjection(structure.getPosition(), start, end);
-                if (projection >= 0 && projection < bestProjection) {
-                    bestProjection = projection;
-                    best = structure;
+                double projection = collisionProjection(structure.getPosition(), start, end,
+                        STRUCTURE_HIT_RADIUS);
+                if (projection >= 0 && (best == null || projection < best.projection())) {
+                    best = new Blocker(null, structure, projection);
                 }
             }
         }
@@ -529,84 +535,41 @@ public class Projectile extends Item {
         if (lengthSquared == 0) return end.distanceTo(targetPosition) <= radius ? 0 : -1;
 
         double projection = targetPosition.sub(start).dot(movement) / lengthSquared;
-        if (projection < 0 || projection > 1) return -1;
-        Position closestPoint = start.add(movement.scale(projection));
-        return closestPoint.distanceTo(targetPosition) <= radius ? projection : -1;
+        double clamped = Math.max(0, Math.min(1, projection));
+        Position closestPoint = start.add(movement.scale(clamped));
+        return closestPoint.distanceTo(targetPosition) <= radius ? clamped : -1;
     }
 
-    private int getLobberSourceRow() {
-        if (sourcePlant == null || sourcePlant.getPosition() == null) return Integer.MIN_VALUE;
-        return (int) Math.round(sourcePlant.getPosition().y());
-    }
+    private double tileProjection(int col, int row, Position start, Position end) {
+        if (start == null || end == null) return -1;
+        double[][] axes = {
+                {start.x(), end.x() - start.x(), col - TILE_HALF_EXTENT, col + TILE_HALF_EXTENT},
+                {start.y(), end.y() - start.y(), row - TILE_HALF_EXTENT, row + TILE_HALF_EXTENT},
+        };
 
-    private GraveCollision findFirstGraveCollisionOnRow(GameSession session, Position start, Position end) {
-        int row = getLobberSourceRow();
-        if (row == Integer.MIN_VALUE) return null;
-        GraveCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-            Cell cell = session.getEnvironment().getCell(row, col);
-            if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
-            double projection = collisionProjection(new Position(col, row), start, end);
-            if (projection >= 0 && projection < bestProjection) {
-                bestProjection = projection;
-                best = new GraveCollision(cell, projection);
+        double entry = 0.0;
+        double exit = 1.0;
+        for (double[] axis : axes) {
+            double origin = axis[0];
+            double delta = axis[1];
+            double min = axis[2];
+            double max = axis[3];
+            if (Math.abs(delta) < 1.0e-9) {
+                if (origin < min || origin > max) return -1;
+                continue;
             }
-        }
-        return best;
-    }
-
-    private IceCollision findFirstIceBlockCollisionOnRow(GameSession session, Position start, Position end) {
-        int row = getLobberSourceRow();
-        if (row == Integer.MIN_VALUE) return null;
-        IceCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-            Cell cell = session.getEnvironment().getCell(row, col);
-            if (cell == null || !(cell.getObstacle() instanceof IceBlock)) continue;
-            double projection = collisionProjection(new Position(col, row), start, end);
-            if (projection >= 0 && projection < bestProjection) {
-                bestProjection = projection;
-                best = new IceCollision(cell, projection);
+            double first = (min - origin) / delta;
+            double second = (max - origin) / delta;
+            if (first > second) {
+                double swap = first;
+                first = second;
+                second = swap;
             }
+            entry = Math.max(entry, first);
+            exit = Math.min(exit, second);
+            if (entry > exit) return -1;
         }
-        return best;
-    }
-
-    private OctopusCollision findFirstOctopusCollisionOnRow(GameSession session, Position start, Position end) {
-        int row = getLobberSourceRow();
-        if (row == Integer.MIN_VALUE) return null;
-        OctopusCollision best = null;
-        double bestProjection = Double.MAX_VALUE;
-        for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-            Cell cell = session.getEnvironment().getCell(row, col);
-            if (cell == null || !(cell.getObstacle() instanceof OctopusWrap)) continue;
-            double projection = collisionProjection(new Position(col, row), start, end);
-            if (projection >= 0 && projection < bestProjection) {
-                bestProjection = projection;
-                best = new OctopusCollision(cell, projection);
-            }
-        }
-        return best;
-    }
-
-    private PushableStructure findFirstStructureCollisionOnRow(GameSession session, Position start, Position end) {
-        int row = getLobberSourceRow();
-        if (row == Integer.MIN_VALUE) return null;
-        PushableStructure best = null;
-        double bestProjection = Double.MAX_VALUE;
-        Set<PushableStructure> seen = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-        for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-            Cell cell = session.getEnvironment().getCell(row, col);
-            PushableStructure structure = cell == null ? null : cell.getStructure();
-            if (structure == null || !structure.isAlive() || !seen.add(structure)) continue;
-            double projection = collisionProjection(structure.getPosition(), start, end);
-            if (projection >= 0 && projection < bestProjection) {
-                bestProjection = projection;
-                best = structure;
-            }
-        }
-        return best;
+        return entry;
     }
 
     private boolean isOutsideLawn(GameSession session, Position position) {
@@ -629,7 +592,9 @@ public class Projectile extends Item {
     }
 
     public HitEffectStrategy getHitEffectStrategy() { return this.hitEffectStrategy; }
-    public Object getMoveStrategy() { return moveStrategy; }
+    public MoveStrategy getMoveStrategy() { return moveStrategy; }
+    public void setMoveStrategy(MoveStrategy moveStrategy) { this.moveStrategy = moveStrategy; }
+    public Item getTarget() { return target; }
     public int getDamage() { return damage; }
     public Plant getSourcePlant() { return sourcePlant; }
 

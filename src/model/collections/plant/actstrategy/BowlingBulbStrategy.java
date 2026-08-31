@@ -11,7 +11,7 @@ import model.utils.GameSession;
 public class BowlingBulbStrategy implements ActStrategy {
     private static final double[] AMMO_DAMAGE_MULTIPLIER = {1.0, 3.0, 4.5};
     private static final double[] AMMO_RELOAD_SECONDS = {2.0, 5.0, 10.0};
-    private static final double ROLL_SPEED = 8.0;
+    private static final double ROLL_SPEED = 4.8;
     private static final int RICOCHET_HITS = 3;
 
     private int ammoIndex = 0;
@@ -26,12 +26,13 @@ public class BowlingBulbStrategy implements ActStrategy {
         int index = Math.floorMod(ammoIndex, AMMO_DAMAGE_MULTIPLIER.length);
         int damage = (int) Math.round(user.getDamage() * AMMO_DAMAGE_MULTIPLIER[index]);
 
+        double rollSpeed = session.projectileSpeed(ROLL_SPEED);
         Projectile bulb = new Projectile(user,
                 user.getPosition(),
-                new Position(ROLL_SPEED, 0),
+                new Position(rollSpeed, 0),
                 target,
                 damage,
-                new RollingBounceMove(ROLL_SPEED),
+                new RollingBounceMove(rollSpeed),
                 new PierceHit(RICOCHET_HITS)
         );
         bulb.setAssetVariant(index);

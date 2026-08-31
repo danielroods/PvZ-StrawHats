@@ -178,12 +178,19 @@ public class ModifyStrategy implements ActStrategy {
         ArrayList<Projectile> targets = new ArrayList<>();
         for (Projectile projectile : session.getProjectiles()) {
             Position projPos = projectile.getPosition();
-            if (projectile.isAlive() && projPos != null
-                    && projectile.distanceFromPathTo(userPos) < MODIFY_RADIUS) {
+            if (!projectile.isAlive() || projPos == null || projectile.isLobbed()) continue;
+            if (projectile.isTorchwoodTransformed() || !carriesPeaPhysics(projectile)) continue;
+            if (projectile.distanceFromPathTo(userPos) < MODIFY_RADIUS) {
                 targets.add(projectile);
             }
         }
         return targets;
+    }
+
+    private boolean carriesPeaPhysics(Projectile projectile) {
+        Plant source = projectile.getSourcePlant();
+        return source != null && source.getTags() != null
+                && source.getTags().contains(PlantTag.PEA);
     }
 
     private void modifyTargets(Plant user, ArrayList<Projectile> targets) {
