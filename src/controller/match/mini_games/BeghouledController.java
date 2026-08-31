@@ -65,7 +65,7 @@ public class BeghouledController extends Menu {
             matcher.matches();
             int x = Integer.parseInt(matcher.group("x"));
             int y = Integer.parseInt(matcher.group("y"));
-            
+
         } else if (Regex.MENU_EXIT.getMatcherRaw(text).matches()) {
             exitMenu();
             return;
@@ -81,7 +81,7 @@ public class BeghouledController extends Menu {
         for (; elapsed < ticks && !game.isWon() && !game.isLost(); elapsed++) {
             game.tick(0.1);
         }
-        
+
     }
 
     private void handleSwap(String text) {
@@ -94,7 +94,7 @@ public class BeghouledController extends Menu {
     private void handleUpgrade(String text) {
         int marker = text.toLowerCase().indexOf("-t");
         String plantName = marker < 0 ? "" : text.substring(marker + 2).trim();
-
+        game.upgrade(plantName);
     }
 
     private void handleCollect(String text) {
@@ -105,7 +105,7 @@ public class BeghouledController extends Menu {
         int x = Integer.parseInt(matcher.group("x"));
         int y = Integer.parseInt(matcher.group("y"));
         List<?> collected = game.collectItemsAt(x - 1, y - 1);
-        
+
 
     }
 
@@ -130,13 +130,16 @@ public class BeghouledController extends Menu {
 
     private void reportOutcome() {
         if (game.isWon()) {
-            if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
-            
+            if (User.currentUser != null) {
+                User.currentUser.userState.miniGamesWon++;
+                User.currentUser.userState.recordMiniGameWin("beghouled", game.getDifficulty());
+            }
+
 
             App.currentMenu = new MiniGameEndMenu("Beghouled", true,
                     "The required number of combinations was completed.");
         } else if (game.isLost()) {
-            
+
             App.currentMenu = new MiniGameEndMenu("Beghouled", false,
                     "A zombie reached the house.");
         }

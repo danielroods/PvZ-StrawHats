@@ -226,6 +226,7 @@ public class ZombotanyController extends Menu {
         if (winner) {
             if (User.currentUser != null && User.currentUser.userState != null) {
                 User.currentUser.userState.miniGamesWon++;
+                User.currentUser.userState.recordMiniGameWin("zombotany", difficulty);
             }
             GeneralPrinter.print("All Zombotany waves cleared. You win!");
             App.currentMenu = new MiniGameEndMenu("Zombotany", true, summary(), restart);

@@ -120,7 +120,10 @@ public class WallnutBowlingController extends Menu {
                 new WallnutBowlingController(new WallnutBowling(difficulty));
 
         if (game.isWon()) {
-            if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
+            if (User.currentUser != null) {
+                User.currentUser.userState.miniGamesWon++;
+                User.currentUser.userState.recordMiniGameWin("wallnutbowling", difficulty);
+            }
             GeneralPrinter.print("All Wall-nut Bowling waves cleared. You win!");
             App.currentMenu = new MiniGameEndMenu("Wall-nut Bowling", true,
                     "Every zombie wave was cleared.", restart);

@@ -5,6 +5,7 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
+import model.match.waves.SpawnPlacement;
 import model.match.waves.WavePacing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
@@ -57,13 +58,20 @@ public class Beghouled extends MiniGameMode {
         this.upgradePaths = buildUpgradePaths();
         this.matchesNeeded = 5 + getDifficulty() * 3;
         this.respawnWaveInterval = switch (getDifficulty()) {
-            case 2 -> 16.0;
-            case 3 -> 12.0;
-            default -> 20.0;
+            case 2 -> 8.0;
+            case 3 -> 6.0;
+            default -> 10.0;
         } * WavePacing.SPAWN_TIMING_MULTIPLIER;
-        this.zombiesPerSpawn = getDifficulty();
+        this.zombiesPerSpawn = switch (getDifficulty()) {
+            case 2 -> 6;
+            case 3 -> 8;
+            default -> 4;
+        };
         this.zombiePool = zombiePoolFor(getDifficulty());
         seedBoard();
+        // Skip the long quiet opening: the first wave hits right away instead of
+        // waiting a full respawnWaveInterval before any zombies show up.
+        this.timeSinceLastWave = respawnWaveInterval;
         log("Beghouled level " + getDifficulty() + " started with a playable board.");
     }
 
@@ -445,7 +453,7 @@ public class Beghouled extends MiniGameMode {
 
     private String normaliseName(String value) {
         return value == null ? "" : value.toLowerCase()
-                                    .replace("-", "").replace("_", "").replace(" ", "").trim();
+                .replace("-", "").replace("_", "").replace(" ", "").trim();
     }
 
     public void tick(double deltaSeconds) {
@@ -492,11 +500,24 @@ public class Beghouled extends MiniGameMode {
     }
 
     private void spawnEndlessWave() {
+        int rows = session.getEnvironment().getRows();
+        int cols = session.getEnvironment().getCols();
+        double baseX = SpawnPlacement.entryX(cols);
+
+        // Huge wave: spawn a whole batch of zombies at once, each still entering from
+        // off-screen to the right and spaced apart like a normal match's wave spawner.
         for (int i = 0; i < zombiesPerSpawn; i++) {
-            int lane = RAND.nextInt(session.getEnvironment().getRows());
+            List<Integer> laneOrder = new ArrayList<>();
+            for (int row = 0; row < rows; row++) laneOrder.add(row);
+            Collections.shuffle(laneOrder, RAND);
+
             String alias = zombiePool.get(RAND.nextInt(zombiePool.size()));
-            Zombie zombie = ZombieFactory.create(alias, lane, session.getEnvironment().getCols() - 1);
-            zombie.setPosition(new Position(session.getEnvironment().getCols() - 1, lane));
+            SpawnPlacement.Placement placement = SpawnPlacement.resolve(
+                    session.getZombies(), alias, cols, laneOrder, baseX);
+            int lane = Math.max(0, Math.min(rows - 1, placement.lane()));
+
+            Zombie zombie = ZombieFactory.create(alias, lane, cols - 1);
+            zombie.setPosition(new Position(placement.x(), lane));
             session.spawnZombie(zombie);
             log(alias + " spawned in Beghouled lane " + (lane + 1) + ".");
         }
@@ -589,7 +610,7 @@ public class Beghouled extends MiniGameMode {
                 .append(" | Zombie pool: ").append(zombiePool)
                 .append("\nPlants:\n  ").append(renderPlantsInfo().replace("\n", "\n  "))
                 .append(groundItems.isBlank() ? "" : "\nGround items:\n  "
-                                                     + groundItems.replace("\n", "\n  "))
+                        + groundItems.replace("\n", "\n  "))
                 .append("\nRecent events:\n  ")
                 .append(eventLog.isEmpty() ? "none" : String.join("\n  ", eventLog))
                 .toString();

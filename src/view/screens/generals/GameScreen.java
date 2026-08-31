@@ -398,16 +398,21 @@ public class GameScreen extends UiScreen {
         return interaction.itemUnderMouse(click);
     }
 
+    /** Matches never show toast notifications (they popped in over gameplay UI,
+     *  e.g. Beghouled's upgrade cards, and swallowed the clicks meant for it). */
+    @Override
+    protected boolean notificationsEnabled() {
+        return false;
+    }
+
     public boolean runCommand(String command) {
         try {
             App.currentMenu.handleCommand(command);
             return true;
         } catch (GameException e) {
-            Toast.show(stage, e.getMessage());
             return false;
         } catch (Exception e) {
             Gdx.app.error("GameScreen", "Command failed: " + command, e);
-            Toast.show(stage, e.getMessage() == null ? "Action failed." : e.getMessage());
             return false;
         }
     }

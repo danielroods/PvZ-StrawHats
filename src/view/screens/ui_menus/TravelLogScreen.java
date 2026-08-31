@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -289,12 +290,33 @@ public class TravelLogScreen extends UiScreen {
         return card;
     }
 
+    private static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
+
     private Table buildLevelButtons(String key) {
         Table levels = new Table();
+        var state = User.currentUser == null ? null : User.currentUser.userState;
         for (int level = 1; level <= 3; level++) {
             int chosenLevel = level;
-            levels.add(secondaryButton("Level " + level,
-                    () -> runCommand("travel log play -m " + key + " -l " + chosenLevel))).width(150).padRight(8);
+            boolean unlocked = state == null || state.isMiniGameLevelUnlocked(key, level);
+
+            TextButton button = secondaryButton("Level " + level,
+                    () -> runCommand("travel log play -m " + key + " -l " + chosenLevel));
+            if (!unlocked) {
+                button.setDisabled(true);
+                button.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+            }
+
+            Stack stack = new Stack();
+            stack.add(button);
+            if (!unlocked) {
+                Image lockImage = new Image(loadTextureSafe(LOCK_ICON));
+                Container<Image> lockContainer = new Container<>(lockImage);
+                lockContainer.size(24f, 24f);
+                lockContainer.center();
+                lockContainer.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
+                stack.add(lockContainer);
+            }
+            levels.add(stack).width(150).padRight(8);
         }
         return levels;
     }
@@ -308,7 +330,7 @@ public class TravelLogScreen extends UiScreen {
         return new TextureRegionDrawable(texture);
     }
 
-    
+
 
     private ImageButton createIconButton(String path, float width, float height, Runnable action) {
         TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
@@ -323,7 +345,7 @@ public class TravelLogScreen extends UiScreen {
         return button;
     }
 
-    
+
 
     private Drawable loadRoundedTextureSafe(String path, int cornerRadius) {
         if (path == null || path.isEmpty() || !Gdx.files.internal(path).exists()) {

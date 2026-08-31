@@ -176,6 +176,10 @@ public class TravelLogMenu extends Menu {
 
     private void startMiniGame(String name, int level) {
         String normalized = name.toLowerCase().replace("-", "").replace(",", "");
+        if (User.currentUser != null && User.currentUser.userState != null
+                && !User.currentUser.userState.isMiniGameLevelUnlocked(normalized, level)) {
+            throw new GameException("level " + level + " is locked. Beat level " + (level - 1) + " first.");
+        }
         switch (normalized) {
             case "vasebreaker" -> {
                 int[] unlocked = User.currentUser.userState.unlockedPlantIds.stream()

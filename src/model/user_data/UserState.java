@@ -26,6 +26,8 @@ public class UserState {
 
     public List<GameQuest> activeQuests = new ArrayList<>();
 
+    public Map<String, Integer> miniGameHighestLevelWon = new HashMap<>();
+
     public String dailyOfferDate;
     public Integer dailyOfferPlantId;
     public boolean dailyOfferPurchased;
@@ -102,5 +104,30 @@ public class UserState {
             if (!item.isRead()) return true;
         }
         return false;
+    }
+
+    /** Highest difficulty (1-3) the player has beaten for the given mini-game key
+     *  (e.g. "beghouled", "zombotany"), or 0 if none has been won yet. */
+    public int getMiniGameHighestLevelWon(String miniGameKey) {
+        if (miniGameHighestLevelWon == null) miniGameHighestLevelWon = new HashMap<>();
+        return miniGameHighestLevelWon.getOrDefault(normaliseMiniGameKey(miniGameKey), 0);
+    }
+
+    public void recordMiniGameWin(String miniGameKey, int level) {
+        if (miniGameHighestLevelWon == null) miniGameHighestLevelWon = new HashMap<>();
+        String key = normaliseMiniGameKey(miniGameKey);
+        int current = miniGameHighestLevelWon.getOrDefault(key, 0);
+        if (level > current) miniGameHighestLevelWon.put(key, level);
+    }
+
+    /** Level 1 is always playable; any later level requires the previous one to
+     *  have been won at least once. */
+    public boolean isMiniGameLevelUnlocked(String miniGameKey, int level) {
+        if (level <= 1) return true;
+        return getMiniGameHighestLevelWon(miniGameKey) >= level - 1;
+    }
+
+    private String normaliseMiniGameKey(String miniGameKey) {
+        return miniGameKey == null ? "" : miniGameKey.toLowerCase().replace("-", "").replace(" ", "").replace("_", "").trim();
     }
 }

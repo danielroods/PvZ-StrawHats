@@ -296,27 +296,32 @@ public class WallnutBowling extends MiniGameMode {
     private List<model.match_mechanisms.ZombieWave> wavesFor(int level) {
         return switch (level) {
             case 2 -> MiniGameWaves.create(session,
-                    new double[] {7, 18, 22, 26},
+                    new double[] {4, 7, 7, 7, 7},
                     new String[][] {
-                            {"ZombieDefault", "ZombieArmor1"},
-                            {"ZombieArmor2"},
-                            {"ZombieArmor2", "ZombieArmor1"},
-                            {"ZombieArmor2", "ZombieArmor2", "ZombieArmor1", "ZombieDefault", "ZombieDefault"}
+                            {"ZombieDefault", "ZombieArmor1", "ZombieDefault"},
+                            {"ZombieArmor2", "ZombieArmor1", "ZombieDefault"},
+                            {"ZombieArmor2", "ZombieArmor1", "ZombieArmor1", "ZombieDefault"},
+                            {"ZombieArmor2", "ZombieArmor2", "ZombieArmor1", "ZombieDefault", "ZombieDefault"},
+                            {"ZombieArmor2", "ZombieArmor2", "ZombieArmor1", "ZombieArmor1",
+                                    "ZombieDefault", "ZombieDefault"}
                     });
             case 3 -> MiniGameWaves.create(session,
-                    new double[] {6, 16, 20, 24},
+                    new double[] {3, 6, 6, 6, 6},
                     new String[][] {
-                            {"ZombieArmor1", "ZombieArmor2"},
-                            {"ZombieNewspaper", "ZombieImp"},
-                            {"ZombieModernAllStar", "ZombieDefault"},
-                            {"ZombieGargantuar", "ZombieArmor2", "ZombieArmor1", "ZombieDefault"}
+                            {"ZombieArmor1", "ZombieArmor2", "ZombieImp"},
+                            {"ZombieNewspaper", "ZombieImp", "ZombieArmor1", "ZombieArmor2"},
+                            {"ZombieModernAllStar", "ZombieDefault", "ZombieNewspaper", "ZombieImp"},
+                            {"ZombieGargantuar", "ZombieArmor2", "ZombieArmor1", "ZombieDefault", "ZombieImp"},
+                            {"ZombieGargantuar", "ZombieModernAllStar", "ZombieArmor2", "ZombieArmor2",
+                                    "ZombieArmor1", "ZombieDefault", "ZombieDefault"}
                     });
             default -> MiniGameWaves.create(session,
-                    new double[] {8, 20, 25},
+                    new double[] {5, 9, 9, 9},
                     new String[][] {
-                            {"ZombieDefault"},
-                            {"ZombieDefault", "ZombieImp"},
-                            {"ZombieArmor1", "ZombieDefault", "ZombieDefault"}
+                            {"ZombieDefault", "ZombieDefault"},
+                            {"ZombieDefault", "ZombieImp", "ZombieDefault"},
+                            {"ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieImp"},
+                            {"ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieImp"}
                     });
         };
     }

@@ -333,9 +333,16 @@ public abstract class UiScreen extends BaseScreen {
     }
 
     private void onMessage(String message) {
-        if (stage != null) {
+        if (stage != null && notificationsEnabled()) {
             Toast.show(stage, message);
         }
+    }
+
+    /** Menus show toast notifications by default; gameplay screens turn them off
+     *  (see GameScreen) since they were popping in over match UI, e.g. Beghouled's
+     *  upgrade cards, and eating the clicks meant for it. */
+    protected boolean notificationsEnabled() {
+        return true;
     }
 
     protected boolean runCommand(String command) {
