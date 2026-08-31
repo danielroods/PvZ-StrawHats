@@ -11,13 +11,65 @@
 </head>
 <body>
 
+<!-- Audio Controller & Sun Counter Top Bar -->
 <header class="top-bar">
+  <div class="sun-counter-badge" id="sunBadge" title="Click falling suns to collect!">
+    <span class="sun-icon">☀️</span>
+    <span id="sunVal">150</span>
+  </div>
+
   <img src="pvz2_logo_horizontal.png" alt="Plants vs Zombies 2" class="header-logo">
+
+  <button class="sfx-toggle-btn" id="sfxToggle" title="Toggle Sound Effects">
+    🔊 SFX: ON
+  </button>
 </header>
 
-<img src="chomper.png" alt="" class="deco-asset chomper">
-<img src="repeater.png" alt="" class="deco-asset repeater">
-<img src="primalsunflower.png" alt="" class="deco-asset sunflower">
+<!-- Left Column Assets -->
+<div class="deco-group group-chomper" data-type="plant">
+  <img src="chomper.png" alt="Chomper" class="deco-character">
+  <img src="dirt_spawn_Dirt_179x50.png" alt="" class="dirt-spawn">
+</div>
+
+<div class="deco-group group-sunflower" data-type="plant">
+  <img src="primalsunflower.png" alt="Primal Sunflower" class="deco-character">
+  <img src="dirt_spawn_Dirt_179x50.png" alt="" class="dirt-spawn">
+</div>
+
+<div class="deco-group group-hunter" data-type="zombie">
+  <img src="eighties_boombox.png" alt="Ice Age Hunter Zombie" class="deco-character flip-h">
+</div>
+
+<div class="deco-group group-juggler" data-type="zombie">
+  <img src="dark_juggler.png" alt="Dark Juggler Zombie" class="deco-character flip-h">
+</div>
+
+<div class="deco-group group-chickenfarmer" data-type="zombie">
+  <img src="chicken_farmer.png" alt="Chicken Farmer Zombie" class="deco-character flip-h">
+</div>
+
+<!-- Right Column Assets -->
+<div class="deco-group group-repeater" data-type="plant">
+  <img src="repeater.png" alt="Repeater" class="deco-character flip-h">
+  <img src="dirt_spawn_Dirt_179x50.png" alt="" class="dirt-spawn">
+</div>
+
+<div class="deco-group group-wallnut" data-type="plant">
+  <img src="wallnut.png" alt="Wallnut" class="deco-character flip-h">
+  <img src="dirt_spawn_Dirt_179x50.png" alt="" class="dirt-spawn">
+</div>
+
+<div class="deco-group group-armor" data-type="zombie">
+  <img src="eighties_armor2.png" alt="80s Armor Zombie" class="deco-character">
+</div>
+
+<div class="deco-group group-glitter" data-type="zombie">
+  <img src="eighties_glitter.png" alt="80s Glitter Zombie" class="deco-character">
+</div>
+
+<div class="deco-group group-summerimp" data-type="zombie">
+  <img src="summer_imp.png" alt="Summer Imp Zombie" class="deco-character">
+</div>
 
 <main class="main-wrapper">
   <h1 class="page-title">TA Portal</h1>
@@ -77,6 +129,79 @@
     <button id="logoutBtn" type="button" class="logout-button">Log Out</button>
   </section>
 
+  <!-- Horizontal Game Screenshots Showcase -->
+  <section class="gallery-section">
+    <h2>Gameplay Showcase</h2>
+    <div class="gallery-frame">
+      <div class="gallery-track">
+        <div class="slide-card"><img src="slide_0.png" alt="Screenshot 1"></div>
+        <div class="slide-card"><img src="slide_1.png" alt="Screenshot 2"></div>
+        <div class="slide-card"><img src="slide_2.png" alt="Screenshot 3"></div>
+        <div class="slide-card"><img src="slide_3.png" alt="Screenshot 4"></div>
+        <div class="slide-card"><img src="slide_4.png" alt="Screenshot 5"></div>
+        <div class="slide-card"><img src="slide_5.png" alt="Screenshot 6"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Player Satisfaction Chart -->
+  <section class="chart-section">
+    <h2>PvZ Series Player Satisfaction</h2>
+    <p class="chart-subtitle">Community Approval Rating Comparison across Franchise Releases</p>
+
+    <div class="chart-container">
+      <div class="chart-bar-group" data-value="92%">
+        <div class="bar-fill" style="--bar-height: 92%;">
+          <span class="bar-percent">92%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label">PvZ 1</span>
+      </div>
+
+      <div class="chart-bar-group" data-value="88%">
+        <div class="bar-fill" style="--bar-height: 88%;">
+          <span class="bar-percent">88%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label">PvZ 2</span>
+      </div>
+
+      <div class="chart-bar-group" data-value="84%">
+        <div class="bar-fill" style="--bar-height: 84%;">
+          <span class="bar-percent">84%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label">GW2</span>
+      </div>
+
+      <div class="chart-bar-group" data-value="79%">
+        <div class="bar-fill" style="--bar-height: 79%;">
+          <span class="bar-percent">79%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label">Heroes</span>
+      </div>
+
+      <div class="chart-bar-group" data-value="62%">
+        <div class="bar-fill" style="--bar-height: 62%;">
+          <span class="bar-percent">62%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label">PvZ 3</span>
+      </div>
+
+      <!-- Custom Featured Game Bar -->
+      <div class="chart-bar-group featured" data-value="99%">
+        <div class="crown-badge">★ TOP RATED ★</div>
+        <div class="bar-fill" style="--bar-height: 99%;">
+          <span class="bar-percent">99%</span>
+          <img src="power_brain_projectile_112x82.png" class="brain-cursor-icon" alt="Brain Power">
+        </div>
+        <span class="bar-label highlight">Strawhats Symphony</span>
+      </div>
+    </div>
+  </section>
+
   <section class="pvz-description">
     <h2>Plants vs. Zombies 2</h2>
     <p>
@@ -115,144 +240,265 @@
   </section>
 </main>
 
-<footer class="bottom-bar"></footer>
+<footer class="bottom-bar">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <span class="brand-title">PVZ2 TA Portal</span>
+      <span class="server-badge"><span class="status-dot"></span> Server: Online (12ms)</span>
+    </div>
+    <p class="footer-disclaimer">
+      © 2026 Academic Course Management System. Non-commercial fan project & TA portal.
+      Plants vs. Zombies™ is a registered trademark of Electronic Arts Inc. / PopCap Games.
+    </p>
+    <div class="footer-meta">
+      <span>System Version: <strong>v2.5.0-TA Pro</strong></span> •
+      <span>SSL Secured 256-Bit</span> •
+      <span>Authorized Access Only</span>
+    </div>
+  </div>
+</footer>
 
 <script>
-(() => {
-  const $ = id => document.getElementById(id);
+  (() => {
+    const $ = id => document.getElementById(id);
 
-  async function request(path, options = {}) {
-    const response = await fetch(path, {
-      credentials: "same-origin",
-      ...options
+    // --- Web Audio Synthesizer (Retro Sound Effects) ---
+    let sfxEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!sfxEnabled) return;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'click') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'sun') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.06);
+        osc.frequency.setValueAtTime(783.99, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'groan') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.3);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+    }
+
+    $("sfxToggle").addEventListener("click", () => {
+      sfxEnabled = !sfxEnabled;
+      $("sfxToggle").textContent = sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
+      if (sfxEnabled) playSound('click');
     });
 
-    let data = {};
-    try {
-      data = await response.json();
-    } catch (_) {
-      data = { ok: false, error: await response.text() };
+    // --- Interactive Sun Spawner Game ---
+    let sunPoints = 150;
+    function spawnSun() {
+      if (document.hidden) return;
+      const sun = document.createElement("div");
+      sun.className = "falling-sun";
+      sun.textContent = "☀️";
+      sun.style.left = Math.random() * 85 + 5 + "vw";
+      sun.style.animationDuration = (Math.random() * 3 + 4) + "s";
+
+      sun.addEventListener("click", (e) => {
+        sunPoints += 25;
+        $("sunVal").textContent = sunPoints;
+        playSound('sun');
+        showFloatingText(e.clientX, e.clientY, "+25 SUN!");
+        sun.remove();
+      });
+
+      document.body.appendChild(sun);
+      setTimeout(() => { if (sun.parentNode) sun.remove(); }, 7000);
+    }
+    setInterval(spawnSun, 4500);
+
+    function showFloatingText(x, y, text) {
+      const el = document.createElement("div");
+      el.className = "floating-pop-text";
+      el.textContent = text;
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
     }
 
-    if (!response.ok || data.ok === false) {
-      throw new Error(data.error || `Request failed (${response.status})`);
-    }
-    return data;
-  }
+    // Side Character Clicks
+    document.querySelectorAll(".deco-group").forEach(group => {
+      group.addEventListener("click", (e) => {
+        const type = group.getAttribute("data-type");
+        const rect = group.getBoundingClientRect();
+        if (type === "plant") {
+          playSound("sun");
+          showFloatingText(rect.left + 50, rect.top + 20, "+25 SUN!");
+          sunPoints += 25;
+          $("sunVal").textContent = sunPoints;
+        } else {
+          playSound("groan");
+          showFloatingText(rect.left + 50, rect.top + 20, "BRAINS!");
+        }
+      });
+    });
 
-  function message(element, text, success = false) {
-    element.textContent = text;
-    element.className = success ? "message success" : "message";
-  }
+    // --- Original API Logic ---
+    async function request(path, options = {}) {
+      const response = await fetch(path, {
+        credentials: "same-origin",
+        ...options
+      });
 
-  async function refreshAccount() {
-    try {
-      const data = await request("/api/ta/whoami");
-      if (data.signedIn) {
-        $("currentAccount").textContent = data.username;
-        $("currentCoins").textContent = Number(data.coins || 0).toLocaleString();
-      } else {
-        $("currentAccount").textContent = "Not signed in";
-        $("currentCoins").textContent = "0";
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = { ok: false, error: await response.text() };
       }
-    } catch (_) {
-      $("currentAccount").textContent = "Not available";
-    }
-  }
 
-  $("loginBtn").addEventListener("click", async () => {
-    const code = $("taCode").value.trim();
-    if (!code) {
-      message($("loginMessage"), "Enter your TA student code.");
-      return;
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || `Request failed (${response.status})`);
+      }
+      return data;
     }
 
-    $("loginBtn").disabled = true;
-    try {
-      const data = await request("/api/ta/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ code })
-      });
-
-      $("taName").textContent = data.taName || "-";
-      $("taEmail").textContent = data.taEmail || "-";
-      $("login").style.display = "none";
-      $("dashboard").style.display = "block";
-      message($("loginMessage"), "", true);
-      await refreshAccount();
-    } catch (e) {
-      message($("loginMessage"), e.message);
-    } finally {
-      $("loginBtn").disabled = false;
-    }
-  });
-
-  $("submitBtn").addEventListener("click", async () => {
-    const groupId = $("groupId").value.trim();
-    const addedScore = $("gradeAmount").value.trim();
-
-    if (!groupId) {
-      message($("submitMessage"), "Enter a group ID.");
-      return;
-    }
-    if (!addedScore || Number(addedScore) < 0.25 || Number(addedScore) % 0.25 !== 0) {
-      message($("submitMessage"), "Grade amount must be a multiple of 0.25.");
-      return;
+    function message(element, text, success = false) {
+      element.textContent = text;
+      element.className = success ? "message success" : "message";
     }
 
-    $("submitBtn").disabled = true;
-    try {
-      const data = await request("/api/ta/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ groupId, addedScore })
-      });
-
-      $("currentCoins").textContent = Number(data.totalCoins || 0).toLocaleString();
-      message(
-        $("submitMessage"),
-        `${Number(data.coinsAdded).toLocaleString()} coins added to ${data.username}. Group score: ${data.newGroupScore}.`,
-        true
-      );
-
-      $("paymentNote").textContent = data.emailSent
-        ? `Confirmation email sent to ${$("taEmail").textContent}.`
-        : (data.emailError || "Reward saved, but no email was sent.");
-    } catch (e) {
-      message($("submitMessage"), e.message);
-    } finally {
-      $("submitBtn").disabled = false;
+    async function refreshAccount() {
+      try {
+        const data = await request("/api/ta/whoami");
+        if (data.signedIn) {
+          $("currentAccount").textContent = data.username;
+          $("currentCoins").textContent = Number(data.coins || 0).toLocaleString();
+        } else {
+          $("currentAccount").textContent = "Not signed in";
+          $("currentCoins").textContent = "0";
+        }
+      } catch (_) {
+        $("currentAccount").textContent = "Not available";
+      }
     }
-  });
 
-  $("paymentBtn").addEventListener("click", () => {
-    $("paymentNote").textContent =
-      "This is the fictional TA coin offer. No real payment is processed.";
-  });
+    $("loginBtn").addEventListener("click", async () => {
+      playSound('click');
+      const code = $("taCode").value.trim();
+      if (!code) {
+        message($("loginMessage"), "Enter your TA student code.");
+        return;
+      }
 
-  $("logoutBtn").addEventListener("click", async () => {
-    try {
-      await request("/api/ta/logout", { method: "POST" });
-    } catch (_) {}
-    $("dashboard").style.display = "none";
-    $("login").style.display = "block";
-    $("taCode").value = "";
-    $("groupId").value = "";
-    $("gradeAmount").value = "";
-  });
+      $("loginBtn").disabled = true;
+      try {
+        const data = await request("/api/ta/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ code })
+        });
 
-  // If the browser was refreshed while the TA session cookie still exists.
-  fetch("/api/ta/whoami", { credentials: "same-origin" })
-    .then(r => {
-      if (!r.ok) throw new Error();
-      return r.json();
-    })
-    .then(data => {
-      if (data.ok) refreshAccount();
-    })
-    .catch(() => {});
-})();
+        $("taName").textContent = data.taName || "-";
+        $("taEmail").textContent = data.taEmail || "-";
+        $("login").style.display = "none";
+        $("dashboard").style.display = "block";
+        message($("loginMessage"), "", true);
+        await refreshAccount();
+      } catch (e) {
+        message($("loginMessage"), e.message);
+      } finally {
+        $("loginBtn").disabled = false;
+      }
+    });
+
+    $("submitBtn").addEventListener("click", async () => {
+      playSound('click');
+      const groupId = $("groupId").value.trim();
+      const addedScore = $("gradeAmount").value.trim();
+
+      if (!groupId) {
+        message($("submitMessage"), "Enter a group ID.");
+        return;
+      }
+      if (!addedScore || Number(addedScore) < 0.25 || Number(addedScore) % 0.25 !== 0) {
+        message($("submitMessage"), "Grade amount must be a multiple of 0.25.");
+        return;
+      }
+
+      $("submitBtn").disabled = true;
+      try {
+        const data = await request("/api/ta/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ groupId, addedScore })
+        });
+
+        $("currentCoins").textContent = Number(data.totalCoins || 0).toLocaleString();
+        message(
+          $("submitMessage"),
+          `${Number(data.coinsAdded).toLocaleString()} coins added to ${data.username}. Group score: ${data.newGroupScore}.`,
+          true
+        );
+
+        $("paymentNote").textContent = data.emailSent
+          ? `Confirmation email sent to ${$("taEmail").textContent}.`
+          : (data.emailError || "Reward saved, but no email was sent.");
+      } catch (e) {
+        message($("submitMessage"), e.message);
+      } finally {
+        $("submitBtn").disabled = false;
+      }
+    });
+
+    $("paymentBtn").addEventListener("click", () => {
+      playSound('click');
+      $("paymentNote").textContent =
+        "This is the fictional TA coin offer. No real payment is processed.";
+    });
+
+    $("logoutBtn").addEventListener("click", async () => {
+      playSound('click');
+      try {
+        await request("/api/ta/logout", { method: "POST" });
+      } catch (_) {}
+      $("dashboard").style.display = "none";
+      $("login").style.display = "block";
+      $("taCode").value = "";
+      $("groupId").value = "";
+      $("gradeAmount").value = "";
+    });
+
+    fetch("/api/ta/whoami", { credentials: "same-origin" })
+      .then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(data => {
+        if (data.ok) refreshAccount();
+      })
+      .catch(() => {});
+  })();
 </script>
 
 </body>
