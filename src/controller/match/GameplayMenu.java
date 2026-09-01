@@ -12,6 +12,7 @@ import model.collections.plant.PlantJsonParser;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
 import model.game_exceptions.GameException;
+import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match.main.levels.special_levels.PlantWhatYouGetLevel;
 import model.match_mechanisms.vector.Position;
@@ -307,21 +308,67 @@ public class GameplayMenu extends Menu {
         }
     }
 
+    /**
+     * Restarts the current level the same way a fresh match is normally started
+     * (see {@link MatchMenu}'s "start game" handling), instead of quietly mutating
+     * the session in place and staying inside this menu/screen. The old version
+     * built a new GameSession and called startWaves() itself while App.currentMenu
+     * stayed a GameplayMenu and the on-screen GameScreen instance never changed -
+     * so ScreenManager never re-resolved the screen (it only swaps screens when
+     * App.currentMenu's class changes), the same board/HUD/interaction wiring from
+     * the previous match kept running against the old session, and - because
+     * App.currentMenu never became a BeforeMenu - BeforeMenu.selectedPlants was
+     * never cleared/reselected for the new session, which is what broke planting
+     * from the loadout after a restart.
+     * <p>
+     * Going through App.currentMenu here instead lets the normal
+     * ScreenManager.syncWithCurrentMenu() polling (see GameScreen/UiScreen
+     * runCommand()) pick this up next frame and route through LoadingScreen into
+     * either BeforeMatchScreen (so the loadout is picked again against the new
+     * session) or straight back into gameplay for levels that have no loadout
+     * step, exactly like a normal "start game" would - including
+     * ScreenManager.resolveScreen()'s isDangerOrLotteryLevel() check, so a
+     * restarted lottery/danger node (Dark Ages included) lands back on
+     * LotteryGameScreen instead of whatever plain season screen happened to be on
+     * screen already.
+     */
     private void restartMatch() {
         GameSession session = GameSession.getInstance();
-        if (session.getLevel() == null) {
+        Level currentLevel = session.getLevel();
+        if (currentLevel == null) {
             throw new GameException("no active match.");
-
         }
         try {
             var matchBoosts = session.getMatchBoostedPlantIds();
-            var freshLevel = LevelLoader.loadLevelById(session.getLevel().getId());
+
+            // Danger/lottery nodes are synthetic levels built on the fly by
+            // StagesScreen.buildDangerLevel() (negative id, never saved to disk),
+            // so they can't be reloaded through LevelLoader.loadLevelById() the way
+            // a normal level can - reuse the level instance already on the session.
+            // Everything else reloads fresh from disk, same as a normal match start,
+            // so e.g. per-run level state doesn't carry over between attempts.
+            Level freshLevel = currentLevel.getId() < 0
+                    ? currentLevel
+                    : LevelLoader.loadLevelById(currentLevel.getId());
+
             MatchMenu.selectedLevel = freshLevel;
+            BeforeMenu.selectedPlants.clear();
+
             GameSession fresh = new GameSession(freshLevel.getRows(), freshLevel.getCols());
             fresh.setDifficultyLevel(User.currentUser.userState.difficultyLevel);
             fresh.setLevel(freshLevel);
             fresh.restoreMatchBoosts(matchBoosts);
-            if (!(freshLevel instanceof PlantWhatYouGetLevel)) fresh.startWaves();
+
+            if (freshLevel instanceof ConveyorBeltLevel) {
+                // Conveyor stages have no loadout step (see MatchMenu.START_GAME) -
+                // go straight back into gameplay, same as starting one fresh.
+                fresh.startWaves();
+                App.currentMenu = new GameplayMenu();
+            } else {
+                // Every other level (including lottery/danger nodes) picks its
+                // loadout again before play resumes, same as a normal match start.
+                App.currentMenu = new BeforeMenu();
+            }
             GeneralPrinter.print("Match restarted.");
         } catch (Exception e) {
             throw new GameException("could not restart the level.");

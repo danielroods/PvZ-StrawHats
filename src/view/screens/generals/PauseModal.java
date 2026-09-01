@@ -5,8 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-import model.utils.GameSession;
-
 /** The in-match pause dialog: resume, restart the level, or save and leave. */
 class PauseModal extends Modal {
 
@@ -18,12 +16,19 @@ class PauseModal extends Modal {
         TextButton restart = new TextButton("Restart", skin);
         restart.addListener(new ClickListener() {
             @Override public void clicked(InputEvent e, float x, float y) {
+                // "restart" (see GameplayMenu.restartMatch()) now sets App.currentMenu
+                // to BeforeMenu/GameplayMenu itself rather than mutating this screen's
+                // session in place, so the old approach of patching
+                // screen.session/tickAccumulator/paused/matchFinished on this
+                // soon-to-be-discarded GameScreen instance no longer applies - the
+                // screen swap (loading screen -> before-match/gameplay, matching
+                // whatever level this is, lottery/danger nodes included) needs to go
+                // through ScreenManager instead, same as "menu exit" already does
+                // below. Without this call the new menu wouldn't take effect until
+                // some other code path happened to poll ScreenManager next.
                 if (screen.runCommand("restart")) {
-                    screen.session = GameSession.getInstance();
-                    screen.tickAccumulator = 0;
-                    screen.paused = false;
-                    screen.matchFinished = false;
                     hide();
+                    controller.ScreenManager.syncWithCurrentMenu();
                 }
             }
         });
