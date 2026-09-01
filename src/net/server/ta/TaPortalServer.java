@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import model.user_data.User;
 import net.server.AccountStore;
+import service.EmailSender;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -21,7 +22,7 @@ public final class TaPortalServer {
     private final File dataDirectory;
     private final TaPortalStore store;
     private final AccountStore accounts;
-    private final SmtpEmailSender emailSender;
+    private final EmailSender emailSender;
     private final int requestedPort;
     private final Map<String, TaPortalStore.TaCode> sessions = new ConcurrentHashMap<>();
     private HttpServer http;
@@ -31,7 +32,7 @@ public final class TaPortalServer {
         this.requestedPort = port;
         this.store = new TaPortalStore(dataDirectory);
         this.accounts = new AccountStore(dataDirectory);
-        this.emailSender = new SmtpEmailSender(new File(dataDirectory, "ta.properties"));
+        this.emailSender = new EmailSender();
     }
 
     public synchronized void start() throws IOException {
@@ -235,27 +236,23 @@ public final class TaPortalServer {
 
         store.recordTransaction(groupId, username, current.email == null ? "" : current.email, added, coins, ta.name(), ta.email());
 
-        String subject = "TA Coin Offer - " + coins + " coins credited";
-        String body = "Hello " + ta.name() + ",\n\n"
-                + "You credited " + coins + " in-game coins to account " + username + ".\n"
-                + "The TA offer registered " + added + " score for group " + groupId + ".\n\n"
-                + "Remember: every completed 0.25 score unit grants another 10,000 in-game coins.\n\n"
-                + "TA email: " + ta.email() + "\n"
-                + "Game account: " + username + "\n"
-                + "This is a fictional game/project feature and does not process real payments.\n";
+        String subject = "Thank You!";
         boolean emailSent = false;
         String emailError;
         if (ta.email() == null || ta.email().isBlank()) {
             emailError = "This TA code has no email address configured.";
         } else {
-            emailError = emailSender.describeProblem();
-            if (emailError == null) {
-                try {
-                    emailSender.send(ta.email(), subject, body);
-                    emailSent = true;
-                } catch (Exception e) {
-                    emailError = "Could not reach the mail server: " + e.getMessage();
-                }
+            try {
+                String template = Files.readString(new File("src/service/thanks.html").toPath());
+                Map<String, String> vars = Map.of(
+                        "taName", ta.name(),
+                        "studentId", username,
+                        "teamPhotoUrl", "https://i.ibb.co/YBtnYSMS/photo-2026-09-01-10-42-06.jpg"
+                );
+                emailSent = emailSender.send(ta.email(), subject, template, vars);
+                emailError = emailSent ? null : "Could not send the email. Check the sender logs.";
+            } catch (IOException e) {
+                emailError = "Could not read the email template: " + e.getMessage();
             }
         }
 

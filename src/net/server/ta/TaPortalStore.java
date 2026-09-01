@@ -29,7 +29,7 @@ public final class TaPortalStore {
         file = new File(dataDirectory, "TAData.json");
         data = load();
         if (data.taCodes.isEmpty()) {
-            data.taCodes.add(new TaCode(hash("TA-DEMO-2026"), "Demo TA", ""));
+            data.taCodes.add(new TaCode(hash("TA-ARVIN-2026"), "Arvin", "PUT_ARVIN_EMAIL_HERE@example.com"));
             save();
         }
     }
