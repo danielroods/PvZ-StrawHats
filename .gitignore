@@ -11,3 +11,5 @@ Data.json
 project_tree/
 # Multiplayer server data
 server-data/
+# This client-side account file
+client-data/

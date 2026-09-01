@@ -2,7 +2,7 @@ package net;
 
 public final class Protocol {
 
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     public static final int DEFAULT_PORT = 7777;
     public static final String DEFAULT_HOST = "127.0.0.1";
 
@@ -19,18 +19,9 @@ public final class Protocol {
     public static final String PING = "PING";
     public static final String PONG = "PONG";
 
-    public static final String REGISTER = "REGISTER";
-    public static final String LOGIN = "LOGIN";
-    /** Signs in using the account already created offline (by password hash, no
-     *  plaintext ever sent). If the server hub doesn't know this account yet -
-     *  e.g. it was created offline after the server last loaded its account file -
-     *  it is auto-provisioned into the server's account data center on the spot. */
-    public static final String AUTO_LOGIN = "AUTO_LOGIN";
+    public static final String SIGN_IN = "SIGN_IN";
     public static final String LOGOUT = "LOGOUT";
-    public static final String FORGOT_PASSWORD_START = "FORGOT_PASSWORD_START";
-    public static final String FORGOT_PASSWORD_ANSWER = "FORGOT_PASSWORD_ANSWER";
-    public static final String PROFILE_UPDATE = "PROFILE_UPDATE";
-    public static final String STATE_PUSH = "STATE_PUSH";
+    public static final String STATE_SYNC = "STATE_SYNC";
     public static final String STATE_PULL = "STATE_PULL";
 
     public static final String ONLINE_LIST = "ONLINE_LIST";
@@ -72,6 +63,7 @@ public final class Protocol {
     public static final String ERR_NOT_LOGGED_IN = "NOT_LOGGED_IN";
     public static final String ERR_USERNAME_TAKEN = "USERNAME_TAKEN";
     public static final String ERR_BAD_CREDENTIALS = "BAD_CREDENTIALS";
+    public static final String ERR_WRONG_ACCOUNT = "WRONG_ACCOUNT";
     public static final String ERR_ALREADY_ONLINE = "ALREADY_ONLINE";
     public static final String ERR_NO_SUCH_USER = "NO_SUCH_USER";
     public static final String ERR_USER_OFFLINE = "USER_OFFLINE";

@@ -115,10 +115,6 @@ public class ServerConnection {
         if (!running) return;
         running = false;
         outbound.offer(POISON);
-        // Give the writer thread a chance to flush whatever was already queued
-        // (e.g. a STATE_PUSH with fresh progress) before we tear down the socket -
-        // otherwise closing right after queuing a message could cut it off mid-write
-        // and silently drop it, since the write happens on a separate thread.
         if (writerThread != null) {
             try {
                 writerThread.join(1000);

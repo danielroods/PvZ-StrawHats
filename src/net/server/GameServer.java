@@ -113,10 +113,8 @@ public class GameServer {
             case Protocol.PING -> session.send(
                     new Envelope(Protocol.PONG, 0L, envelope.id, Envelope.obj()));
             case Protocol.PONG -> { }
-            case Protocol.REGISTER, Protocol.LOGIN, Protocol.LOGOUT,
-                 Protocol.FORGOT_PASSWORD_START, Protocol.FORGOT_PASSWORD_ANSWER,
-                 Protocol.PROFILE_UPDATE, Protocol.STATE_PUSH, Protocol.STATE_PULL,
-                 Protocol.BONUS_SCORE_SUBMIT ->
+            case Protocol.SIGN_IN, Protocol.LOGOUT, Protocol.STATE_SYNC,
+                 Protocol.STATE_PULL, Protocol.BONUS_SCORE_SUBMIT ->
                     accountHandlers.handle(session, envelope);
             case Protocol.ONLINE_LIST, Protocol.CHALLENGE, Protocol.CHALLENGE_RESPOND,
                  Protocol.QUEUE_JOIN, Protocol.QUEUE_LEAVE, Protocol.LEADERBOARD ->
@@ -151,12 +149,6 @@ public class GameServer {
         if (!running) return;
         running = false;
         matches.stop();
-        // Use flushIfDirty (not saveNow) here: saveNow() unconditionally writes this
-        // server's in-memory snapshot to disk. If nobody registered/logged into this
-        // server instance this session, that in-memory snapshot is just whatever was
-        // loaded at startup - stale. Writing it unconditionally would clobber any
-        // progress a client saved directly to the same Data.json in the meantime
-        // (e.g. offline play). Only persist if the server actually changed something.
         accounts.flushIfDirty();
         for (ClientSession session : allSessions) {
             session.close();

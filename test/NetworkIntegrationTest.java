@@ -5,6 +5,9 @@ import net.Envelope;
 import net.JsonLine;
 import net.Protocol;
 import net.client.ServerConnection;
+import model.user_data.User;
+import model.user_data.UserState;
+import net.dto.AccountDto;
 import net.dto.MatchSnapshot;
 import net.server.GameServer;
 import org.junit.jupiter.api.AfterAll;
@@ -25,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -124,20 +128,33 @@ class NetworkIntegrationTest {
         }
     }
 
+    private static JsonObject syncPayload(User user) {
+        JsonObject payload = new JsonObject();
+        payload.add("account", JsonLine.toTree(AccountDto.of(user)));
+        payload.add("userState", JsonLine.toTree(user.userState));
+        return payload;
+    }
+
+    private static User localAccount(String username) {
+        User user = new User(username, "Passw0rd!", username + "-nick",
+                username + "@example.com", "male");
+        user.setSecurityQuestion("1. What is the name of your first pet?", "a");
+        user.userState.markSaved();
+        return user;
+    }
+
     private Peer connectAndSignIn(String username) throws Exception {
+        return connectAndSignIn(localAccount(username));
+    }
+
+    private Peer connectAndSignIn(User account) throws Exception {
         Peer peer = new Peer(port);
         peer.awaitOk(peer.send(Protocol.HELLO,
                 Envelope.obj("protocolVersion", Protocol.VERSION)));
 
-        peer.awaitOk(peer.send(Protocol.REGISTER, Envelope.obj(
-                "username", username, "password", "Passw0rd!", "nickname", username + "-nick",
-                "email", username + "@example.com", "gender", "male",
-                "securityQuestion", "q", "securityAnswer", "a")));
-
-        Envelope login = peer.awaitOk(peer.send(Protocol.LOGIN,
-                Envelope.obj("username", username, "password", "Passw0rd!")));
-        assertNotNull(login.getObject("account"), "login should return the account");
-        assertNotNull(login.getObject("userState"), "login should return the saved state");
+        Envelope signIn = peer.awaitOk(peer.send(Protocol.SIGN_IN, syncPayload(account)));
+        assertNotNull(signIn.getObject("account"), "sign-in should return the account");
+        assertNotNull(signIn.getObject("userState"), "sign-in should return the saved state");
         peer.forget();
         return peer;
     }
@@ -155,27 +172,86 @@ class NetworkIntegrationTest {
 
     @Test
     @Order(2)
-    void registrationRejectsDuplicatesAndWeakPasswords() throws Exception {
-        Peer peer = new Peer(port);
-        peer.awaitOk(peer.send(Protocol.HELLO,
+    void theOfflineAccountIsTheOnlineAccount() throws Exception {
+        User offline = localAccount("dupe");
+        offline.userState.coins = 1234;
+        offline.userState.lastLevel = 7;
+        offline.userState.markSaved();
+
+        Peer peer = connectAndSignIn(offline);
+        assertNotNull(server.accounts().findById(offline.accountId()),
+                "connecting takes on the account the player is already logged into");
+
+        Envelope pulled = peer.awaitOk(peer.send(Protocol.STATE_PULL, Envelope.obj()));
+        AccountDto served = JsonLine.fromTree(pulled.getObject("account"), AccountDto.class);
+        UserState state = JsonLine.fromTree(pulled.getObject("userState"), UserState.class);
+        assertEquals(offline.accountId(), served.accountId, "one account, not a second one");
+        assertEquals("dupe", served.username);
+        assertEquals(1234, state.coins, "offline progress is uploaded on connect");
+        assertEquals(7, state.lastLevel);
+        peer.close();
+
+        Peer impostor = new Peer(port);
+        impostor.awaitOk(impostor.send(Protocol.HELLO,
                 Envelope.obj("protocolVersion", Protocol.VERSION)));
+        User sameName = localAccount("dupe");
+        sameName.setPassword("Different1!");
+        sameName.userState.markSaved();
+        Envelope refused = impostor.awaitReply(
+                impostor.send(Protocol.SIGN_IN, syncPayload(sameName)));
+        assertEquals(Protocol.ERR_BAD_CREDENTIALS, refused.getString("code"),
+                "a different account cannot claim a username that is already taken");
+        impostor.close();
+        assertEquals(1234, server.accounts().stateOf("dupe").coins,
+                "and it certainly cannot overwrite the real account");
 
-        peer.awaitOk(peer.send(Protocol.REGISTER, Envelope.obj(
-                "username", "dupe", "password", "Passw0rd!", "nickname", "Dupe",
-                "email", "dupe@example.com", "gender", "female",
-                "securityQuestion", "q", "securityAnswer", "a")));
+        Peer invalid = new Peer(port);
+        invalid.awaitOk(invalid.send(Protocol.HELLO,
+                Envelope.obj("protocolVersion", Protocol.VERSION)));
+        User badEmail = localAccount("weakling");
+        badEmail.email = "not-an-email";
+        Envelope rejected = invalid.awaitReply(
+                invalid.send(Protocol.SIGN_IN, syncPayload(badEmail)));
+        assertEquals(Protocol.ERR_VALIDATION, rejected.getString("code"));
+        invalid.close();
+    }
 
-        Envelope duplicate = peer.awaitReply(peer.send(Protocol.REGISTER, Envelope.obj(
-                "username", "dupe", "password", "Passw0rd!", "nickname", "Dupe",
-                "email", "dupe@example.com", "gender", "female",
-                "securityQuestion", "q", "securityAnswer", "a")));
-        assertEquals(Protocol.ERR_USERNAME_TAKEN, duplicate.getString("code"));
+    @Test
+    @Order(8)
+    void syncingKeepsTheNewerCopyAndNeverForksTheAccount() throws Exception {
+        User account = localAccount("brook");
+        account.userState.coins = 10;
+        account.userState.markSaved();
+        Peer peer = connectAndSignIn(account);
 
-        Envelope weak = peer.awaitReply(peer.send(Protocol.REGISTER, Envelope.obj(
-                "username", "weakling", "password", "abc", "nickname", "Weak",
-                "email", "weak@example.com", "gender", "male",
-                "securityQuestion", "q", "securityAnswer", "a")));
-        assertEquals(Protocol.ERR_VALIDATION, weak.getString("code"));
+        account.userState.coins = 50;
+        account.userState.markSaved();
+        Envelope pushed = peer.awaitOk(peer.send(Protocol.STATE_SYNC, syncPayload(account)));
+        assertEquals(50, JsonLine.fromTree(pushed.getObject("userState"), UserState.class).coins,
+                "a newer save is taken by the server");
+
+        UserState stale = JsonLine.fromTree(JsonLine.toTree(account.userState), UserState.class);
+        stale.coins = 3;
+        stale.stateRevision -= 1;
+        JsonObject stalePayload = new JsonObject();
+        stalePayload.add("account", JsonLine.toTree(AccountDto.of(account)));
+        stalePayload.add("userState", JsonLine.toTree(stale));
+        Envelope answered = peer.awaitOk(peer.send(Protocol.STATE_SYNC, stalePayload));
+        assertEquals(50, JsonLine.fromTree(answered.getObject("userState"), UserState.class).coins,
+                "a save built on older state never overwrites the newer copy");
+
+        String previousId = account.accountId();
+        account.username = "brook-renamed";
+        account.userState.coins = 70;
+        account.userState.markSaved();
+        Envelope renamed = peer.awaitOk(peer.send(Protocol.STATE_SYNC, syncPayload(account)));
+        AccountDto after = JsonLine.fromTree(renamed.getObject("account"), AccountDto.class);
+        assertEquals("brook-renamed", after.username, "a rename follows the same account");
+        assertEquals(previousId, after.accountId);
+        assertNull(server.accounts().find("brook"),
+                "renaming must not leave a second account behind under the old name");
+        assertEquals(1, server.accounts().snapshot().stream()
+                .filter(user -> previousId.equals(user.accountId())).count());
         peer.close();
     }
 

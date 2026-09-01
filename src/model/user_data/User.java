@@ -5,18 +5,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-/// authentication and holds a reference to userState
 public class User {
 
     public static ArrayList<User> users = new ArrayList<>();
     public static User currentUser = null;
 
+    public String accountId;
     public String username, passwordHash, nickname, email, gender, securityQuestion, securityAnswerHash;
+    public String syncedPasswordHash;
     public boolean stayLoggedIn;
     public UserState userState;
     public String profilePicture = "assets/images/ui/avatar_luffy.png";
 
     public User(String username, String password, String nickname, String email, String gender) {
+        this.accountId = java.util.UUID.randomUUID().toString();
         this.username = username;
         this.passwordHash = hashPassword(password);
         this.nickname = nickname;
@@ -28,6 +30,19 @@ public class User {
     }
 
 
+
+    public String accountId() {
+        if (accountId == null || accountId.isBlank()) accountId = legacyAccountId(username);
+        return accountId;
+    }
+
+    public static String legacyAccountId(String username) {
+        return "legacy-" + hashPassword(username == null ? "" : username.toLowerCase());
+    }
+
+    public boolean isSameAccountAs(User other) {
+        return other != null && accountId().equals(other.accountId());
+    }
 
     public static String hashPassword(String password) {
         try {
@@ -43,14 +58,10 @@ public class User {
         }
     }
 
-    /**
-     * Rebuilds a User whose password is already hashed (e.g. an offline account being
-     * mirrored into the server's account data center). Never re-hashes/derives from a
-     * plaintext password - the caller already has the canonical hash.
-     */
-    public static User withHash(String username, String passwordHash, String nickname,
-                                String email, String gender) {
+    public static User withHash(String accountId, String username, String passwordHash,
+                                String nickname, String email, String gender) {
         User user = new User(username, "", nickname, email, gender);
+        if (accountId != null && !accountId.isBlank()) user.accountId = accountId;
         user.passwordHash = passwordHash;
         return user;
     }
@@ -72,11 +83,15 @@ public class User {
         return this.securityAnswerHash.equals(hashPassword(answer.toLowerCase().trim()));
     }
 
-    private static final UserStore LOCAL_STORE = new LocalUserStore();
+    private static final LocalUserStore LOCAL_STORE = new LocalUserStore();
     private static UserStore activeStore = LOCAL_STORE;
 
     public static UserStore store() {
         return activeStore;
+    }
+
+    public static LocalUserStore localStore() {
+        return LOCAL_STORE;
     }
 
     public static void useStore(UserStore store) {
