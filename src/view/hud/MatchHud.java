@@ -549,7 +549,9 @@ public final class MatchHud extends Table implements Disposable {
 
         SeedPacketCard card = null;
         try {
-            card = cardFactory.buildCardForDisplayName(plantName);
+            card = session.hasMatchBoost(id)
+                    ? cardFactory.buildCardForDisplayName(plantName, "boost.png")
+                    : cardFactory.buildCardForDisplayName(plantName);
         } catch (Throwable ignored) {
         }
 

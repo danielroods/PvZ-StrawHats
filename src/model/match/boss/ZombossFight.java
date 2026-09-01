@@ -74,6 +74,11 @@ public class ZombossFight {
 
     private double spawnTimer;
 
+    // Big Wave Beach boss fight: the tide rushes in several times during the battle.
+    private static final double[] BEACH_BIG_WAVE_HEALTH_TRIGGERS = {0.75, 0.50, 0.25};
+    private static final int BEACH_BIG_WAVE_BOSS_ZOMBIE_COUNT = 6;
+    private int beachBigWavesTriggered = 0;
+
     private ZombossActionSequence deathSequence;
 
     public ZombossFight(GameSession session, ZombossChapter chapter) {
@@ -444,6 +449,7 @@ public class ZombossFight {
         }
 
         maybeTriggerStun();
+        triggerBeachBigWaveIfNeeded();
         behavior.update(deltaSeconds);
 
         if (!stunned) tickMinionSpawning(deltaSeconds);
@@ -496,6 +502,43 @@ public class ZombossFight {
         refreshDamageMultiplier();
         setActionCooldown(3.0);
         behavior.onStunEnd();
+    }
+
+    private void triggerBeachBigWaveIfNeeded() {
+        if (chapter != ZombossChapter.BEACH || session == null
+                || beachBigWavesTriggered >= BEACH_BIG_WAVE_HEALTH_TRIGGERS.length
+                || boss == null) {
+            return;
+        }
+
+        double health = getBossHealthFraction();
+        if (health > BEACH_BIG_WAVE_HEALTH_TRIGGERS[beachBigWavesTriggered]) return;
+
+        int waveIndex = 10_000 + beachBigWavesTriggered;
+        session.beginBeachBigWave(waveIndex);
+
+        int cols = session.getCols();
+        double startX = SpawnPlacement.entryX(cols);
+        Level level = session.getLevel();
+        int tideColumns = level == null ? 0 : level.getCurrentTideColumn();
+        double desiredTargetX = Math.max(0.0,
+                cols - Math.max(0, tideColumns) - 0.20);
+
+        for (int i = 0; i < BEACH_BIG_WAVE_BOSS_ZOMBIE_COUNT; i++) {
+            if (minionPool.isEmpty()) break;
+
+            String alias = drawMinionAlias();
+            int lane = laneBag.draw();
+            Zombie minion = createMinion(alias, lane, Math.max(0, cols - 1));
+            if (minion == null) continue;
+
+            minion.setPosition(new Position(startX, lane));
+            session.spawnZombie(minion);
+            session.addBeachBigWaveEntry(minion, lane, startX, desiredTargetX);
+        }
+
+        beachBigWavesTriggered++;
+        GeneralPrinter.print("The Big Wave Beach boss unleashed a huge wave!");
     }
 
     private void tickMinionSpawning(double deltaSeconds) {

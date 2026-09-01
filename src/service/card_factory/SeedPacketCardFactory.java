@@ -141,10 +141,21 @@ public class SeedPacketCardFactory implements Disposable {
     );
 
     public SeedPacketCard buildCardForDisplayName(String displayName) {
+        return buildCardForDisplayName(displayName, null);
+    }
+
+    /**
+     * Builds a card with an optional one-call packet background override.
+     * The override is intentionally not stored in packetSkinOverrides, so it
+     * cannot affect Collection/Shop cards or any other normal factory usage.
+     */
+    public SeedPacketCard buildCardForDisplayName(String displayName, String packetSkinOverride) {
         try {
             String iconFile = resolveIconFile(displayName);
             if (iconFile != null) {
-                SeedPacketCard card = buildCard(iconFile);
+                SeedPacketCard card = packetSkinOverride == null
+                        ? buildCard(iconFile)
+                        : buildCard(iconFile, packetSkinOverride);
                 if (card != null) {
                     return card;
                 }
@@ -256,11 +267,20 @@ public class SeedPacketCardFactory implements Disposable {
     }
 
     public SeedPacketCard buildCard(String plantIconFile) {
+        return buildCard(plantIconFile, null);
+    }
+
+    private SeedPacketCard buildCard(String plantIconFile, String packetSkinOverride) {
         if (plantIconFile == null || plantIconFile.isEmpty()) {
             return null;
         }
         String name = stripExtension(plantIconFile);
-        String packetFile = resolvePacketSkin(name);
+        String packetFile = packetSkinOverride == null
+                ? resolvePacketSkin(name)
+                : packetSkinOverride.toLowerCase();
+        if (!isKnownPacketSkin(packetFile)) {
+            packetFile = resolvePacketSkin(name);
+        }
 
         Texture plantTexture = loadTexture(PLANTS_UI_DIR + plantIconFile);
         Texture packetTexture = loadTexture(SEEDPACKETS_UI_DIR + packetFile);
@@ -272,6 +292,14 @@ public class SeedPacketCardFactory implements Disposable {
 
         return new SeedPacketCard(name, plantIconFile, packetFile,
                 packetTexture, plantTexture, CARD_WIDTH, CARD_HEIGHT);
+    }
+
+    private boolean isKnownPacketSkin(String packetFile) {
+        if (packetFile == null) return false;
+        for (String known : PACKET_SKIN_FILES) {
+            if (known.equalsIgnoreCase(packetFile)) return true;
+        }
+        return false;
     }
 
     public SeedPacketCard buildCardByPlantName(String plantName) {
@@ -308,15 +336,6 @@ public class SeedPacketCardFactory implements Disposable {
 
         // ۳. پس‌زمینه پیش‌فرض
         return DEFAULT_PACKET_SKIN;
-    }
-
-    private boolean isKnownPacketSkin(String packetFile) {
-        for (String known : PACKET_SKIN_FILES) {
-            if (known.equalsIgnoreCase(packetFile)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private String stripExtension(String fileName) {

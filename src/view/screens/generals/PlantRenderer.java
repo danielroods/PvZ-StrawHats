@@ -521,6 +521,19 @@ class PlantRenderer {
         } else if (plant.isTallNut() && plant.isPlantFoodActive()) {
             preferredState = "idle";
             animTime = t;
+        } else if (isSunProducingPlant(plant)
+                && plant.isPlantFoodActive()
+                && plant.getVisualAnimationState() != null) {
+            // Sun producers use their Plant Food clip as a true one-shot. The model
+            // starts the clip when Plant Food is activated and keeps it alive only for
+            // the exact clip duration; do not modulo the time here, otherwise the last
+            // frames would loop/hold before the suns are dropped.
+            preferredState = plant.getVisualAnimationState();
+            float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
+            float elapsed = (float) plant.getVisualAnimationElapsed();
+            animTime = clipDuration > 0f
+                    ? Math.min(elapsed, Math.max(0f, clipDuration - 0.0001f))
+                    : elapsed;
         } else if (showsPlantFoodLoopForFullDuration(plant) && plant.isPlantFoodActive()) {
             preferredState = plantFoodClipState(plant);
             animTime = t;
@@ -585,6 +598,9 @@ class PlantRenderer {
                 && ("idle".equals(preferredState)
                 || "damage".equals(preferredState)
                 || "damage2".equals(preferredState));
+        boolean sunProducerPlantFoodExactState = isSunProducingPlant(plant)
+                && plant.isPlantFoodActive()
+                && plant.getVisualAnimationState() != null;
         boolean garlicExactState = plant.isGarlic()
                 && ("idle".equals(preferredState)
                 || "idle_damage".equals(preferredState)
@@ -660,6 +676,9 @@ class PlantRenderer {
             drawn = screen.drawPam(path, "idle", animTime,
                     plantOffsetX, plantOffsetY, 0.55f, false, tallNutArmorVisibility);
         } else if (tallNutExactState) {
+            drawn = screen.pam().drawPamExact(path, preferredState, animTime,
+                    plantOffsetX, plantOffsetY, 0.55f, false);
+        } else if (sunProducerPlantFoodExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
                     plantOffsetX, plantOffsetY, 0.55f, false);
         } else if (endurian) {

@@ -20,8 +20,8 @@ class SessionHazards {
     private static final double LANDING_MIN_COLUMN = 0.5;
     private static final double LANDING_MAX_COLUMN_INSET = 0.4;
 
-    private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 1.35;
-    private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 1.05;
+    private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 5.50;
+    private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 2.80;
 
     // How long a zombie visibly glides across a smooth row shift (tile sliders,
     // Garlic's redirect, Sweet Potato's pull) so the row change reads as a

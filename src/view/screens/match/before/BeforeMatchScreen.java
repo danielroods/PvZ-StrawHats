@@ -600,10 +600,16 @@ public class BeforeMatchScreen extends GameScreen {
         final String pName = config.name;
         boostBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                if (state != null && state.diamonds >= 10) {
+                int plantId = findId(collectionManager.getAllPlants(), pName);
+                if (state != null && plantId >= 0 && state.diamonds >= 10
+                        && session != null && !session.hasMatchBoost(plantId)) {
                     state.diamonds -= 10;
+                    session.grantMatchBoost(plantId);
+                    User.save();
                     showNoticePopup("Plant Boosted!", pName + " is boosted for this match!");
                     scheduleBuild();
+                } else if (session != null && plantId >= 0 && session.hasMatchBoost(plantId)) {
+                    showNoticePopup("Already Boosted", pName + " is already boosted for this match.");
                 } else {
                     showNoticePopup("Insufficient Diamonds", "You need 10 diamonds to boost this plant.");
                 }
@@ -863,7 +869,11 @@ public class BeforeMatchScreen extends GameScreen {
         Stack stack = new Stack();
         SeedPacketCard card = null;
         try {
-            card = cardFactory.buildCardForDisplayName(plantName);
+            int plantId = findId(collectionManager.getAllPlants(), plantName);
+            boolean boosted = session != null && plantId >= 0 && session.hasMatchBoost(plantId);
+            card = boosted
+                    ? cardFactory.buildCardForDisplayName(plantName, "boost.png")
+                    : cardFactory.buildCardForDisplayName(plantName);
         } catch (Throwable ignored) {}
 
         if (card != null) {

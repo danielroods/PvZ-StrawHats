@@ -352,8 +352,6 @@ public class GameplayMenu extends Menu {
         }
         try {
             EndlessScoreboard.recordRun(session);
-            var matchBoosts = session.getMatchBoostedPlantIds();
-
             // Danger/lottery nodes are synthetic levels built on the fly by
             // StagesScreen.buildDangerLevel() (negative id, never saved to disk),
             // so they can't be reloaded through LevelLoader.loadLevelById() the way
@@ -370,7 +368,6 @@ public class GameplayMenu extends Menu {
             GameSession fresh = new GameSession(freshLevel.getRows(), freshLevel.getCols());
             fresh.setDifficultyLevel(User.currentUser.userState.difficultyLevel);
             fresh.setLevel(freshLevel);
-            fresh.restoreMatchBoosts(matchBoosts);
 
             if (freshLevel instanceof ConveyorBeltLevel) {
                 // Conveyor stages have no loadout step (see MatchMenu.START_GAME) -

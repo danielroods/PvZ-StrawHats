@@ -32,6 +32,7 @@ import model.resoures.CurrencyType;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.armour.Armour;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.user_data.User;
 import model.user_data.UserState;
@@ -47,6 +48,7 @@ import pvz.libpvz.pam.ClipRef;
 import pvz.libpvz.textures.TextureBank;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +58,24 @@ import java.util.stream.Collectors;
 public class CollectionScreen extends UiScreen {
 
     private static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
-    private static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
-    private static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
     private static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
     private static final String UPGRADE_ICON = "assets/images/ui/collection/rift_perk_upgrade_uparrow.png";
+
+    private static final float TAG_ICON_SIZE = 30f;
+
+    /** Shown for any family tag whose own icon file isn't found at its placeholder path. */
+    private static final String DEFAULT_TAG_ICON = "assets/images/ui/seedpackets_mechs_ui/mintfam_banner.png";
+
+    /** Placeholder icon path per family tag - swap in the real filenames, path pattern stays the same. */
+    private static final Map<PlantTag, String> TAG_ICON_PATHS = buildTagIconPaths();
+
+    private static Map<PlantTag, String> buildTagIconPaths() {
+        Map<PlantTag, String> map = new EnumMap<>(PlantTag.class);
+        for (PlantTag tag : PlantTag.values()) {
+            map.put(tag, "assets/images/ui/seedpackets_mechs_ui/mintfam_" + tag.name().toLowerCase() + ".png");
+        }
+        return map;
+    }
 
     private static final String PLANTS_TAB_ICON = "assets/images/ui/collection/plants.png";
     private static final String ZOMBIES_TAB_ICON = "assets/images/ui/collection/zombies.png";
@@ -365,6 +381,17 @@ public class CollectionScreen extends UiScreen {
             Gdx.app.error("CollectionScreen", "Failed to build seed packet card for " + config.name, t);
         }
         cardStack.setSize(cardW, cardH);
+
+        if (config.tags != null && !config.tags.isEmpty()) {
+            String tagPath = TAG_ICON_PATHS.get(config.tags.get(0));
+            if (tagPath == null || !Gdx.files.internal(tagPath).exists()) {
+                tagPath = DEFAULT_TAG_ICON;
+            }
+            Image tagImage = new Image(loadTextureSafe(tagPath));
+            Container<Image> tagContainer = new Container<>(tagImage);
+            tagContainer.size(TAG_ICON_SIZE, TAG_ICON_SIZE).top().left().padTop(6f).padLeft(6f);
+            cardStack.add(tagContainer);
+        }
 
         if (!unlocked) {
             Image dim = new Image(solidColorDrawable(new Color(0f, 0f, 0f, 0.42f)));
