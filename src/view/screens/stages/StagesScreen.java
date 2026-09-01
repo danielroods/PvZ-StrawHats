@@ -77,6 +77,9 @@ public abstract class StagesScreen extends UiScreen {
 
     protected enum StageStatus { LOCKED, UNLOCKED, COMPLETED, CURRENT }
 
+    protected static final float DANGER_NODE_HIT_GROWTH = 1.5f;
+    protected static final float DANGER_NODE_HIT_MIN_SIZE = 200f;
+
     protected List<Level> allLevels = new ArrayList<>();
     protected List<Level> chapterLevels = new ArrayList<>();
 
@@ -187,6 +190,24 @@ public abstract class StagesScreen extends UiScreen {
         if (lottery == null) return;
         MatchMenu.selectedLevel = lottery;
         runCommand("start game");
+    }
+
+    protected Actor createDangerNodeHitArea(float centerX, float centerY,
+                                            float renderWidth, float renderHeight) {
+        float width = Math.max(renderWidth * DANGER_NODE_HIT_GROWTH, DANGER_NODE_HIT_MIN_SIZE);
+        float height = Math.max(renderHeight * DANGER_NODE_HIT_GROWTH, DANGER_NODE_HIT_MIN_SIZE);
+
+        Actor hitArea = new Actor();
+        hitArea.setSize(width, height);
+        hitArea.setPosition(centerX - width / 2f, centerY - height / 2f);
+        hitArea.setTouchable(Touchable.enabled);
+        hitArea.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                playDangerNode();
+            }
+        });
+        return hitArea;
     }
 
     protected void build() {

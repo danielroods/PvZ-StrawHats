@@ -115,6 +115,7 @@ class SessionBoard {
 
                 if (!hasLivingWaterSupport) {
                     for (Plant p : stack) {
+                        if (p.isGraveBuster()) continue;
                         if (p.isAlive() && !p.getTags().contains(PlantTag.WATER)) {
                             // Drown outright - bypasses armor on purpose, this isn't a normal hit.
                             p.setAlive(false);
@@ -257,8 +258,9 @@ class SessionBoard {
                 isHotPotato && cell.getObstacle() instanceof IceBlock;
 
         boolean handlesGrave =
-                plant.getName().equalsIgnoreCase("Grave Buster")
-                        && cell.getObstacle() instanceof Grave;
+                plant.isGraveBuster() && cell.getObstacle() instanceof Grave;
+
+        if (plant.isGraveBuster() && !handlesGrave) return false;
 
         boolean handlesObstacle = handlesIceBlock || handlesGrave;
 
@@ -404,17 +406,14 @@ class SessionBoard {
 
         if (flooded
                 && !plant.getTags().contains(PlantTag.WATER)
-                && !lilySupport) {
+                && !lilySupport
+                && !plant.isGraveBuster()) {
             return false;
         }
 
         if (lilySupport) {
             plant.setBottom(existing);
         }
-
-        boolean destroysGrave =
-                plant.getName().equalsIgnoreCase("Grave Buster")
-                        && cell.getObstacle() instanceof Grave grave;
 
         cell.setPlant(plant);
         plant.setPosition(new Position(col, row));
@@ -426,10 +425,6 @@ class SessionBoard {
                     IceBlock.BASE_HP,
                     true
             );
-        }
-
-        if (destroysGrave) {
-            destroyGrave(row, col, (Grave) cell.getObstacle());
         }
 
         economy.markPlantedAnyPlant();

@@ -16,6 +16,8 @@ import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match.main.levels.special_levels.PlantWhatYouGetLevel;
 import model.match_mechanisms.vector.Position;
+import model.pitches.Cell;
+import model.pitches.obstacles.Grave;
 import model.user_data.User;
 import model.user_data.UserState;
 import model.utils.GameSession;
@@ -194,6 +196,10 @@ public class GameplayMenu extends Menu {
             throw new GameException("not enough sun; " + config.name + " costs " + plant.getCost() + ".");
         }
 
+        if (plant.isGraveBuster() && !hasGrave(session, row, col)) {
+            throw new GameException("Grave Buster can only be planted on a grave.");
+        }
+
         if (!session.plantAt(row, col, plant)) {
             throw new GameException("that tile is occupied, blocked, or out of bounds.");
         } else {
@@ -208,6 +214,12 @@ public class GameplayMenu extends Menu {
             GeneralPrinter.print(config.name + " planted at (" + x + "," + y + "). Sun: "
                     + session.getSunCount() + ".");
         }
+    }
+
+    private boolean hasGrave(GameSession session, int row, int col) {
+        if (session.getEnvironment() == null) return false;
+        Cell cell = session.getEnvironment().getCell(row, col);
+        return cell != null && cell.getObstacle() instanceof Grave;
     }
 
     private void removePlantAt(int x, int y) {

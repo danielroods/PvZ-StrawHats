@@ -237,6 +237,8 @@ public class EgyptStagesScreen extends StagesScreen {
 
             addActor(new TrailActor());
 
+            addDangerNodeHitArea();
+
             addMapDecorations();
 
             for (int i = 0; i < count; i++) {
@@ -259,8 +261,11 @@ public class EgyptStagesScreen extends StagesScreen {
             group.setSize(nativeWidth, nativeHeight);
             group.setPosition(x, y);
 
+            group.setTouchable(Touchable.disabled);
+
             MapDecorationActor actor = new MapDecorationActor(type, nativeWidth, nativeHeight, state);
             actor.setSize(nativeWidth, nativeHeight);
+            actor.setTouchable(Touchable.disabled);
             group.addActor(actor);
             return group;
         }
@@ -313,6 +318,7 @@ public class EgyptStagesScreen extends StagesScreen {
             for (MapObjectPlacement p : placements) {
                 MapDecorationActor actor = new MapDecorationActor(p.type, p.width, p.height, "idle");
                 actor.setPosition(p.x * LAYOUT_SCALE_X, p.y * LAYOUT_SCALE_Y);
+                actor.setTouchable(Touchable.disabled);
                 addActor(actor);
             }
 
@@ -327,12 +333,22 @@ public class EgyptStagesScreen extends StagesScreen {
             addActor(houseIsland);
         }
 
+        private void addDangerNodeHitArea() {
+            if (calculateDangerNodeState() == DangerNodeState.LOCKED_IDLE) return;
+            addActor(createDangerNodeHitArea(
+                    pyramidAnchorX + PYRAMID_TUNING.offsetX() * LAYOUT_SCALE_X,
+                    pyramidAnchorY + PYRAMID_TUNING.offsetY() * LAYOUT_SCALE_Y,
+                    PYRAMID_TUNING.nativeW() * PYRAMID_TUNING.scale(),
+                    PYRAMID_TUNING.nativeH() * PYRAMID_TUNING.scale()));
+        }
+
         private void addForegroundEffects() {
             DangerNodeState pState = calculateDangerNodeState();
             String zombossState = (pState == DangerNodeState.UNLOCKED_IDLE) ? "defeated" : "active";
             addActor(createAnchoredAnimation(MapObjectType.BIG_BOSS_DECOR_ISLAND, ZOMBOSS_TUNING, zombossState, zombossNodeX, zombossNodeY));
             Group pyramid = createAnchoredAnimation(MapObjectType.PYRAMID_ANIM, PYRAMID_TUNING, pState.getPamState(), pyramidAnchorX, pyramidAnchorY);
             if (pState != DangerNodeState.LOCKED_IDLE) {
+                pyramid.setTouchable(Touchable.enabled);
                 pyramid.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {

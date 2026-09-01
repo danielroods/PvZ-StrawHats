@@ -174,6 +174,13 @@ public class PlantFactory {
         } else if ("Jalapeno".equalsIgnoreCase(config.name)) {
             plant.setInternalTimer(0.67);
             plant.setState(Plant.PlantState.PREPPING);
+        } else if ("Grave Buster".equalsIgnoreCase(config.name)) {
+            plant.setInternalTimer(plant.getActionInterval());
+            float chew = AnimationFactory.exactClipDurationForPath(
+                    AnimationFactory.pathForDisplayName(config.name),
+                    GraveBusterStrategy.CHEW_STATE);
+            plant.setVisualAnimationProgress(GraveBusterStrategy.CHEW_STATE,
+                    chew > 0f ? chew : plant.getActionInterval(), 0.0);
         } else if (plant.getTags().contains(PlantTag.CHARGE)) {
             plant.setInternalTimer(plant.getActionInterval());
         }
@@ -197,9 +204,8 @@ public class PlantFactory {
             return GRAPESHOT_FUSE_SECONDS;
         }
 
-        // Doom-shroom deliberately has a long fuse so its three GrowthTracker stages
-        // can actually be reached before the explosion. Its visual explosion state is
-        // selected separately by PlantRenderer/EffectRenderer.
+        if ("Grave Buster".equalsIgnoreCase(config.name)) return 0;
+
         if ("Doom-shroom".equalsIgnoreCase(config.name)) return 20.0;
 
         String clipState = switch (config.abilityType) {
@@ -235,6 +241,7 @@ public class PlantFactory {
                 if ("Squash".equalsIgnoreCase(config.name)) yield new SquashStrategy();
                 if ("Tangle Kelp".equalsIgnoreCase(config.name)) yield new TangleKelpStrategy();
                 if ("Grapeshot".equalsIgnoreCase(config.name)) yield new GrapeshotStrategy();
+                if ("Grave Buster".equalsIgnoreCase(config.name)) yield new GraveBusterStrategy();
                 yield new ExplodeStrategy();
             }
             case MELEE -> new MeleeStrategy();

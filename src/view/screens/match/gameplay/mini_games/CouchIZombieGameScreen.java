@@ -125,7 +125,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         IZombieMatch match = match();
         if (match != null) GameSession.setCurrent(match.getSession());
         super.show();
-        AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
+        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
 
         brainTexture = loadBrainTexture();
         textureRight = loadTextureRight();

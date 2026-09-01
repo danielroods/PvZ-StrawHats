@@ -87,7 +87,7 @@ public class VasebreakerGameScreen extends GameScreen {
     @Override
     public void show() {
         super.show();
-        AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
+        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
         selectedSeedName = null;
         if (hud != null) {
             hud.setLoadoutBankVisible(false);

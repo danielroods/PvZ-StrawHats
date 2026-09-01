@@ -395,8 +395,11 @@ public class ZombossFight {
 
     public void advanceDialogue() {
         if (phase != ZombossPhase.NPC_TALK) return;
-        dialogueIndex++;
-        if (dialogueIndex >= chapter.getDialogue().size()) {
+
+        // Advance through all dialogue boxes normally.
+        if (dialogueIndex + 1 < chapter.getDialogue().size()) {
+            dialogueIndex++;
+        } else {
             enter(ZombossPhase.NPC_EXIT);
         }
     }

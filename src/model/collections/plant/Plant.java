@@ -99,6 +99,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     // Set when Hot Potato is planted on an IceBlock so the renderer can play the
     // ice-melting puddle effect once, without coupling the model to EffectRenderer.
     private boolean hotPotatoMeltEffectPending = false;
+    private boolean graveBusterConsumedGrave = false;
 
     private PlantArmour armor;
 
@@ -967,6 +968,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public boolean isHotPotatoMeltEffectPending() { return hotPotatoMeltEffectPending; }
     public void setHotPotatoMeltEffectPending(boolean pending) { this.hotPotatoMeltEffectPending = pending; }
+
+    public boolean isGraveBuster() {
+        return name != null && name.equalsIgnoreCase("Grave Buster");
+    }
+
+    public boolean hasGraveBusterConsumedGrave() { return graveBusterConsumedGrave; }
+    public void setGraveBusterConsumedGrave(boolean eaten) { graveBusterConsumedGrave = eaten; }
 
     public boolean isSpecialInvulnerable() { return specialInvulnerable; }
     public void setSpecialInvulnerable(boolean value) { this.specialInvulnerable = value; }

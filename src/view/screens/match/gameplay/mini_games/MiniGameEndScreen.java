@@ -123,6 +123,7 @@ public class MiniGameEndScreen extends UiScreen {
             }
         }
         setBackground(BACKGROUND);
+        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
         super.show();
         build();
     }
