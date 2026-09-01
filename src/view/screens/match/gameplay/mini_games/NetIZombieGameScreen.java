@@ -133,7 +133,7 @@ public class NetIZombieGameScreen extends GameScreen {
         state = NetworkClient.get().getMatchState();
         if (state != null) GameSession.setCurrent(state.getShadowSession());
         super.show();
-        AudioManager.get().playMusic(AudioEnum.MENU_MUSIC, true);
+        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
 
         brainTexture = loadBrainTexture();
         textureRight = loadTextureRight();

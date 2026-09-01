@@ -3,6 +3,7 @@ package service.resource_manager;
 public enum AudioEnum {
     SFX_CLICK("assets/audio/sfx/click 1.mp3"),
     MENU_MUSIC("assets/audio/music/loonboon_142032648.mp3"),
+    MINI_GAME_MUSIC("assets/audio/music/Screen_Recording_20250817_161231_YouTubemp4_162500.mp3"),
     EGYPT_MUSIC("assets/audio/music/A Man Without Love.mp3"),
     FROSTBITE_MUSIC("assets/audio/music/Just The Two Of Us Grover Washington Jr.mp3"),
     BEACH_MUSIC("assets/audio/music/Elton John-I m Still Standing -musicdel.ir 128.mp3"),
