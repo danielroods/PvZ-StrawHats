@@ -283,12 +283,12 @@ public class MiniGameEndScreen extends UiScreen {
                 new Vector2(pinataActor.getWidth() / 2f, pinataActor.getHeight() / 2f + 50f));
 
         Table popup = new Table();
-        popup.add(buildRewardIcon(reward, 0.35f)).size(64f * 1.38f * 3f, 64f * 3f).row();
+        popup.add(buildRewardIcon(reward, 0.50f)).size(64f * 1.38f * 3f, 64f * 3f).row();
         Label label = new Label(rewardLabel(reward), skin, "title");
         label.setFontScale(0.55f);
         popup.add(label).padTop(2f);
         popup.pack();
-        popup.setPosition(center.x - popup.getWidth() / 2f, center.y);
+        popup.setPosition(center.x - popup.getWidth() / 2f, center.y - 200f);
         popup.getColor().a = 0f;
 
         // Added straight to the stage (not rootStack/modalStack) so its manual position isn't
@@ -311,7 +311,7 @@ public class MiniGameEndScreen extends UiScreen {
                 card.setTransform(true);
                 card.setScale(seedPacketScale);
 
-                float scale = 8f;
+                float scale = 3f;
                 Container<SeedPacketCard> container = new Container<>(card);
                 container.size(card.getWidth() * seedPacketScale * scale, card.getHeight() * seedPacketScale * scale);
                 return container;

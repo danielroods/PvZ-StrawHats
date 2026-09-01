@@ -169,10 +169,6 @@ public class AfterMatchScreen extends UiScreen {
 
         Table layer = new Table();
 
-       // Label title = new Label("LEVEL COMPLETE!", skin, "title");
-       // title.setColor(Color.GREEN);
-       // layer.add(title).padBottom(SPACE_MD).row();
-
         pinataActor = new PinataActor(resolvePinataPamPath());
         Table pinataCell = new Table();
         // Deliberately generous: PamPlayer.draw() has no way to query a clip's native pixel
@@ -287,12 +283,12 @@ public class AfterMatchScreen extends UiScreen {
                 new Vector2(pinataActor.getWidth() / 2f, pinataActor.getHeight() / 2f + 50f));
 
         Table popup = new Table();
-        popup.add(buildRewardIcon(reward, 0.35f)).size(64f * 1.38f * 3f, 64f * 3f).row();
+        popup.add(buildRewardIcon(reward, 0.50f, 0.5f)).size(64f * 1.38f * 3f, 64f * 3f).row();
         Label label = new Label(rewardLabel(reward), skin, "title");
         label.setFontScale(0.55f);
         popup.add(label).padTop(2f);
         popup.pack();
-        popup.setPosition(center.x - popup.getWidth() / 2f, center.y);
+        popup.setPosition(center.x - popup.getWidth() / 2f, center.y - 200f);
         popup.getColor().a = 0f;
 
         // Added straight to the stage (not rootStack/modalStack) so its manual position isn't
@@ -308,14 +304,14 @@ public class AfterMatchScreen extends UiScreen {
 
     /** Seed packets render via the real {@link SeedPacketCard} class, at a small scale; coins
      *  and diamonds render as their own looping "idle" PAM clip. */
-    private Actor buildRewardIcon(PinataReward reward, float seedPacketScale) {
+    private Actor buildRewardIcon(PinataReward reward, float seedPacketScale, float pamVisualScale) {
         if (reward.kind == RewardKind.SEED_PACKET) {
             SeedPacketCard card = cardFactory.buildCardForDisplayName(reward.plantName);
             if (card != null) {
                 card.setTransform(true);
                 card.setScale(seedPacketScale);
 
-                float scale = 8f;
+                float scale = 3f;
                 Container<SeedPacketCard> container = new Container<>(card);
                 container.size(card.getWidth() * seedPacketScale * scale, card.getHeight() * seedPacketScale * scale);
                 return container;
@@ -323,7 +319,7 @@ public class AfterMatchScreen extends UiScreen {
             return new Image(solidColorDrawable(new Color(0f, 0f, 0f, 0f)));
         }
         String pamPath = reward.kind == RewardKind.COIN ? COIN_STACK_PAM : COIN_DIAMOND_PAM;
-        return new PamIconActor(pamPath, "idle");
+        return new PamIconActor(pamPath, "idle", pamVisualScale);
     }
 
     private String rewardLabel(PinataReward reward) {
@@ -363,7 +359,7 @@ public class AfterMatchScreen extends UiScreen {
         for (PinataReward reward : collectedRewards) {
             Table itemCell = new Table();
 
-            Actor icon = buildRewardIcon(reward, 0.23f);
+            Actor icon = buildRewardIcon(reward, 0.46f, 0.5f);
 
             itemCell.add(icon).size(280f, 150f).padBottom(6f).row();
 
@@ -664,11 +660,13 @@ public class AfterMatchScreen extends UiScreen {
     private class PamIconActor extends Actor {
         private final String pamPath;
         private final String clipName;
+        private final float visualScale;
         private float stateTime = 0f;
 
-        PamIconActor(String pamPath, String clipName) {
+        PamIconActor(String pamPath, String clipName, float visualScale) {
             this.pamPath = pamPath;
             this.clipName = clipName;
+            this.visualScale = visualScale;
         }
 
         @Override
@@ -689,7 +687,6 @@ public class AfterMatchScreen extends UiScreen {
 
                 float centerX = getX() + getWidth() / 2f;
                 float centerY = getY() + getHeight() / 2f;
-                float visualScale = 0.5f;
 
                 Matrix4 original = batch.getTransformMatrix().cpy();
                 Matrix4 scaled = new Matrix4(original)
