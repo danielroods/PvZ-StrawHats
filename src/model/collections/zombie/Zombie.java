@@ -185,6 +185,36 @@ public class Zombie extends Item implements Attack {
             return;
         }
 
+        // The Pirate Barrel Pusher is protected by its barrel while the barrel
+        // is still intact. Lobbed projectiles can hit the zombie from above, and
+        // direct projectiles are allowed only when they reach it from behind.
+        // Once the barrel is destroyed, the zombie uses its normal vulnerability.
+        if ("ZombieBarrelRoller".equals(name)
+                && pushedStructure != null
+                && pushedStructure.isAlive()
+                && pushedStructure.getType() == model.pitches.obstacles.PushableType.BARREL) {
+            boolean allowDamage = false;
+            if (damageSource instanceof Projectile projectile) {
+                if (projectile.isLobbed()) {
+                    allowDamage = true;
+                } else {
+                    Position previous = projectile.getPreviousPosition();
+                    Position current = projectile.getPosition();
+                    Position zombiePosition = getPosition();
+                    if (previous != null && current != null && zombiePosition != null) {
+                        double approachX = current.x() - previous.x();
+                        // Zombies normally face left. Their back is therefore to
+                        // the right; hypnotized/reversed zombies have the opposite back.
+                        allowDamage = isFacingRight ? approachX > 0
+                                && previous.x() < zombiePosition.x()
+                                : approachX < 0
+                                && previous.x() > zombiePosition.x();
+                    }
+                }
+            }
+            if (!allowDamage) return;
+        }
+
         if (this.vulnerabilityState == VulnerabilityType.SUBMERGED) {
             boolean allowDamage = false;
 

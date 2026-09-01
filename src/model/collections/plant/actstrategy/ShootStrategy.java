@@ -3,6 +3,7 @@ package model.collections.plant.actstrategy;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
+import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.Grave;
@@ -42,7 +43,8 @@ public class ShootStrategy implements ActStrategy {
         for (Position direction : vectors) {
             Zombie target = findTargetAlongVector(user, direction, session);
             targets.add(target);
-            if (target != null || findGraveAlongVector(user, direction, session) != null) {
+            if (target != null || findGraveAlongVector(user, direction, session) != null
+                    || findStructureAlongVector(user, direction, session) != null) {
                 anyTarget = true;
             }
         }
@@ -54,7 +56,8 @@ public class ShootStrategy implements ActStrategy {
         for (int i = 0; i < vectors.size(); i++) {
             Position direction = vectors.get(i);
             Zombie target = targets.get(i);
-            if (target == null && findGraveAlongVector(user, direction, session) == null && !boosted) {
+            if (target == null && findGraveAlongVector(user, direction, session) == null
+                    && findStructureAlongVector(user, direction, session) == null && !boosted) {
                 continue;
             }
 
@@ -151,6 +154,39 @@ public class ShootStrategy implements ActStrategy {
                     bestDist = dist;
                     nearest = cell;
                 }
+            }
+        }
+        return nearest;
+    }
+
+    // Plants only used to fire when a live Zombie (or grave) sat in the lane. A
+    // pushed structure (e.g. the barrel a Barrel Roller Zombie shoves) has no
+    // effect on that check, so once its owning zombie died and only the structure
+    // was left in the lane, plants stopped firing entirely and the structure could
+    // never take damage. Treat a live structure in the lane the same as a target
+    // so plants keep firing at it - Projectile's own blocker logic is what
+    // actually applies the damage once the shot is on its way.
+    private PushableStructure findStructureAlongVector(Plant user, Position direction, GameSession session) {
+        Position origin = user.getPosition();
+        double dx = direction.x();
+        double dy = direction.y();
+        PushableStructure nearest = null;
+        double bestDist = Double.MAX_VALUE;
+
+        for (PushableStructure structure : session.getPushableStructures()) {
+            if (structure == null || !structure.isAlive()) continue;
+            Position sp = structure.getPosition();
+            if (sp == null) continue;
+
+            double relX = sp.x() - origin.x();
+            double relY = sp.y() - origin.y();
+            if (!isInCone(relX, relY, dx, dy)) continue;
+            if (!user.isWithinAttackRange(sp)) continue;
+
+            double dist = Math.sqrt(relX * relX + relY * relY);
+            if (dist < bestDist) {
+                bestDist = dist;
+                nearest = structure;
             }
         }
         return nearest;

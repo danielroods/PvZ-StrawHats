@@ -5,9 +5,13 @@ import model.collections.item.GroundPlantFood;
 import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
+import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match.main.season.travellog.cave.IceWind;
 import model.match_mechanisms.vector.Position;
+import model.pitches.Cell;
+import model.pitches.Environment;
 import model.pitches.LawnMower;
+import model.pitches.obstacles.PushableType;
 import model.projectile.Projectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import service.GameClock;
@@ -94,6 +98,8 @@ class SessionTicker {
             }
         }
 
+        tickOrphanedRollingBarrels(deltaTimeSeconds);
+
         if (session.isWavesStarted()) session.waves().tickWaveScheduler(deltaTimeSeconds);
 
         if (session.isWavesStarted() && session.isSkySunEnabledForSession()) {
@@ -146,6 +152,49 @@ class SessionTicker {
                 session.gameWon = true;
                 controller.QuestManager.notifyLevelWon(session);
             }
+        }
+    }
+
+    /**
+     * Once a barrel-pushing zombie dies, its barrel is meant to survive it and keep
+     * rolling forward on its own (still able to crush plants) until something
+     * destroys it or it rolls off the lawn - see the comment in ZombieRenderer's
+     * DyingZombie handling. Nothing was actually advancing the barrel's model
+     * position for that phase, though, so it just sat frozen in place. This keeps
+     * moving any barrel whose owning zombie has died, using that zombie's last
+     * known speed, the same way PusherMove drives it while the zombie is alive.
+     */
+    private void tickOrphanedRollingBarrels(double deltaTimeSeconds) {
+        Environment lawn = session.getLawn();
+        if (lawn == null) return;
+
+        for (PushableStructure structure : session.getPushableStructures()) {
+            if (structure.getType() != PushableType.BARREL || !structure.isAlive()) continue;
+
+            Zombie owner = structure.getOwner();
+            if (owner == null || owner.isAlive() || owner.getSpeed() == null) continue;
+
+            Position pos = structure.getPosition();
+            if (pos == null) continue;
+
+            double deltaX = owner.getSpeed().x() * deltaTimeSeconds;
+            double newX = pos.x() + deltaX;
+            int row = (int) Math.round(pos.y());
+            int oldCol = (int) Math.round(pos.x());
+            int newCol = (int) Math.round(newX);
+
+            Cell nextCell = lawn.getCell(row, newCol);
+            if (nextCell != null) {
+                Plant plant = nextCell.getPlant();
+                if (plant != null && plant.isAlive()) plant.takeDamage(plant.getHP(), owner);
+            }
+
+            structure.setPosition(new Position(newX, row));
+            if (oldCol != newCol) {
+                Cell oldCell = lawn.getCell(row, oldCol);
+                if (oldCell != null && oldCell.getStructure() == structure) oldCell.setStructure(null);
+            }
+            session.registerStructure(structure);
         }
     }
 
