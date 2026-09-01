@@ -249,14 +249,16 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     protected void refreshHud(float delta) {
+        if (hud != null && state != null) {
+            double remaining = state.getRemainingSeconds();
+            int eaten = state.getBrainsEaten();
+            int brains = Math.max(1, state.getBrainCount());
+            hud.setProgressOverride(String.format("BRAINZ %d/%d   %02d:%02d", eaten, brains,
+                    (int) (remaining / 60), (int) (remaining % 60)), eaten / (float) brains);
+        }
         super.refreshHud(delta);
         if (hud == null || state == null) return;
         MatchSnapshot snapshot = state.getSnapshot();
-        double remaining = state.getRemainingSeconds();
-        double total = Math.max(1.0, state.getMatchSeconds());
-        float progress = (float) Math.max(0, Math.min(1, 1.0 - remaining / total));
-        hud.setProgressOverride(String.format("BRAINZ %d/5   %02d:%02d",
-                state.getBrainsEaten(), (int) (remaining / 60), (int) (remaining % 60)), progress);
         hud.setTools(shovelArmed, foodArmed);
         if (snapshot != null) updateTray(snapshot);
         if (opponentLabel != null) {

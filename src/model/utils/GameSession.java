@@ -178,6 +178,8 @@ public class GameSession {
 
     public double getWaveProgress() { return waves.getWaveProgress(); }
 
+    public List<Integer> getHugeWaveNumbers() { return waves.getHugeWaveNumbers(); }
+
     public boolean isHugeWaveIncoming() { return waves.isHugeWaveIncoming(); }
 
     public boolean isSpawningWave() { return waves.isSpawningWave(); }

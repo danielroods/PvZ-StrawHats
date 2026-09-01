@@ -164,10 +164,6 @@ public class ZombotanyGameScreen extends GameScreen {
         Zombotany game = game();
         int spawned = game == null ? 0 : game.getWavesSurvived();
         int total = game == null ? 1 : Math.max(1, game.getTotalWaves());
-        if (hud != null && game != null) {
-            hud.setProgressOverride("WAVE " + Math.min(spawned, total) + "/" + total,
-                    Math.min(1f, spawned / (float) total));
-        }
         super.refreshHud(delta);
         if (hud == null || game == null) return;
         updateWaveAlerts(delta, game, spawned, total);

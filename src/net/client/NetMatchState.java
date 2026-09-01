@@ -232,6 +232,10 @@ public class NetMatchState {
         return current == null ? 0 : current.brainsEaten;
     }
 
+    public int getBrainCount() {
+        return model.match.mini_games.izombie.IZombieMatch.ROWS;
+    }
+
     public void dispose() {
         applier.clear();
     }

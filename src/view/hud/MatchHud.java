@@ -46,6 +46,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public final class MatchHud extends Table implements Disposable {
     private static final float CARD_W = 95f;
 
+    private static final float WAVE_BAR_HEIGHT = 32f;
+
     private static final float CARD_H = 60;
 
     private final Button shovelButton;
@@ -66,16 +68,11 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton debugAddSunButton;
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
-    private final ProgressBar waveProgressBar;
+    private final WaveProgressMeter waveMeter;
     // Edge-detection for SFX_WAVE_START (same idiom used throughout the renderers):
     // fires once each time getWavesSpawnedCount() ticks up.
     private int lastWavesSpawnedCount = -1;
-    private final ProgressBar.ProgressBarStyle normalProgressStyle;
-    private final ProgressBar.ProgressBarStyle bossProgressStyle;
-    private final ProgressMeterOverlay progressMeterOverlay;
-    private final Texture progressZombieHeadTexture;
-    private final Texture progressFlagPoleTexture;
-    private final Texture progressFlagTexture;
+    private GameSession lastSession;
 
     private Consumer<String> plantSelection;
     private Consumer<Plant> conveyorPlantSelection;
@@ -232,20 +229,10 @@ public final class MatchHud extends Table implements Disposable {
 
         Table sunWidget = resource(sunLabel, "images/chapters/egypt/gameplay/sun.png");
 
-        progressZombieHeadTexture = loadTexture("assets/images/ui/progress_meter_zombiehead.png");
-        progressFlagPoleTexture = loadTexture("assets/images/ui/progress_meter_flag_pole.png");
-        progressFlagTexture = loadTexture("assets/images/ui/progress_meter_flag_default.png");
-
-        normalProgressStyle = createNormalProgressStyle();
-        bossProgressStyle = createBossProgressStyle();
-        waveProgressBar = new ProgressBar(0f, 1f, 0.001f, false, normalProgressStyle);
-        waveProgressBar.setAnimateDuration(0.25f);
+        waveMeter = new WaveProgressMeter();
 
         Stack waveBarStack = new Stack();
-        waveBarStack.add(waveProgressBar);
-        progressMeterOverlay = new ProgressMeterOverlay();
-        progressMeterOverlay.setTouchable(Touchable.disabled);
-        waveBarStack.add(progressMeterOverlay);
+        waveBarStack.add(waveMeter);
         Table waveLabelOverlay = new Table();
         waveLabelOverlay.add(waveLabel).center().expand();
         waveBarStack.add(waveLabelOverlay);
@@ -256,7 +243,7 @@ public final class MatchHud extends Table implements Disposable {
         waveBarStack.add(difficultyOverlay);
 
         Table centerColumn = new Table();
-        centerColumn.add(waveBarStack).growX().height(26f).row();
+        centerColumn.add(waveBarStack).growX().height(WAVE_BAR_HEIGHT).row();
         centerColumn.add(objectiveLabel).growX().padTop(3f).row();
         centerColumn.add(startButton).size(130, 38).padTop(5f);
 
@@ -398,51 +385,7 @@ public final class MatchHud extends Table implements Disposable {
             coins = model.user_data.User.currentUser.userState.coins;
         }
         coinLabel.setText(String.valueOf(coins));
-        int spawned = session.getWavesSpawnedCount();
-        int total = Math.max(1, session.getTotalWaveCount());
-        if (lastWavesSpawnedCount >= 0 && spawned > lastWavesSpawnedCount) {
-            AudioManager.get().playSound(AudioEnum.SFX_WAVE_START);
-        }
-        lastWavesSpawnedCount = spawned;
-        Level currentLevel = session.getLevel();
-        boolean bossLevel = currentLevel instanceof BossLevel;
-
-        if (bossLevel) {
-            float health = 1f;
-            if (session.getZombossFight() != null) {
-                health = (float) session.getZombossFight().getBossHealthFraction();
-            }
-            int healthPercent = Math.max(0, Math.round(health * 100f));
-            waveLabel.setText("ZOMBOSS: " + healthPercent + "%");
-            waveLabel.setVisible(true);
-            waveProgressBar.setStyle(bossProgressStyle);
-            waveProgressBar.setValue(health);
-            progressMeterOverlay.setVisible(false);
-        } else if (currentLevel instanceof model.match.main.levels.special_levels.TimedWarLevel timedWarLevel) {
-            // Survival timer HUD: counts down from the level's full duration to 0, reusing the
-            // same bar/label the boss fight uses for its health so it stays in the same spot.
-            double secondsRemaining = timedWarLevel.getSecondsRemaining();
-            double totalDuration = Math.max(1.0, timedWarLevel.getTotalDurationSeconds());
-            float timeFraction = (float) Math.max(0.0, Math.min(1.0, secondsRemaining / totalDuration));
-            waveLabel.setText(formatCountdown(secondsRemaining));
-            waveLabel.setVisible(true);
-            waveProgressBar.setStyle(normalProgressStyle);
-            waveProgressBar.setValue(timeFraction);
-            progressMeterOverlay.setVisible(false);
-        } else {
-            // حذف متن موج روی بار در مراحل عادی
-            waveLabel.setText("");
-            waveLabel.setVisible(false);
-
-            float progress = progressLabelOverride != null
-                    ? (progressValueOverride == null ? 0f : progressValueOverride)
-                    : Math.min(1f, (float) session.getWaveProgress());
-            waveProgressBar.setStyle(normalProgressStyle);
-            waveProgressBar.setValue(progress);
-            progressMeterOverlay.setProgress(progress);
-            progressMeterOverlay.setTotalWaves(total);
-            progressMeterOverlay.setVisible(true);
-        }
+        updateWaveMeter(session);
         objectiveLabel.setText(objectiveOverride != null
                 ? objectiveOverride : objectiveFor(session.getLevel()));
         startButton.setVisible(startButtonAvailable && !session.isWavesStarted()
@@ -459,7 +402,77 @@ public final class MatchHud extends Table implements Disposable {
         updateConveyor(session);
     }
 
-    /** "M:SS" countdown text for the survival timer HUD, e.g. 125.4 -> "2:05". */
+    private void updateWaveMeter(GameSession session) {
+        if (session != lastSession) {
+            lastSession = session;
+            lastWavesSpawnedCount = -1;
+            waveMeter.reset();
+        }
+
+        int spawned = session.getWavesSpawnedCount();
+        int total = session.getTotalWaveCount();
+        boolean waveLaunched = lastWavesSpawnedCount >= 0 && spawned > lastWavesSpawnedCount;
+        if (waveLaunched) {
+            AudioManager.get().playSound(AudioEnum.SFX_WAVE_START);
+        }
+        lastWavesSpawnedCount = spawned;
+
+        Level currentLevel = session.getLevel();
+        waveMeter.setHugeWaveIncoming(false);
+
+        if (currentLevel instanceof BossLevel) {
+            float health = 1f;
+            if (session.getZombossFight() != null) {
+                health = (float) session.getZombossFight().getBossHealthFraction();
+            }
+            waveLabel.setText("ZOMBOSS: " + Math.max(0, Math.round(health * 100f)) + "%");
+            waveLabel.setVisible(true);
+            waveMeter.setMode(WaveProgressMeter.Mode.BOSS);
+            waveMeter.setValue(health);
+            waveMeter.setVisible(true);
+            return;
+        }
+
+        if (currentLevel instanceof model.match.main.levels.special_levels.TimedWarLevel timedWar) {
+            double secondsRemaining = timedWar.getSecondsRemaining();
+            double totalDuration = Math.max(1.0, timedWar.getTotalDurationSeconds());
+            waveLabel.setText(formatCountdown(secondsRemaining));
+            waveLabel.setVisible(true);
+            waveMeter.setMode(WaveProgressMeter.Mode.TIMER);
+            waveMeter.setValue((float) Math.max(0.0,
+                    Math.min(1.0, secondsRemaining / totalDuration)));
+            waveMeter.setVisible(true);
+            return;
+        }
+
+        if (progressLabelOverride != null) {
+            waveLabel.setText(progressLabelOverride);
+            waveLabel.setVisible(true);
+            waveMeter.setMode(WaveProgressMeter.Mode.PLAIN);
+            waveMeter.setValue(progressValueOverride == null ? 0f : progressValueOverride);
+            waveMeter.setVisible(true);
+            return;
+        }
+
+        // Vasebreaker and Beghouled have no wave schedule at all, so there is nothing to meter.
+        if (total <= 0) {
+            waveLabel.setText("");
+            waveLabel.setVisible(false);
+            waveMeter.setVisible(false);
+            return;
+        }
+
+        waveLabel.setText("");
+        waveLabel.setVisible(false);
+        waveMeter.setMode(WaveProgressMeter.Mode.WAVES);
+        waveMeter.setTotalWaves(total);
+        waveMeter.setFlagWaves(session.getHugeWaveNumbers());
+        waveMeter.setHugeWaveIncoming(session.isHugeWaveIncoming());
+        waveMeter.setValue((float) session.getWaveProgress());
+        if (waveLaunched) waveMeter.pulse();
+        waveMeter.setVisible(true);
+    }
+
     private String formatCountdown(double secondsRemaining) {
         int totalSeconds = (int) Math.ceil(Math.max(0.0, secondsRemaining));
         int minutes = totalSeconds / 60;
@@ -480,110 +493,6 @@ public final class MatchHud extends Table implements Disposable {
             return "SURVIVE " + totalMinutes + " MINUTE" + (totalMinutes == 1 ? "" : "S") + "!";
         }
         return "SURVIVE THE WAVES";
-    }
-
-    private ProgressBar.ProgressBarStyle createNormalProgressStyle() {
-        ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
-        style.background = new TextureRegionDrawable(new TextureRegion(solid(new Color(0f, 0f, 0f, 0.35f))));
-        style.background.setMinHeight(26f);
-        style.knobBefore = new TextureRegionDrawable(new TextureRegion(solid(new Color(0.30f, 0.80f, 0.25f, 1f))));
-        style.knobBefore.setMinHeight(26f);
-        return style;
-    }
-
-    private ProgressBar.ProgressBarStyle createBossProgressStyle() {
-        ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
-        // پس‌زمینه تیره برای نوار جان باس
-        style.background = new TextureRegionDrawable(new TextureRegion(solid(new Color(0.15f, 0.05f, 0.05f, 0.6f))));
-        style.background.setMinHeight(26f);
-        // رنگ پرکننده نوار (جون باس): زرشکی
-        style.knobBefore = new TextureRegionDrawable(new TextureRegion(solid(new Color(0.55f, 0.0f, 0.15f, 1f))));
-        style.knobBefore.setMinHeight(26f);
-        return style;
-    }
-
-    private final class ProgressMeterOverlay extends Widget {
-        private float progress;
-        private int totalWaves = 1;
-
-        public ProgressMeterOverlay() {
-            setTouchable(Touchable.disabled);
-        }
-
-        void setProgress(float progress) {
-            this.progress = Math.max(0f, Math.min(1f, progress));
-        }
-
-        void setTotalWaves(int totalWaves) {
-            this.totalWaves = Math.max(1, totalWaves);
-        }
-
-        @Override
-        public void draw(Batch batch, float parentAlpha) {
-            validate();
-            float x = getX();
-            float y = getY();
-            float w = getWidth();
-            float h = getHeight();
-
-            if (w <= 0f || h <= 0f) return;
-
-            batch.setColor(1f, 1f, 1f, parentAlpha);
-
-            float poleSourceH = Math.max(1f, progressFlagPoleTexture.getHeight());
-            float poleSourceW = Math.max(1f, progressFlagPoleTexture.getWidth());
-            float poleHeight = Math.max(26f, h + 6f);
-            float poleWidth = Math.max(4f, poleSourceW * (poleHeight / poleSourceH));
-            float poleY = y + (h - poleHeight) * 0.5f;
-
-            float flagSourceH = Math.max(1f, progressFlagTexture.getHeight());
-            float flagSourceW = Math.max(1f, progressFlagTexture.getWidth());
-            float flagHeight = Math.max(14f, poleHeight * 0.55f);
-            float flagWidth = Math.max(16f, flagSourceW * (flagHeight / flagSourceH));
-
-            List<Integer> flagWaves = new ArrayList<>();
-            if (totalWaves <= 5) {
-                for (int wave = 1; wave <= totalWaves; wave++) {
-                    flagWaves.add(wave);
-                }
-            } else if (totalWaves <= 10) {
-                flagWaves.add(totalWaves / 2);
-                flagWaves.add(totalWaves);
-            } else {
-                for (int wave = 10; wave <= totalWaves; wave += 10) {
-                    flagWaves.add(wave);
-                }
-                if (!flagWaves.contains(totalWaves)) {
-                    flagWaves.add(totalWaves);
-                }
-            }
-
-            for (int wave : flagWaves) {
-                float waveRatio = (float) wave / totalWaves;
-                float rawX = x + (w * waveRatio);
-
-                float poleCenterX = Math.max(x + poleWidth * 0.5f, Math.min(x + w - poleWidth * 0.5f, rawX));
-                float drawPoleX = poleCenterX - (poleWidth * 0.5f);
-
-                batch.draw(progressFlagPoleTexture, drawPoleX, poleY, poleWidth, poleHeight);
-
-                float flagY = poleY + poleHeight - flagHeight - 1f;
-                float flagX = (poleCenterX + flagWidth > x + w) ? (poleCenterX - flagWidth) - 9f : poleCenterX - 9f;
-
-                batch.draw(progressFlagTexture, flagX, flagY, flagWidth, flagHeight);
-            }
-
-            float headSourceH = Math.max(1f, progressZombieHeadTexture.getHeight());
-            float headSourceW = Math.max(1f, progressZombieHeadTexture.getWidth());
-            float headHeight = Math.max(26f, h + 8f);
-            float headWidth = Math.max(22f, headSourceW * (headHeight / headSourceH));
-
-            float rawHeadX = x + (w * progress) - (headWidth * 0.5f);
-            float headX = Math.max(x, Math.min(x + w - headWidth, rawHeadX));
-            float headY = y + (h - headHeight) * 0.5f;
-
-            batch.draw(progressZombieHeadTexture, headX, headY, headWidth, headHeight);
-        }
     }
 
     private void updateLoadout(GameSession session, List<String> selectedPlants) {
@@ -1042,9 +951,7 @@ public final class MatchHud extends Table implements Disposable {
     @Override public void dispose() {
         if (conveyorWidget != null) conveyorWidget.dispose();
         overlayPixelTexture.dispose();
-        progressZombieHeadTexture.dispose();
-        progressFlagPoleTexture.dispose();
-        progressFlagTexture.dispose();
+        waveMeter.dispose();
         cardFactory.dispose();
     }
 }
