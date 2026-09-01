@@ -81,6 +81,50 @@ class SessionBoard {
         }
     }
 
+    /**
+     * A non-water plant can only exist on a water tile while it's actually riding a living
+     * Lily Pad (or Pumpkin-on-Lily-Pad, etc.) somewhere in its stack. That stack is a simple
+     * top -> bottom chain ({@link Plant#getBottom()}), and normally the Lily Pad is the
+     * bottom-most link. {@link #clearDeadPlantsFromGrid()} already handles the top of a stack
+     * dying (falling back to whatever's underneath); this handles the opposite case - the Lily
+     * Pad itself (or any other water-tagged link) dying or otherwise going missing while a
+     * non-water rider is still alive on top of it, and also the ReelingTackleStatus drag
+     * mechanic dropping a non-water plant onto a water tile it was never allowed to occupy.
+     * Either way, nothing that isn't a water plant is allowed to keep existing on water.
+     */
+    void drownUnsupportedPlants() {
+        Environment environment = environment();
+
+        for (int r = 0; r < environment.getRows(); r++) {
+            for (int c = 0; c < environment.getCols(); c++) {
+                Cell cell = environment.getCell(r, c);
+
+                boolean isWaterTile = cell.getTile() != null && cell.getTile().type() == TileType.Water;
+                if (!isWaterTile) continue;
+
+                Plant top = cell.getPlant();
+                if (top == null) continue;
+
+                List<Plant> stack = new ArrayList<>();
+                for (Plant cursor = top; cursor != null; cursor = cursor.getBottom()) {
+                    stack.add(cursor);
+                }
+
+                boolean hasLivingWaterSupport = stack.stream()
+                        .anyMatch(p -> p.isAlive() && p.getTags().contains(PlantTag.WATER));
+
+                if (!hasLivingWaterSupport) {
+                    for (Plant p : stack) {
+                        if (p.isAlive() && !p.getTags().contains(PlantTag.WATER)) {
+                            // Drown outright - bypasses armor on purpose, this isn't a normal hit.
+                            p.setAlive(false);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     void clearDeadStructuresFromGrid() {
         Environment environment = environment();
 

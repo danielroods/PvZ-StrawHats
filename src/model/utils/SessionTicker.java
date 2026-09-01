@@ -117,6 +117,7 @@ class SessionTicker {
 
         hazards.pruneSandStormEntries(session.getZombies());
         hazards.pruneSliderRideEntries(session.getZombies());
+        board.drownUnsupportedPlants();
         board.clearDeadPlantsFromGrid();
         board.clearDeadStructuresFromGrid();
         board.refreshZombieOccupancy();

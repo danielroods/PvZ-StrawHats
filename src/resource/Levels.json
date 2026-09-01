@@ -191,6 +191,7 @@
     "zombiePool": [
       "ZombieDefault",
       "ZombieImp",
+      "ZombieLostCityJane",
       "ZombieArmor1",
       "ZombieArmor2",
       "ZombieArmor4",

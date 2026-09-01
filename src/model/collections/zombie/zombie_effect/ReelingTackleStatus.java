@@ -2,10 +2,12 @@ package model.collections.zombie.zombie_effect;
 
 import model.collections.Faction;
 import model.collections.plant.Plant;
+import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match.waves.SpawnPlacement;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
+import model.pitches.TileType;
 import model.utils.GameSession;
 import service.GameClock;
 
@@ -135,27 +137,64 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
         return null;
     }
 
+    /** The visible plant in a cell can be riding on a Lily Pad / Pumpkin underneath it
+     *  ({@link Plant#getBottom()}). The whole chain is one physical thing sitting in that
+     *  tile, so it must always move (or die) together - not just the top-most plant. */
+    private static List<Plant> plantStack(Plant top) {
+        List<Plant> stack = new ArrayList<>();
+        for (Plant cursor = top; cursor != null; cursor = cursor.getBottom()) {
+            stack.add(cursor);
+        }
+        return stack;
+    }
+
     private boolean dragPlantTowardZombie(GameSession session, int r, int c, Zombie caster) {
         Cell activeCell = findDraggablePlantCell(session, r, c);
         if (activeCell == null) return false;
 
         Plant targetPlant = activeCell.getPlant();
+        List<Plant> stack = plantStack(targetPlant);
         int currentCol = (int) targetPlant.getLocation().x();
         int nextCol = currentCol + 1;
 
         if (nextCol >= c) {
-            targetPlant.takeDamage(targetPlant.getHP(), caster);
+            // Reeled all the way in - the whole stack (Lily Pad / Pumpkin included) goes
+            // under, not just the top rider.
+            for (Plant plant : stack) {
+                if (plant.isAlive()) plant.takeDamage(plant.getHP(), caster);
+            }
             return true;
         }
 
         Cell targetCell = session.getEnvironment().getCell(r, nextCol);
-        if (targetCell != null && targetCell.getPlant() == null && targetCell.getStructure() == null) {
-            activeCell.setPlant(null);
-            targetCell.setPlant(targetPlant);
-            targetPlant.setPosition(new Position(nextCol, r));
+        if (targetCell == null || targetCell.getPlant() != null || targetCell.getStructure() != null) {
+            return false;
+        }
+
+        boolean destinationIsWater = targetCell.getTile() != null
+                && targetCell.getTile().type() == TileType.Water;
+        boolean stackHasLivingWaterSupport = stack.stream()
+                .anyMatch(plant -> plant.isAlive() && plant.getTags().contains(PlantTag.WATER));
+
+        if (destinationIsWater && !stackHasLivingWaterSupport) {
+            // Nothing in the stack is a Lily Pad (or other water plant) - dragging it onto
+            // open water would leave a non-water plant "standing" on water with no support,
+            // so it drowns right here instead.
+            for (Plant plant : stack) {
+                if (plant.isAlive()) plant.takeDamage(plant.getHP(), caster);
+            }
             return true;
         }
-        return false;
+
+        activeCell.setPlant(null);
+        targetCell.setPlant(targetPlant);
+        // Every link in the chain (top rider + whatever it's riding on) shares one physical
+        // position - move them all in lockstep so a Lily Pad/Pumpkin never gets left behind
+        // while its rider moves on, or vice versa.
+        for (Plant plant : stack) {
+            plant.setPosition(new Position(nextCol, r));
+        }
+        return true;
     }
 
     private Zombie findHostileZombie(GameSession session, int r, int c) {
