@@ -62,6 +62,13 @@ class EffectRenderer {
 
     private static final float IMPACT_EFFECT_DURATION = 0.35f;
 
+    private static final String GRAVE_BUSTER_DIRT_PAM =
+            "768/INITIAL/EFFECTS/GRAVEBUSTER_DIRT/GRAVEBUSTER_DIRT.PAM";
+    static final String GRAVE_BUSTER_DIRT_ENTRY_STATE = "gravebuster_dirt_anim";
+    static final String GRAVE_BUSTER_DIRT_FADE_STATE = "gravebuster_dirt_fade";
+    private static final float GRAVE_BUSTER_DIRT_FALLBACK_DURATION = 0.5f;
+    private static final float GRAVE_BUSTER_DIRT_SCALE = 0.65f;
+
     /**
      * One scale for a shot and for the splat it leaves behind. They used to differ by a
      * factor of two, so every impact popped at half the size of the projectile that
@@ -447,6 +454,14 @@ class EffectRenderer {
                     path, "idle2", false, false,
                     new Position(col+0.15f, row), duration, 0.565f));
         }
+    }
+
+    void addGraveBusterDirtEffect(Position position, String state) {
+        if (position == null || state == null) return;
+        float duration = AnimationFactory.exactClipDurationForPath(GRAVE_BUSTER_DIRT_PAM, state);
+        if (duration <= 0f) duration = GRAVE_BUSTER_DIRT_FALLBACK_DURATION;
+        explodingPlantEffects.add(new TimedPamEffect(GRAVE_BUSTER_DIRT_PAM, state, false, false,
+                new Position(position.x(), position.y()), duration, GRAVE_BUSTER_DIRT_SCALE));
     }
 
     void addDeflectSparkEffect(Position position) {

@@ -143,7 +143,9 @@ class SessionEconomy {
 
     void countPlantsLost(Iterable<Plant> plants) {
         for (Plant plant : plants) {
-            if (!plant.isAlive()) plantsLostThisMatch++;
+            if (plant.isAlive()) continue;
+            if (plant.isGraveBuster() && plant.hasGraveBusterConsumedGrave()) continue;
+            plantsLostThisMatch++;
         }
     }
 

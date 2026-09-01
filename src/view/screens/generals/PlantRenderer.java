@@ -124,10 +124,7 @@ class PlantRenderer {
     private final Map<Plant, Boolean> explodeONutHadArmor = new IdentityHashMap<>();
     private final Map<Plant, Float> explodeONutArmorOffTimes = new IdentityHashMap<>();
 
-    // Headbutter Lettuce (Plants.json "Iceberg Lettuce") Plant Food: a three-phase
-    // "plantfood_on" (intro, once) -> "plantfood_loop" (holds for the rest of the Plant
-    // Food window) -> "plantfood_off" (outro, once, played after the Plant Food window
-    // closes) sequence - see advanceHeadbutterLettuceTimers/headbutterLettuceState below.
+    private final Map<Plant, Boolean> graveBusterEntrySeen = new IdentityHashMap<>();
     private final Map<Plant, Boolean> headbutterLettucePfWasActive = new IdentityHashMap<>();
     private final Map<Plant, Float> headbutterLettucePfOnTime = new IdentityHashMap<>();
     private final Map<Plant, Float> headbutterLettucePfOffTime = new IdentityHashMap<>();
@@ -146,10 +143,11 @@ class PlantRenderer {
         for (Plant plant : new ArrayList<>(screen.session.getPlants())) {
             if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
             boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(screen.session, plant);
-            // One-shot plants (bombs, mints, Gold Bloom) hold a fuse in PREPPING before their
-            // payload resolves; that window exists so their own explode/intro clip can play,
-            // so it must run forward once instead of looping the idle clip.
             boolean prepping = plant.getPlantState() == Plant.PlantState.PREPPING;
+            if (plant.isGraveBuster() && graveBusterEntrySeen.put(plant, Boolean.TRUE) == null) {
+                screen.effects().addGraveBusterDirtEffect(plant.getPosition(),
+                        EffectRenderer.GRAVE_BUSTER_DIRT_ENTRY_STATE);
+            }
             float t = plantAnimTimes.getOrDefault(plant, 0f);
             if (!frozenInIce) {
                 t += delta;
@@ -358,6 +356,7 @@ class PlantRenderer {
         plantGrowthWindow.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         sheepAnimTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         plantFoodLastActive.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
+        graveBusterEntrySeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         bowlingBulbShotIndex.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackPhases.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
         endurianAttackTimes.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
@@ -1614,6 +1613,19 @@ class PlantRenderer {
                 AudioManager.get().playSound(AudioEnum.SFX_PLANT_EXPLODE);
                 plantAnimTimes.remove(plant);
                 plantAttackAnimTimes.remove(plant);
+                continue;
+            }
+
+            if (plant.isGraveBuster()) {
+                // Only a finished chew earns the closing puff - a Grave Buster that was
+                // eaten off the grave, or shovelled, just disappears and leaves the grave.
+                if (plant.hasGraveBusterConsumedGrave()) {
+                    screen.effects().addGraveBusterDirtEffect(plant.getPosition(),
+                            EffectRenderer.GRAVE_BUSTER_DIRT_FADE_STATE);
+                }
+                plantAnimTimes.remove(plant);
+                plantAttackAnimTimes.remove(plant);
+                graveBusterEntrySeen.remove(plant);
                 continue;
             }
 

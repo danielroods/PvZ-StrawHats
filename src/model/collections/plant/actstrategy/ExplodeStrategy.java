@@ -159,8 +159,7 @@ public class ExplodeStrategy implements ActStrategy {
         user.setAlive(false);
     }
     private boolean actsWithoutTouch(Plant user) {
-        return user.getName().equalsIgnoreCase("Hot Potato")
-                || user.getName().equalsIgnoreCase("Grave Buster");
+        return user.getName().equalsIgnoreCase("Hot Potato");
     }
 
     private void damageStructures(Plant user, GameSession session) {
