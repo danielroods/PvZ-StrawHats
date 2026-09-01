@@ -179,8 +179,8 @@ public class AfterMatchScreen extends UiScreen {
         // size from here, so this box is sized well beyond the piñata's expected footprint
         // rather than tightly fitted - a slightly oversized tap target is harmless, while an
         // undersized one is exactly what caused taps to miss the sprite before.
-        pinataCell.add(pinataActor).size(360f, 420f);
-        layer.add(pinataCell).padBottom(SPACE_SM + 20f).row();
+        pinataCell.add(pinataActor).size(360f * 0.7f , 420f * 0.7f);
+        layer.add(pinataCell).padBottom(SPACE_SM + 85f).row();
 
         pinataHintLabel = new Label("Tap the pinata!", skin, "main");
         pinataHintLabel.setAlignment(Align.center);
@@ -284,7 +284,7 @@ public class AfterMatchScreen extends UiScreen {
         if (pinataActor == null) return;
 
         Vector2 center = pinataActor.localToStageCoordinates(
-                new Vector2(pinataActor.getWidth() / 2f, pinataActor.getHeight() / 2f));
+                new Vector2(pinataActor.getWidth() / 2f, pinataActor.getHeight() / 2f + 50f));
 
         Table popup = new Table();
         popup.add(buildRewardIcon(reward, 0.35f)).size(64f * 1.38f * 3f, 64f * 3f).row();
