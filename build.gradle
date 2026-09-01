@@ -16,6 +16,7 @@ repositories {
 def gdxVersion = "1.13.1"
 
 dependencies {
+    implementation 'com.sun.mail:jakarta.mail:2.0.1'
     implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
     implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
     implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"

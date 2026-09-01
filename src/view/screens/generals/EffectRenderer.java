@@ -1201,6 +1201,23 @@ class EffectRenderer {
         // mirror the animation to match the direction it's actually travelling in.
         boolean flip = isTravellingLeft(projectile);
 
+        // Some shots (Rotobaga's four diagonal launches, Starfruit's diagonal shots,
+        // etc.) actually travel at an angle rather than along a single row. A plain
+        // left/right mirror can't represent that - the sprite needs to rotate to point
+        // along the real direction of travel. Only kicks in once the vertical speed is
+        // non-negligible, so ordinary straight shots keep their existing mirror-only
+        // behaviour untouched.
+        Position projectileSpeed = projectile.getSpeed();
+        boolean diagonal = projectileSpeed != null && Math.abs(projectileSpeed.y()) > 1.0e-3;
+        float rotationDegrees = 0f;
+        if (diagonal) {
+            // Row coordinates increase downward while screen Y increases upward
+            // (see BoardLayout.cellY), so the vertical component has to be negated
+            // to land the rotation in the direction that's actually drawn on screen.
+            rotationDegrees = (float) Math.toDegrees(
+                    Math.atan2(-projectileSpeed.y(), projectileSpeed.x()));
+        }
+
         // The variant is the one the shot was fired with, not the source plant's current
         // state, so a pea keeps its look when the plant's Plant Food starts or expires
         // while the pea is still in the air.
@@ -1223,6 +1240,10 @@ class EffectRenderer {
 
         if (projectile.getDisplayPath() != null && projectile.getDisplayState() != null) {
             float displayScale = PROJECTILE_DRAW_SCALE * scaleFactor;
+            if (diagonal) {
+                return screen.drawPamRotated(projectile.getDisplayPath(), projectile.getDisplayState(), age,
+                        x, y, displayScale, rotationDegrees);
+            }
             if (flip) {
                 screen.drawPamMirrored(projectile.getDisplayPath(), projectile.getDisplayState(), age,
                         x, y, displayScale);
@@ -1251,6 +1272,9 @@ class EffectRenderer {
             return screen.assets().drawStaticEffect(entry.path(), x, y,
                     STATIC_PROJECTILE_SCALE * scaleFactor, flip);
         }
+        // Rotate to the real travel angle for diagonal shots (see above); otherwise fall
+        // back to the existing mirror-only handling for plain left/right travel.
+        //
         // Note: this used to (incorrectly) pass entry.playMode()==LOOP into the "flip"
         // slot, which had nothing to do with travel direction — that's why deflected
         // projectiles kept their original orientation instead of mirroring with the
@@ -1261,6 +1285,9 @@ class EffectRenderer {
         // PamRenderer for exactly this reason — it flips the whole draw via a negated
         // transform scale instead, which always works regardless of the clip's internals).
         // Use that guaranteed path whenever the projectile is actually travelling left.
+        if (diagonal) {
+            return screen.drawPamRotated(entry.path(), entry.state(), age, x, y, drawScale, rotationDegrees);
+        }
         if (flip) {
             return screen.drawPamMirrored(entry.path(), entry.state(), age, x, y, drawScale);
         }

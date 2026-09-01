@@ -193,6 +193,7 @@ public class GameScreen extends UiScreen {
         hud.setFoodAction(() -> interaction.armTool(BoardInteraction.Tool.FOOD));
         hud.setNukeAction(this::triggerNukeCheat);
         hud.setPauseAction(this::togglePause);
+        hud.setSpeedAction(this::cycleGameSpeed);
         hud.setStartWavesAction(() -> runCommand("start zombie waves"));
         hud.setDebugAddSunAction(() -> runCommand("cheat add -n 25 suns"));
         hud.setDebugAddFoodAction(() -> runCommand("cheat add-plant-food"));
@@ -456,6 +457,13 @@ public class GameScreen extends UiScreen {
 
     public void onMatchEndSequenceFinished(boolean won) {
         runCommand(won ? "end game -r win" : "end game -r lose");
+    }
+
+    private void cycleGameSpeed() {
+        GameSettings settings = GameSettings.get();
+        int next = settings.getGameSpeed() >= 3 ? 1 : settings.getGameSpeed() + 1;
+        settings.setGameSpeed(next);
+        settings.save();
     }
 
     private void togglePause() {
