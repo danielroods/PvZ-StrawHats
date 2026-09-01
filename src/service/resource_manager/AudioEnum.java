@@ -30,7 +30,7 @@ public enum AudioEnum {
     SFX_BLEAT("assets/audio/sfx/bleat.mp3"),
     SFX_PIANO("assets/audio/sfx/piano.mp3"),
     SFX_ZOMBIE_IMP("assets/audio/sfx/pvz_imp.mp3"),
-    SFX_ZOMBOSS_NPC("assets/audio/sfx/npc.mp3"),
+    SFX_ZOMBOSS_NPC("assets/audio/sfx/telegram-cloud-document-4-5814532192818175685.mp3"),
     SFX_WAVE_START("assets/audio/sfx/zombie_wave.mp3"),
     SFX_MATCH_WIN("assets/audio/sfx/win.mp3"),
     SFX_MATCH_LOSE("assets/audio/sfx/lose.mp3"),

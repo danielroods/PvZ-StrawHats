@@ -72,9 +72,8 @@ public class GameScreen extends UiScreen {
     private Image nukeFlashOverlay;
 
     private view.hud.ZombossDialogueBox zombossDialogue;
-    // Edge-detection so SFX_ZOMBOSS_NPC plays once per line, not every frame
-    // refreshZombossDialogue() runs - see that method.
-    private int lastZombossDialogueIndex = -1;
+    // Play the Zomboss NPC voice only once for the whole NPC dialogue sequence.
+    private boolean zombossNpcVoicePlayed = false;
     // Edge-detection so SFX_SANDSTORM plays once per storm, not every frame
     // refreshSandStormAudio() runs - see that method.
     private boolean lastSandStormActive = false;
@@ -344,12 +343,12 @@ public class GameScreen extends UiScreen {
         model.match.boss.ZombossFight fight = session.getZombossFight();
         if (fight == null || fight.getPhase() != model.match.boss.ZombossPhase.NPC_TALK) {
             zombossDialogue.showLine(null, 0, 0);
-            lastZombossDialogueIndex = -1;
+            zombossNpcVoicePlayed = false;
             return;
         }
 
-        if (fight.getDialogueIndex() != lastZombossDialogueIndex) {
-            lastZombossDialogueIndex = fight.getDialogueIndex();
+        if (!zombossNpcVoicePlayed) {
+            zombossNpcVoicePlayed = true;
             AudioManager.get().playSound(AudioEnum.SFX_ZOMBOSS_NPC);
         }
 
