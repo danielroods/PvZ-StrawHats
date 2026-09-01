@@ -44,6 +44,32 @@ public class CollectionManager {
         return ZombieFactory.getAllZombieAliases();
     }
 
+    /**
+     * All zombie aliases that actually appear somewhere in the adventure levels
+     * (seen or not). Excludes minigame-only zombies (e.g. Zombotany's plant-zombies,
+     * I-Zombie test entries) since those never show up in a Level's waves - they
+     * belong only in their own minigame, not the Collection roster.
+     */
+    public Set<String> getAdventureZombieAliases() {
+        Set<String> aliases = new HashSet<>();
+        List<Level> levels;
+        try {
+            levels = LevelLoader.loadLevels();
+        } catch (Exception e) {
+            return aliases;
+        }
+        for (Level level : levels) {
+            if (level.getWaves() == null) continue;
+            for (ZombieWave wave : level.getWaves()) {
+                if (wave.getWaveZombies() == null) continue;
+                for (Zombie zombie : wave.getWaveZombies()) {
+                    aliases.add(zombie.getName());
+                }
+            }
+        }
+        return aliases;
+    }
+
     public Set<String> getSeenZombieAliases(UserState state) {
         Set<String> seen = new HashSet<>();
         List<Level> levels;

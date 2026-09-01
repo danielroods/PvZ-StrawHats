@@ -427,7 +427,7 @@ public class CollectionScreen extends UiScreen {
     }
 
     private List<String> sortedZombieAliases(Set<String> seenAliases) {
-        List<String> all = new ArrayList<>(manager.getAllZombieAliases());
+        List<String> all = new ArrayList<>(manager.getAdventureZombieAliases());
         all.sort((a, b) -> {
             boolean seenA = seenAliases.contains(a);
             boolean seenB = seenAliases.contains(b);
@@ -505,7 +505,7 @@ public class CollectionScreen extends UiScreen {
     }
 
     private void openZombieInfo(String alias) {
-        if (!manager.getAllZombieAliases().contains(alias)) {
+        if (!manager.getAdventureZombieAliases().contains(alias)) {
             openZombieAlias = null;
             return;
         }
