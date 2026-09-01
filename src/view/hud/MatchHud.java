@@ -97,6 +97,7 @@ public final class MatchHud extends Table implements Disposable {
     private ConveyorBeltWidget conveyorWidget;
     private boolean loadoutBankVisible = true;
     private boolean foodVisible = true;
+    private Integer sunOverride;
     private String objectiveOverride;
     private String progressLabelOverride;
     private Float progressValueOverride;
@@ -385,7 +386,7 @@ public final class MatchHud extends Table implements Disposable {
 
     public void update(GameSession session, List<String> selectedPlants) {
         if (session == null) return;
-        sunLabel.setText(String.valueOf(session.getSunCount()));
+        sunLabel.setText(String.valueOf(sunOverride != null ? sunOverride : session.getSunCount()));
         foodLabel.setText(String.valueOf(session.getPlantFoodCount()));
         int coins = 0;
         if (model.user_data.User.currentUser != null && model.user_data.User.currentUser.userState != null) {
@@ -622,6 +623,17 @@ public final class MatchHud extends Table implements Disposable {
 
     public void setPamPlayer(PamPlayer pamPlayer) {
         this.pamPlayer = pamPlayer;
+    }
+
+    /**
+     * Overrides the top-of-screen sun readout with an explicit value instead of the raw
+     * session sun count. Used by modes (like couch I, Zombie) where the shared session's
+     * sun pool belongs to one side only, so showing it as "the" sun total is misleading -
+     * pass the value that's actually meaningful for the player looking at this HUD.
+     * Pass null to go back to showing the session's own sun count.
+     */
+    public void setSunOverride(Integer sun) {
+        this.sunOverride = sun;
     }
 
     public void setLoadoutBankVisible(boolean visible) {
