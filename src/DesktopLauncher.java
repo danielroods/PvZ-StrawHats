@@ -9,7 +9,7 @@ public class DesktopLauncher {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Plants vs Zombies - Straw Hats");
 
-        config.setWindowedMode(1152, 648);
+        config.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode());
         config.setResizable(true);
         config.setDecorated(true);
 
