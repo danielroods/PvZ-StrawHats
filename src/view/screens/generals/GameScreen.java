@@ -26,6 +26,7 @@ import pvz.libpvz.textures.TextureBank;
 import service.GameClock;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
+import view.hud.LotteryMatchHud;
 import view.hud.MatchHud;
 import view.screens.match.after.MatchEndSequence;
 
@@ -46,6 +47,7 @@ public class GameScreen extends UiScreen {
 
     public GameSession session;
     protected MatchHud hud;
+    private LotteryMatchHud endlessHud;
     protected Texture boardTexture;
     public TextureRegion whitePixel;
     public TextureRegion bubbleTexture;
@@ -198,6 +200,13 @@ public class GameScreen extends UiScreen {
         hud.setDebugAddSunAction(() -> runCommand("cheat add -n 25 suns"));
         hud.setDebugAddFoodAction(() -> runCommand("cheat add-plant-food"));
         addBeforeModal(hud);
+        createEndlessHud();
+    }
+
+    private void createEndlessHud() {
+        if (session == null || !session.isEndless()) return;
+        endlessHud = new LotteryMatchHud(skin);
+        addBeforeModal(endlessHud);
     }
 
     protected void createBoardInput() {
@@ -373,7 +382,28 @@ public class GameScreen extends UiScreen {
         hud.setSelectedPlant(interaction.selectedPlant());
         hud.setTools(interaction.activeTool() == BoardInteraction.Tool.SHOVEL,
                 interaction.activeTool() == BoardInteraction.Tool.FOOD);
+        refreshEndlessHud();
         hud.update(session, loadout);
+    }
+
+    private void refreshEndlessHud() {
+        if (endlessHud == null) return;
+        model.match.endless.EndlessRun run = session.getEndlessRun();
+        int waveNumber = session.getWavesSpawnedCount();
+        endlessHud.update(run, waveNumber, endlessRecord());
+        hud.setProgressOverride("WAVE " + Math.max(1, waveNumber),
+                (float) session.getWaveProgress());
+    }
+
+    private long endlessRecord() {
+        if (!(session.getLevel() instanceof model.match.endless.EndlessLevel level)) return -1L;
+        if (model.user_data.User.currentUser == null
+                || model.user_data.User.currentUser.userState == null) {
+            return -1L;
+        }
+        String key = level.getChapter().key();
+        model.user_data.UserState state = model.user_data.User.currentUser.userState;
+        return state.hasLotteryScore(key) ? state.getLotteryHighScore(key) : -1L;
     }
 
     protected void selectPlant(String plantName) {
@@ -669,6 +699,7 @@ public class GameScreen extends UiScreen {
 
     @Override public void dispose() {
         if (hud != null) hud.dispose();
+        if (endlessHud != null) endlessHud.dispose();
         if (zombossDialogue != null) zombossDialogue.dispose();
         if (textureBank != null) {
             try { textureBank.dispose(); } catch (Throwable ignored) {}

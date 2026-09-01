@@ -5,6 +5,8 @@ import model.collections.item.*;
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
+import model.match.endless.EndlessLevel;
+import model.match.endless.EndlessRun;
 import model.match.main.levels.Level;
 import model.match.main.season.travellog.beach.Flood;
 import model.match.main.season.travellog.cave.IceWind;
@@ -47,6 +49,7 @@ public class GameSession {
     private boolean zombieBreachesEnabled = true;
     private boolean lawnMowersEnabled = true;
     private Boolean skySunEnabledOverride = null;
+    private double skySunIntervalMultiplier = 1.0;
     private int difficultyLevel;
     /// When true, the player is on the zombies' side (e.g. the I, Zombie mini-game) and
     /// zombie effects that would normally raid the opponent's sun bank (Ra Zombie's
@@ -186,7 +189,21 @@ public class GameSession {
 
     public void spawnZombie(Zombie zombie) {
         if (zombie == null) return;
+        if (level != null && level.getWaveDirector() != null) {
+            level.getWaveDirector().empower(zombie,
+                    Math.max(0, waves.getWavesSpawnedCount() - 1));
+        }
         zombies.add(zombie);
+        EndlessRun run = getEndlessRun();
+        if (run != null) run.onZombieSpawned(zombie, getElapsedSecondsSinceWavesStarted());
+    }
+
+    public EndlessRun getEndlessRun() {
+        return level instanceof EndlessLevel endless ? endless.getRun() : null;
+    }
+
+    public boolean isEndless() {
+        return waves.isEndless();
     }
 
     public void spawnZombieForCurrentWave(Zombie zombie) { waves.spawnZombieForCurrentWave(zombie); }
@@ -351,8 +368,10 @@ public class GameSession {
             gameWon = false;
             zombieBreachesEnabled = true;
             skySunEnabledOverride = null;
+            skySunIntervalMultiplier = 1.0;
             waves.resetWavesStarted();
             economy.resetMatchStats(level.getInitialSun());
+            waves.setDirector(level.getWaveDirector());
             setWaves(level.getWaves());
             controller.QuestManager.notifyLevelStarted(this);
             level.initSpecial(this);
@@ -464,6 +483,14 @@ public class GameSession {
 
     public void setSkySunEnabled(boolean enabled) {
         this.skySunEnabledOverride = enabled;
+    }
+
+    public void setSkySunIntervalMultiplier(double multiplier) {
+        this.skySunIntervalMultiplier = multiplier > 0 ? multiplier : 1.0;
+    }
+
+    public double getSkySunIntervalMultiplier() {
+        return skySunIntervalMultiplier;
     }
 
     public boolean isSkySunEnabled() {

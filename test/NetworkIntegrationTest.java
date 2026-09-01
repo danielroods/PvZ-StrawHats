@@ -447,6 +447,124 @@ class NetworkIntegrationTest {
         peer.close();
     }
 
+    @Test
+    @Order(9)
+    void lotteryRecordsAreKeptPerChapterAndReachTheLeaderboard() throws Exception {
+        Peer peer = connectAndSignIn("chopper");
+
+        Envelope egypt = peer.awaitOk(peer.send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", 1500, "chapter", "egypt")));
+        assertEquals(1500, egypt.getLong("chapterBest", -1));
+        assertEquals(1500, egypt.getInt("bestScore", -1),
+                "My Point follows the best Lottery run");
+
+        Envelope beach = peer.awaitOk(peer.send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", 400, "chapter", "big_wave_beach")));
+        assertEquals(400, beach.getLong("chapterBest", -1),
+                "one chapter's record does not spill into another's");
+        assertEquals(1500, beach.getInt("bestScore", -1),
+                "a lower run in another chapter does not lower My Point");
+
+        Envelope worse = peer.awaitOk(peer.send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", 900, "chapter", "egypt")));
+        assertEquals(1500, worse.getLong("chapterBest", -1),
+                "a worse run never lowers a chapter record");
+
+        Envelope better = peer.awaitOk(peer.send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", 9000, "chapter", "dark_ages")));
+        assertEquals(9000, better.getLong("chapterBest", -1));
+        assertEquals(9000, better.getInt("bestScore", -1));
+
+        UserState stored = server.accounts().stateOf("chopper");
+        assertEquals(1500, stored.getLotteryHighScore("egypt"));
+        assertEquals(400, stored.getLotteryHighScore("big_wave_beach"));
+        assertEquals(9000, stored.getLotteryHighScore("dark_ages"));
+        assertEquals(0, stored.getLotteryHighScore("frostbite_caves"),
+                "a chapter never played has no record");
+
+        Envelope board = peer.awaitOk(peer.send(Protocol.LEADERBOARD, Envelope.obj()));
+        var rows = board.payload().getAsJsonArray("rows");
+        assertNotNull(rows);
+        boolean sawChopper = false;
+        for (var element : rows) {
+            var row = JsonLine.fromTree(element.getAsJsonObject(),
+                    net.dto.LeaderboardRowDto.class);
+            if (!"chopper".equals(row.username)) continue;
+            sawChopper = true;
+            assertEquals(1500L, row.lotteryScore("egypt"));
+            assertEquals(400L, row.lotteryScore("big_wave_beach"));
+            assertEquals(9000L, row.lotteryScore("dark_ages"));
+            assertNull(row.lotteryScore("frostbite_caves"));
+            assertEquals(9000, row.myPoint);
+        }
+        assertTrue(sawChopper, "the leaderboard should carry the submitting player");
+        peer.close();
+    }
+
+    /**
+     * A submitted score must not make the server look newer than the client that just
+     * played, or the client's own next save is answered with (and reconciled back to) the
+     * server's older copy - silently rolling the rest of that session's progress back.
+     */
+    @Test
+    @Order(10)
+    void submittingAScoreDoesNotMakeTheClientsOwnSaveLookStale() throws Exception {
+        User account = localAccount("franky");
+        account.userState.coins = 10;
+        account.userState.markSaved();
+        Peer peer = connectAndSignIn(account);
+
+        peer.awaitOk(peer.send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", 2500, "chapter", "frostbite_caves")));
+
+        account.userState.recordLotteryScore("frostbite_caves", 2500);
+        account.userState.coins = 999;
+        account.userState.miniGamesWon = 4;
+        account.userState.markSaved();
+        Envelope pushed = peer.awaitOk(peer.send(Protocol.STATE_SYNC, syncPayload(account)));
+
+        UserState served = JsonLine.fromTree(pushed.getObject("userState"), UserState.class);
+        assertEquals(999, served.coins, "the client's later save is still the newer one");
+        assertEquals(4, served.miniGamesWon);
+        assertEquals(2500, served.getLotteryHighScore("frostbite_caves"),
+                "and it still carries the record that was submitted");
+        peer.close();
+    }
+
+    @Test
+    @Order(11)
+    void offlineLotteryProgressIsUploadedOnConnect() throws Exception {
+        User offline = localAccount("brooke");
+        offline.userState.recordGameResult(104);
+        offline.userState.recordLotteryScore("egypt", 7777);
+        offline.userState.miniGamesWon = 2;
+        offline.userState.questsCompleted = 6;
+        offline.userState.markSaved();
+
+        Peer peer = connectAndSignIn(offline);
+        UserState stored = server.accounts().stateOf("brooke");
+        assertEquals(7777, stored.getLotteryHighScore("egypt"),
+                "an offline Lottery record reaches the server on connect");
+        assertEquals(104, stored.lastLevel);
+        assertEquals(2, stored.miniGamesWon);
+        assertEquals(6, stored.questsCompleted);
+        assertEquals(7777, stored.bonusHighScore);
+
+        Envelope board = peer.awaitOk(peer.send(Protocol.LEADERBOARD, Envelope.obj()));
+        for (var element : board.payload().getAsJsonArray("rows")) {
+            var row = JsonLine.fromTree(element.getAsJsonObject(),
+                    net.dto.LeaderboardRowDto.class);
+            if (!"brooke".equals(row.username)) continue;
+            assertEquals(7777L, row.lotteryScore("egypt"));
+            assertEquals("Frostbite Caves", row.chapter,
+                    "chapter progress travels with the account too");
+            assertEquals(4, row.levelsCleared);
+            assertEquals(2, row.miniGamesWon);
+            assertEquals(6, row.questsCompleted);
+        }
+        peer.close();
+    }
+
     private JsonObject readyPayload(String matchId, List<String> loadout) {
         JsonObject payload = Envelope.obj("matchId", matchId);
         com.google.gson.JsonArray picks = new com.google.gson.JsonArray();

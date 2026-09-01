@@ -138,6 +138,12 @@ class SessionTicker {
         session.getProjectiles().removeIf(p -> !p.isAlive());
         session.getZombieProjectiles().removeIf(p -> !p.isAlive());
 
+        model.match.endless.EndlessRun endlessRun = session.getEndlessRun();
+        if (endlessRun != null) {
+            endlessRun.setElapsedSeconds(session.getElapsedSecondsSinceWavesStarted());
+            endlessRun.pruneSpawnTimes(session.getZombies());
+        }
+
         if (session.isZombieBreachesEnabled()) board.checkZombieBreaches();
 
         if (session.getLevel() != null && session.getLevel().checkLossCondition(session)) {

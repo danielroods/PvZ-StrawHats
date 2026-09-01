@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
+import model.match.endless.EndlessChapter;
 import model.match.main.levels.Level;
 import model.user_data.User;
 import model.utils.LevelLoader;
@@ -32,18 +33,27 @@ import java.util.stream.Collectors;
 
 public class LeaderboardScreen extends UiScreen {
 
-    private enum SortColumn { RANK, USERNAME, SEASON, CHAPTER, STAGE, MINIGAMES, QUESTS, SCORE }
+    private enum SortColumn { USERNAME, CHAPTER, MINIGAMES, QUESTS, SCORE }
 
-    private static final float ROW_WIDTH = 1150f;
-    private static final float COL_RANK = 50f;
-    private static final float COL_AVATAR = 44f;
-    private static final float COL_NAME = 190f;
-    private static final float COL_SEASON = 120f;
-    private static final float COL_CHAPTER = 170f;
-    private static final float COL_STAGE = 150f;
-    private static final float COL_MINIGAMES = 100f;
-    private static final float COL_QUESTS = 90f;
-    private static final float COL_SCORE = 90f;
+    private static final float ROW_WIDTH = 1190f;
+    private static final float COL_PAD = 16f;
+    private static final float COL_GAP = 6f;
+    private static final float COL_AVATAR = 40f;
+    private static final float COL_NAME = 138f;
+    private static final float COL_CHAPTER = 158f;
+    private static final float COL_MINIGAMES = 82f;
+    private static final float COL_QUESTS = 72f;
+    private static final float COL_SCORE = 92f;
+    private static final float COL_MEOW = 130f;
+
+    /** One row of nine tabs plus the order toggle, inside the same 1230. */
+    private static final float CHIP_WIDTH = 112f;
+    private static final float CHIP_HEIGHT = 38f;
+    private static final float CHIP_FONT_SCALE = 0.68f;
+    private static final float HEADER_FONT_SCALE = 0.72f;
+    private static final float VALUE_FONT_SCALE = 0.8f;
+    private static final float NAME_FONT_SCALE = 0.85f;
+    private static final float NICKNAME_FONT_SCALE = 0.65f;
 
     private final SortState sort = new SortState();
 
@@ -64,11 +74,13 @@ public class LeaderboardScreen extends UiScreen {
         rootTable.add(buildTopBar()).fillX().padTop(15).padLeft(20).padRight(20).row();
         rootTable.add(buildSortBar()).padTop(SPACE_MD).row();
         rootTable.add(buildColumnHeader()).width(ROW_WIDTH).padTop(SPACE_SM).row();
-        rootTable.add(scrollable(buildRows())).expand().fill().width(ROW_WIDTH + 30).padTop(SPACE_XS).row();
+        rootTable.add(scrollable(buildRows())).expand().fill()
+                .width(ROW_WIDTH + 30).padTop(SPACE_XS).row();
     }
 
     private Table buildTopBar() {
-        ImageButton backBtn = createIconButton("assets/images/ui/buttons_hud_back_normal.png", 54, 54,
+        ImageButton backBtn = createIconButton(
+                "assets/images/ui/buttons_hud_back_normal.png", 54, 54,
                 () -> runCommand("menu exit"));
 
         Table topLeft = new Table();
@@ -94,57 +106,93 @@ public class LeaderboardScreen extends UiScreen {
     private Table buildSortBar() {
         Table bar = new Table();
         bar.setBackground(skin.getDrawable("card-background"));
-        bar.pad(10, 16, 10, 16);
-        bar.defaults().pad(0, 4, 0, 4);
+        bar.pad(8, 10, 8, 10);
+        bar.defaults().pad(0, 3, 0, 3);
 
-        bar.add(createLabel("Sort by:", "main")).padRight(SPACE_SM);
+        bar.add(headerLabel("Sort by:")).padRight(SPACE_XS);
         for (SortColumn column : SortColumn.values()) {
-            bar.add(sortChip(column)).width(112).height(38);
+            bar.add(sortChip(column)).width(CHIP_WIDTH).height(CHIP_HEIGHT);
         }
-
-        bar.add(createOrderToggleButton()).size(48, 38).padLeft(SPACE_LG);
+        for (EndlessChapter chapter : EndlessChapter.values()) {
+            bar.add(meowChip(chapter)).width(CHIP_WIDTH).height(CHIP_HEIGHT);
+        }
+        bar.add(createOrderToggleButton()).size(44, CHIP_HEIGHT).padLeft(SPACE_MD);
         return bar;
     }
 
     private TextButton sortChip(SortColumn column) {
-        return column == sort.column
-                ? primaryButton(chipLabel(column), () -> changeSort(column))
-                : secondaryButton(chipLabel(column), () -> changeSort(column));
+        boolean active = sort.meowChapter == null && column == sort.column;
+        return chip(chipLabel(column), active, () -> changeSort(column));
+    }
+
+    private TextButton meowChip(EndlessChapter chapter) {
+        return chip(shortChapter(chapter) + " Meow", sort.meowChapter == chapter,
+                () -> changeMeowSort(chapter));
+    }
+
+    private TextButton chip(String label, boolean active, Runnable action) {
+        TextButton button = active ? primaryButton(label, action) : secondaryButton(label, action);
+        button.getLabel().setFontScale(CHIP_FONT_SCALE);
+        button.getLabel().setEllipsis(true);
+        button.getLabelCell().width(CHIP_WIDTH - 8f);
+        return button;
     }
 
     private void changeSort(SortColumn column) {
         sort.column = column;
+        sort.meowChapter = null;
+        build();
+    }
+
+    private void changeMeowSort(EndlessChapter chapter) {
+        sort.meowChapter = chapter;
         build();
     }
 
     private String chipLabel(SortColumn column) {
         return switch (column) {
-            case RANK -> "Rank";
             case USERNAME -> "Username";
-            case SEASON -> "Season";
             case CHAPTER -> "Chapter";
-            case STAGE -> "Stage";
             case MINIGAMES -> "Minigames";
             case QUESTS -> "Quests";
-            case SCORE -> "Score";
+            case SCORE -> "My Point";
         };
+    }
+
+    private static String shortChapter(EndlessChapter chapter) {
+        return switch (chapter) {
+            case EGYPT -> "Egypt";
+            case FROSTBITE_CAVES -> "Frostbite";
+            case BIG_WAVE_BEACH -> "Beach";
+            case DARK_AGES -> "Dark Ages";
+        };
+    }
+
+    private static String meowColumnHeader(EndlessChapter chapter) {
+        return chapter.seasonName() + "\nMeow";
     }
 
     private Table buildColumnHeader() {
         Table header = new Table();
-        header.pad(0, 16, 4, 16);
-        header.defaults().left().padRight(8);
+        header.pad(0, COL_PAD, 4, COL_PAD);
+        header.defaults().left().padRight(COL_GAP);
 
-        header.add(createLabel("#", "muted")).width(COL_RANK);
-        header.add(createLabel("", "muted")).width(COL_AVATAR);
-        header.add(createLabel("Player", "muted")).width(COL_NAME);
-        header.add(createLabel("Season", "muted")).width(COL_SEASON);
-        header.add(createLabel("Chapter", "muted")).width(COL_CHAPTER);
-        header.add(createLabel("Stage", "muted")).width(COL_STAGE);
-        header.add(createLabel("Minigames", "muted")).width(COL_MINIGAMES);
-        header.add(createLabel("Quests", "muted")).width(COL_QUESTS);
-        header.add(createLabel("My Point", "muted")).width(COL_SCORE);
+        header.add(headerLabel("")).width(COL_AVATAR);
+        header.add(headerLabel("Player")).width(COL_NAME);
+        header.add(headerLabel("Chapter")).width(COL_CHAPTER);
+        header.add(headerLabel("Minigames")).width(COL_MINIGAMES);
+        header.add(headerLabel("Quests")).width(COL_QUESTS);
+        header.add(headerLabel("My Point")).width(COL_SCORE);
+        for (EndlessChapter chapter : EndlessChapter.values()) {
+            header.add(headerLabel(meowColumnHeader(chapter))).width(COL_MEOW);
+        }
         return header;
+    }
+
+    private Label headerLabel(String text) {
+        Label label = createLabel(text, "muted");
+        label.setFontScale(HEADER_FONT_SCALE);
+        return label;
     }
 
     private Table buildRows() {
@@ -162,10 +210,8 @@ public class LeaderboardScreen extends UiScreen {
         }
 
         sortRows(rows);
-
-        int rank = 1;
-        for (LeaderboardRowDto row : sort.ascending ? rows : rows.reversed()) {
-            list.add(buildRow(rank++, row)).width(ROW_WIDTH).padBottom(10).row();
+        for (LeaderboardRowDto row : rows) {
+            list.add(buildRow(row)).width(ROW_WIDTH).padBottom(10).row();
         }
         return list;
     }
@@ -187,81 +233,52 @@ public class LeaderboardScreen extends UiScreen {
     }
 
     private void sortRows(List<LeaderboardRowDto> rows) {
-        Comparator<LeaderboardRowDto> comparator = switch (sort.column) {
-            case RANK -> null;
-            case USERNAME -> Comparator.comparing((LeaderboardRowDto r) -> r.username,
+        Comparator<LeaderboardRowDto> byColumn = columnComparator();
+        Comparator<LeaderboardRowDto> ordered = sort.ascending ? byColumn : byColumn.reversed();
+        rows.sort(ordered.thenComparing(LeaderboardRowDto::usernameOrEmpty,
+                String.CASE_INSENSITIVE_ORDER));
+    }
+
+    private Comparator<LeaderboardRowDto> columnComparator() {
+        if (sort.meowChapter != null) {
+            String key = sort.meowChapter.key();
+            return Comparator.comparingLong(row -> row.lotteryScoreOrZero(key));
+        }
+        return switch (sort.column) {
+            case USERNAME -> Comparator.comparing(LeaderboardRowDto::usernameOrEmpty,
                     String.CASE_INSENSITIVE_ORDER);
-            case SEASON -> Comparator.comparing((LeaderboardRowDto r) -> r.season,
-                    String.CASE_INSENSITIVE_ORDER);
-            case CHAPTER -> Comparator.comparing((LeaderboardRowDto r) -> r.chapter,
-                    String.CASE_INSENSITIVE_ORDER);
-            case STAGE -> Comparator.comparingInt((LeaderboardRowDto r) -> r.stageLevelId);
+            case CHAPTER -> Comparator.comparingInt((LeaderboardRowDto r) -> r.levelsCleared);
             case MINIGAMES -> Comparator.comparingInt((LeaderboardRowDto r) -> r.miniGamesWon);
             case QUESTS -> Comparator.comparingInt((LeaderboardRowDto r) -> r.questsCompleted);
-            case SCORE -> myPointComparator();
-        };
-        if (comparator == null) return;
-        rows.sort(comparator);
-    }
-
-    private Comparator<LeaderboardRowDto> myPointComparator() {
-        return (left, right) -> {
-            boolean leftMissing = left.myPoint == null;
-            boolean rightMissing = right.myPoint == null;
-            if (leftMissing && rightMissing) return 0;
-            if (leftMissing) return sort.ascending ? 1 : -1;
-            if (rightMissing) return sort.ascending ? -1 : 1;
-            return Integer.compare(left.myPoint, right.myPoint);
+            case SCORE -> Comparator.comparingLong(LeaderboardRowDto::myPointOrZero);
         };
     }
 
-    private Table buildRow(int rank, LeaderboardRowDto row) {
+    private Table buildRow(LeaderboardRowDto row) {
         boolean isYou = User.currentUser != null
                 && User.currentUser.username.equals(row.username);
 
         Table card = new Table();
         card.setBackground(isYou ? highlightRowDrawable() : skin.getDrawable("card-background"));
-        card.pad(8, 16, 8, 16);
-        card.defaults().left().padRight(8);
+        card.pad(8, COL_PAD, 8, COL_PAD);
+        card.defaults().left().padRight(COL_GAP);
 
-        card.add(rankBadge(rank)).width(COL_RANK);
         card.add(avatarStack(row)).size(COL_AVATAR);
         card.add(nameColumn(row)).width(COL_NAME);
-        card.add(createLabel(row.season, "main")).width(COL_SEASON);
-        card.add(createLabel(row.chapter, "main")).width(COL_CHAPTER);
-        card.add(createLabel(row.stage, "main")).width(COL_STAGE);
-        card.add(createLabel(String.valueOf(row.miniGamesWon), "main")).width(COL_MINIGAMES);
-        card.add(createLabel(String.valueOf(row.questsCompleted), "main")).width(COL_QUESTS);
-        card.add(scoreLabel(row.myPoint)).width(COL_SCORE);
-
+        card.add(valueLabel(chapterText(row))).width(COL_CHAPTER);
+        card.add(valueLabel(String.valueOf(row.miniGamesWon))).width(COL_MINIGAMES);
+        card.add(valueLabel(String.valueOf(row.questsCompleted))).width(COL_QUESTS);
+        card.add(scoreLabel(row.myPointOrZero())).width(COL_SCORE);
+        for (EndlessChapter chapter : EndlessChapter.values()) {
+            card.add(scoreLabel(row.lotteryScoreOrZero(chapter.key()))).width(COL_MEOW);
+        }
         return card;
     }
 
-    private Actor rankBadge(int rank) {
-        Color medalColor = switch (rank) {
-            case 1 -> new Color(1f, 0.84f, 0f, 1f);
-            case 2 -> new Color(0.80f, 0.80f, 0.82f, 1f);
-            case 3 -> new Color(0.80f, 0.50f, 0.20f, 1f);
-            default -> null;
-        };
-
-        if (medalColor == null) {
-            return createLabel(String.valueOf(rank), "muted");
-        }
-
-        Stack badge = new Stack();
-        Table circleWrap = new Table();
-        circleWrap.add(new Image(circleDrawable(medalColor, 34))).size(34, 34);
-
-        Label.LabelStyle style = new Label.LabelStyle(skin.getFont("default-font"), Color.BLACK);
-        Label number = new Label(String.valueOf(rank), style);
-        number.setFontScale(0.8f);
-        Table numberWrap = new Table();
-        numberWrap.add(number).center();
-
-        badge.add(circleWrap);
-        badge.add(numberWrap);
-        return badge;
+    private static String chapterText(LeaderboardRowDto row) {
+        if (row.chapter == null || row.chapter.isEmpty() || "-".equals(row.chapter)) return "-";
+        if (row.chapterStageCount <= 0) return row.chapter;
+        return row.chapter + "  " + row.chapterStagesCleared + "/" + row.chapterStageCount;
     }
 
     private Actor avatarStack(LeaderboardRowDto row) {
@@ -282,35 +299,33 @@ public class LeaderboardScreen extends UiScreen {
 
     private Table nameColumn(LeaderboardRowDto row) {
         Table col = new Table();
-        col.add(new Label(row.username, skin, "title")).left().row();
+        Label name = new Label(row.usernameOrEmpty(), skin, "title");
+        name.setFontScale(NAME_FONT_SCALE);
+        name.setEllipsis(true);
+        col.add(name).width(COL_NAME).left().row();
 
         if (row.nickname != null && !row.nickname.isEmpty() && !row.nickname.equals(row.username)) {
             Label nick = createLabel(row.nickname, "muted");
-            nick.setFontScale(0.75f);
-            col.add(nick).left();
+            nick.setFontScale(NICKNAME_FONT_SCALE);
+            nick.setEllipsis(true);
+            col.add(nick).width(COL_NAME).left();
         }
         return col;
     }
 
-    private Label scoreLabel(Integer myPoint) {
-        if (myPoint == null) {
-            Label.LabelStyle muted = new Label.LabelStyle(skin.getFont("default-font"), Color.GRAY);
-            return new Label("—", muted);
-        }
-        Label.LabelStyle style = new Label.LabelStyle(skin.getFont("default-font"), Color.GOLD);
-        return new Label(String.valueOf(myPoint), style);
+    private Label valueLabel(String text) {
+        Label label = createLabel(text, "main");
+        label.setFontScale(VALUE_FONT_SCALE);
+        label.setEllipsis(true);
+        return label;
     }
 
-    private Drawable circleDrawable(Color color, int diameter) {
-        Pixmap pixmap = new Pixmap(diameter, diameter, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0f, 0f, 0f, 0f);
-        pixmap.fill();
-        pixmap.setColor(color);
-        pixmap.fillCircle(diameter / 2, diameter / 2, diameter / 2);
-        Texture texture = new Texture(pixmap);
-        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        pixmap.dispose();
-        return new TextureRegionDrawable(texture);
+    private Label scoreLabel(long score) {
+        Label.LabelStyle style = new Label.LabelStyle(skin.getFont("default-font"),
+                score > 0 ? Color.GOLD : Color.GRAY);
+        Label label = new Label(String.valueOf(score), style);
+        label.setFontScale(VALUE_FONT_SCALE);
+        return label;
     }
 
     private Drawable highlightRowDrawable() {
@@ -328,8 +343,6 @@ public class LeaderboardScreen extends UiScreen {
         return new TextureRegionDrawable(texture);
     }
 
-    
-
     private ImageButton createIconButton(String path, float width, float height, Runnable action) {
         TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
         ImageButton button = new ImageButton(drawable);
@@ -343,9 +356,6 @@ public class LeaderboardScreen extends UiScreen {
         return button;
     }
 
-    
-
-
     private Actor createOrderToggleButton() {
         String iconPath = sort.ascending
                 ? "assets/images/ui/leaderboard/sort_ascending_down.png"
@@ -353,7 +363,10 @@ public class LeaderboardScreen extends UiScreen {
 
         Texture tex = loadTextureSafe(iconPath);
         if (tex == null || !Gdx.files.internal(iconPath).exists()) {
-            return secondaryButton(sort.ascending ? "Asc" : "Desc", this::toggleOrder);
+            TextButton fallback = secondaryButton(sort.ascending ? "Asc" : "Desc",
+                    this::toggleOrder);
+            fallback.getLabel().setFontScale(CHIP_FONT_SCALE);
+            return fallback;
         }
 
         TextureRegionDrawable drawable = new TextureRegionDrawable(tex);
@@ -374,6 +387,7 @@ public class LeaderboardScreen extends UiScreen {
 
     private static class SortState {
         private SortColumn column = SortColumn.SCORE;
+        private EndlessChapter meowChapter;
         private boolean ascending = false;
     }
 
@@ -381,7 +395,4 @@ public class LeaderboardScreen extends UiScreen {
     protected void onAfterCommand() {
         build();
     }
-
-
-
 }

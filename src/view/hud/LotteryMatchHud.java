@@ -4,93 +4,101 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Disposable;
 
-/** لایه HUD لاتاری - قرارگیری در باکس مجزا بالا-راست بدون تداخل */
-public class LotteryMatchHud extends Table {
-    private final Label meowPointsLabel;
-    private final Label comboLabel;
+import model.match.endless.EndlessRun;
+
+/** Endless (Lottery) score panel, docked top-right beside the normal match HUD. */
+public class LotteryMatchHud extends Table implements Disposable {
+
+    private final Label pointsLabel;
+    private final Label recordLabel;
+    private final Label waveLabel;
     private final Label killsLabel;
-    private int currentPoints = 0;
-    private int totalKills = 0;
+    private final Label comboLabel;
+    private Texture backgroundTexture;
 
     public LotteryMatchHud(Skin skin) {
         super(skin);
         setFillParent(true);
+        setTouchable(Touchable.disabled);
         top().right();
         padTop(65f).padRight(15f);
 
         Label.LabelStyle titleStyle = skin.has("title", Label.LabelStyle.class)
                 ? skin.get("title", Label.LabelStyle.class)
                 : skin.get(Label.LabelStyle.class);
-
         Label.LabelStyle defaultStyle = skin.get(Label.LabelStyle.class);
 
-        meowPointsLabel = new Label("Meow Points: 0", titleStyle);
-        meowPointsLabel.setAlignment(Align.center);
-        meowPointsLabel.setColor(Color.GOLD);
+        pointsLabel = styled(new Label("Meow Points: 0", titleStyle), Color.GOLD);
+        recordLabel = styled(new Label("Record: -", defaultStyle), Color.LIGHT_GRAY);
+        waveLabel = styled(new Label("Wave 1", defaultStyle), Color.WHITE);
+        killsLabel = styled(new Label("Kills: 0", defaultStyle), Color.CYAN);
+        comboLabel = styled(new Label("Combo: x0", defaultStyle), Color.ORANGE);
 
-        comboLabel = new Label("Combo: x0", defaultStyle);
-        comboLabel.setAlignment(Align.center);
-        comboLabel.setColor(Color.ORANGE);
-
-        killsLabel = new Label("Kills: 0", defaultStyle);
-        killsLabel.setAlignment(Align.center);
-        killsLabel.setColor(Color.CYAN);
-
-        Table boxContainer = new Table(skin);
-        TextureRegionDrawable boxBackground = createSemiTransparentBackground();
-        if (boxBackground != null) {
-            boxContainer.setBackground(boxBackground);
+        Table box = new Table(skin);
+        TextureRegionDrawable background = createBackground();
+        if (background != null) {
+            box.setBackground(background);
         } else if (skin.has("dialog", TextureRegionDrawable.class)) {
-            boxContainer.setBackground(skin.getDrawable("dialog"));
+            box.setBackground(skin.getDrawable("dialog"));
         }
+        box.pad(10f, 18f, 10f, 18f);
+        box.add(pointsLabel).center().padBottom(2f).row();
+        box.add(recordLabel).center().padBottom(4f).row();
+        box.add(waveLabel).center().padBottom(4f).row();
 
-        boxContainer.pad(10f, 18f, 10f, 18f);
-        boxContainer.add(meowPointsLabel).center().padBottom(4f).row();
+        Table stats = new Table(skin);
+        stats.add(killsLabel).padRight(12f);
+        stats.add(comboLabel);
+        box.add(stats).center();
 
-        Table subInfo = new Table(skin);
-        subInfo.add(killsLabel).padRight(12f);
-        subInfo.add(comboLabel);
-
-        boxContainer.add(subInfo).center();
-        add(boxContainer).right();
+        add(box).right();
     }
 
-    private TextureRegionDrawable createSemiTransparentBackground() {
+    private static Label styled(Label label, Color color) {
+        label.setAlignment(Align.center);
+        label.setColor(color);
+        return label;
+    }
+
+    /**
+     * @param record the account's stored best for this chapter, or a negative value when
+     *               the chapter has never been played.
+     */
+    public void update(EndlessRun run, int waveNumber, long record) {
+        if (run == null) return;
+        pointsLabel.setText("Meow Points: " + run.getScore());
+        recordLabel.setText(record < 0 ? "Record: -" : "Record: " + record);
+        waveLabel.setText("Wave " + Math.max(1, waveNumber));
+        killsLabel.setText("Kills: " + run.getKills());
+        comboLabel.setText("Combo: x" + run.getCombo());
+    }
+
+    private TextureRegionDrawable createBackground() {
         try {
             Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
             pixmap.setColor(0f, 0f, 0f, 0.75f);
             pixmap.fill();
-            Texture texture = new Texture(pixmap);
+            backgroundTexture = new Texture(pixmap);
             pixmap.dispose();
-            return new TextureRegionDrawable(new TextureRegion(texture));
+            return new TextureRegionDrawable(new TextureRegion(backgroundTexture));
         } catch (Throwable t) {
             return null;
         }
     }
 
-    public void addPoints(int points) {
-        this.currentPoints += points;
-        if (meowPointsLabel != null) {
-            meowPointsLabel.setText("Meow Points: " + currentPoints);
-        }
-    }
-
-    public void incrementKills() {
-        this.totalKills++;
-        if (killsLabel != null) {
-            killsLabel.setText("Kills: " + totalKills);
-        }
-    }
-
-    public void updateCombo(int combo) {
-        if (comboLabel != null) {
-            comboLabel.setText("Combo: x" + combo);
+    @Override
+    public void dispose() {
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
+            backgroundTexture = null;
         }
     }
 }

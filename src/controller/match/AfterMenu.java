@@ -119,7 +119,16 @@ public class AfterMenu extends Menu {
 
     @Override
     public String showMenu() {
-        return (won ? "YOU WIN!" : "The zombie ate your brain; LOSER !!!") +
-                "\nReward: +" + coinsAwarded + " coins, +1 seed packet (" + seedPacketPlantName + ")";
+        return (won ? "YOU WIN!" : "The zombie ate your brain; LOSER !!!")
+                + "\nReward: +" + coinsAwarded + " coins, +1 seed packet ("
+                + seedPacketPlantName + ")" + endlessSummary();
+    }
+
+    private String endlessSummary() {
+        EndlessScoreboard.Result result = EndlessScoreboard.lastResult();
+        if (result == null || won) return "";
+        return "\n" + result.chapter().levelName() + ": " + result.score()
+                + " Meow Points" + (result.improved()
+                        ? " - a new record!" : " (record " + result.best() + ")");
     }
 }

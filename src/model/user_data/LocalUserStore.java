@@ -121,6 +121,7 @@ public class LocalUserStore implements UserStore {
         if (user == null) return;
         user.accountId();
         if (user.userState == null) user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
+        user.userState.repair();
     }
 
     public User findById(String accountId) {

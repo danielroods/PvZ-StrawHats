@@ -58,6 +58,11 @@ class SessionDrops {
             }
         }
 
+        model.match.endless.EndlessRun endlessRun = session.getEndlessRun();
+        if (endlessRun != null) {
+            endlessRun.onZombieKilled(zombie, session.getElapsedSecondsSinceWavesStarted());
+        }
+
         QuestManager.notifyZombieKilled(session, zombie, killerName);
     }
 

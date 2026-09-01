@@ -79,6 +79,7 @@ public class AccountStore {
     private static void normalise(User user) {
         user.accountId();
         if (user.userState == null) user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
+        user.userState.repair();
     }
 
     public void flushIfDirty() {
@@ -165,6 +166,7 @@ public class AccountStore {
             boolean usernameTaken = !canTakeUsername(user, dto.username);
             dto.applyProfileTo(user);
             if (!usernameTaken) user.username = dto.username;
+            incoming.repair();
             user.userState = incoming;
             markDirty();
             return SyncOutcome.accepted(user, usernameTaken);
@@ -198,7 +200,10 @@ public class AccountStore {
         if (dto.profilePicture != null && !dto.profilePicture.isEmpty()) {
             user.profilePicture = dto.profilePicture;
         }
-        if (incoming != null) user.userState = incoming;
+        if (incoming != null) {
+            incoming.repair();
+            user.userState = incoming;
+        }
         users.add(user);
         markDirty();
         saveNow();
@@ -222,23 +227,41 @@ public class AccountStore {
         return user == null ? null : user.userState;
     }
 
-    public String submitBonusScore(String username, int score) {
+    public boolean submitBonusScore(String username, int score) {
         synchronized (lock) {
-            User user = find(username);
-            if (user == null) return null;
-            Integer best = user.userState.bonusHighScore;
-            if (best == null || score > best) {
-                user.userState.bonusHighScore = score;
-                user.userState.markSaved();
-                markDirty();
-            }
-            return null;
+            User user = stateHolder(username);
+            if (user == null) return false;
+            if (!user.userState.recordBonusScore(score)) return false;
+            markDirty();
+            return true;
+        }
+    }
+
+    public boolean submitLotteryScore(String username, String chapterKey, long score) {
+        synchronized (lock) {
+            User user = stateHolder(username);
+            if (user == null) return false;
+            if (!user.userState.recordLotteryScore(chapterKey, score)) return false;
+            markDirty();
+            return true;
         }
     }
 
     public Integer bonusScoreOf(String username) {
         User user = find(username);
         return user == null ? null : user.userState.bonusHighScore;
+    }
+
+    public long lotteryScoreOf(String username, String chapterKey) {
+        User user = find(username);
+        return user == null ? 0L : user.userState.getLotteryHighScore(chapterKey);
+    }
+
+    private User stateHolder(String username) {
+        User user = find(username);
+        if (user == null) return null;
+        if (user.userState == null) user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
+        return user;
     }
 
     public void touch() {

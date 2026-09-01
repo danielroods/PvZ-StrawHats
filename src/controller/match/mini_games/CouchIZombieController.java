@@ -120,7 +120,7 @@ public class CouchIZombieController extends Menu {
 
         Role winner = match.getWinner();
         boolean plantsWon = winner == Role.PLANTS;
-        if (User.currentUser != null) User.currentUser.userState.miniGamesWon++;
+        MiniGameResults.recordWin("couchizombie", 0);
         GeneralPrinter.print(match.getEndReason());
         App.currentMenu = new MiniGameEndMenu("Couch I, Zombie", true,
                 (plantsWon ? "Player 1 (plants) wins!" : "Player 2 (zombies) wins!")

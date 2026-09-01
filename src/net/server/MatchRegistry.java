@@ -208,11 +208,12 @@ public class MatchRegistry {
         Role winner = match.getWinner();
         matches.remove(session.getMatchId());
 
+        int winnerMiniGamesWon = -1;
         if (winner != null) {
             String winnerName = session.usernameFor(winner);
             User user = server.accounts().find(winnerName);
             if (user != null && user.userState != null) {
-                user.userState.miniGamesWon++;
+                winnerMiniGamesWon = ++user.userState.miniGamesWon;
                 server.accounts().touch();
                 server.accounts().saveNow();
             }
@@ -221,14 +222,21 @@ public class MatchRegistry {
         for (Role role : session.roles()) {
             ClientSession client = session.clientFor(role);
             if (client == null || !client.isRunning()) continue;
-            client.push(Protocol.MATCH_END, Envelope.obj(
+            JsonObject payload = Envelope.obj(
                     "matchId", session.getMatchId(),
                     "winnerRole", winner == null ? null : winner.name(),
                     "youWon", winner == role,
                     "reason", match.getEndReason(),
                     "brainsEaten", match.getBrainsEaten(),
                     "brainCount", match.getBrainCount(),
-                    "elapsed", match.getElapsedSeconds()));
+                    "elapsed", match.getElapsedSeconds());
+            // The winner is told the total the server just wrote rather than being left to
+            // add one of its own, so the two copies of the account converge on one number
+            // however the state sync happens to be ordered around the match ending.
+            if (winner == role && winnerMiniGamesWon >= 0) {
+                payload.addProperty("miniGamesWon", winnerMiniGamesWon);
+            }
+            client.push(Protocol.MATCH_END, payload);
         }
     }
 

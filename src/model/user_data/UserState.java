@@ -28,6 +28,9 @@ public class UserState {
 
     public Map<String, Integer> miniGameHighestLevelWon = new HashMap<>();
 
+    /** Best endless (Lottery) score per chapter, keyed by {@code EndlessChapter.key()}. */
+    public Map<String, Long> lotteryHighScores = new HashMap<>();
+
     public long stateRevision;
     public long stateUpdatedAt;
 
@@ -104,15 +107,86 @@ public class UserState {
         if (item != null) news.add(item);
     }
 
+    /**
+     * Adventure progress only ever moves forward along the authored ladder. Ids at or
+     * below zero are synthetic levels (the Lottery nodes), which are deliberately not part
+     * of that ladder - letting one in would set lastLevel to a level that
+     * LevelProgression cannot find and lock every stage behind it.
+     */
     public void recordGameResult(int levelReached) {
         gamesPlayed++;
-        if (levelReached > lastLevel) lastLevel = levelReached;
+        if (levelReached > 0 && levelReached > lastLevel) lastLevel = levelReached;
+    }
+
+    /**
+     * Brings a state loaded from disk (or from an older build) back to something every
+     * reader can trust: Gson skips field initialisers, so the collections can come back
+     * null, and a save written before recordGameResult() rejected synthetic level ids can
+     * carry a negative lastLevel that reads as "no chapter progress at all".
+     */
+    public void repair() {
+        if (news == null) news = new ArrayList<>();
+        if (unlockedPlantIds == null) unlockedPlantIds = new HashSet<>();
+        if (plantLevels == null) plantLevels = new HashMap<>();
+        if (seedPacketInventory == null) seedPacketInventory = new HashMap<>();
+        if (plantBoosts == null) plantBoosts = new HashMap<>();
+        if (activeQuests == null) activeQuests = new ArrayList<>();
+        if (miniGameHighestLevelWon == null) miniGameHighestLevelWon = new HashMap<>();
+        if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();
+        if (lastLevel < 0) lastLevel = 0;
+        if (gamesPlayed < 0) gamesPlayed = 0;
+        if (miniGamesWon < 0) miniGamesWon = 0;
+        if (questsCompleted < 0) questsCompleted = 0;
     }
 
     public boolean recordBonusScore(int score) {
         if (bonusHighScore != null && score <= bonusHighScore) return false;
         bonusHighScore = score;
         return true;
+    }
+
+    public long getLotteryHighScore(String chapterKey) {
+        if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();
+        Long best = lotteryHighScores.get(normaliseChapterKey(chapterKey));
+        return best == null ? 0L : best;
+    }
+
+    public boolean hasLotteryScore(String chapterKey) {
+        if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();
+        return lotteryHighScores.containsKey(normaliseChapterKey(chapterKey));
+    }
+
+    /**
+     * Keeps the better of the stored and given score for one chapter. My Point stays the
+     * best endless run across every chapter, which is the only thing that ever wrote it.
+     */
+    public boolean recordLotteryScore(String chapterKey, long score) {
+        if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();
+        String key = normaliseChapterKey(chapterKey);
+        if (key.isEmpty()) return false;
+        Long best = lotteryHighScores.get(key);
+        boolean improved = best == null || score > best;
+        if (improved) lotteryHighScores.put(key, score);
+        recordBonusScore(bestLotteryScoreAsPoints());
+        return improved;
+    }
+
+    public long bestLotteryScore() {
+        if (lotteryHighScores == null) return 0L;
+        long best = 0L;
+        for (Long score : lotteryHighScores.values()) {
+            if (score != null && score > best) best = score;
+        }
+        return best;
+    }
+
+    private int bestLotteryScoreAsPoints() {
+        return (int) Math.min(Integer.MAX_VALUE, bestLotteryScore());
+    }
+
+    private String normaliseChapterKey(String chapterKey) {
+        return chapterKey == null ? ""
+                : chapterKey.toLowerCase().replace(" ", "_").replace("-", "_").trim();
     }
 
     public boolean hasBonusScore() {

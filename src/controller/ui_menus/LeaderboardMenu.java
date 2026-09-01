@@ -2,26 +2,48 @@ package controller.ui_menus;
 
 import model.App;
 import model.Regex;
+import model.match.endless.EndlessChapter;
 import model.match.main.levels.Level;
 import model.user_data.User;
 import model.utils.LevelLoader;
+import net.dto.LeaderboardRowDto;
+import net.dto.LeaderboardRows;
 import view.GeneralPrinter;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 
 public class LeaderboardMenu extends Menu {
 
-    private static final List<String> VALID_COLUMNS = List.of(
-            "rank", "username", "season", "chapter", "stage", "minigames", "quests", "score"
-    );
+    private static final Map<String, EndlessChapter> MEOW_COLUMNS = meowColumns();
+    private static final List<String> BASE_COLUMNS =
+            List.of("username", "chapter", "minigames", "quests", "score");
+
+    private static final String ROW_FORMAT =
+            "%-16s %-22s %-11s %-8s %-10s %-12s %-22s %-21s %-16s%n";
 
     private String sortColumn = "score";
     private boolean ascending = false;
+
+    private static Map<String, EndlessChapter> meowColumns() {
+        Map<String, EndlessChapter> columns = new LinkedHashMap<>();
+        columns.put("egypt", EndlessChapter.EGYPT);
+        columns.put("frostbite", EndlessChapter.FROSTBITE_CAVES);
+        columns.put("beach", EndlessChapter.BIG_WAVE_BEACH);
+        columns.put("darkages", EndlessChapter.DARK_AGES);
+        return columns;
+    }
+
+    private static List<String> validColumns() {
+        List<String> columns = new ArrayList<>(BASE_COLUMNS);
+        columns.addAll(MEOW_COLUMNS.keySet());
+        return columns;
+    }
 
     @Override
     public String getName() {
@@ -48,9 +70,9 @@ public class LeaderboardMenu extends Menu {
         String column = matcher.group("column").toLowerCase(Locale.ROOT);
         String order = matcher.group("order").toLowerCase(Locale.ROOT);
 
-        if (!VALID_COLUMNS.contains(column)) {
+        if (!validColumns().contains(column)) {
             GeneralPrinter.print("Error: unknown column '" + column + "'. Valid columns: "
-                    + String.join(", ", VALID_COLUMNS) + ".");
+                    + String.join(", ", validColumns()) + ".");
             return;
         }
 
@@ -67,7 +89,7 @@ public class LeaderboardMenu extends Menu {
     @Override
     public String showMenu() {
         String commands = "\nCommands:\n"
-                + "  leaderboard sort -c <rank|username|season|chapter|stage|minigames|quests|score> -o <asc|desc>\n"
+                + "  leaderboard sort -c <" + String.join("|", validColumns()) + "> -o <asc|desc>\n"
                 + "  menu exit | menu show current";
 
         List<Level> allLevels;
@@ -77,9 +99,10 @@ public class LeaderboardMenu extends Menu {
             return "[ Leaderboard Menu ]\nError: could not load levels." + commands;
         }
 
-        List<Row> rows = User.users.stream()
-                .map(u -> Row.of(u, allLevels))
-                .collect(Collectors.toList());
+        List<LeaderboardRowDto> rows = new ArrayList<>();
+        for (User user : User.users) {
+            rows.add(LeaderboardRows.of(user, allLevels));
+        }
 
         if (rows.isEmpty()) {
             return "[ Leaderboard Menu ]\nNo records yet." + commands;
@@ -88,85 +111,62 @@ public class LeaderboardMenu extends Menu {
         sortRows(rows);
 
         StringBuilder sb = new StringBuilder("[ Leaderboard Menu ]  (sorted by ")
-                .append(sortColumn).append(", ").append(ascending ? "ascending" : "descending").append(")\n");
-        sb.append(String.format("%-5s %-16s %-10s %-20s %-14s %-11s %-8s %-8s%n",
-                "Rank", "Username", "Season", "Chapter", "Stage", "MiniGames", "Quests", "MyPoint"));
+                .append(sortColumn).append(", ").append(ascending ? "ascending" : "descending")
+                .append(")\n");
+        sb.append(String.format(ROW_FORMAT,
+                "Username", "Chapter", "MiniGames", "Quests", "MyPoint",
+                "Egypt Meow", "Frostbite Caves Meow", "Big Wave Beach Meow", "Dark Ages Meow"));
 
-        int rank = 1;
-        for (Row row : rows) {
-            sb.append(String.format("%-5d %-16s %-10s %-20s %-14s %-11d %-8d %-8s%n",
-                    rank++, row.username, row.season, row.chapter, row.stage,
-                    row.miniGamesWon, row.questsCompleted,
-                    row.myPoint == null ? "-" : String.valueOf(row.myPoint)));
+        for (LeaderboardRowDto row : rows) {
+            sb.append(String.format(ROW_FORMAT,
+                    row.usernameOrEmpty(), chapterText(row),
+                    String.valueOf(row.miniGamesWon), String.valueOf(row.questsCompleted),
+                    String.valueOf(row.myPointOrZero()),
+                    meowText(row, EndlessChapter.EGYPT),
+                    meowText(row, EndlessChapter.FROSTBITE_CAVES),
+                    meowText(row, EndlessChapter.BIG_WAVE_BEACH),
+                    meowText(row, EndlessChapter.DARK_AGES)));
         }
 
         return sb.toString().trim() + commands;
     }
 
-    private void sortRows(List<Row> rows) {
-        Comparator<Row> comparator = switch (sortColumn) {
-            case "rank" -> null; // "rank" just means: keep insertion order, flip if descending
-            case "username" -> Comparator.comparing((Row r) -> r.username, String.CASE_INSENSITIVE_ORDER);
-            case "season" -> Comparator.comparing((Row r) -> r.season, String.CASE_INSENSITIVE_ORDER);
-            case "chapter" -> Comparator.comparing((Row r) -> r.chapter, String.CASE_INSENSITIVE_ORDER);
-            case "stage" -> Comparator.comparingInt((Row r) -> r.stageLevelId);
-            case "minigames" -> Comparator.comparingInt((Row r) -> r.miniGamesWon);
-            case "quests" -> Comparator.comparingInt((Row r) -> r.questsCompleted);
-            case "score" -> Comparator.comparing((Row r) -> r.myPoint,
-                    Comparator.nullsFirst(Comparator.naturalOrder()));
-            default -> Comparator.comparing((Row r) -> r.myPoint,
-                    Comparator.nullsFirst(Comparator.naturalOrder()));
-        };
-
-        if (comparator == null) {
-            // "rank": reverse whatever order rows arrived in
-            if (!ascending) Collections.reverse(rows);
-            return;
-        }
-
-        rows.sort(ascending ? comparator : comparator.reversed());
+    private static String chapterText(LeaderboardRowDto row) {
+        if (row.chapter == null || "-".equals(row.chapter)) return "-";
+        if (row.chapterStageCount <= 0) return row.chapter;
+        return row.chapter + " " + row.chapterStagesCleared + "/" + row.chapterStageCount;
     }
 
+    /** A chapter that has never been played reads as a plain 0, the same as the screen. */
+    private static String meowText(LeaderboardRowDto row, EndlessChapter chapter) {
+        return String.valueOf(row.lotteryScoreOrZero(chapter.key()));
+    }
 
-    private record Row(String username, String season, String chapter, String stage, int stageLevelId, int miniGamesWon,
-                       int questsCompleted, Integer myPoint) {
+    /**
+     * Every value column is plain numeric - a chapter never played counts as 0 - so
+     * descending is simply the reversed comparator, with username breaking ties the same
+     * way whichever direction the list runs.
+     */
+    private void sortRows(List<LeaderboardRowDto> rows) {
+        Comparator<LeaderboardRowDto> byColumn = columnComparator();
+        Comparator<LeaderboardRowDto> ordered = ascending ? byColumn : byColumn.reversed();
+        rows.sort(ordered.thenComparing(LeaderboardRowDto::usernameOrEmpty,
+                String.CASE_INSENSITIVE_ORDER));
+    }
 
-        static Row of(User user, List<Level> allLevels) {
-                Level level = null;
-                if (user.userState.lastLevel > 0) {
-                    level = allLevels.stream()
-                            .filter(l -> l.getId() == user.userState.lastLevel)
-                            .findFirst()
-                            .orElse(null);
-                }
-
-                String season = "-";
-                String chapter = "-";
-                String stage = "-";
-                int stageLevelId = -1;
-
-                if (level != null) {
-                    season = capitalize(level.getSeason().getName());
-                    stageLevelId = level.getId();
-                    String name = level.getName();
-                    int idx = name.indexOf(" - ");
-                    if (idx >= 0) {
-                        chapter = name.substring(0, idx);
-                        stage = name.substring(idx + 3);
-                    } else {
-                        chapter = name;
-                        stage = name;
-                    }
-                }
-
-                return new Row(user.username, season, chapter, stage, stageLevelId,
-                        user.userState.miniGamesWon, user.userState.questsCompleted,
-                        user.userState.bonusHighScore);
-            }
-
-            private static String capitalize(String s) {
-                if (s == null || s.isEmpty()) return s;
-                return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-            }
+    private Comparator<LeaderboardRowDto> columnComparator() {
+        EndlessChapter meow = MEOW_COLUMNS.get(sortColumn);
+        if (meow != null) {
+            String key = meow.key();
+            return Comparator.comparingLong(row -> row.lotteryScoreOrZero(key));
         }
+        return switch (sortColumn) {
+            case "username" -> Comparator.comparing(LeaderboardRowDto::usernameOrEmpty,
+                    String.CASE_INSENSITIVE_ORDER);
+            case "chapter" -> Comparator.comparingInt((LeaderboardRowDto r) -> r.levelsCleared);
+            case "minigames" -> Comparator.comparingInt((LeaderboardRowDto r) -> r.miniGamesWon);
+            case "quests" -> Comparator.comparingInt((LeaderboardRowDto r) -> r.questsCompleted);
+            default -> Comparator.comparingLong(LeaderboardRowDto::myPointOrZero);
+        };
+    }
 }

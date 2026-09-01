@@ -22,13 +22,25 @@ public final class WavePlanner {
 
     public static double intervalSeconds(double authoredDelay, int waveIndex, int totalWaves,
                                          WaveType type, int difficultyLevel) {
-        double base = authoredDelay > 0 ? authoredDelay : WavePacing.DEFAULT_WAVE_INTERVAL_SECONDS;
         double progress = totalWaves > 1 ? waveIndex / (double) (totalWaves - 1) : 0;
+        return intervalSeconds(authoredDelay, progress, waveIndex == 0, type, difficultyLevel);
+    }
+
+    /**
+     * The same pacing curve driven by an explicit 0..1 ramp position instead of a
+     * position inside a fixed wave count, so a schedule that has no total (see
+     * {@link WaveDirector}) can still tighten its lulls the same way an authored one does.
+     */
+    public static double intervalSeconds(double authoredDelay, double rampProgress,
+                                         boolean firstWave, WaveType type,
+                                         int difficultyLevel) {
+        double base = authoredDelay > 0 ? authoredDelay : WavePacing.DEFAULT_WAVE_INTERVAL_SECONDS;
+        double progress = WavePacing.clamp(rampProgress, 0, 1);
         double interval = base * WavePacing.LULL_MULTIPLIER
                 * (1.0 - WavePacing.INTERVAL_RAMP * progress);
         interval *= WavePacing.difficultyFactor(difficultyLevel);
         if (type == WaveType.FINAL) interval *= WavePacing.HUGE_WAVE_INTERVAL_BONUS;
-        double floor = waveIndex == 0
+        double floor = firstWave
                 ? Math.max(WavePacing.MIN_WAVE_INTERVAL_SECONDS, WavePacing.FIRST_WAVE_MIN_SECONDS)
                 : WavePacing.MIN_WAVE_INTERVAL_SECONDS;
         return Math.max(floor, interval) * WavePacing.SPAWN_TIMING_MULTIPLIER;

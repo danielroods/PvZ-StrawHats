@@ -217,7 +217,10 @@ public final class NetworkClient {
         }
         boolean stayLoggedIn = user.stayLoggedIn;
         dto.applyTo(user);
-        if (state != null) user.userState = state;
+        if (state != null) {
+            state.repair();
+            user.userState = state;
+        }
         user.stayLoggedIn = stayLoggedIn;
         user.syncedPasswordHash = user.passwordHash;
 
@@ -312,6 +315,16 @@ public final class NetworkClient {
 
     public void submitBonusScore(int score, Consumer<Envelope> reply) {
         send(Protocol.BONUS_SCORE_SUBMIT, Envelope.obj("score", score), reply);
+    }
+
+    /**
+     * Reports one endless (Lottery) run for a chapter. The authoritative copy still
+     * travels with the account state (see {@link #pushStateNow()}); this only makes sure
+     * the server's record for that chapter is at least as good as the run just played.
+     */
+    public void submitLotteryScore(String chapterKey, long score, Consumer<Envelope> reply) {
+        send(Protocol.BONUS_SCORE_SUBMIT,
+                Envelope.obj("score", score, "chapter", chapterKey), reply);
     }
 
     public void sendMatchReady(List<String> loadout) {
@@ -487,10 +500,16 @@ public final class NetworkClient {
 
     private void onMatchEnd(Envelope envelope) {
         if (matchState == null) return;
+        boolean alreadyEnded = matchState.isEnded();
         matchState.end(envelope.getBoolean("youWon", false),
                 envelope.getString("reason", ""));
-        if (envelope.getBoolean("youWon", false) && User.currentUser != null) {
-            User.currentUser.userState.miniGamesWon++;
+        if (alreadyEnded || !envelope.getBoolean("youWon", false)) return;
+
+        int total = envelope.getInt("miniGamesWon", -1);
+        if (total >= 0) {
+            controller.match.mini_games.MiniGameResults.adoptOnlineTotal(total);
+        } else {
+            controller.match.mini_games.MiniGameResults.recordWin("izombie-online", 0);
         }
     }
 }

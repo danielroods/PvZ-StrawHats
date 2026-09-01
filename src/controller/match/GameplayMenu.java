@@ -339,6 +339,7 @@ public class GameplayMenu extends Menu {
             throw new GameException("no active match.");
         }
         try {
+            EndlessScoreboard.recordRun(session);
             var matchBoosts = session.getMatchBoostedPlantIds();
 
             // Danger/lottery nodes are synthetic levels built on the fly by
@@ -388,6 +389,7 @@ public class GameplayMenu extends Menu {
     private void finishMatch(String result) {
         boolean won = result.equalsIgnoreCase("win");
         if (!won) controller.QuestManager.notifyLevelLost();
+        EndlessScoreboard.recordRun(GameSession.getInstance());
         AfterMenu.reset(won);
         App.currentMenu = new AfterMenu();
     }
@@ -406,6 +408,7 @@ public class GameplayMenu extends Menu {
 
     @Override
     public void exitMenu() {
+        EndlessScoreboard.recordRun(GameSession.getInstance());
         App.currentMenu = new GameMenu();
     }
 

@@ -203,13 +203,16 @@ public final class ScreenManager {
         return new PlaceholderScreen(menu);
     }
 
+    /**
+     * Gameplay always resolves on the level's own season, Lottery nodes included: an
+     * endless level carries its chapter's season, so it lands on that chapter's screen
+     * and gets the same map, hazards, overlays and music every other stage there does.
+     * The endless score panel rides on GameScreen itself (see
+     * {@code GameScreen.createEndlessHud}) rather than needing a screen of its own.
+     */
     private static BaseScreen buildGameplayScreen() {
         Level level = model.utils.GameSession.peekInstance() == null
                 ? null : model.utils.GameSession.peekInstance().getLevel();
-
-        if (isDangerOrLotteryLevel(level)) {
-            return new LotteryGameScreen(model.utils.GameSession.peekInstance());
-        }
 
         String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
         if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
@@ -229,43 +232,6 @@ public final class ScreenManager {
         // ConveyorBeltLevel), not a separate screen, so it rides along with whatever
         // season screen (or the plain GameScreen fallback) the level belongs to.
         return new GameScreen();
-    }
-
-    private static boolean isDangerOrLotteryLevel(Level level) {
-        if (level == null) {
-            Level selected = MatchMenu.selectedLevel;
-            if (selected != null) {
-                return isDangerOrLotteryLevel(selected);
-            }
-            return false;
-        }
-
-        String className = level.getClass().getSimpleName().toLowerCase();
-        if (className.contains("danger") || className.contains("lottery") || className.contains("pipe")) {
-            return true;
-        }
-
-        try {
-            if (level.getName() != null) {
-                String name = level.getName().toLowerCase();
-                if (name.contains("danger") || name.contains("lottery") || name.contains("pipe") || name.contains("لوله")) {
-                    return true;
-                }
-            }
-        } catch (Throwable ignored) {}
-
-        String[] checkMethods = {"isDangerNode", "isDanger", "isLottery", "isLotteryLevel"};
-        for (String methodName : checkMethods) {
-            try {
-                java.lang.reflect.Method m = level.getClass().getMethod(methodName);
-                Object val = m.invoke(level);
-                if (Boolean.TRUE.equals(val)) {
-                    return true;
-                }
-            } catch (Throwable ignored) {}
-        }
-
-        return false;
     }
 
     public static BaseScreen getScreen() {

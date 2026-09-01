@@ -12,6 +12,7 @@ import model.match.waves.HazardLanding;
 import model.match.waves.LaneBag;
 import model.match.waves.ScheduledSpawn;
 import model.match.waves.SpawnPlacement;
+import model.match.waves.WaveDirector;
 import model.match.waves.WavePacing;
 import model.match.waves.WavePlan;
 import model.match.waves.WavePlanner;
@@ -22,7 +23,9 @@ import service.GameClock;
 import view.GeneralPrinter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 class WaveScheduler {
@@ -39,6 +42,8 @@ class WaveScheduler {
     private final HazardLanding landings = new HazardLanding();
 
     private List<ZombieWave> waves = new ArrayList<>();
+    private WaveDirector director;
+    private final Map<Integer, ZombieWave> generatedWaves = new HashMap<>();
     private int nextWaveIndex = 0;
     private boolean wavesStarted = false;
     private double wavesStartedAtSeconds = 0;
@@ -76,7 +81,7 @@ class WaveScheduler {
     }
 
     private void announceIncomingHugeWave() {
-        if (activePlan != null || nextWaveIndex >= waves.size() || hugeWaveAlertShown) return;
+        if (activePlan != null || !hasWave(nextWaveIndex) || hugeWaveAlertShown) return;
         if (!waveTypeOf(nextWaveIndex).isHuge()) return;
         double alertAt = Math.max(lullStartedAt,
                 predictedNextWaveStart() - WavePacing.HUGE_WAVE_ALERT_LEAD_SECONDS);
@@ -86,7 +91,7 @@ class WaveScheduler {
     }
 
     private void tryStartNextWave() {
-        if (activePlan != null || nextWaveIndex >= waves.size()) return;
+        if (activePlan != null || !hasWave(nextWaveIndex)) return;
 
         boolean due = GameClock.hasReached(clockSeconds, lullStartedAt + currentInterval);
         if (!due && !canBePulledInEarly()) return;
@@ -94,7 +99,7 @@ class WaveScheduler {
                 lastSpawnEndedAt + WavePacing.minGapAfterSpawnSeconds())) {
             return;
         }
-        startWave(waves.get(nextWaveIndex));
+        startWave(waveAt(nextWaveIndex));
     }
 
     private boolean canBePulledInEarly() {
@@ -159,11 +164,12 @@ class WaveScheduler {
             }
         }
 
-        beginSeasonHazards(wave, waveIndex, level);
+        beginSeasonHazards(wave, waveIndex, level, type);
         if (type.isHuge()) spawnCosmeticFlagZombie();
 
         WavePlan plan = planner.plan(entryAliases(wave), waveIndex, waves.size(), type,
                 session.getDifficultyLevel(), laneBag);
+        generatedWaves.keySet().removeIf(key -> key < waveIndex);
         if (activeSandStorm || activeBeachBigWave) {
             plan = plan.compressed(HAZARD_SPAWN_WINDOW_SECONDS);
         }
@@ -173,10 +179,7 @@ class WaveScheduler {
         planStartedAt = clockSeconds;
         nextWaveIndex++;
         hugeWaveAlertShown = false;
-        currentInterval = nextWaveIndex < waves.size()
-                ? WavePlanner.intervalSeconds(waves.get(nextWaveIndex).getDelay(), nextWaveIndex,
-                waves.size(), waveTypeOf(nextWaveIndex), session.getDifficultyLevel())
-                : 0;
+        currentInterval = intervalBefore(nextWaveIndex);
     }
 
     /**
@@ -202,12 +205,12 @@ class WaveScheduler {
         }
     }
 
-    private void beginSeasonHazards(ZombieWave wave, int waveIndex, Level level) {
+    private void beginSeasonHazards(ZombieWave wave, int waveIndex, Level level, WaveType type) {
         activeSandStorm = false;
         activeBeachBigWave = false;
         if (level == null || level.getSeason() == null) return;
 
-        if (level.getSeason() instanceof Beach beach && beach.isBigWave(wave)) {
+        if (level.getSeason() instanceof Beach beach && isBigWave(beach, wave, type)) {
             activeBeachBigWave = true;
             session.hazards().beginBeachBigWave(waveIndex);
             Flood.applyBigWaveWash(level, session);
@@ -217,6 +220,14 @@ class WaveScheduler {
             session.hazards().beginSandStorm(waveIndex);
             GeneralPrinter.print("Sandstorm incoming! Zombies are being carried onto the lawn.");
         }
+    }
+
+    /**
+     * An endless schedule has no final wave for the beach to break on, so its flag waves
+     * are what the tide rushes in for instead.
+     */
+    private boolean isBigWave(Beach beach, ZombieWave wave, WaveType type) {
+        return beach.isBigWave(wave) || (director != null && type.isHuge());
     }
 
     private List<String> entryAliases(ZombieWave wave) {
@@ -304,10 +315,40 @@ class WaveScheduler {
     }
 
     private WaveType waveTypeOf(int waveIndex) {
+        if (director != null) return director.typeOf(waveIndex);
         if (waveIndex >= 0 && waveIndex < waves.size() && waves.get(waveIndex).isFinalWave()) {
             return WaveType.FINAL;
         }
         return WavePlanner.classify(waveIndex, waves.size());
+    }
+
+    /**
+     * Whether wave {@code index} exists at all. An endless schedule always has one more,
+     * which is what keeps the match from ever reaching "every wave spawned".
+     */
+    private boolean hasWave(int index) {
+        return director != null || index < waves.size();
+    }
+
+    /**
+     * Wave {@code index}, generated on demand when the schedule is endless. Generated
+     * waves are cached only until the scheduler moves past them, so an endless run holds
+     * the current and next wave rather than growing a list without end.
+     */
+    private ZombieWave waveAt(int index) {
+        if (director == null) return waves.get(index);
+        return generatedWaves.computeIfAbsent(index, director::waveAt);
+    }
+
+    private double intervalBefore(int index) {
+        if (director != null) {
+            return WavePlanner.intervalSeconds(director.delaySeconds(index),
+                    director.rampProgress(index), index == 0, waveTypeOf(index),
+                    session.getDifficultyLevel());
+        }
+        if (index >= waves.size()) return 0;
+        return WavePlanner.intervalSeconds(waves.get(index).getDelay(), index, waves.size(),
+                waveTypeOf(index), session.getDifficultyLevel());
     }
 
     private boolean isFrostbiteCaves() {
@@ -317,11 +358,20 @@ class WaveScheduler {
     }
 
     boolean allWavesSpawned() {
-        return nextWaveIndex >= waves.size() && activePlan == null;
+        return director == null && nextWaveIndex >= waves.size() && activePlan == null;
     }
 
     int getTotalWaveCount() {
-        return waves.size();
+        return director != null ? nextWaveIndex : waves.size();
+    }
+
+    boolean isEndless() {
+        return director != null;
+    }
+
+    void setDirector(WaveDirector director) {
+        this.director = director;
+        generatedWaves.clear();
     }
 
     int getWavesSpawnedCount() {
@@ -329,12 +379,12 @@ class WaveScheduler {
     }
 
     double getSecondsUntilNextWave() {
-        if (nextWaveIndex >= waves.size()) return -1;
+        if (!hasWave(nextWaveIndex)) return -1;
         return Math.max(0, predictedNextWaveStart() - clockSeconds);
     }
 
     private double predictedNextWaveStart() {
-        if (nextWaveIndex >= waves.size()) return clockSeconds;
+        if (!hasWave(nextWaveIndex)) return clockSeconds;
         double spawnWindowEndsAt = activePlan != null
                 ? planStartedAt + activePlan.getSpawnWindowSeconds()
                 : lastSpawnEndedAt;
@@ -343,6 +393,7 @@ class WaveScheduler {
     }
 
     private double rawWaveProgress() {
+        if (director != null) return endlessWaveProgress();
         int total = waves.size();
         if (total <= 0) return 0;
         if (nextWaveIndex >= total) return 1.0;
@@ -355,7 +406,21 @@ class WaveScheduler {
     }
 
     private void advanceWaveProgress() {
+        if (director != null) {
+            waveProgress = WavePacing.clamp(rawWaveProgress(), 0, 1);
+            return;
+        }
         waveProgress = WavePacing.clamp(Math.max(waveProgress, rawWaveProgress()), 0, 1);
+    }
+
+    /**
+     * An endless meter cannot fill towards an end that is never reached, so it reports how
+     * far the run is through the wave it is on and starts over on each new wave.
+     */
+    private double endlessWaveProgress() {
+        double span = predictedNextWaveStart() - lullStartedAt;
+        if (span <= GameClock.TIME_EPSILON) return 1.0;
+        return WavePacing.clamp((clockSeconds - lullStartedAt) / span, 0, 1);
     }
 
     double getWaveProgress() {
@@ -364,6 +429,7 @@ class WaveScheduler {
 
     List<Integer> getHugeWaveNumbers() {
         List<Integer> numbers = new ArrayList<>();
+        if (director != null) return numbers;
         for (int index = 0; index < waves.size(); index++) {
             if (waveTypeOf(index).isHuge()) numbers.add(index + 1);
         }
@@ -371,7 +437,7 @@ class WaveScheduler {
     }
 
     boolean isHugeWaveIncoming() {
-        return hugeWaveAlertShown && activePlan == null && nextWaveIndex < waves.size();
+        return hugeWaveAlertShown && activePlan == null && hasWave(nextWaveIndex);
     }
 
     boolean isSpawningWave() {
@@ -380,7 +446,7 @@ class WaveScheduler {
 
     void spawnZombieForCurrentWave(Zombie zombie) {
         if (zombie == null) return;
-        session.getZombies().add(zombie);
+        session.spawnZombie(zombie);
         registerWaveZombie(zombie);
     }
 
@@ -426,9 +492,8 @@ class WaveScheduler {
         laneBag.reset(session.getRows());
         currentWaveZombies = new ArrayList<>();
         currentWaveStartingHp = 0;
-        currentInterval = waves.isEmpty() ? 0
-                : WavePlanner.intervalSeconds(waves.get(0).getDelay(), 0, waves.size(),
-                waveTypeOf(0), session.getDifficultyLevel());
+        generatedWaves.clear();
+        currentInterval = hasWave(0) ? intervalBefore(0) : 0;
     }
 
     void resetWavesStarted() {

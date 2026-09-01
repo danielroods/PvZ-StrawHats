@@ -129,11 +129,9 @@ public class BeghouledController extends Menu {
     }
 
     private void reportOutcome() {
+        if (App.currentMenu != this) return;
         if (game.isWon()) {
-            if (User.currentUser != null) {
-                User.currentUser.userState.miniGamesWon++;
-                User.currentUser.userState.recordMiniGameWin("beghouled", game.getDifficulty());
-            }
+            MiniGameResults.recordWin("beghouled", game.getDifficulty());
 
 
             App.currentMenu = new MiniGameEndMenu("Beghouled", true,

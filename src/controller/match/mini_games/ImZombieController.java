@@ -197,10 +197,7 @@ public class ImZombieController extends Menu {
         Runnable restart = () -> App.currentMenu = new ImZombieController(new IZombie(difficulty));
 
         if (game.isWon()) {
-            if (User.currentUser != null) {
-                User.currentUser.userState.miniGamesWon++;
-                User.currentUser.userState.recordMiniGameWin("izombie", difficulty);
-            }
+            MiniGameResults.recordWin("izombie", difficulty);
             GeneralPrinter.print("Every brain has been eaten. You win!");
             App.currentMenu = new MiniGameEndMenu("I, Zombie", true,
                     "All " + game.getBrainCount() + " brains were eaten with "

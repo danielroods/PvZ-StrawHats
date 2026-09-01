@@ -18,8 +18,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 import controller.ScreenManager;
 import controller.match.MatchMenu;
+import model.match.endless.EndlessChapter;
+import model.match.endless.EndlessLevels;
 import model.match.main.levels.Level;
-import model.match.main.levels.normal_levels.NormalLevel;
 import model.resoures.CurrencyType;
 import model.user_data.User;
 import model.utils.LevelLoader;
@@ -170,32 +171,21 @@ public abstract class StagesScreen extends UiScreen {
     }
 
     /**
-     * The danger node is a hidden, unlisted level of this chapter: it reuses the
-     * chapter's own season (so it plays through the exact same gameplay screen as
-     * every other stage here) plus the first stage's basic settings as a starting
-     * point. No special gameplay logic yet.
+     * The danger node is this chapter's Lottery stage: a hidden, unlisted endless level
+     * built from the chapter's own stages, so it plays the same season (map, hazards,
+     * obstacles, assets) with the chapter's full zombie roster - and, unlike an authored
+     * stage, keeps generating waves for as long as the player survives.
      */
     protected Level buildDangerLevel() {
-        NormalLevel level = new NormalLevel();
-        Level base = chapterLevels.isEmpty() ? null : chapterLevels.get(0);
-        level.setId(base != null ? -(1_000_000 + base.getId()) : -1_000_000);
-        level.setName(getChapterName() + " Lottery");
-        level.setGameMode("Lottery");
-        if (base != null) {
-            level.setSeason(base.getSeason());
-            level.setRows(base.getRows());
-            level.setCols(base.getCols());
-            level.setInitialSun(base.getInitialSun());
-            level.setAvailablePlants(base.getAvailablePlants());
-            level.setForcedPlants(base.getForcedPlants());
-            level.setZombiePool(base.getZombiePool());
-            level.setWaves(base.getWaves());
-        }
-        return level;
+        EndlessChapter chapter = EndlessChapter.forSeason(getChapterName());
+        if (chapter == null) return null;
+        return EndlessLevels.forChapter(chapter, chapterLevels);
     }
 
     protected void playDangerNode() {
-        MatchMenu.selectedLevel = buildDangerLevel();
+        Level lottery = buildDangerLevel();
+        if (lottery == null) return;
+        MatchMenu.selectedLevel = lottery;
         runCommand("start game");
     }
 

@@ -123,13 +123,24 @@ public class AccountHandlers {
 
     private void bonusScore(ClientSession session, Envelope envelope) {
         if (!requireLogin(session, envelope)) return;
-        int score = envelope.getInt("score", 0);
-        Integer before = server.accounts().bonusScoreOf(session.getUsername());
-        server.accounts().submitBonusScore(session.getUsername(), score);
-        Integer best = server.accounts().bonusScoreOf(session.getUsername());
-        boolean improved = before == null || (best != null && best > before);
+        String username = session.getUsername();
+        long score = envelope.getLong("score", 0);
+        String chapter = envelope.getString("chapter");
+
+        boolean improved = chapter == null || chapter.isBlank()
+                ? server.accounts().submitBonusScore(username,
+                        (int) Math.min(Integer.MAX_VALUE, score))
+                : server.accounts().submitLotteryScore(username, chapter, score);
+
         server.accounts().saveNow();
-        session.sendOk(envelope.id, Envelope.obj("bestScore", best, "improved", improved));
+        JsonObject payload = Envelope.obj("bestScore",
+                server.accounts().bonusScoreOf(username), "improved", improved);
+        if (chapter != null && !chapter.isBlank()) {
+            payload.addProperty("chapter", chapter);
+            payload.addProperty("chapterBest",
+                    server.accounts().lotteryScoreOf(username, chapter));
+        }
+        session.sendOk(envelope.id, payload);
     }
 
     private boolean requireLogin(ClientSession session, Envelope envelope) {

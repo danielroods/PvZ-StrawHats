@@ -1,6 +1,7 @@
 package model.match.main.levels;
 
 import model.match.main.season.Season;
+import model.match.waves.WaveDirector;
 import model.match_mechanisms.ZombieWave;
 import model.utils.GameSession;
 
@@ -64,6 +65,10 @@ public abstract class Level {
 
     public void initSpecial(GameSession session) {
         // default no‑op
+    }
+
+    public WaveDirector getWaveDirector() {
+        return null;
     }
 
 
