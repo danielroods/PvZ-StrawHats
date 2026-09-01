@@ -190,6 +190,51 @@ class PamRenderer {
         }
     }
 
+    /**
+     * Same as {@link #drawPam}, but rotates the clip around its origin to point along an
+     * arbitrary travel direction instead of only mirroring left/right - used for shots
+     * that fly diagonally (e.g. Rotobaga's four diagonal directions) whose art is drawn
+     * facing "right" (0 degrees) and needs to visually track the actual launch angle,
+     * not just flip horizontally when travelling leftward.
+     */
+    boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
+                           float rotationDegrees) {
+        PamPlayer pamPlayer = screen.pamPlayer;
+        if (pamPlayer == null || path == null) return false;
+        try {
+            String pamPath = path;
+            if (pamPath.startsWith("assets/pvz-assets/")) {
+                pamPath = pamPath.substring("assets/pvz-assets/".length());
+            }
+            String clipName = AnimationFactory.resolveClipNameForPath(pamPath, preferred);
+            if (clipName == null) clipName = preferred;
+            if (clipName == null || clipName.isBlank()) return false;
+
+            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
+            if (clip == null) return false;
+
+            screen.batch.flush();
+            com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();
+
+            screen.batch.getTransformMatrix()
+                    .translate(x, y, 0f)
+                    .rotate(0f, 0f, 1f, rotationDegrees)
+                    .scale(scale, scale, 1f);
+            screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
+            pamPlayer.draw(screen.batch, clip, time, 0f, 0f, false);
+
+            screen.batch.flush();
+            screen.batch.setTransformMatrix(old);
+            return true;
+        } catch (Throwable t) {
+            if (GameSettings.get().isDebugMode()) {
+                Gdx.app.error("DRAWPAM_ROTATE_FAIL",
+                        "drawPamRotated threw for path=" + path + " preferred=" + preferred, t);
+            }
+            return false;
+        }
+    }
+
     String resolveFuseClipState(String displayName) {
         String state = AnimationFactory.firstAvailableClipState(displayName, "explode", "attack");
         return state == null ? "attack" : state;

@@ -193,6 +193,7 @@ public class GameScreen extends UiScreen {
         hud.setFoodAction(() -> interaction.armTool(BoardInteraction.Tool.FOOD));
         hud.setNukeAction(this::triggerNukeCheat);
         hud.setPauseAction(this::togglePause);
+        hud.setSpeedAction(this::cycleGameSpeed);
         hud.setStartWavesAction(() -> runCommand("start zombie waves"));
         hud.setDebugAddSunAction(() -> runCommand("cheat add -n 25 suns"));
         hud.setDebugAddFoodAction(() -> runCommand("cheat add-plant-food"));
@@ -458,6 +459,13 @@ public class GameScreen extends UiScreen {
         runCommand(won ? "end game -r win" : "end game -r lose");
     }
 
+    private void cycleGameSpeed() {
+        GameSettings settings = GameSettings.get();
+        int next = settings.getGameSpeed() >= 3 ? 1 : settings.getGameSpeed() + 1;
+        settings.setGameSpeed(next);
+        settings.save();
+    }
+
     private void togglePause() {
         if (matchFinished) return;
         if (paused) return;
@@ -598,6 +606,15 @@ public class GameScreen extends UiScreen {
 
     public boolean drawPamMirrored(String path, String preferred, float time, float x, float y, float scale) {
         return pam.drawPamMirrored(path, preferred, time, x, y, scale);
+    }
+
+    /**
+     * Rotates the clip to face an arbitrary travel direction instead of only mirroring
+     * left/right - see {@link PamRenderer#drawPamRotated}.
+     */
+    public boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
+                                  float rotationDegrees) {
+        return pam.drawPamRotated(path, preferred, time, x, y, scale, rotationDegrees);
     }
 
     public boolean drawPamStretched(String path, String preferred, float time, float x, float y,

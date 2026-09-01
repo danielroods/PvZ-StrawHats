@@ -64,6 +64,7 @@ public final class MatchHud extends Table implements Disposable {
     private final Label waveLabel;
     private final Label objectiveLabel;
     private final TextButton pauseButton;
+    private final TextButton speedButton;
     private final TextButton startButton;
     private final TextButton debugAddSunButton;
     private final TextButton debugAddFoodButton;
@@ -81,6 +82,7 @@ public final class MatchHud extends Table implements Disposable {
     private Runnable foodAction;
     private Runnable nukeAction;
     private Runnable pauseAction;
+    private Runnable speedAction;
     private Runnable startWavesAction;
     private Runnable debugAddSunAction;
     private Runnable debugAddFoodAction;
@@ -216,7 +218,10 @@ public final class MatchHud extends Table implements Disposable {
         debugAddSunButton = new TextButton("+25 Sun", skin);
         debugAddFoodButton = new TextButton("+1 Food", skin);
 
+        speedButton = new TextButton(model.utils.GameSettings.get().getGameSpeed() + "x", skin);
+
         pauseButton.addListener(click(() -> { if (pauseAction != null) pauseAction.run(); }));
+        speedButton.addListener(click(() -> { if (speedAction != null) speedAction.run(); }));
         shovelButton.addListener(click(() -> { if (shovelAction != null) shovelAction.run(); }));
         foodButton.addListener(click(() -> { if (foodAction != null) foodAction.run(); }));
         nukeButton.addListener(click(() -> {
@@ -250,6 +255,7 @@ public final class MatchHud extends Table implements Disposable {
 
         Table coinGroup = new Table();
         coinGroup.add(resource(coinLabel, "assets/images/ui/buttons_coin_buy_normal.png")).size(96, 44).padRight(4);
+        coinGroup.add(speedButton).size(50, 42).padRight(4);
         coinGroup.add(pauseButton).size(50, 42);
 
         Table sunArea = new Table();
@@ -370,6 +376,7 @@ public final class MatchHud extends Table implements Disposable {
     public void setFoodAction(Runnable action) { foodAction = action; }
     public void setNukeAction(Runnable action) { nukeAction = action; }
     public void setPauseAction(Runnable action) { pauseAction = action; }
+    public void setSpeedAction(Runnable action) { speedAction = action; }
     public void setStartWavesAction(Runnable action) { startWavesAction = action; }
     public void setDebugAddSunAction(Runnable action) { debugAddSunAction = action; }
     public void setDebugAddFoodAction(Runnable action) { debugAddFoodAction = action; }
@@ -398,6 +405,7 @@ public final class MatchHud extends Table implements Disposable {
         debugRow.setVisible(model.utils.GameSettings.get().isDebugMode()
                 && (sunCheatVisible || plantFoodCheatVisible));
         nukeButton.setVisible(nukeCheatVisible);
+        speedButton.setText(model.utils.GameSettings.get().getGameSpeed() + "x");
         updateLoadout(session, selectedPlants);
         updateConveyor(session);
     }
