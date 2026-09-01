@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plants vs. Zombies — Java/LibGDX Recreation</title>
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Karla:wght@400;500;600;700&display=swap');
+
+:root {
+  --soil: #14210b;
+  --soil-deep: #0d1607;
+  --lawn: #e8f7c9;
+  --lawn-dim: #d5eab0;
+  --sun: #ffb703;
+  --sun-bright: #fff8d6;
+  --leaf: #5b8c2a;
+  --leaf-dark: #3f5c1a;
+  --zombie: #c94a3d;
+  --zombie-dark: #8f3128;
+  --ink: #1a2e0f;
+  --paper: #f4efd8;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Karla', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--soil);
+  color: var(--paper);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--sun); color: var(--soil); }
+
+a { color: inherit; text-decoration: none; }
+
+img { max-width: 100%; display: block; }
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+p { max-width: 62ch; }
+
+/* ============ FOCUS / ACCESSIBILITY ============ */
+a:focus-visible, button:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ============ NAV ============ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 20px 0;
+  background: linear-gradient(to bottom, rgba(13, 22, 7, 0.92), rgba(13, 22, 7, 0));
+  backdrop-filter: blur(2px);
+}
+
+.nav .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-mark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--sun-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-mark .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sun);
+  box-shadow: 0 0 12px var(--sun);
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nav-links a {
+  color: var(--lawn-dim);
+  transition: color 0.2s ease;
+}
+
+.nav-links a:hover { color: var(--sun-bright); }
+
+@media (max-width: 720px) {
+  .nav-links { display: none; }
+}
+
+/* ============ HERO ============ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 900px 500px at 50% 120%, rgba(91, 140, 42, 0.35), transparent),
+    linear-gradient(180deg, var(--soil-deep) 0%, var(--soil) 55%, #1c2e0e 100%);
+}
+
+.hero-sun {
+  position: absolute;
+  top: 14%;
+  right: 12%;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--sun-bright), var(--sun) 55%, #d99400 100%);
+  box-shadow: 0 0 60px 20px rgba(255, 183, 3, 0.35), 0 0 120px 60px rgba(255, 183, 3, 0.12);
+  opacity: 0;
+  animation: sunrise 1.8s ease-out 0.2s forwards;
+}
+
+@keyframes sunrise {
+  0% { opacity: 0; transform: translateY(60px) scale(0.7); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hero-rows {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 42%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 62px
+    ),
+    linear-gradient(180deg, transparent 0%, rgba(91, 140, 42, 0.18) 100%);
+  opacity: 0;
+  animation: rowsIn 1.2s ease-out 0.6s forwards;
+}
+
+@keyframes rowsIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.hero-eyebrow {
+  font-size: 15px;
+  color: var(--leaf);
+  font-weight: 700;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: riseIn 0.7s ease-out 0.9s forwards;
+}
+
+.hero h1 {
+  font-size: clamp(42px, 7vw, 84px);
+  color: var(--lawn);
+  max-width: 14ch;
+  opacity: 0;
+  animation: riseIn 0.8s ease-out 1.05s forwards;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--sun);
+}
+
+.hero-sub {
+  margin-top: 24px;
+  font-size: 19px;
+  color: var(--lawn-dim);
+  max-width: 46ch;
+  opacity: 0;
+  animation: riseIn 0.8s ease-out 1.25s forwards;
+}
+
+@keyframes riseIn {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.hero-stats {
+  display: flex;
+  gap: 48px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: riseIn 0.8s ease-out 1.45s forwards;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--sun-bright);
+}
+
+.hero-stat .label {
+  font-size: 13px;
+  color: var(--lawn-dim);
+  margin-top: 2px;
+}
+
+.scroll-cue {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: var(--lawn-dim);
+  opacity: 0;
+  animation: riseIn 0.8s ease-out 1.8s forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============ SECTION SHELL ============ */
+.section {
+  padding: 120px 0;
+  position: relative;
+}
+
+.section-day {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.section-day p { color: #3a3527; }
+
+.section-header {
+  max-width: 640px;
+  margin-bottom: 72px;
+}
+
+.section-kicker {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--leaf);
+  margin-bottom: 14px;
+}
+
+.section-day .section-kicker { color: var(--leaf-dark); }
+
+.section-header h2 {
+  font-size: clamp(30px, 4vw, 46px);
+  color: var(--lawn);
+}
+
+.section-day .section-header h2 { color: var(--ink); }
+
+.section-header p {
+  margin-top: 18px;
+  font-size: 17px;
+  color: var(--lawn-dim);
+}
+
+/* ============ ARCHITECTURE ============ */
+.arch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  background: rgba(26, 46, 15, 0.12);
+  border: 1px solid rgba(26, 46, 15, 0.14);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .arch-grid { grid-template-columns: 1fr; }
+}
+
+.arch-cell {
+  background: var(--paper);
+  padding: 32px 24px;
+  transition: background 0.25s ease;
+}
+
+.arch-cell:hover { background: #ece5c8; }
+
+.arch-cell .glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper);
+  margin-bottom: 18px;
+}
+
+.arch-cell h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+
+.arch-cell p {
+  font-size: 14px;
+  color: #5a5340;
+  margin: 0;
+}
+
+.arch-flow {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #6b6450;
+  flex-wrap: wrap;
+}
+
+.arch-flow .seg {
+  padding: 6px 12px;
+  border: 1px solid rgba(26, 46, 15, 0.2);
+  border-radius: 100px;
+  font-weight: 600;
+}
+
+.arch-flow .arrow { color: var(--leaf-dark); }
+
+/* ============ CHAPTERS ============ */
+.section-night {
+  background: var(--soil);
+}
+
+.chapter-strip {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 8px 4px 24px 4px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--leaf) transparent;
+}
+
+.chapter-strip::-webkit-scrollbar { height: 6px; }
+.chapter-strip::-webkit-scrollbar-thumb { background: var(--leaf); border-radius: 10px; }
+
+.chapter-card {
+  scroll-snap-align: start;
+  flex: 0 0 340px;
+  border-radius: 18px;
+  padding: 32px 28px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(232, 247, 201, 0.1);
+}
+
+.chapter-card .num {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  opacity: 0.6;
+  margin-bottom: 24px;
+}
+
+.chapter-card h3 {
+  font-size: 24px;
+  color: var(--sun-bright);
+  margin-bottom: 12px;
+}
+
+.chapter-card p {
+  font-size: 14.5px;
+  color: rgba(232, 247, 201, 0.75);
+  margin-bottom: 22px;
+}
+
+.chapter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chapter-tags span {
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--lawn-dim);
+}
+
+.chapter-card.egypt { background: linear-gradient(160deg, #3a2e12, #1e1808); }
+.chapter-card.beach { background: linear-gradient(160deg, #0e3038, #0a1e24); }
+.chapter-card.darkages { background: linear-gradient(160deg, #2b1220, #170a12); }
+/* ============ SYSTEMS / SEED PACKETS ============ */
+.packet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .packet-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .packet-grid { grid-template-columns: 1fr; }
+}
+
+.packet {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.packet:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.35);
+}
+
+.packet-top {
+  padding: 20px 20px 16px 20px;
+  border-bottom: 3px dashed rgba(26, 46, 15, 0.25);
+  position: relative;
+}
+
+.packet-cost {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--sun);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+}
+
+.packet-top h3 {
+  font-size: 18px;
+  max-width: 15ch;
+  margin-top: 6px;
+}
+
+.packet-family {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--leaf-dark);
+  text-transform: lowercase;
+  margin-top: 6px;
+}
+
+.packet-body {
+  padding: 18px 20px 22px 20px;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(91, 140, 42, 0.05) 0px,
+    rgba(91, 140, 42, 0.05) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.packet-body p {
+  font-size: 14px;
+  color: #4a4530;
+  margin: 0;
+}
+
+/* ============ ENGINEERING NOTES ============ */
+.note-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.note {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 40px;
+  padding: 36px 0;
+  border-top: 1px solid rgba(232, 247, 201, 0.12);
+}
+
+.note:last-child { border-bottom: 1px solid rgba(232, 247, 201, 0.12); }
+
+@media (max-width: 720px) {
+  .note { grid-template-columns: 1fr; gap: 10px; }
+}
+
+.note-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--zombie);
+  align-self: start;
+}
+
+.note h3 {
+  font-size: 19px;
+  color: var(--sun-bright);
+  margin-bottom: 10px;
+}
+
+.note p {
+  font-size: 15px;
+  color: rgba(232, 247, 201, 0.7);
+  max-width: 68ch;
+}
+
+.note code {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--sun-bright);
+}
+
+/* ============ STACK ============ */
+.stack-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.stack-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border: 1px solid rgba(26, 46, 15, 0.2);
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #fff;
+}
+
+.stack-chip .sw {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--leaf-dark);
+}
+
+/* ============ PHASE TIMELINE ============ */
+.phase-line {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+
+@media (max-width: 860px) {
+  .phase-line { grid-template-columns: 1fr; gap: 0; }
+}
+
+.phase-line::before {
+  content: '';
+  position: absolute;
+  top: 26px;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--leaf) 0 8px, transparent 8px 16px);
+  z-index: 0;
+}
+
+@media (max-width: 860px) {
+  .phase-line::before {
+    top: 0;
+    bottom: 0;
+    left: 26px;
+    right: auto;
+    width: 2px;
+    height: auto;
+    background: repeating-linear-gradient(180deg, var(--leaf) 0 8px, transparent 8px 16px);
+  }
+}
+
+.phase {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 860px) {
+  .phase {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+}
+
+.phase-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--soil);
+  border: 2px solid var(--leaf);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--sun-bright);
+  margin-bottom: 20px;
+}
+
+.phase h3 {
+  font-size: 19px;
+  color: var(--lawn);
+  margin-bottom: 8px;
+}
+
+.phase p {
+  font-size: 14px;
+  color: var(--lawn-dim);
+  margin: 0;
+}
+
+
+.collector {
+  position: relative;
+  height: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 700px 300px at 50% 100%, rgba(91, 140, 42, 0.3), transparent),
+    linear-gradient(180deg, #0d1607 0%, #16240b 100%);
+  border: 1px solid rgba(232, 247, 201, 0.12);
+  cursor: crosshair;
+}
+
+.collector-hud {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(13, 22, 7, 0.7);
+  border: 1px solid rgba(255, 183, 3, 0.35);
+  padding: 10px 18px;
+  border-radius: 100px;
+  backdrop-filter: blur(4px);
+}
+
+.collector-hud .icon { font-size: 20px; }
+
+.collector-hud .count {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--sun-bright);
+  min-width: 3ch;
+}
+
+.collector-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(232, 247, 201, 0.55);
+  z-index: 5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.collector-reset {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(232, 247, 201, 0.2);
+  color: var(--lawn-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.2s ease;
+}
+
+.collector-reset:hover { background: rgba(255, 255, 255, 0.16); }
+
+.falling-sun {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--sun-bright), var(--sun) 60%, #d99400 100%);
+  box-shadow: 0 0 18px rgba(255, 183, 3, 0.55);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  animation: fall linear forwards;
+}
+
+.falling-sun:hover { filter: brightness(1.15); }
+
+@keyframes fall {
+  0% { transform: translateY(-60px) rotate(0deg); }
+  100% { transform: translateY(460px) rotate(40deg); }
+}
+
+.sun-pop {
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--sun-bright);
+  pointer-events: none;
+  animation: popFloat 0.7s ease-out forwards;
+}
+
+@keyframes popFloat {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+/* ============ BUILD PIPELINE ============ */
+.gradle-panel {
+  background: var(--soil-deep);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 247, 201, 0.12);
+}
+
+.gradle-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(232, 247, 201, 0.1);
+}
+
+.gradle-titlebar .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.gradle-titlebar .filename {
+  margin-left: 10px;
+  font-size: 13px;
+  color: rgba(232, 247, 201, 0.6);
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+.gradle-body {
+  padding: 26px 28px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: rgba(232, 247, 201, 0.85);
+  overflow-x: auto;
+}
+
+.g-kw { color: #e0a3f0; }
+.g-str { color: var(--sun-bright); }
+.g-cm { color: rgba(232, 247, 201, 0.4); }
+.g-fn { color: #7fd6e0; }
+
+
+.footer {
+  background: var(--soil-deep);
+  padding: 64px 0 40px 0;
+  text-align: center;
+}
+
+.footer .mark {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--sun-bright);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.footer p {
+  font-size: 14px;
+  color: rgba(232, 247, 201, 0.5);
+  margin: 0 auto;
+}
+
+</style>
+</head>
+<body>
+
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-mark"><span class="dot"></span> PvZ Java Recreation</div>
+    <div class="nav-links">
+      <a href="#collect">Play</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#phases">Phases</a>
+      <a href="#chapters">Chapters</a>
+      <a href="#systems">Systems</a>
+      <a href="#engineering">Engineering</a>
+      <a href="#build">Build</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-sun"></div>
+  <div class="hero-rows"></div>
+  <div class="wrap hero-content">
+    <div class="hero-eyebrow">A university systems project, built from the ground up</div>
+    <h1>The lawn remembers <em>everything</em> you planted on it.</h1>
+    <p class="hero-sub">
+      A complete Plants vs. Zombies 2 recreation in Java — a terminal-driven engine
+      rebuilt with a full LibGDX graphical layer, four chapters, and a layered MVC
+      architecture designed to survive its own growth.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="num">4</div>
+        <div class="label">Chapters</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">MVC</div>
+        <div class="label">Architecture</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">2</div>
+        <div class="label">Build phases</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">∞</div>
+        <div class="label">Sun collected</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue">
+    <span>Scroll the lawn</span>
+    <span class="line"></span>
+  </div>
+</section>
+
+<section class="section section-day" id="collect">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker">Try It</div>
+      <h2>Collect a little sun before you keep reading.</h2>
+      <p>
+        The actual game drops sun from the sky and lets you click it before
+        it disappears. Here's a tiny, honest version of that same loop —
+        built with nothing but a handful of DOM nodes and CSS keyframes.
+      </p>
+    </div>
+
+    <div class="collector" id="collector">
+      <div class="collector-hud">
+        <span class="icon">☀️</span>
+        <span class="count" id="sunCount">0</span>
+      </div>
+      <button class="collector-reset" id="collectorReset" type="button">Reset</button>
+      <div class="collector-hint">Click the suns before they hit the ground</div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var field = document.getElementById('collector');
+  var countEl = document.getElementById('sunCount');
+  var resetBtn = document.getElementById('collectorReset');
+  var total = 0;
+  var spawnTimer = null;
+  var active = [];
+
+  function fieldWidth() {
+    return field.clientWidth;
+  }
+
+  function spawnSun() {
+    var sun = document.createElement('button');
+    sun.className = 'falling-sun';
+    sun.type = 'button';
+    sun.setAttribute('aria-label', 'Collect sun');
+    var travelMs = 3400 + Math.random() * 1800;
+    var startX = 30 + Math.random() * Math.max(fieldWidth() - 90, 40);
+    sun.style.left = startX + 'px';
+    sun.style.top = '-60px';
+    sun.style.animationDuration = travelMs + 'ms';
+
+    var collected = false;
+    function collect(e) {
+      if (collected) return;
+      collected = true;
+      total += 25;
+      countEl.textContent = total;
+      var pop = document.createElement('div');
+      pop.className = 'sun-pop';
+      pop.textContent = '+25';
+      pop.style.left = sun.style.left;
+      pop.style.top = sun.style.top;
+      field.appendChild(pop);
+      setTimeout(function () { pop.remove(); }, 750);
+      sun.remove();
+      active = active.filter(function (s) { return s !== sun; });
+    }
+
+    sun.addEventListener('click', collect);
+    sun.addEventListener('animationend', function () {
+      if (!collected) { sun.remove(); active = active.filter(function (s) { return s !== sun; }); }
+    });
+
+    field.appendChild(sun);
+    active.push(sun);
+  }
+
+  function startLoop() {
+    if (spawnTimer) return;
+    spawnTimer = setInterval(spawnSun, 1400);
+    spawnSun();
+  }
+
+  function resetField() {
+    total = 0;
+    countEl.textContent = '0';
+    active.forEach(function (s) { s.remove(); });
+    active = [];
+  }
+
+  resetBtn.addEventListener('click', resetField);
+
+  var started = false;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting && !started) {
+        started = true;
+        startLoop();
+      }
+    });
+  }, { threshold: 0.3 });
+  io.observe(field);
+})();
+</script>
+
+<section class="section section-day" id="architecture">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker">Architecture</div>
+      <h2>Five layers, one clear rule: views stay dumb.</h2>
+      <p>
+        Every screen, animation, and button reads from the model — never the
+        other way around. It's what let the whole graphical layer get built
+        in Phase 2 without rewriting the game logic underneath it.
+      </p>
+    </div>
+
+    <div class="arch-grid">
+      <div class="arch-cell">
+        <div class="glyph" style="background: var(--leaf-dark);">M</div>
+        <h3>model/</h3>
+        <p>Game state, entities, plants, zombies, levels, user data. The single source of truth.</p>
+      </div>
+      <div class="arch-cell">
+        <div class="glyph" style="background: var(--sun); color: var(--ink);">V</div>
+        <h3>view/</h3>
+        <p>LibGDX screens, renderers, UI components, PAM-driven animation playback.</p>
+      </div>
+      <div class="arch-cell">
+        <div class="glyph" style="background: var(--zombie-dark);">C</div>
+        <h3>controller/</h3>
+        <p>Input handling, game loop control, screen navigation and back-stack.</p>
+      </div>
+      <div class="arch-cell">
+        <div class="glyph" style="background: #6b5a3a;">S</div>
+        <h3>service/</h3>
+        <p>Cross-cutting systems — JSON parsing, email, asset management.</p>
+      </div>
+      <div class="arch-cell">
+        <div class="glyph" style="background: #3a5a6b;">N</div>
+        <h3>net/</h3>
+        <p>The embedded TA grading portal and account sync client/server.</p>
+      </div>
+    </div>
+
+    <div class="arch-flow">
+      <span class="seg">Player input</span>
+      <span class="arrow">→</span>
+      <span class="seg">controller/</span>
+      <span class="arrow">→</span>
+      <span class="seg">model/</span>
+      <span class="arrow">→</span>
+      <span class="seg">view/ renders the result</span>
+    </div>
+  </div>
+</section>
+
+<section class="section section-night" id="phases">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker" style="color: var(--sun);">How It Got Built</div>
+      <h2>Four phases, each one a different discipline.</h2>
+      <p style="color: var(--lawn-dim);">
+        Not four sprints of the same work — four genuinely different jobs,
+        done in order, each one depending on the last.
+      </p>
+    </div>
+
+    <div class="phase-line">
+      <div class="phase">
+        <div class="phase-badge">01</div>
+        <h3>Design</h3>
+        <p>Mapped the full system before writing a line — entities, level types, chapter mechanics, and the model/view/controller boundaries that everything else had to respect.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-badge">02</div>
+        <h3>Code</h3>
+        <p>Built the terminal-driven core engine — plant and zombie logic, combat, waves, accounts, progression — with zero graphics, proving the rules before rendering a single pixel.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-badge">03</div>
+        <h3>Graphics</h3>
+        <p>Layered a full LibGDX view on top, screen by screen, changing as little of the model and controller as the spec allowed — animation, UI, and chapter identity, without touching the rules underneath.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-badge">04</div>
+        <h3>Network</h3>
+        <p>Added the systems that reach outside the game itself — the embedded TA grading server, account sync, and automated email confirmations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-night" id="chapters">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker" style="color: var(--sun);">Chapters</div>
+      <h2>Four fronts. Same lawn, different rules.</h2>
+      <p style="color: var(--lawn-dim);">
+        Each chapter shares the core planting-and-defending loop, but changes
+        the terrain under your feet — tides, graves, frost — enough that the
+        same eight plant slots never feel routine twice.
+      </p>
+    </div>
+
+    <div class="chapter-strip">
+      <div class="chapter-card egypt">
+        <div class="num" style="color: #e0b060;">Chapter 01</div>
+        <h3>Ancient Egypt</h3>
+        <p>Where it all began — classic waves, tombs, and the first taste of what the lawn can throw at you.</p>
+        <div class="chapter-tags"><span>Classic waves</span><span>Tomb hazards</span></div>
+      </div>
+      <div class="chapter-card beach">
+        <div class="num" style="color: #7fd6e0;">Chapter 02</div>
+        <h3>Big Wave Beach</h3>
+        <p>The tide rewrites the map mid-fight. Watch the shoreline — low tide opens doors you didn't ask for.</p>
+        <div class="chapter-tags"><span>Dynamic tide</span><span>Low-tide ambush</span></div>
+      </div>
+      <div class="chapter-card darkages">
+        <div class="num" style="color: #e08fa8;">Chapter 03</div>
+        <h3>Dark Ages</h3>
+        <p>Graves dot the field, and every so often, all of them open at once. Necromancy doesn't knock.</p>
+        <div class="chapter-tags"><span>Grave types</span><span>Necromancy tiles</span></div>
+      </div>
+      <div class="chapter-card frostbite">
+        <div class="num" style="color: #8fc4e0;">Chapter 04</div>
+        <h3>Frostbite Caves</h3>
+        <p>Ice creeps across your own plants as fast as it does the zombies. Three freeze stages, zero mercy.</p>
+        <div class="chapter-tags"><span>Freezing winds</span><span>Slippery ground</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-day" id="systems">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker">Core Systems</div>
+      <h2>Six systems doing the real work.</h2>
+      <p>
+        Presented here the way the game presents its own plants — every
+        system gets its own packet, its own cost, its own reason to exist.
+      </p>
+    </div>
+
+    <div class="packet-grid">
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">🌻</div>
+          <h3>PAM Animation Engine</h3>
+          <div class="packet-family">idle · attack · special states</div>
+        </div>
+        <div class="packet-body">
+          <p>A custom TextureBank / PamPlayer pipeline drives every plant and zombie's idle, attack, and reaction animation from a single opaque, reusable core.</p>
+        </div>
+      </div>
+
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">🗺️</div>
+          <h3>World Map & Stages</h3>
+          <div class="packet-family">shared base, per-chapter variation</div>
+        </div>
+        <div class="packet-body">
+          <p>All four chapter maps inherit from one StagesScreen base — shared enums, shared logic, template methods for what each chapter does differently.</p>
+        </div>
+      </div>
+
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">🎴</div>
+          <h3>Collection & Cards</h3>
+          <div class="packet-family">reused everywhere, built once</div>
+        </div>
+        <div class="packet-body">
+          <p>One SeedPacketCardFactory renders plant/zombie cards across the collection screen, the shop, and in-battle plant selection — zero duplicated UI logic.</p>
+        </div>
+      </div>
+
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">⚔️</div>
+          <h3>Combat & Armor</h3>
+          <div class="packet-family">degrades visibly, dies loudly</div>
+        </div>
+        <div class="packet-body">
+          <p>Cone, bucket, helmet, newspaper, and knight's-shoulder armor types each track and visually reflect their own remaining health.</p>
+        </div>
+      </div>
+
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">🎯</div>
+          <h3>Boss Encounters</h3>
+          <div class="packet-family">three phases, one very bad robot</div>
+        </div>
+        <div class="packet-body">
+          <p>Zomboss fights run a randomized attack cycle against a three-segment health bar, with a stagger window between each phase.</p>
+        </div>
+      </div>
+
+      <div class="packet">
+        <div class="packet-top">
+          <div class="packet-cost">📧</div>
+          <h3>TA Grading Portal</h3>
+          <div class="packet-family">local server, real email</div>
+        </div>
+        <div class="packet-body">
+          <p>A standalone embedded HTTP server lets course TAs sign in, credit in-game currency, and trigger a styled HTML confirmation email automatically.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-night" id="engineering">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker" style="color: var(--sun);">Field Notes</div>
+      <h2>Bugs that taught the codebase something.</h2>
+      <p style="color: var(--lawn-dim);">
+        The unglamorous half of building this — four problems that only gave
+        up their real cause after actually running the code, not reading it.
+      </p>
+    </div>
+
+    <div class="note-list">
+      <div class="note">
+        <div class="note-tag">Runtime hang</div>
+        <div>
+          <h3>The catch-up loop that never caught up</h3>
+          <p>
+            Vasebreaker would occasionally freeze the whole game. The cause
+            was a fixed-timestep loop in <code>GameScreen.render()</code>
+            with no upper bound — under load it tried to simulate more and
+            more ticks per frame until the app effectively stopped. Fixed
+            with a hard <code>MAX_TICKS_PER_FRAME</code> cap.
+          </p>
+        </div>
+      </div>
+
+      <div class="note">
+        <div class="note-tag">Silent logic bug</div>
+        <div>
+          <h3>A sign that only broke under motion</h3>
+          <p>
+            The Jester zombie's deflection logic looked correct on paper —
+            static analysis found nothing. Only running it revealed a
+            <code>Math.abs(speed.x())</code> call quietly discarding
+            direction, sending deflected projectiles the wrong way every
+            time.
+          </p>
+        </div>
+      </div>
+
+      <div class="note">
+        <div class="note-tag">Framework gotcha</div>
+        <div>
+          <h3>The layout container that ate every click</h3>
+          <p>
+            Overlay UI stopped receiving touch input for no visible reason.
+            Turned out <code>Stack.add()</code> in LibGDX silently forces
+            every child to fill the entire screen on each layout pass —
+            overriding manual positioning underneath it. Overlays moved to
+            <code>stage.addActor()</code> instead.
+          </p>
+        </div>
+      </div>
+
+      <div class="note">
+        <div class="note-tag">Refactor</div>
+        <div>
+          <h3>Four maps, one shared spine</h3>
+          <p>
+            Each chapter's world map screen started as its own copy-pasted
+            class. Unified into a single <code>StagesScreen</code> base with
+            shared enums and template methods — Dark Ages, the most visually
+            divergent chapter, overrides only what it truly needs to.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-day" id="build">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker">Build Pipeline</div>
+      <h2>What Gradle actually pulls in.</h2>
+      <p>
+        The dependency graph, roughly — grouped the way the project itself
+        is grouped, from rendering down to the one-off email service.
+      </p>
+    </div>
+
+    <div class="gradle-panel">
+      <div class="gradle-titlebar">
+        <span class="dot" style="background:#c94a3d;"></span>
+        <span class="dot" style="background:#ffb703;"></span>
+        <span class="dot" style="background:#5b8c2a;"></span>
+        <span class="filename">build.gradle</span>
+      </div>
+      <div class="gradle-body"><span class="g-cm">// core graphics</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.badlogicgames.gdx:gdx:1.12.1'</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.badlogicgames.gdx:gdx-backend-lwjgl3:1.12.1'</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.badlogicgames.gdx:gdx-platform:1.12.1:natives-desktop'</span>
+
+<span class="g-cm">// data + config parsing</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.google.code.gson:gson:2.10.1'</span>
+
+<span class="g-cm">// networking — TA grading portal + account sync</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.sun.net.httpserver:http:1.0'</span>
+
+<span class="g-cm">// transactional email — thank-you + reset flows</span>
+<span class="g-fn">implementation</span> <span class="g-str">'com.sun.mail:jakarta.mail:2.0.1'</span>
+
+<span class="g-kw">tasks.named</span>(<span class="g-str">'test'</span>) {
+    useJUnitPlatform()
+}</div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-day" id="stack">
+  <div class="wrap">
+    <div class="section-header">
+      <div class="section-kicker">Built With</div>
+      <h2>The tools under the lawn.</h2>
+    </div>
+
+    <div class="stack-row">
+      <div class="stack-chip"><span class="sw"></span> Java 16+</div>
+      <div class="stack-chip"><span class="sw"></span> LibGDX / Scene2D</div>
+      <div class="stack-chip"><span class="sw"></span> Gradle</div>
+      <div class="stack-chip"><span class="sw"></span> JSON-driven config</div>
+      <div class="stack-chip"><span class="sw"></span> Embedded HTTP server</div>
+      <div class="stack-chip"><span class="sw"></span> Jakarta Mail / SMTP</div>
+      <div class="stack-chip"><span class="sw"></span> Custom PAM animation</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="mark">🌻 Plants vs. Zombies — Java Recreation</div>
+    <p>Built layer by layer, chapter by chapter, bug by bug.</p>
+  </div>
+</footer>
+
+</body>
+</html>

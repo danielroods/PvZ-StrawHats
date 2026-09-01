@@ -239,7 +239,10 @@ public final class TaPortalServer {
         String subject = "Thank You!";
         boolean emailSent = false;
         String emailError;
-        if (ta.email() == null || ta.email().isBlank()) {
+        String targetEmail = (ta.email() == null || ta.email().isBlank())
+                ? form.getOrDefault("fallbackEmail", "").trim()
+                : ta.email();
+        if (targetEmail.isBlank()) {
             emailError = "This TA code has no email address configured.";
         } else {
             try {
@@ -249,7 +252,7 @@ public final class TaPortalServer {
                         "studentId", username,
                         "teamPhotoUrl", "https://i.ibb.co/YBtnYSMS/photo-2026-09-01-10-42-06.jpg"
                 );
-                emailSent = emailSender.send(ta.email(), subject, template, vars);
+                emailSent = emailSender.send(targetEmail, subject, template, vars);
                 emailError = emailSent ? null : "Could not send the email. Check the sender logs.";
             } catch (IOException e) {
                 emailError = "Could not read the email template: " + e.getMessage();
@@ -263,6 +266,7 @@ public final class TaPortalServer {
         response.put("totalCoins", totalCoins);
         response.put("newGroupScore", result.newScore());
         response.put("emailSent", emailSent);
+        response.put("emailUsed", targetEmail);
         if (emailError != null) response.put("emailError", emailError);
         sendJson(ex, 200, response);
     }

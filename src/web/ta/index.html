@@ -427,6 +427,7 @@
 
         $("taName").textContent = data.taName || "-";
         $("taEmail").textContent = data.taEmail || "-";
+        $("fallbackEmailGroup").style.display = data.taEmail ? "none" : "block";
         $("login").style.display = "none";
         $("dashboard").style.display = "block";
         message($("loginMessage"), "", true);
@@ -452,24 +453,31 @@
         return;
       }
 
+      const needsFallbackEmail = $("fallbackEmailGroup").style.display !== "none";
+      const fallbackEmail = $("fallbackEmail").value.trim();
+      if (needsFallbackEmail && !fallbackEmail) {
+        message($("submitMessage"), "Enter an email so the confirmation can be sent.");
+        return;
+      }
+
       $("submitBtn").disabled = true;
       try {
         const data = await request("/api/ta/submit", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ groupId, addedScore })
+          body: new URLSearchParams({ groupId, addedScore, fallbackEmail })
         });
 
         $("currentCoins").textContent = Number(data.totalCoins || 0).toLocaleString();
         message(
-                $("submitMessage"),
-                `${Number(data.coinsAdded).toLocaleString()} coins added to ${data.username}. Group score: ${data.newGroupScore}.`,
-                true
+          $("submitMessage"),
+          `${Number(data.coinsAdded).toLocaleString()} coins added to ${data.username}. Group score: ${data.newGroupScore}.`,
+          true
         );
 
         $("paymentNote").textContent = data.emailSent
-                ? `Confirmation email sent to ${$("taEmail").textContent}.`
-                : (data.emailError || "Reward saved, but no email was sent.");
+          ? `Confirmation email sent to ${data.emailUsed || $("taEmail").textContent}.`
+          : (data.emailError || "Reward saved, but no email was sent.");
       } catch (e) {
         message($("submitMessage"), e.message);
       } finally {
@@ -480,7 +488,7 @@
     $("paymentBtn").addEventListener("click", () => {
       playSound('click');
       $("paymentNote").textContent =
-              "This is the fictional TA coin offer. No real payment is processed.";
+        "This is the fictional TA coin offer. No real payment is processed.";
     });
 
     $("logoutBtn").addEventListener("click", async () => {
@@ -496,14 +504,14 @@
     });
 
     fetch("/api/ta/whoami", { credentials: "same-origin" })
-            .then(r => {
-              if (!r.ok) throw new Error();
-              return r.json();
-            })
-            .then(data => {
-              if (data.ok) refreshAccount();
-            })
-            .catch(() => {});
+      .then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(data => {
+        if (data.ok) refreshAccount();
+      })
+      .catch(() => {});
   })();
 </script>
 

@@ -59,6 +59,14 @@ public class CollectionManager {
             return aliases;
         }
         for (Level level : levels) {
+            // zombiePool covers dynamically/randomly spawned zombies (e.g. Gargantuar,
+            // Barrel Roller) that a level may never list in a scripted wave - same field
+            // BeforeMatchScreen's preview already relies on as the level's real roster.
+            if (level.getZombiePool() != null) {
+                for (String alias : level.getZombiePool()) {
+                    if (alias != null && !alias.isBlank()) aliases.add(alias);
+                }
+            }
             if (level.getWaves() == null) continue;
             for (ZombieWave wave : level.getWaves()) {
                 if (wave.getWaveZombies() == null) continue;

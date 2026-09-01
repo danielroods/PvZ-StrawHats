@@ -58,21 +58,67 @@ import java.util.stream.Collectors;
 public class CollectionScreen extends UiScreen {
 
     private static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
+    private static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
+    private static final String GEM_ICON = "assets/images/ui/buttons_premium_normal.png";
     private static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
     private static final String UPGRADE_ICON = "assets/images/ui/collection/rift_perk_upgrade_uparrow.png";
 
     private static final float TAG_ICON_SIZE = 30f;
 
-    /** Shown for any family tag whose own icon file isn't found at its placeholder path. */
-    private static final String DEFAULT_TAG_ICON = "assets/images/ui/seedpackets_mechs_ui/mintfam_banner.png";
+    private static final String TAG_ICON_DIR = "assets/images/ui/collection/tags/";
 
-    /** Placeholder icon path per family tag - swap in the real filenames, path pattern stays the same. */
+    /** Blank circular plaque in the mintfam set - no dedicated family art, so it doubles as the generic fallback. */
+    private static final String DEFAULT_TAG_ICON = TAG_ICON_DIR + "mintfam_banner.png";
+
+    /**
+     * Maps each PlantTag to the closest-themed icon in the real mintfam_* set (only 15
+     * distinct family icons exist, vs. 38 tags), so cards get a fitting icon instead of
+     * mostly falling back to the default plaque.
+     */
     private static final Map<PlantTag, String> TAG_ICON_PATHS = buildTagIconPaths();
 
     private static Map<PlantTag, String> buildTagIconPaths() {
         Map<PlantTag, String> map = new EnumMap<>(PlantTag.class);
-        for (PlantTag tag : PlantTag.values()) {
-            map.put(tag, "assets/images/ui/seedpackets_mechs_ui/mintfam_" + tag.name().toLowerCase() + ".png");
+        map.put(PlantTag.DAY, "sun");
+        map.put(PlantTag.SHROOM, "shadow");
+        map.put(PlantTag.WRAMP_UP, "slow");
+        map.put(PlantTag.NIGHT, "shadow");
+        map.put(PlantTag.PEA, "peashooter");
+        map.put(PlantTag.ICE, "cold");
+        map.put(PlantTag.STACK, "defense");
+        map.put(PlantTag.CHARGE, "electricity");
+        map.put(PlantTag.MAGIC, "magic");
+        map.put(PlantTag.FIRE, "fire");
+        map.put(PlantTag.POISON, "poison");
+        map.put(PlantTag.WATER, "cold");
+        map.put(PlantTag.BOUNCE, "lobber");
+        map.put(PlantTag.PIERCE, "sharp");
+        map.put(PlantTag.DELAYED, "slow");
+        map.put(PlantTag.SPLASH, "explosive");
+        map.put(PlantTag.INSTANT, "sharp");
+        map.put(PlantTag.LANE, "defense");
+        map.put(PlantTag.STUN, "electricity");
+        map.put(PlantTag.MULTIDIRECTIONAL, "peashooter");
+        map.put(PlantTag.GATLING, "peashooter");
+        map.put(PlantTag.TIMED, "slow");
+        map.put(PlantTag.SHIELD, "defense");
+        map.put(PlantTag.TALL, "defense");
+        map.put(PlantTag.MELEE, "melee");
+        map.put(PlantTag.DIVERT, "defense");
+        map.put(PlantTag.ATTRACT, "magic");
+        map.put(PlantTag.POCKETS, "trap");
+        map.put(PlantTag.DISARM, "trap");
+        map.put(PlantTag.HYPNO, "magic");
+        map.put(PlantTag.CLONE, "magic");
+        map.put(PlantTag.BESTER, "melee");
+        map.put(PlantTag.SUN, "sun");
+        map.put(PlantTag.AOE, "explosive");
+        map.put(PlantTag.MOVE_ZOMBIES, "electricity");
+        map.put(PlantTag.BUTTER, "trap");
+        map.put(PlantTag.EXPLOSIVE, "explosive");
+        map.put(PlantTag.TRAP, "trap");
+        for (Map.Entry<PlantTag, String> entry : map.entrySet()) {
+            entry.setValue(TAG_ICON_DIR + "mintfam_" + entry.getValue() + ".png");
         }
         return map;
     }
