@@ -169,6 +169,20 @@ public class GameSession {
 
     public boolean isZombieInBeachBigWave(Zombie zombie) { return hazards.isZombieInBeachBigWave(zombie); }
 
+    /** Starts a Big Wave Beach hazard from a non-wave system such as the Beach Zomboss fight. */
+    public void beginBeachBigWave(int waveIndex) {
+        if (level == null || level.getSeason() == null
+                || !"Big Wave Beach".equalsIgnoreCase(level.getSeason().getName())) return;
+        hazards.beginBeachBigWave(waveIndex);
+        Flood.applyBigWaveWash(level, this);
+    }
+
+    /** Adds a zombie to the currently active Big Wave Beach entrance animation. */
+    public void addBeachBigWaveEntry(Zombie zombie, int row, double startX, double targetX) {
+        if (zombie == null) return;
+        hazards.addBeachBigWaveEntry(zombie, row, startX, targetX);
+    }
+
     public double getBeachBigWaveEntryProgress(Zombie zombie) { return hazards.getBeachBigWaveEntryProgress(zombie); }
 
     public boolean allWavesSpawned() { return waves.allWavesSpawned(); }

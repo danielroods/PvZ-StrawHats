@@ -71,6 +71,8 @@ public class CouchIZombieGameScreen extends GameScreen {
     private Label plantTrayTitle;
     private Table zombieTray;
     private Label zombieTrayTitle;
+    private Image zombieSunIcon;
+    private Label zombieSunAmountLabel;
     private final List<Group> zombieViews = new ArrayList<>();
     private final List<Image> zombieDim = new ArrayList<>();
     private final List<Image> zombieSel = new ArrayList<>();
@@ -268,6 +270,10 @@ public class CouchIZombieGameScreen extends GameScreen {
             int brains = Math.max(1, match.getBrainCount());
             hud.setProgressOverride(String.format("BRAINZ %d/%d   %02d:%02d", eaten, brains,
                     (int) (remaining / 60), (int) (remaining % 60)), eaten / (float) brains);
+            // The top HUD's sun readout reads the shared session, which is the zombie
+            // player's sun pool here - showing that up top is meaningless to P1, so show
+            // the plant player's own sun instead.
+            hud.setSunOverride(match.getPlantSun());
         }
         super.refreshHud(delta);
         if (hud == null || match == null) return;
@@ -446,6 +452,16 @@ public class CouchIZombieGameScreen extends GameScreen {
         zombieTrayTitle.setAlignment(Align.center);
         tray.add(zombieTrayTitle).width(ZOMBIE_CARD_W).padBottom(2f).row();
 
+        // Zombie sun readout, shown with the same brain art used for the lawn's brains
+        // instead of a plain "P2 sun" text line.
+        Table sunRow = new Table();
+        zombieSunIcon = new Image(brainTexture);
+        zombieSunAmountLabel = new Label(String.valueOf(match.getZombieSun()), skin, "main");
+        zombieSunAmountLabel.setFontScale(0.7f);
+        sunRow.add(zombieSunIcon).size(20f, 20f).padRight(3f);
+        sunRow.add(zombieSunAmountLabel);
+        tray.add(sunRow).padBottom(4f).row();
+
         List<ZombiePacket> roster = match.getRoster();
         for (int i = 0; i < roster.size(); i++) {
             ZombiePacket packet = roster.get(i);
@@ -585,8 +601,8 @@ public class CouchIZombieGameScreen extends GameScreen {
                 cooldown.setVisible(false);
             }
         }
-        if (zombieTrayTitle != null) {
-            zombieTrayTitle.setText("P2  sun " + match.getZombieSun());
+        if (zombieSunAmountLabel != null) {
+            zombieSunAmountLabel.setText(String.valueOf(match.getZombieSun()));
         }
         if (plantTrayTitle != null) {
             plantTrayTitle.setText("P1  sun " + match.getPlantSun());
