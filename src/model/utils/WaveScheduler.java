@@ -48,6 +48,7 @@ class WaveScheduler {
     private double currentInterval = 0;
     private double lastSpawnEndedAt = 0;
     private boolean hugeWaveAlertShown = false;
+    private double waveProgress = 0;
 
     private WavePlan activePlan;
     private int planCursor = 0;
@@ -67,6 +68,7 @@ class WaveScheduler {
         announceIncomingHugeWave();
         tryStartNextWave();
         advanceActivePlan();
+        advanceWaveProgress();
         EntryCorridor.separate(session.getZombies(), session.getRows(), session.getCols(),
                 zombie -> session.hazards().isEnteringWithHazard(zombie)
                         || session.isFrozenInIceBlock(zombie)
@@ -77,7 +79,7 @@ class WaveScheduler {
         if (activePlan != null || nextWaveIndex >= waves.size() || hugeWaveAlertShown) return;
         if (!waveTypeOf(nextWaveIndex).isHuge()) return;
         double alertAt = Math.max(lullStartedAt,
-                lullStartedAt + currentInterval - WavePacing.HUGE_WAVE_ALERT_LEAD_SECONDS);
+                predictedNextWaveStart() - WavePacing.HUGE_WAVE_ALERT_LEAD_SECONDS);
         if (!GameClock.hasReached(clockSeconds, alertAt)) return;
         hugeWaveAlertShown = true;
         GeneralPrinter.print("A huge wave of zombies is approaching!");
@@ -158,7 +160,7 @@ class WaveScheduler {
         }
 
         beginSeasonHazards(wave, waveIndex, level);
-        spawnCosmeticFlagZombie();
+        if (type.isHuge()) spawnCosmeticFlagZombie();
 
         WavePlan plan = planner.plan(entryAliases(wave), waveIndex, waves.size(), type,
                 session.getDifficultyLevel(), laneBag);
@@ -178,8 +180,9 @@ class WaveScheduler {
     }
 
     /**
-     * Purely cosmetic: spawns a single flag zombie at the start of a wave so the
-     * player sees the "wave incoming" banner-carrier. This zombie is NOT part of
+     * Purely cosmetic: spawns a single flag zombie at the start of a huge wave (the flag and
+     * final waves the progress meter plants a flag on) so the player sees the "wave incoming"
+     * banner-carrier at the same moment the meter reaches that flag. This zombie is NOT part of
      * the level's authored wave data, is NOT counted in wave cost / difficulty
      * calculations, and is NOT drawn from the level's zombie pool - it is added
      * straight to the on-screen zombie list only, so it never touches
@@ -327,21 +330,44 @@ class WaveScheduler {
 
     double getSecondsUntilNextWave() {
         if (nextWaveIndex >= waves.size()) return -1;
-        double startsAt = Math.max(lullStartedAt + currentInterval,
-                lastSpawnEndedAt + WavePacing.minGapAfterSpawnSeconds());
-        return Math.max(0, startsAt - clockSeconds);
+        return Math.max(0, predictedNextWaveStart() - clockSeconds);
+    }
+
+    private double predictedNextWaveStart() {
+        if (nextWaveIndex >= waves.size()) return clockSeconds;
+        double spawnWindowEndsAt = activePlan != null
+                ? planStartedAt + activePlan.getSpawnWindowSeconds()
+                : lastSpawnEndedAt;
+        return Math.max(lullStartedAt + currentInterval,
+                spawnWindowEndsAt + WavePacing.minGapAfterSpawnSeconds());
+    }
+
+    private double rawWaveProgress() {
+        int total = waves.size();
+        if (total <= 0) return 0;
+        if (nextWaveIndex >= total) return 1.0;
+        double segmentEnd = predictedNextWaveStart();
+        double span = segmentEnd - lullStartedAt;
+        double fraction = span <= GameClock.TIME_EPSILON
+                ? 1.0
+                : WavePacing.clamp((clockSeconds - lullStartedAt) / span, 0, 1);
+        return WavePacing.clamp((nextWaveIndex + fraction) / total, 0, 1);
+    }
+
+    private void advanceWaveProgress() {
+        waveProgress = WavePacing.clamp(Math.max(waveProgress, rawWaveProgress()), 0, 1);
     }
 
     double getWaveProgress() {
-        if (waves.isEmpty()) return 0;
-        double spawned = Math.max(0, nextWaveIndex - 1);
-        double withinWave = 1.0;
-        if (activePlan != null && !activePlan.isEmpty()) {
-            withinWave = planCursor / (double) activePlan.size();
-        } else if (nextWaveIndex < waves.size() && currentInterval > 0) {
-            withinWave = 1.0 - WavePacing.clamp(getSecondsUntilNextWave() / currentInterval, 0, 1);
+        return waveProgress;
+    }
+
+    List<Integer> getHugeWaveNumbers() {
+        List<Integer> numbers = new ArrayList<>();
+        for (int index = 0; index < waves.size(); index++) {
+            if (waveTypeOf(index).isHuge()) numbers.add(index + 1);
         }
-        return WavePacing.clamp((spawned + withinWave) / waves.size(), 0, 1);
+        return numbers;
     }
 
     boolean isHugeWaveIncoming() {
@@ -390,6 +416,7 @@ class WaveScheduler {
         lullStartedAt = 0;
         lastSpawnEndedAt = 0;
         hugeWaveAlertShown = false;
+        waveProgress = 0;
         activePlan = null;
         planCursor = 0;
         planStartedAt = 0;

@@ -202,13 +202,15 @@ public class IZombieGameScreen extends GameScreen {
 
     @Override
     protected void refreshHud(float delta) {
-        super.refreshHud(delta);
         IZombie game = game();
+        if (hud != null && game != null) {
+            int eaten = game.getBrainsEaten();
+            int total = game.getBrainCount();
+            hud.setProgressOverride("BRAINZ EATEN " + eaten + "/" + total,
+                    total == 0 ? 0f : eaten / (float) total);
+        }
+        super.refreshHud(delta);
         if (hud == null || game == null) return;
-        int eaten = game.getBrainsEaten();
-        int total = game.getBrainCount();
-        hud.setProgressOverride("BRAINZ EATEN " + eaten + "/" + total,
-                total == 0 ? 0f : eaten / (float) total);
         updatePacketTray(delta);
     }
 
