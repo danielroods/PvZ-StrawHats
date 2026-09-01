@@ -41,6 +41,8 @@ public class Projectile extends Item {
     private double maxTravelDistance;
     private double travelledDistance;
     private Position previousPosition;
+    private boolean groundBounced;
+    private boolean deflectedThisTick;
 
     private MoveStrategy moveStrategy;
     private HitEffectStrategy hitEffectStrategy;
@@ -237,7 +239,8 @@ public class Projectile extends Item {
         LobArcMove arc = (LobArcMove) moveStrategy;
 
         if (target instanceof Zombie targetZombie) {
-            if (isValidTarget(targetZombie) && collisionProjection(targetZombie.getPosition(),
+            if (!hitZombies.contains(targetZombie) && isValidTarget(targetZombie)
+                    && collisionProjection(targetZombie.getPosition(),
                     start, end, targetZombie.getHitRadius()) >= 0) {
                 resolveLobImpact(session, targetZombie.getPosition(), targetZombie, 0);
                 return;
@@ -268,21 +271,127 @@ public class Projectile extends Item {
             return;
         }
 
-        if (isOutsideLawnForLobber(session, end)) setAlive(false);
+        if (isOutsideLawnForLobber(session, end)
+                && !bounceToNextZombie(session, end)
+                && !bounceAlongGround(session, end)) {
+            setAlive(false);
+        }
     }
 
     private void resolveLobImpact(GameSession session, Position center, Zombie primary,
                                   double minimumRadius) {
+        deflectedThisTick = false;
+
         boolean connected = false;
         if (primary != null && isValidTarget(primary) && !hitZombies.contains(primary)) {
             applyDamageAndEffect(primary);
             hitZombies.add(primary);
+            if (deflectedThisTick) {
+                // A defense like the parasol zombie's absorbed the hit (0 damage)
+                // and already redirected this projectile onward via
+                // bounceOverZombie - leave it alive and flying, don't kill it here.
+                recordImpact(session, center);
+                return;
+            }
             connected = true;
         }
         if (splashAround(session, center, minimumRadius)) connected = true;
 
-        if (connected) recordImpact(session, center);
+        if (connected) {
+            recordImpact(session, center);
+            setAlive(false);
+            return;
+        }
+
+        // Landed (or flew past the lane) without actually connecting with anyone -
+        // e.g. the original target died or stepped out of the splash radius on the
+        // way down. Rather than silently despawning and dealing no damage at all,
+        // bounce the shot on: onto the next un-hit zombie still standing in this
+        // lane if there is one, otherwise a short hop further along the ground so
+        // the shot visibly lands instead of just vanishing.
+        if (bounceToNextZombie(session, center)) return;
+        if (bounceAlongGround(session, center)) return;
+
+        recordImpact(session, center);
         setAlive(false);
+    }
+
+    private static final double BOUNCE_PEAK_HEIGHT = 0.6;
+    private static final double GROUND_BOUNCE_DISTANCE = 2.5;
+
+    /**
+     * Called by a zombie's defense (e.g. the parasol zombie) when it absorbs a
+     * lobbed hit instead of taking damage from it: redirects this projectile onto
+     * the next un-hit zombie in the lane, or a short hop along the ground if
+     * nobody else is left, so the shot visibly bounces off instead of just being
+     * cancelled. Sets deflectedThisTick so the caller in resolveLobImpact knows
+     * not to kill the projectile after this returns.
+     */
+    public void bounceOverZombie(Zombie deflector, GameSession session) {
+        if (deflector != null) hitZombies.add(deflector);
+        Position from = (deflector != null && deflector.getPosition() != null)
+                ? deflector.getPosition() : getPosition();
+
+        deflectedThisTick = bounceToNextZombie(session, from);
+        if (!deflectedThisTick) {
+            deflectedThisTick = bounceAlongGround(session, from);
+        }
+    }
+
+    /**
+     * Redirects this lobbed projectile toward the nearest zombie it hasn't already
+     * hit in the same row, so a shot that reaches the end of the lane (or lands
+     * somewhere empty) bounces onward instead of dealing no damage. Returns false
+     * (and leaves the projectile untouched) if there's nobody left in the row to
+     * bounce to.
+     */
+    private boolean bounceToNextZombie(GameSession session, Position from) {
+        if (from == null || !(moveStrategy instanceof LobArcMove currentArc)) return false;
+
+        int row = (int) Math.round(from.y());
+        Zombie next = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Zombie zombie : session.getZombies()) {
+            if (!isValidTarget(zombie) || hitZombies.contains(zombie)) continue;
+            Position zp = zombie.getPosition();
+            if (zp == null || Math.abs(zp.y() - row) >= 0.5) continue;
+
+            double distance = Math.abs(zp.x() - from.x());
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                next = zombie;
+            }
+        }
+        if (next == null) return false;
+
+        this.moveStrategy = new LobArcMove(from.x(), row, next.getPosition().x(), row,
+                BOUNCE_PEAK_HEIGHT, currentArc.getHorizontalSpeed());
+        this.previousPosition = from;
+        setPosition(from);
+        return true;
+    }
+
+    /**
+     * Fallback for when there's no zombie left anywhere in the lane to bounce to:
+     * hops the shot a couple of tiles further along the ground so it visibly lands
+     * somewhere instead of silently despawning. Only happens once per projectile
+     * (via groundBounced) so it can't bounce along the ground forever.
+     */
+    private boolean bounceAlongGround(GameSession session, Position from) {
+        if (from == null || groundBounced || session.getEnvironment() == null
+                || !(moveStrategy instanceof LobArcMove currentArc)) return false;
+
+        int row = (int) Math.round(from.y());
+        double maxCol = session.getEnvironment().getCols() - 1;
+        double targetX = Math.min(maxCol, from.x() + GROUND_BOUNCE_DISTANCE);
+        if (targetX <= from.x() + 0.1) return false;
+
+        groundBounced = true;
+        this.moveStrategy = new LobArcMove(from.x(), row, targetX, row,
+                BOUNCE_PEAK_HEIGHT, currentArc.getHorizontalSpeed());
+        this.previousPosition = from;
+        setPosition(from);
+        return true;
     }
 
     private boolean splashAround(GameSession session, Position center, double minimumRadius) {
