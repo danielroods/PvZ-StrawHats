@@ -116,9 +116,30 @@ public class Cave extends Season {
         }
     }
 
+    /**
+     * Melts a zombie free of its ice directly (as opposed to the ice block's HP being
+     * chipped away to zero). Routes through the same IceBlock still sitting on the
+     * zombie's cell so the obstacle is cleared and the "ice falls from the sky as a
+     * pushable block" hand-off in IceBlock.release() still happens - keeping this in
+     * sync with the normal damage-based melt path in FrostbiteFreezing.
+     */
     public static void meltIce(Zombie zombie) {
         if (zombie == null) return;
-        if (zombie.getStatus() == Zombie.Status.FREEZE || zombie.getStatus() == Zombie.Status.FROZEN) {
+        if (zombie.getStatus() != Zombie.Status.FREEZE && zombie.getStatus() != Zombie.Status.FROZEN) return;
+
+        GameSession session = GameSession.peekInstance();
+        Cell cell = null;
+        if (session != null && session.getEnvironment() != null && zombie.getPosition() != null) {
+            int row = (int) Math.round(zombie.getPosition().y());
+            int col = (int) Math.round(zombie.getPosition().x());
+            cell = session.getEnvironment().getCell(row, col);
+        }
+
+        if (cell != null && cell.getObstacle() instanceof model.pitches.obstacles.IceBlock iceBlock
+                && iceBlock.getFrozenZombie() == zombie) {
+            cell.setObstacle(null);
+            iceBlock.release();
+        } else {
             zombie.setStatus(Zombie.Status.NORMAL);
         }
     }

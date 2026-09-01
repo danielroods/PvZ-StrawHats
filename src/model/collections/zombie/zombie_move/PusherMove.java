@@ -22,7 +22,13 @@ public class PusherMove implements MoveBehavior {
         double targetZombieX = pos.x() + deltaX;
         PushableStructure structure = zombie.getPushedStructure();
 
-        if (structure != null && structure.isAlive()) {
+        if (structure != null && structure.isFalling()) {
+            // Still dropping in from the sky (see ZombieFactory.spawnFallingIceBlockOnRelease) -
+            // let it land in place before the zombie starts shoving it forward.
+            structure.updateFall(deltaTime);
+        }
+
+        if (structure != null && structure.isAlive() && !structure.isFalling()) {
             // Continuous "push" beat for as long as the zombie is actively
             // shoving a structure (arcade cabinet / barrel); duration 0 means
             // it persists until cleared below rather than auto-expiring.

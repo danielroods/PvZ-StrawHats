@@ -489,7 +489,7 @@ class SessionBoard {
                 PushableStructure structure =
                         environment.getCell(r, c).getStructure();
 
-                if (structure != null && structure.isAlive()) {
+                if (structure != null && structure.isAlive() && !structure.isFalling()) {
                     structures.add(structure);
                 }
             }

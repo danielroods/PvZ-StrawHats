@@ -236,17 +236,48 @@ public class ZombieFactory {
 
         if (type == null) return;
 
+        if (type == PushableType.ICE_BLOCK) {
+            // Troglobites spawn already frozen solid inside their own ice (see
+            // Cave.placeFrostedZombies / FrostbiteFreezing.freezeZombieInIce). The
+            // pushable ice block - the same block, now containing a frozen imp - only
+            // drops onto the lawn once that ice melts and the zombie is released;
+            // see spawnFallingIceBlockOnRelease(), called from IceBlock.release().
+            // Only ever the one block - it is not replaced once destroyed.
+            zombie.setPushableRespawnsRemaining(1);
+            return;
+        }
+
         Position position = zombie.getPosition();
         PushableStructure structure = new PushableStructure(type,
                 new Position(position.x() - 0.6, position.y()));
         structure.setOwner(zombie);
         zombie.setPushedStructure(structure);
         placeOnLawnIfPossible(zombie, structure);
+    }
 
-        if (type == PushableType.ICE_BLOCK) {
-            int totalIceBlocks = ((Number) data.getOrDefault("NumberOfIceblocksToSpawnWith", 1)).intValue();
-            zombie.setPushableRespawnsRemaining(Math.max(0, totalIceBlocks - 1));
-        }
+    /**
+     * Called once a Troglobite's surrounding ice block melts away and frees it. Drops a
+     * fresh pushable ice block - with a frozen imp waiting inside - onto the cell just
+     * ahead of the zombie, the same spot an arcade cabinet would be placed for a
+     * ZombieArcade, and starts its "falls smoothly from the sky" animation.
+     */
+    public static void spawnFallingIceBlockOnRelease(Zombie zombie) {
+        if (zombie == null || !"ZombieIceAgeTroglobite".equals(zombie.getAlias())) return;
+        if (zombie.getPushedStructure() != null) return;
+        if (zombie.getPushableRespawnsRemaining() <= 0) zombie.setPushableRespawnsRemaining(1);
+        spawnNextIceBlock(zombie);
+    }
+
+    private static void spawnNextIceBlock(Zombie zombie) {
+        Position position = zombie.getPosition();
+        if (position == null) return;
+        PushableStructure structure = new PushableStructure(PushableType.ICE_BLOCK,
+                new Position(position.x() - 0.6, position.y()));
+        structure.setOwner(zombie);
+        structure.startFalling();
+        zombie.setPushedStructure(structure);
+        zombie.setPushableRespawnsRemaining(Math.max(0, zombie.getPushableRespawnsRemaining() - 1));
+        placeOnLawnIfPossible(zombie, structure);
     }
 
     public static void respawnPushedStructureIfNeeded(Zombie zombie) {
@@ -257,6 +288,13 @@ public class ZombieFactory {
 
         GameSession session = GameSession.peekInstance();
         if (session != null) session.registerStructure(current);
+
+        if (current.getType() == PushableType.ICE_BLOCK) {
+            // Troglobites only ever get the one ice block (see attachPushedStructureIfNeeded);
+            // it is not replaced once destroyed.
+            return;
+        }
+
         Position position = zombie.getPosition();
         PushableStructure fresh = new PushableStructure(current.getType(),
                 new Position(position.x() - 0.6, position.y()));

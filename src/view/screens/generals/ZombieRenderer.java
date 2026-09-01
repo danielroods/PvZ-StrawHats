@@ -54,6 +54,21 @@ class ZombieRenderer {
     private static final float PIANO_OFFSET_Y = -6f;
     private static final float PIANO_SCALE = 0.52f;
     private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    private static final String ZOMBIE_TROGLOBITE_ALIAS = "ZombieIceAgeTroglobite";
+    // The pushed ice block reuses the same texture the Troglobite was frozen inside
+    // (see FrostbiteRenderer.drawFrostbiteIceBlocks / GameScreenAssets.zombieIceBlockTexture)
+    // so it visibly reads as "the same ice, now falling and being pushed".
+    private static final float ICE_BLOCK_PUSH_SCALE = 1.8f;
+    private static final float ICE_BLOCK_FALL_HEIGHT_TILES = 5.5f;
+    // Nudges the pushed ice block up and further left within its cell, matching the
+    // height the Troglobite's own body sits at (see FrostbiteRenderer.ICE_BLOCK_OFFSET_Y,
+    // which is used for the same block while it's still the stationary frozen obstacle).
+    private static final float ICE_BLOCK_OFFSET_X = -95f;
+    private static final float ICE_BLOCK_OFFSET_Y = 30f;
+    // The frozen imp glimpsed inside the ice block, drawn at the same real scale as any
+    // other on-field zombie (ZOMBIE_SCALE) and scissor-clipped to the block's own drawn
+    // rectangle so it always reads as fully inside the ice, never spilling outside it.
+    private static final String ICE_BLOCK_IMP_PAM = "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
     private static final String ZOMBIE_MODERN_ALLSTAR_ALIAS = "ZombieModernAllStar";
     private static final String ZOMBIE_NEWSPAPER_ALIAS = "ZombieNewspaper";
     // Standalone prop PAM (idle/active/death), drawn at the pushed structure's own position.
@@ -377,10 +392,11 @@ class ZombieRenderer {
         try {
             drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
             drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
+            drawZombieIceBlock(zombie, boardTileWidth, boardTileHeight);
             if (tinted) screen.batch.setColor(tint);
             boolean pamDrawn;
             if (zombie.isFacingRight()) {
-               pamDrawn = screen.drawPamMirrored(path, preferred, animationTime,
+                pamDrawn = screen.drawPamMirrored(path, preferred, animationTime,
                         x - 10f, zombieDrawY, 0.52f);
             } else {
                 pamDrawn = screen.drawPam(path, preferred, animationTime, x - 10f, zombieDrawY,
@@ -692,6 +708,66 @@ class ZombieRenderer {
         }
     }
 
+    // The ice block a Troglobite pushes ahead of itself once freed. Falls smoothly in
+    // from above the lawn onto the cell just ahead of the zombie (mirroring the arcade
+    // cabinet's placement / ZombossRenderer's sky-strike drop) and, once landed, is drawn
+    // at the structure's own board position exactly like the arcade cabinet so it keeps
+    // pace with PusherMove while being shoved along - and by plants/tile sliders moving it.
+    private void drawZombieIceBlock(Zombie zombie, float boardTileWidth, float boardTileHeight) {
+        if (!ZOMBIE_TROGLOBITE_ALIAS.equals(zombie.getAlias())) return;
+        PushableStructure structure = zombie.getPushedStructure();
+        if (structure == null || structure.getPosition() == null || !structure.isAlive()) return;
+
+        com.badlogic.gdx.graphics.Texture texture = screen.assets().zombieIceBlockTexture();
+        if (texture == null) return;
+
+        Position pos = structure.getPosition();
+        float baseX = GameScreen.BOARD_X + (float) pos.x() * boardTileWidth;
+        float baseY = screen.cellY(pos.y());
+
+        float drawW = boardTileWidth * ICE_BLOCK_PUSH_SCALE;
+        float drawH = boardTileHeight * ICE_BLOCK_PUSH_SCALE;
+        float drawX = baseX + (boardTileWidth - drawW) * 0.5f + ICE_BLOCK_OFFSET_X;
+        float drawY = baseY + (boardTileHeight - drawH) * 0.5f + ICE_BLOCK_OFFSET_Y;
+
+        float alpha = 1f;
+        if (structure.isFalling()) {
+            float remaining = 1f - (float) structure.getFallProgress();
+            drawY += remaining * ICE_BLOCK_FALL_HEIGHT_TILES * boardTileHeight;
+            alpha = 0.6f + 0.4f * (float) structure.getFallProgress();
+        }
+
+        screen.batch.setColor(1f, 1f, 1f, alpha);
+        screen.batch.draw(texture, drawX, drawY, drawW, drawH);
+        screen.batch.setColor(Color.WHITE);
+
+        // The frozen imp riding inside the block, at the same real scale as any other
+        // on-field zombie, centered over the block and hard-clipped to its bounds so it
+        // never spills outside the ice regardless of the PAM's own art anchor/padding.
+        boolean clipActive = pushRectClip(drawX, drawY, drawW, drawH);
+        try {
+            float impCenterX = drawX + drawW * 0.5f;
+            float impCenterY = drawY + drawH * 0.42f;
+            screen.batch.setColor(FROZEN_TINT.r, FROZEN_TINT.g, FROZEN_TINT.b, alpha);
+            boolean impDrawn = screen.pam().drawPamExact(ICE_BLOCK_IMP_PAM, "idle", 0f,
+                    impCenterX - 10f, impCenterY, ZOMBIE_SCALE, false);
+            screen.batch.setColor(Color.WHITE);
+            if (!impDrawn) {
+                TextureRegion impRegion = GameAssetManager.get().getZombieRegion("ZombieImp");
+                if (impRegion != null) {
+                    float impW = drawW * 0.7f;
+                    float impH = drawH * 0.7f;
+                    screen.batch.setColor(FROZEN_TINT.r, FROZEN_TINT.g, FROZEN_TINT.b, alpha);
+                    screen.batch.draw(impRegion, drawX + (drawW - impW) * 0.5f, drawY + (drawH - impH) * 0.3f,
+                            impW, impH);
+                    screen.batch.setColor(Color.WHITE);
+                }
+            }
+        } finally {
+            if (clipActive) popRectClip();
+        }
+    }
+
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {
         if (existing == null) return ZombotanyArt.headlessBodyMask();
         Map<String, Boolean> merged = new java.util.HashMap<>(existing);
@@ -835,6 +911,26 @@ class ZombieRenderer {
     }
 
     private void popWaterClip() {
+        screen.batch.flush();
+        ScissorStack.popScissors();
+    }
+
+    /** Generic version of pushWaterClip/popWaterClip for clipping to an arbitrary rectangle
+     *  (e.g. keeping the frozen imp fully inside the pushed ice block's own drawn bounds). */
+    private boolean pushRectClip(float x, float y, float width, float height) {
+        screen.batch.flush();
+        Rectangle clipBounds = new Rectangle(x, y, width, height);
+        Rectangle scissors = new Rectangle();
+        ScissorStack.calculateScissors(
+                screen.stage.getCamera(),
+                screen.batch.getTransformMatrix(),
+                clipBounds,
+                scissors
+        );
+        return ScissorStack.pushScissors(scissors);
+    }
+
+    private void popRectClip() {
         screen.batch.flush();
         ScissorStack.popScissors();
     }

@@ -2,6 +2,7 @@ package model.pitches.obstacles;
 
 import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
+import model.collections.zombie.ZombieFactory;
 
 public class IceBlock implements Obstacle {
     public static final int BASE_HP = 600;
@@ -39,6 +40,9 @@ public class IceBlock implements Obstacle {
         }
         if (frozenZombie != null && frozenZombie.isAlive()) {
             frozenZombie.setStatus(Zombie.Status.NORMAL);
+            // If this was a Troglobite frozen inside its own ice, that same block (now
+            // holding a frozen imp) drops onto the lawn and gets pushed until it shatters.
+            ZombieFactory.spawnFallingIceBlockOnRelease(frozenZombie);
         }
     }
 
