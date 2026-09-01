@@ -600,6 +600,15 @@ public class GameScreen extends UiScreen {
         return pam.drawPamMirrored(path, preferred, time, x, y, scale);
     }
 
+    /**
+     * Rotates the clip to face an arbitrary travel direction instead of only mirroring
+     * left/right - see {@link PamRenderer#drawPamRotated}.
+     */
+    public boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
+                                  float rotationDegrees) {
+        return pam.drawPamRotated(path, preferred, time, x, y, scale, rotationDegrees);
+    }
+
     public boolean drawPamStretched(String path, String preferred, float time, float x, float y,
                                     float scaleX, float scaleY, boolean flip) {
         return pam.drawPamStretched(path, preferred, time, x, y, scaleX, scaleY, flip);
