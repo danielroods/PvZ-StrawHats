@@ -35,8 +35,6 @@ public class NetworkScreen extends UiScreen {
     private static final String AVATAR_FRAME_PATH = "assets/images/ui/reward4_bg.png";
     private static final String PLAYER_ICON = "assets/images/ui/net/MM_playerIcon.png";
 
-    private TextField usernameField;
-    private TextField passwordField;
     private TextField opponentField;
     private Label statusLabel;
     private Table playersTable;
@@ -74,7 +72,7 @@ public class NetworkScreen extends UiScreen {
         if (!client.isConnected()) {
             rootTable.add(buildHubSection(client)).expand().fill().padTop(SPACE_MD).row();
         } else if (!client.isSignedIn()) {
-            rootTable.add(buildAccountSection(client)).expand().fill().padTop(SPACE_MD).row();
+            rootTable.add(buildSigningInSection(client)).expand().fill().padTop(SPACE_MD).row();
         } else {
             rootTable.add(buildLobbySection(client)).expand().fill().padTop(SPACE_MD).row();
         }
@@ -87,7 +85,11 @@ public class NetworkScreen extends UiScreen {
                     ? "You are playing offline. Connect to a server to play against someone."
                     : message;
         }
-        if (!client.isSignedIn()) return "Connected. Signing you in with your account...";
+        if (!client.isSignedIn()) {
+            String message = client.getStatusMessage();
+            return (message == null || message.isEmpty())
+                    ? "Connected. Taking your account online..." : message;
+        }
         return "Signed in as " + client.getSignedInUsername()
                 + (client.isQueued() ? "  -  waiting for an opponent..." : "");
     }
@@ -133,47 +135,36 @@ public class NetworkScreen extends UiScreen {
         return container;
     }
 
-    // ---------------------------------------------------------------------
-    // Account / sign-in section: wood board with the account icon on top.
-    // ---------------------------------------------------------------------
-    private Table buildAccountSection(NetworkClient client) {
+    private Table buildSigningInSection(NetworkClient client) {
         Table board = new Table();
         board.setBackground(woodDrawable());
         board.pad(CARD_PAD * 3).defaults().pad(SPACE_XS);
 
         Image accountIcon = new Image(loadTextureSafe(GOOGLE_ACCOUNT_ICON_PATH));
-        board.add(accountIcon).size(72, 72).colspan(2).padBottom(SPACE_MD).row();
+        board.add(accountIcon).size(72, 72).padBottom(SPACE_MD).row();
+
+        User local = User.currentUser;
+        board.add(createLabel(local == null
+                ? "Log into your account first, then come back online."
+                : "Playing as " + local.nickname + " (" + local.username + ")", "title"))
+                .padBottom(SPACE_SM).row();
 
         statusLabel = createLabel(statusText(client), "main");
         statusLabel.setWrap(true);
-        board.add(statusLabel).width(PANEL_WIDTH - 160).colspan(2).padBottom(SPACE_MD).row();
+        statusLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
+        board.add(statusLabel).width(PANEL_WIDTH - 160).padBottom(SPACE_MD).row();
 
-        usernameField = field(false);
-        passwordField = field(true);
-        addRow(board, "Username", usernameField);
-        addRow(board, "Password", passwordField);
-
-        Table buttons = new Table();
-        buttons.add(primaryButton("Sign in", this::signIn)).width(200).padRight(SPACE_MD);
-        buttons.add(secondaryButton("Create account", this::registerOnline)).width(240);
-        board.add(buttons).colspan(2).padTop(SPACE_MD).row();
         board.add(secondaryButton("Disconnect", this::disconnect))
-                .colspan(2).width(BUTTON_WIDTH).padTop(SPACE_SM).row();
-        board.add(createLabel("You're normally signed in automatically with the account you made in "
-                        + "Authentication. Only use the fields above if you want a separate, "
-                        + "online-only account instead.", "muted"))
-                .colspan(2).width(PANEL_WIDTH - 200).padTop(SPACE_SM).row();
+                .width(BUTTON_WIDTH).padTop(SPACE_SM).row();
+        board.add(createLabel("Your progress syncs to the server automatically. Offline play "
+                        + "keeps working with the same account either way.", "muted"))
+                .width(PANEL_WIDTH - 200).padTop(SPACE_SM).row();
 
         Table wrap = new Table();
         wrap.add(scrollable(board)).width(PANEL_WIDTH);
         return wrap;
     }
 
-    // ---------------------------------------------------------------------
-    // Matchmaking / lobby: no wood board here. Left = challenge + queue
-    // controls (with wifi status + unknown-avatar waiting state), right =
-    // a leaderboard-styled scrollable panel of online players.
-    // ---------------------------------------------------------------------
     private Table buildLobbySection(NetworkClient client) {
         Table left = new Table();
         left.top();
@@ -195,10 +186,6 @@ public class NetworkScreen extends UiScreen {
         left.add(buildQueueArea(client)).colspan(2).padTop(SPACE_MD).row();
 
         Table footer = new Table();
-        footer.add(secondaryButton("Sign out", () -> {
-            client.logout();
-            build();
-        })).width(200).padRight(SPACE_MD);
         footer.add(secondaryButton("Disconnect", this::disconnect)).width(200);
         left.add(footer).colspan(2).padTop(SPACE_XL).row();
 
@@ -308,48 +295,6 @@ public class NetworkScreen extends UiScreen {
         NetworkClient.get().disconnect();
         Toast.show(stage, "Disconnected. You are playing offline again.");
         build();
-    }
-
-    private void signIn() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        if (username.isEmpty() || password.isEmpty()) {
-            Toast.show(stage, "Type your username and password first.");
-            return;
-        }
-        NetworkClient.get().login(username, password, envelope -> {
-            if (envelope.isType(Protocol.OK)) {
-                Toast.show(stage, "Signed in as " + username);
-            } else {
-                Toast.show(stage, envelope.getString("message", "Sign-in failed."));
-            }
-            build();
-        });
-    }
-
-    private void registerOnline() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        if (username.isEmpty() || password.isEmpty()) {
-            Toast.show(stage, "Type the username and password you want to use.");
-            return;
-        }
-        User local = User.currentUser;
-        String nickname = local == null || local.nickname == null ? username : local.nickname;
-        String email = local == null || local.email == null
-                ? username + "@example.com" : local.email;
-        String gender = local == null || local.gender == null ? "male" : local.gender;
-
-        NetworkClient.get().register(username, password, nickname, email, gender,
-                "1. What is the name of your first pet?", username,
-                envelope -> {
-                    if (envelope.isType(Protocol.OK)) {
-                        Toast.show(stage, "Account created. Signing you in...");
-                        signIn();
-                    } else {
-                        Toast.show(stage, envelope.getString("message", "Could not register."));
-                    }
-                });
     }
 
     private void challenge() {

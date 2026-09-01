@@ -26,7 +26,7 @@ public final class NetworkClient {
     public record OnlinePlayer(String username, String nickname, boolean inMatch) { }
 
     private static final NetworkClient INSTANCE = new NetworkClient();
-    private static final long STATE_PUSH_INTERVAL_MILLIS = 2000L;
+    private static final long STATE_SYNC_INTERVAL_MILLIS = 2000L;
 
     private final Map<Long, Consumer<Envelope>> pending = new HashMap<>();
 
@@ -122,7 +122,7 @@ public final class NetworkClient {
                     return;
                 }
                 statusMessage = "Connected to " + host + ":" + port;
-                autoSignIn(null);
+                signInWithGameAccount(null);
             });
             return true;
         } catch (IOException e) {
@@ -140,6 +140,7 @@ public final class NetworkClient {
             User.save();
         }
         if (connection != null) {
+            if (signedInUsername != null) fireAndForget(Protocol.LOGOUT, Envelope.obj());
             connection.close();
             connection = null;
         }
@@ -169,34 +170,7 @@ public final class NetworkClient {
         send(type, payload, null);
     }
 
-    public void register(String username, String password, String nickname, String email,
-                         String gender, String question, String answer, Consumer<Envelope> reply) {
-        send(Protocol.REGISTER, Envelope.obj(
-                "username", username, "password", password, "nickname", nickname,
-                "email", email, "gender", gender,
-                "securityQuestion", question, "securityAnswer", answer), reply);
-    }
-
-    public void login(String username, String password, Consumer<Envelope> reply) {
-        send(Protocol.LOGIN, Envelope.obj("username", username, "password", password),
-                envelope -> {
-                    if (envelope.isType(Protocol.OK)) {
-                        adoptAccount(envelope);
-                    }
-                    if (reply != null) reply.accept(envelope);
-                });
-    }
-
-    /**
-     * Signs the current offline account into the server hub automatically - the account you
-     * made in Authentication is what plays online, no separate online account needed. Sends
-     * only the password hash (never the plaintext), so this works silently right after
-     * connecting, including with a "stay logged in" account restored on startup. If the
-     * server's account data center doesn't have this account yet, it is added there using
-     * that same hash. No-op (with an OFFLINE-style reply) if there's no local account signed
-     * in, or if we're already using a remote account.
-     */
-    public void autoSignIn(Consumer<Envelope> reply) {
+    public void signInWithGameAccount(Consumer<Envelope> reply) {
         User local = User.currentUser;
         if (local == null || User.isRemote()) {
             if (reply != null) {
@@ -206,24 +180,22 @@ public final class NetworkClient {
             }
             return;
         }
-        send(Protocol.AUTO_LOGIN, Envelope.obj(
-                        "username", local.username,
-                        "passwordHash", local.passwordHash,
-                        "nickname", local.nickname,
-                        "email", local.email,
-                        "gender", local.gender,
-                        "securityQuestion", local.securityQuestion,
-                        "securityAnswerHash", local.securityAnswerHash),
-                envelope -> {
-                    if (envelope.isType(Protocol.OK)) {
-                        adoptAccount(envelope);
-                        statusMessage = "Signed in as " + signedInUsername;
-                    } else {
-                        statusMessage = "Connected. Could not sign in automatically: "
-                                + envelope.getString("message", "");
-                    }
-                    if (reply != null) reply.accept(envelope);
-                });
+        send(Protocol.SIGN_IN, syncPayload(local), envelope -> {
+            if (envelope.isType(Protocol.OK)) {
+                adoptAccount(envelope);
+            } else {
+                statusMessage = "Connected. Could not sign in: "
+                        + envelope.getString("message", "");
+            }
+            if (reply != null) reply.accept(envelope);
+        });
+    }
+
+    private JsonObject syncPayload(User user) {
+        JsonObject payload = new JsonObject();
+        payload.add("account", JsonLine.toTree(net.dto.AccountDto.of(user)));
+        payload.add("userState", JsonLine.toTree(user.userState));
+        return payload;
     }
 
     private void adoptAccount(Envelope envelope) {
@@ -235,55 +207,31 @@ public final class NetworkClient {
         model.user_data.UserState state = stateJson == null
                 ? null : JsonLine.fromTree(stateJson, model.user_data.UserState.class);
 
-        User user = new User(dto.username, "", dto.nickname, dto.email, dto.gender);
+        User user = User.currentUser;
+        if (user == null || !user.accountId().equals(dto.accountId)) {
+            user = User.localStore().findById(dto.accountId);
+        }
+        if (user == null) {
+            user = new User(dto.username, "", dto.nickname, dto.email, dto.gender);
+            User.users.add(user);
+        }
+        boolean stayLoggedIn = user.stayLoggedIn;
         dto.applyTo(user);
         if (state != null) user.userState = state;
-        // Carry over the "stay logged in" choice from the local session that connected
-        // online, instead of losing it the moment we switch to the remote store.
-        user.stayLoggedIn = User.currentUser != null
-                && dto.username.equalsIgnoreCase(User.currentUser.username)
-                && User.currentUser.stayLoggedIn;
+        user.stayLoggedIn = stayLoggedIn;
+        user.syncedPasswordHash = user.passwordHash;
 
-        signedInUsername = dto.username;
-        User.users.clear();
-        User.users.add(user);
+        signedInUsername = user.username;
         User.useStore(new RemoteUserStore(this));
         User.setUser(user);
-        // Mirror this authoritative server state into the local file immediately, so it's
-        // never left stale even if nothing else triggers a save before the server goes down.
-        User.save();
-        statusMessage = "Signed in as " + dto.username;
-    }
-
-    public void logout() {
-        if (User.isRemote() && User.currentUser != null) {
-            User.save();
+        User.localStore().mirror();
+        if (envelope.getBoolean("usernameTaken", false)) {
+            statusMessage = "Someone online already uses that username, so your account "
+                    + "stays " + user.username + ".";
+            GeneralPrinter.print(statusMessage);
+        } else {
+            statusMessage = "Signed in as " + user.username;
         }
-        if (isConnected()) fireAndForget(Protocol.LOGOUT, Envelope.obj());
-        signedInUsername = null;
-        queued = false;
-        matchState = null;
-        User.useLocalStore();
-    }
-
-    public void forgotPasswordStart(String username, String email, Consumer<Envelope> reply) {
-        send(Protocol.FORGOT_PASSWORD_START,
-                Envelope.obj("username", username, "email", email), reply);
-    }
-
-    public void forgotPasswordAnswer(String answer, String newPassword, Consumer<Envelope> reply) {
-        send(Protocol.FORGOT_PASSWORD_ANSWER,
-                Envelope.obj("answer", answer, "newPassword", newPassword), reply);
-    }
-
-    public void updateProfile(String field, String value, String oldPassword,
-                              Consumer<Envelope> reply) {
-        send(Protocol.PROFILE_UPDATE,
-                Envelope.obj("field", field, "value", value, "oldPassword", oldPassword),
-                envelope -> {
-                    if (envelope.isType(Protocol.OK)) adoptAccount(envelope);
-                    if (reply != null) reply.accept(envelope);
-                });
     }
 
     public void markStateDirty() {
@@ -294,9 +242,14 @@ public final class NetworkClient {
         if (!isSignedIn() || User.currentUser == null) return;
         stateDirty = false;
         lastStatePushMillis = System.currentTimeMillis();
-        JsonObject payload = new JsonObject();
-        payload.add("userState", JsonLine.toTree(User.currentUser.userState));
-        fireAndForget(Protocol.STATE_PUSH, payload);
+        send(Protocol.STATE_SYNC, syncPayload(User.currentUser), envelope -> {
+            if (!envelope.isType(Protocol.OK) || User.currentUser == null) return;
+            JsonObject stateJson = envelope.getObject("userState");
+            model.user_data.UserState served = stateJson == null
+                    ? null : JsonLine.fromTree(stateJson, model.user_data.UserState.class);
+            if (served == null) return;
+            if (served.isNewerThan(User.currentUser.userState)) adoptAccount(envelope);
+        });
     }
 
     public void refreshOnlinePlayers() {
@@ -423,7 +376,7 @@ public final class NetworkClient {
 
         connection.maybePing();
         if (stateDirty
-                && System.currentTimeMillis() - lastStatePushMillis > STATE_PUSH_INTERVAL_MILLIS) {
+                && System.currentTimeMillis() - lastStatePushMillis > STATE_SYNC_INTERVAL_MILLIS) {
             pushStateNow();
         }
 

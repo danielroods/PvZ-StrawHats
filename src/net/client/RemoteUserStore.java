@@ -16,19 +16,14 @@ public class RemoteUserStore implements UserStore {
     public void load() {
     }
 
-    // Note: while connected, the server is the single owner of the shared account
-    // file (Data.json). This store must never write to that file directly - doing so
-    // raced against the server's own writes and silently dropped progress (levels,
-    // plants, seed packets, coins, diamonds, etc.), since whichever process wrote last
-    // won and clobbered the other's in-memory state. Progress is only ever persisted
-    // by pushing it to the server below; the server is responsible for saving it to
-    // disk (see AccountStore / AccountHandlers#statePush), including flushing pending
-    // pushes when it shuts down, so nothing is lost whether the server is on or off.
     @Override
     public void save() {
-        if (User.currentUser != null) {
-            User.currentUser.userState.greenhousePots = Greenhouse.getInstance().serialize();
+        User current = User.currentUser;
+        if (current != null && current.userState != null) {
+            current.userState.greenhousePots = Greenhouse.getInstance().serialize();
+            current.userState.markSaved();
         }
+        User.localStore().mirror();
         client.markStateDirty();
         client.pushStateNow();
     }
@@ -42,7 +37,7 @@ public class RemoteUserStore implements UserStore {
     public User findByUsername(String username) {
         if (username == null) return null;
         for (User user : User.users) {
-            if (username.equals(user.username)) return user;
+            if (username.equalsIgnoreCase(user.username)) return user;
         }
         return null;
     }

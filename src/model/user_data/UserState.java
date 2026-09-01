@@ -28,6 +28,9 @@ public class UserState {
 
     public Map<String, Integer> miniGameHighestLevelWon = new HashMap<>();
 
+    public long stateRevision;
+    public long stateUpdatedAt;
+
     public String dailyOfferDate;
     public Integer dailyOfferPlantId;
     public boolean dailyOfferPurchased;
@@ -39,6 +42,23 @@ public class UserState {
         this.coins = coins;
         this.difficultyLevel = 3;
         this.unlockedPlantIds.add(1);
+    }
+
+    public void markSaved() {
+        stateRevision++;
+        stateUpdatedAt = System.currentTimeMillis();
+    }
+
+    public boolean isNewerThan(UserState other) {
+        if (other == null) return true;
+        if (stateRevision != other.stateRevision) return stateRevision > other.stateRevision;
+        return stateUpdatedAt > other.stateUpdatedAt;
+    }
+
+    public void adoptRevisionOf(UserState other) {
+        if (other == null) return;
+        stateRevision = other.stateRevision;
+        stateUpdatedAt = other.stateUpdatedAt;
     }
 
     public boolean isPlantUnlocked(int plantId) {

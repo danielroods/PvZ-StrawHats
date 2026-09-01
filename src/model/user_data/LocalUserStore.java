@@ -15,85 +15,118 @@ import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-/** Offline store backed by the same canonical account file used by the online server. */
 public class LocalUserStore implements UserStore {
-    private static final File CANONICAL_FILE = new File("server-data", "Data.json");
-    private static final File LEGACY_FILE = new File("Data.json");
+    private static final File CLIENT_FILE = new File("client-data", "Data.json");
+    private static final File[] LEGACY_FILES = {
+        new File("server-data", "Data.json"),
+        new File("Data.json"),
+    };
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private File accountFile() {
-        File parent = CANONICAL_FILE.getParentFile();
+        File parent = CLIENT_FILE.getParentFile();
         if (!parent.exists()) parent.mkdirs();
-        if (!CANONICAL_FILE.exists() && LEGACY_FILE.isFile() && LEGACY_FILE.length() > 0) {
-            try (Reader reader = new FileReader(LEGACY_FILE)) {
-                Type listType = new TypeToken<ArrayList<User>>() { }.getType();
-                ArrayList<User> loaded = GSON.fromJson(reader, listType);
-                try (Writer writer = new FileWriter(CANONICAL_FILE)) { GSON.toJson(loaded == null ? new ArrayList<User>() : loaded, writer); }
-            } catch (Exception e) { GeneralPrinter.print("Could not migrate offline accounts: " + e.getMessage()); }
+        if (!CLIENT_FILE.exists()) migrateLegacyFile();
+        return CLIENT_FILE;
+    }
+
+    private void migrateLegacyFile() {
+        for (File legacy : LEGACY_FILES) {
+            if (!legacy.isFile() || legacy.length() == 0) continue;
+            try (Reader reader = new FileReader(legacy)) {
+                ArrayList<User> loaded = GSON.fromJson(reader, listType());
+                try (Writer writer = new FileWriter(CLIENT_FILE)) {
+                    GSON.toJson(loaded == null ? new ArrayList<User>() : loaded, writer);
+                }
+                return;
+            } catch (Exception e) {
+                GeneralPrinter.print("Could not migrate offline accounts: " + e.getMessage());
+            }
         }
-        return CANONICAL_FILE;
+    }
+
+    private static Type listType() {
+        return new TypeToken<ArrayList<User>>() { }.getType();
     }
 
     @Override public void load() {
         File file = accountFile();
         if (!file.exists()) return;
         try (Reader reader = new FileReader(file)) {
-            Type listType = new TypeToken<ArrayList<User>>() { }.getType();
-            ArrayList<User> loaded = GSON.fromJson(reader, listType);
+            ArrayList<User> loaded = GSON.fromJson(reader, listType());
             User.users = loaded == null ? new ArrayList<>() : loaded;
+            for (User user : User.users) normalise(user);
             for (User user : User.users) if (user.stayLoggedIn) setUser(user);
         } catch (IOException e) { GeneralPrinter.print("Could not load users: " + e.getMessage()); }
     }
 
     @Override public void save() {
-        if (User.currentUser != null) User.currentUser.userState.greenhousePots = Greenhouse.getInstance().serialize();
+        User current = User.currentUser;
+        if (current != null && current.userState != null) {
+            current.userState.greenhousePots = Greenhouse.getInstance().serialize();
+            current.userState.markSaved();
+        }
+        mirror();
+    }
+
+   public void mirror() {
         mergeFromDisk();
         writeAtomically();
     }
 
-    /** Writes to a temp file and swaps it into place, so a save interrupted mid-write
-     *  can never leave Data.json half-written (a half-written file fails to parse on the
-     *  next load() and silently resets every account). */
     private void writeAtomically() {
         File target = accountFile();
+        File tmp = null;
         try {
             File parent = target.getAbsoluteFile().getParentFile();
-            File tmp = File.createTempFile("Data", ".json.tmp", parent);
+            tmp = File.createTempFile("Data", ".json.tmp", parent);
             try (Writer writer = new FileWriter(tmp)) { GSON.toJson(User.users, writer); }
-            try {
-                java.nio.file.Files.move(tmp.toPath(), target.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
-                java.nio.file.Files.move(tmp.toPath(), target.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            }
+            moveIntoPlace(tmp, target);
+            tmp = null;
         } catch (IOException e) {
             GeneralPrinter.print("Could not save users: " + e.getMessage());
+        } finally {
+            if (tmp != null && tmp.exists() && !tmp.delete()) tmp.deleteOnExit();
         }
     }
 
-    /** Pulls in any accounts that exist on disk but aren't in memory here yet, so this
-     *  save doesn't overwrite progress the online server (or another client) wrote to
-     *  the same file since this process last loaded it. */
+    private void moveIntoPlace(File tmp, File target) throws IOException {
+        try {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException atomicFailed) {
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
     private void mergeFromDisk() {
         File file = accountFile();
         if (!file.isFile()) return;
         try (Reader reader = new FileReader(file)) {
-            Type listType = new TypeToken<ArrayList<User>>() { }.getType();
-            ArrayList<User> onDisk = GSON.fromJson(reader, listType);
+            ArrayList<User> onDisk = GSON.fromJson(reader, listType());
             if (onDisk == null) return;
             for (User diskUser : onDisk) {
                 if (diskUser == null || diskUser.username == null) continue;
-                boolean known = false;
-                for (User memUser : User.users) {
-                    if (memUser.username.equalsIgnoreCase(diskUser.username)) { known = true; break; }
-                }
-                if (!known) User.users.add(diskUser);
+                normalise(diskUser);
+                if (findById(diskUser.accountId()) == null) User.users.add(diskUser);
             }
         } catch (Exception e) {
             GeneralPrinter.print("Could not merge users: " + e.getMessage());
         }
+    }
+
+    private static void normalise(User user) {
+        if (user == null) return;
+        user.accountId();
+        if (user.userState == null) user.userState = new UserState(new ArrayList<>(), 0, 0, 0);
+    }
+
+    public User findById(String accountId) {
+        if (accountId == null) return null;
+        for (User user : User.users) if (accountId.equals(user.accountId())) return user;
+        return null;
     }
 
     @Override public void addUser(User user) { User.users.add(user); save(); }
