@@ -249,6 +249,8 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
 
             addActor(new TrailActor());
 
+            addDangerNodeHitArea();
+
             addMapDecorations();
 
             for (int i = 0; i < count; i++) {
@@ -272,8 +274,11 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
             group.setScale(flipX ? -scale : scale, scale);
             group.setPosition(x, y);
 
+            group.setTouchable(Touchable.disabled);
+
             MapDecorationActor actor = new MapDecorationActor(type, nativeWidth, nativeHeight, state);
             actor.setSize(nativeWidth, nativeHeight);
+            actor.setTouchable(Touchable.disabled);
             group.addActor(actor);
             return group;
         }
@@ -355,6 +360,7 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
             for (MapObjectPlacement p : placements) {
                 MapDecorationActor actor = new MapDecorationActor(p.type, p.width, p.height, "idle");
                 actor.setPosition(p.x * LAYOUT_SCALE_X, p.y * LAYOUT_SCALE_Y);
+                actor.setTouchable(Touchable.disabled);
                 addActor(actor);
             }
 
@@ -402,6 +408,7 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
             }
 
             Group houseIslandGroup = createAnchoredAnimation(MapObjectType.DECOR_HOUSE_ISLAND, HOUSE_ISLAND_TUNING, "idle", houseX + 50f, houseY + 20f);
+            houseIslandGroup.setTouchable(Touchable.enabled);
             houseIslandGroup.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -411,12 +418,25 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
             addActor(houseIslandGroup);
         }
 
+        private void addDangerNodeHitArea() {
+            if (calculateDangerNodeState() == DangerNodeState.LOCKED_IDLE) return;
+            float renderW = DANGER_NODE_TUNING.nativeW() * DANGER_NODE_TUNING.scale();
+            float renderH = DANGER_NODE_TUNING.nativeH() * DANGER_NODE_TUNING.scale();
+            addActor(createDangerNodeHitArea(
+                    dangerNodeAnchorX + DANGER_NODE_TUNING.offsetX() * LAYOUT_SCALE_X
+                            + (DANGER_NODE_TUNING.nativeW() - renderW) / 2f,
+                    dangerNodeAnchorY + DANGER_NODE_TUNING.offsetY() * LAYOUT_SCALE_Y
+                            + (DANGER_NODE_TUNING.nativeH() - renderH) / 2f,
+                    renderW, renderH));
+        }
+
         private void addForegroundEffects() {
             DangerNodeState dState = calculateDangerNodeState();
             String zombossState = (dState == DangerNodeState.UNLOCKED_IDLE) ? "defeated" : "idle";
             addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_NODE, ZOMBOSS_TUNING, zombossState, zombossNodeX, zombossNodeY));
             Group dangerNode = createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(), dangerNodeAnchorX, dangerNodeAnchorY);
             if (dState != DangerNodeState.LOCKED_IDLE) {
+                dangerNode.setTouchable(Touchable.enabled);
                 dangerNode.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {

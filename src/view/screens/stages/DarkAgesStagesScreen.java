@@ -259,6 +259,8 @@ public class DarkAgesStagesScreen extends StagesScreen {
 
             addActor(new TrailActor());
 
+            addDangerNodeHitArea();
+
             addMapDecorations();
 
             for (int i = 0; i < count; i++) {
@@ -362,11 +364,21 @@ public class DarkAgesStagesScreen extends StagesScreen {
             addActor(houseIsland);
         }
 
+        private void addDangerNodeHitArea() {
+            if (calculateDangerNodeState() == DangerNodeState.LOCKED_IDLE) return;
+            addActor(createDangerNodeHitArea(
+                    dangerNodeAnchorX + DANGER_NODE_TUNING.offsetX() * LAYOUT_SCALE_X,
+                    dangerNodeAnchorY + DANGER_NODE_TUNING.offsetY() * LAYOUT_SCALE_Y,
+                    DANGER_NODE_TUNING.nativeW() * DANGER_NODE_TUNING.scale(),
+                    DANGER_NODE_TUNING.nativeH() * DANGER_NODE_TUNING.scale()));
+        }
+
         private void addForegroundEffects() {
             DangerNodeState dState = calculateDangerNodeState();
             Group dangerNode = createAnchoredAnimation(MapObjectType.DANGER_NODE_ANIM, DANGER_NODE_TUNING, dState.getPamState(),
                     dangerNodeAnchorX, dangerNodeAnchorY);
             if (dState != DangerNodeState.LOCKED_IDLE) {
+                dangerNode.setTouchable(Touchable.enabled);
                 dangerNode.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
