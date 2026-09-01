@@ -77,6 +77,26 @@ public final class ScreenManager {
         setScreen(resolveScreen(menu));
     }
 
+    /**
+     * Same as {@link #syncWithCurrentMenu()}, but always rebuilds the screen even when
+     * {@link App#currentMenu} is still the same *class* it was before (e.g. restarting a
+     * match sets App.currentMenu to a brand new GameplayMenu instance, but it's still a
+     * GameplayMenu - syncWithCurrentMenu()'s same-class check would treat that as "nothing
+     * to do" and leave the old GameScreen on screen, still wired to the GameSession that
+     * "restart" just replaced, which is why nothing on it responded to input anymore).
+     * Used by restart flows, which always need a fresh screen instance regardless of
+     * whether the destination menu's class happens to match the one just left.
+     */
+    public static void forceResync() {
+        if (currentScreen instanceof GameScreen gameScreen && gameScreen.isMatchEndSequenceActive()) {
+            return;
+        }
+
+        Menu menu = App.currentMenu;
+        currentMenuClass = menu == null ? null : menu.getClass();
+        setScreen(resolveScreen(menu));
+    }
+
     private static BaseScreen resolveScreen(Menu menu) {
         if (menu instanceof SignupMenu) {
             return new SignupScreen();
