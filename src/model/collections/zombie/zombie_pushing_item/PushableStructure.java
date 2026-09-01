@@ -25,7 +25,8 @@ public class PushableStructure {
         this.position = position;
         this.hp = switch (type) {
             case ICE_BLOCK -> 600;
-            case ARCADE_CABINET, BARREL -> 1100;
+            case ARCADE_CABINET -> 1100;
+            case BARREL -> 600;
         };
     }
 
@@ -76,10 +77,8 @@ public class PushableStructure {
         int col = Math.max(0, Math.min(session.getCols() - 1, (int) Math.round(position.x())));
 
         if (type == PushableType.BARREL) {
-            for (int i = 0; i < 2; i++) {
-                Zombie imp = ZombieFactory.create("ZombieImp", row, Math.min(session.getCols() - 1, col + i));
-                session.spawnZombie(imp);
-            }
+            Zombie imp = ZombieFactory.create("ZombieImp", row, col);
+            session.spawnZombie(imp);
         } else if (type == PushableType.ICE_BLOCK) {
             // The imp frozen inside the ice block is only revealed once the block
             // itself is pushed into something and shatters.

@@ -54,6 +54,13 @@ class ZombieRenderer {
     private static final float PIANO_OFFSET_Y = -6f;
     private static final float PIANO_SCALE = 0.52f;
     private static final String ZOMBIE_ARCADE_ALIAS = "ZombieArcade";
+    private static final String ZOMBIE_BARREL_ROLLER_ALIAS = "ZombieBarrelRoller";
+    private static final String ZOMBIE_BARREL_PAM =
+            "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BARREL_PUSHER_BARREL/ZOMBIE_PIRATE_BARREL_PUSHER_BARREL.PAM";
+    private static final float BARREL_SCALE = 0.52f;
+    private static final float BARREL_OFFSET_X = -18f;
+    private static final float BARREL_OFFSET_Y = 30f;
+    private static final float DEFAULT_BARREL_DEATH_DURATION = 0.6f;
     private static final String ZOMBIE_TROGLOBITE_ALIAS = "ZombieIceAgeTroglobite";
     // The pushed ice block reuses the same texture the Troglobite was frozen inside
     // (see FrostbiteRenderer.drawFrostbiteIceBlocks / GameScreenAssets.zombieIceBlockTexture)
@@ -140,11 +147,19 @@ class ZombieRenderer {
         // After shock, ash plays when this zombie has an ash-death asset.
         final String ashPath;
         final float ashDuration;
+        final boolean barrelBroken;
+        // The barrel survives independently of the pusher zombie.  Keep the actual
+        // structure reference so it can continue rolling after the zombie's death
+        // sequence has finished.
+        final PushableStructure barrelStructure;
         float time;
+        float barrelRollTime;
+        float barrelDeathTime;
 
         DyingZombie(String alias, Position position, boolean facingRight,
                     float duration, String shockPath, float shockDuration,
-                    String ashPath, float ashDuration) {
+                    String ashPath, float ashDuration, boolean barrelBroken,
+                    PushableStructure barrelStructure) {
             this.alias = alias;
             this.position = position;
             this.facingRight = facingRight;
@@ -153,6 +168,10 @@ class ZombieRenderer {
             this.shockDuration = shockDuration;
             this.ashPath = ashPath;
             this.ashDuration = ashDuration;
+            this.barrelBroken = barrelBroken;
+            this.barrelStructure = barrelStructure;
+            this.barrelRollTime = 0f;
+            this.barrelDeathTime = -1f;
         }
     }
 
@@ -173,6 +192,7 @@ class ZombieRenderer {
     private final Map<Zombie, Float> pianoDamageAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, Float> arcadeDeathAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> arcadeWaterRipples = new IdentityHashMap<>();
+    private final Map<Zombie, Float> barrelDeathAnimTimes = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -264,11 +284,25 @@ class ZombieRenderer {
             }
             zombieGyratingLast.put(zombie, gyratingNow);
 
-            boolean hasActionOverride = zombie.getZombieState() != ZombieState.DEAD
-                    && zombie.getActionAnimationState() != null;
+            // PusherMove leaves the visual "push" state active while the barrel zombie
+            // is moving. If the zombie has already acquired a target, that stale push
+            // state must not mask its eat animation.
+            boolean staleBarrelPushWhileEating =
+                    ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())
+                            && zombie.getZombieState() == ZombieState.EATING
+                            && "push".equals(zombie.getActionAnimationState());
+            boolean isBarrelPusher = ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias());
+            boolean hasActionOverride = !isBarrelPusher
+                    && zombie.getZombieState() != ZombieState.DEAD
+                    && zombie.getActionAnimationState() != null
+                    && !staleBarrelPushWhileEating;
+            boolean barrelBroken = isBarrelPusher
+                    && zombie.getPushedStructure() != null
+                    && zombie.getPushedStructure().getType() == model.pitches.obstacles.PushableType.BARREL
+                    && !zombie.getPushedStructure().isAlive();
             String preferred;
             if (zombie.getZombieState() == ZombieState.DEAD) {
-                preferred = "die";
+                preferred = barrelBroken ? "die2" : "die";
             } else if (hasActionOverride) {
                 // A special one-off/looping action beat (e.g. "toss", "push",
                 // "cast", "cast_loop", "reel") takes priority over the plain
@@ -279,6 +313,12 @@ class ZombieRenderer {
                     AudioManager.get().playSound(AudioEnum.SFX_LASER_SHOT);
                 }
                 zombieActionStateLast.put(zombie, preferred);
+            } else if (isBarrelPusher) {
+                // ZombieBarrelRoller's first walking clip contains the barrel as part of
+                // the same PAM.  When the barrel is gone, the corresponding walk2 clip
+                // removes the barrel (apart from the remaining particle artwork).
+                // Never let PusherMove's "push" action override these clips.
+                preferred = barrelBroken ? "walk2" : "walk";
             } else if (zombie.getZombieState() == ZombieState.EATING) {
                 // ZombieBeachFisherman's PAM has no dedicated "eat" clip; it
                 // reuses its "toss" animation for chomping instead.
@@ -286,7 +326,8 @@ class ZombieRenderer {
                         && zombie.getArmour() instanceof ZombieArmour armour
                         && !armour.isDestroyed();
                 preferred = ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias()) ? "toss"
-                        : hasNewspaper ? "eat_newspaper" : "eat";
+                        : hasNewspaper ? "eat_newspaper"
+                        : barrelBroken ? "eat2" : "eat";
                 if (!zombieEatingLast.getOrDefault(zombie, false)) {
                     AudioManager.get().playSound(AudioEnum.SFX_ZOMBIE_EAT);
                 }
@@ -299,9 +340,11 @@ class ZombieRenderer {
                 boolean hasNewspaper = ZOMBIE_NEWSPAPER_ALIAS.equals(zombie.getAlias())
                         && zombie.getArmour() instanceof ZombieArmour armour
                         && !armour.isDestroyed();
-                preferred = gyratingNow ? "spin" : stillRunning ? "run" : hasNewspaper ? "walk_newspaper" : "walk";
+                preferred = gyratingNow ? "spin" : stillRunning ? "run"
+                        : hasNewspaper ? "walk_newspaper" : barrelBroken ? "walk2" : "walk";
             }
             String path = ZombieAnimationRegistry.pathFor(zombie.getAlias(), screen.seasonFolder);
+
             float animationTime = t;
             if (hasActionOverride) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
@@ -313,8 +356,10 @@ class ZombieRenderer {
                     // instead of looping/glitching once it finishes.
                     animationTime = duration > 0f ? Math.min(elapsed, duration) : elapsed;
                 }
-            } else if (("walk".equals(preferred) || "eat".equals(preferred) || "toss".equals(preferred)
-                    || "spin".equals(preferred) || "run".equals(preferred) || "walk_newspaper".equals(preferred)
+            } else if (("walk".equals(preferred) || "walk2".equals(preferred)
+                    || "eat".equals(preferred) || "eat2".equals(preferred)
+                    || "toss".equals(preferred) || "spin".equals(preferred)
+                    || "run".equals(preferred) || "walk_newspaper".equals(preferred)
                     || "eat_newspaper".equals(preferred)) && path != null) {
                 float duration = screen.pam().resolveClipDuration(zombie.getAlias(), preferred);
                 if (duration > 0f) {
@@ -355,6 +400,7 @@ class ZombieRenderer {
         pianoDamageAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        barrelDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     private record ZombieVisualArgs(
@@ -393,6 +439,7 @@ class ZombieRenderer {
             drawZombiePiano(zombie, preferred, t, delta, x - 7f, zombieDrawY, zombie.isFacingRight());
             drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
             drawZombieIceBlock(zombie, boardTileWidth, boardTileHeight);
+            drawZombieBarrel(zombie, delta, boardTileWidth);
             if (tinted) screen.batch.setColor(tint);
             boolean pamDrawn;
             if (zombie.isFacingRight()) {
@@ -471,7 +518,18 @@ class ZombieRenderer {
             if (ashPath != null && ashDuration <= 0f) ashDuration = DEATH_ANIM_DURATION;
 
             boolean playNormalDeathAfterShock = shockPath != null && ashPath == null;
-            float normalDeathDuration = screen.pam().resolveClipDuration(zombie.getAlias(), "die");
+            PushableStructure barrelStructure =
+                    ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())
+                            && zombie.getPushedStructure() != null
+                            && zombie.getPushedStructure().getType() == model.pitches.obstacles.PushableType.BARREL
+                            && zombie.getPushedStructure().isAlive()
+                            ? zombie.getPushedStructure() : null;
+            boolean barrelBroken = ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())
+                    && zombie.getPushedStructure() != null
+                    && zombie.getPushedStructure().getType() == model.pitches.obstacles.PushableType.BARREL
+                    && !zombie.getPushedStructure().isAlive();
+            String deathState = barrelBroken ? "die2" : "die";
+            float normalDeathDuration = screen.pam().resolveClipDuration(zombie.getAlias(), deathState);
             if (normalDeathDuration <= 0f) normalDeathDuration = DEATH_ANIM_DURATION;
 
             float deathSequenceDuration = shockDuration;
@@ -484,7 +542,7 @@ class ZombieRenderer {
             dyingZombies.add(new DyingZombie(
                     zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(),
                     deathSequenceDuration, shockPath, shockDuration,
-                    ashPath, ashDuration));
+                    ashPath, ashDuration, barrelBroken, barrelStructure));
             zombieAnimTimes.remove(zombie);
             screen.onZombieDied(zombie);
         }
@@ -518,41 +576,103 @@ class ZombieRenderer {
                 continue;
             }
 
-            String path = ZombieAnimationRegistry.pathFor(dz.alias, screen.seasonFolder);
+            // Once the death animation has fully played out, the pusher's own corpse
+            // pose must stop being drawn - otherwise it stays glued to the screen
+            // forever (frozen on its last "die" frame) instead of disappearing, even
+            // though the code below has already moved on to animating the surviving
+            // barrel independently. Only the barrel logic further down should still
+            // run past this point.
+            boolean deathAnimComplete = dz.time >= dz.duration;
+            if (!deathAnimComplete) {
+                String path = ZombieAnimationRegistry.pathFor(dz.alias, screen.seasonFolder);
 
-            // Particles (head + hand) drop off and settle onto the row's ground
-            // over roughly the first half of the death animation.
-            float normalDeathTime = Math.max(0f, postShockTime);
-            float normalDeathDuration = Math.max(0.001f, dz.duration - dz.shockDuration);
-            float fallProgress = Math.min(1f, normalDeathTime / (normalDeathDuration * 0.5f));
-            float fallEase = 1f - (1f - fallProgress) * (1f - fallProgress);
-            float particleDrop = 24f * fallEase;
+                // Particles (head + hand) drop off and settle onto the row's ground
+                // over roughly the first half of the death animation.
+                float normalDeathTime = Math.max(0f, postShockTime);
+                float normalDeathDuration = Math.max(0.001f, dz.duration - dz.shockDuration);
+                float fallProgress = Math.min(1f, normalDeathTime / (normalDeathDuration * 0.5f));
+                float fallEase = 1f - (1f - fallProgress) * (1f - fallProgress);
+                float particleDrop = 24f * fallEase;
 
-            ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
-            if (plantHead == null) {
-                screen.queueRowDraw(row, () -> screen.drawPam(path, "particles", normalDeathTime,
-                        x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight));
+                ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
+                if (plantHead == null) {
+                    screen.queueRowDraw(row, () -> screen.drawPam(path, "particles", normalDeathTime,
+                            x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight));
+                }
+                float dieTime = Math.min(normalDeathTime, normalDeathDuration);
+                if (plantHead != null) {
+                    float fade = Math.max(0f, 1f - normalDeathTime / normalDeathDuration);
+                    screen.queueRowDraw(row, () -> {
+                        screen.drawPam(path, dz.barrelBroken ? "die2" : "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
+                                ZombotanyArt.headlessBodyMask());
+                        screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
+                        drawPlantHead(plantHead, normalDeathTime, x - 10f, zombieOffsetY - particleDrop,
+                                ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
+                        screen.batch.setColor(Color.WHITE);
+                    });
+                } else {
+                    screen.queueRowDraw(row, () -> screen.drawPam(path, dz.barrelBroken ? "die2" : "die", dieTime,
+                            x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
+                }
+                if (ZOMBIE_PIANO_ALIAS.equals(dz.alias)) {
+                    screen.queueRowDraw(row, () -> drawPianoDying(dieTime, x - 10f, zombieOffsetY, dz.facingRight));
+                }
             }
-            float dieTime = Math.min(normalDeathTime, normalDeathDuration);
-            if (plantHead != null) {
-                float fade = Math.max(0f, 1f - normalDeathTime / normalDeathDuration);
-                screen.queueRowDraw(row, () -> {
-                    screen.drawPam(path, "die", dieTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight,
-                            ZombotanyArt.headlessBodyMask());
-                    screen.batch.setColor(1f, 1f, 1f, Math.min(1f, 0.25f + fade));
-                    drawPlantHead(plantHead, normalDeathTime, x - 10f, zombieOffsetY - particleDrop,
-                            ZOMBIE_SCALE, dz.facingRight, ZombieState.DEAD);
-                    screen.batch.setColor(Color.WHITE);
-                });
-            } else {
-                screen.queueRowDraw(row, () -> screen.drawPam(path, "die", dieTime,
-                        x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
-            }
-            if (ZOMBIE_PIANO_ALIAS.equals(dz.alias)) {
-                screen.queueRowDraw(row, () -> drawPianoDying(dieTime, x - 10f, zombieOffsetY, dz.facingRight));
+
+            // The barrel is a separate object, but it must NOT appear during the
+            // pusher's death animation: the combined zombie PAM owns the visual during
+            // that entire sequence.  Only after the zombie death animation is complete
+            // does the surviving barrel take over as a standalone rolling PAM.
+            if (dz.barrelStructure != null && dz.time >= dz.duration) {
+                PushableStructure barrel = dz.barrelStructure;
+                if (barrel.isAlive() && barrel.getPosition() != null) {
+                    Position barrelPos = barrel.getPosition();
+                    float barrelX = GameScreen.BOARD_X
+                            + (float) barrelPos.x() * boardTileWidth + BARREL_OFFSET_X;
+                    float barrelY = screen.cellY(barrelPos.y()) + BARREL_OFFSET_Y;
+
+                    float rollTime = dz.barrelRollTime;
+                    float rollDuration = AnimationFactory.exactClipDurationForPath(
+                            ZOMBIE_BARREL_PAM, "roll");
+                    if (rollDuration > 0f) rollTime %= rollDuration;
+                    final float rollTimeForDraw = rollTime;
+
+                    screen.queueRowDraw(row, () -> screen.pam().drawPamExact(
+                            ZOMBIE_BARREL_PAM, "roll", rollTimeForDraw,
+                            barrelX, barrelY, BARREL_SCALE, dz.facingRight));
+                    dz.barrelRollTime += delta;
+                } else if (dz.barrelDeathTime < 0f) {
+                    // If the surviving barrel is destroyed after the pusher has died,
+                    // start its own death clip from frame zero.
+                    dz.barrelDeathTime = 0f;
+                }
+
+                if (dz.barrelDeathTime >= 0f) {
+                    float barrelDeathDuration = AnimationFactory.exactClipDurationForPath(
+                            ZOMBIE_BARREL_PAM, "die");
+                    if (barrelDeathDuration <= 0f) {
+                        barrelDeathDuration = DEFAULT_BARREL_DEATH_DURATION;
+                    }
+
+                    float barrelDieTime = Math.min(dz.barrelDeathTime, barrelDeathDuration);
+                    Position barrelPos = barrel.getPosition();
+                    if (barrelPos != null) {
+                        float barrelX = GameScreen.BOARD_X
+                                + (float) barrelPos.x() * boardTileWidth + BARREL_OFFSET_X;
+                        float barrelY = screen.cellY(barrelPos.y()) + BARREL_OFFSET_Y;
+                        screen.queueRowDraw(row, () -> screen.pam().drawPamExact(
+                                ZOMBIE_BARREL_PAM, "die", barrelDieTime,
+                                barrelX, barrelY, BARREL_SCALE, dz.facingRight));
+                    }
+                    dz.barrelDeathTime += delta;
+                }
             }
         }
-        dyingZombies.removeIf(dz -> dz.time > dz.duration);
+        dyingZombies.removeIf(dz ->
+                dz.time > dz.duration
+                        && (dz.barrelStructure == null
+                        || !dz.barrelStructure.isAlive()
+                        && dz.barrelDeathTime >= DEFAULT_BARREL_DEATH_DURATION));
     }
 
     /**
@@ -706,6 +826,21 @@ class ZombieRenderer {
                 drawWaterRipple(zombie.getAlias(), rippleX, rippleY, facingRight, arcadeRipple);
             }
         }
+    }
+
+    /**
+     * Renders the Pirate Barrel Pusher's separate barrel after the pusher zombie
+     * has died, or its one-shot death animation after the barrel itself is destroyed.
+     * While both are alive, the combined pusher PAM already contains the barrel and
+     * this method deliberately draws nothing.
+     */
+    private void drawZombieBarrel(Zombie zombie, float delta, float boardTileWidth) {
+        if (!ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())) return;
+
+        // The first/walk animation of ZombieBarrelRoller already contains the intact
+        // barrel.  Drawing the standalone barrel while the zombie is alive creates the
+        // visible "two barrels" bug.  The standalone barrel is intentionally rendered
+        // only by drawDyingZombies(), after the pusher's death animation has completed.
     }
 
     // The ice block a Troglobite pushes ahead of itself once freed. Falls smoothly in

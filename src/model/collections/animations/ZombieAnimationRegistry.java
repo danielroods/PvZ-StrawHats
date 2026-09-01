@@ -27,6 +27,7 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombieProspector", "ZOMBIE_PROSPECTOR"),
             Map.entry("ZombiePiano", "ZOMBIE_PIANO"),
             Map.entry("ZombieArcade", "ZOMBIE_80S_ARCADE"),
+            Map.entry("ZombieBarrelRoller", "ZOMBIE_PIRATE_BARREL_PUSHER"),
             Map.entry("ZombiePeashooter", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieGatlingPea", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieWallnut", "ZOMBIE_TUTORIAL"),
@@ -64,6 +65,9 @@ public class ZombieAnimationRegistry {
     }
 
     public static String pathFor(String zombieAlias) {
+        if ("ZombieBarrelRoller".equalsIgnoreCase(zombieAlias)) {
+            return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BARREL_PUSHER/ZOMBIE_PIRATE_BARREL_PUSHER.PAM";
+        }
         AnimationJsonParser.AnimationConfig config = resolve(zombieAlias);
         return config == null ? null : config.path;
     }

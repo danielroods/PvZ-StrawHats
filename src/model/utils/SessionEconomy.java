@@ -11,10 +11,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * The in-match economy and per-match plant bookkeeping: sun, plant food, seed-packet
- * cooldowns, one-off plant boosts, and the sky-sun drop interval.
- */
 class SessionEconomy {
 
     private static final int MAX_PLANT_FOOD = 3;
@@ -22,6 +18,7 @@ class SessionEconomy {
     private static final double SKY_SUN_INTERVAL_START = 6.0;
     private static final double SKY_SUN_INTERVAL_GROWTH = 0.05;
     private static final double BOSS_SUN_RATE_SCALE = 0.5;
+    private static final double SKY_SUN_INTERVAL_MULTIPLIER = 1.0;
 
     private final GameSession session;
 
@@ -48,7 +45,8 @@ class SessionEconomy {
         if (session.getDifficultyLevel() > 0) {
             baseInterval *= session.getDifficultyLevel() / 3.0;
         }
-        return session.isDoubleSunRate() ? baseInterval * BOSS_SUN_RATE_SCALE : baseInterval;
+        double interval = session.isDoubleSunRate() ? baseInterval * BOSS_SUN_RATE_SCALE : baseInterval;
+        return interval * SKY_SUN_INTERVAL_MULTIPLIER;
     }
 
     double advanceSkySunTimer(double deltaTimeSeconds) {
