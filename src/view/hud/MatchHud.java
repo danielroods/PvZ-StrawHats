@@ -418,6 +418,17 @@ public final class MatchHud extends Table implements Disposable {
             waveProgressBar.setStyle(bossProgressStyle);
             waveProgressBar.setValue(health);
             progressMeterOverlay.setVisible(false);
+        } else if (currentLevel instanceof model.match.main.levels.special_levels.TimedWarLevel timedWarLevel) {
+            // Survival timer HUD: counts down from the level's full duration to 0, reusing the
+            // same bar/label the boss fight uses for its health so it stays in the same spot.
+            double secondsRemaining = timedWarLevel.getSecondsRemaining();
+            double totalDuration = Math.max(1.0, timedWarLevel.getTotalDurationSeconds());
+            float timeFraction = (float) Math.max(0.0, Math.min(1.0, secondsRemaining / totalDuration));
+            waveLabel.setText(formatCountdown(secondsRemaining));
+            waveLabel.setVisible(true);
+            waveProgressBar.setStyle(normalProgressStyle);
+            waveProgressBar.setValue(timeFraction);
+            progressMeterOverlay.setVisible(false);
         } else {
             // حذف متن موج روی بار در مراحل عادی
             waveLabel.setText("");
@@ -448,6 +459,14 @@ public final class MatchHud extends Table implements Disposable {
         updateConveyor(session);
     }
 
+    /** "M:SS" countdown text for the survival timer HUD, e.g. 125.4 -> "2:05". */
+    private String formatCountdown(double secondsRemaining) {
+        int totalSeconds = (int) Math.ceil(Math.max(0.0, secondsRemaining));
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
+    }
+
     private String objectiveFor(Level level) {
         if (level == null) return "";
         if (level instanceof model.match.main.levels.special_levels.IntroductionLevel) return "LEARN THE BASICS";
@@ -456,7 +475,10 @@ public final class MatchHud extends Table implements Disposable {
         if (level instanceof BossLevel) return "BOSS BATTLE";
         if (level instanceof model.match.main.levels.special_levels.SaveOurSeedsLevel) return "PROTECT YOUR PLANTS";
         if (level instanceof model.match.main.levels.special_levels.DeadLineLevel) return "DO NOT CROSS THE LINE";
-        if (level instanceof model.match.main.levels.special_levels.TimedWarLevel) return "SURVIVE THE TIMER";
+        if (level instanceof model.match.main.levels.special_levels.TimedWarLevel timedWarLevel) {
+            int totalMinutes = (int) Math.ceil(timedWarLevel.getTotalDurationSeconds() / 60.0);
+            return "SURVIVE " + totalMinutes + " MINUTE" + (totalMinutes == 1 ? "" : "S") + "!";
+        }
         return "SURVIVE THE WAVES";
     }
 

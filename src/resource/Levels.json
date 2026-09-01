@@ -253,14 +253,16 @@
     "initialSun": 150,
     "availablePlants": ["Sunflower", "Peashooter", "Repeater", "Lily Pad"],
     "forcedPlants": [],
-    "timeLimitSeconds": 90,
-    "zombiesToKill": 6,
-    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachFisherman"],
+    "timeLimitSeconds": 120,
+    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachFisherman", "ZombieBeachOctopus", "ZombieArmor2"],
     "waves": [
-      {"delay": 5, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault"]},
-      {"delay": 16, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieArmor1", "ZombieDefault"]},
-      {"delay": 18, "zombies": ["ZombieBeachFisherman", "ZombieBeachSnorkel", "ZombieDefault"]},
-      {"delay": 20, "zombies": ["ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]}
+      {"delay": 5, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 12, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 12, "zombies": ["ZombieBeachFisherman", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 12, "zombies": ["ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachFisherman", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 12, "zombies": ["ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 12, "zombies": ["ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
+      {"delay": 14, "zombies": ["ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]}
     ]
   },
   {
