@@ -1,0 +1,70 @@
+{
+  "taCodes": [
+    {
+      "codeHash": "574e38c3f2f3d03dcd406151376c50076cc6d38f71a23730e4ef95f14b25f635",
+      "name": "Arvin",
+      "email": "arvintalebi261@gmail.com"
+    },
+    {
+      "codeHash": "785d05289e10098ac52320de91981f7846978f4e7a71873ceaa40e59b2e64ebf",
+      "name": "Pouya Astaraki1234",
+      "email": "pouyaastaraki1234@gmail.com"
+    }
+  ],
+  "groupScores": {
+    "12": 10.75,
+    "2": 0.5
+  },
+  "transactions": [
+    {
+      "timestamp": 1788270535425,
+      "groupId": "12",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 2.5,
+      "coins": 100000,
+      "taName": "Arvin",
+      "taEmail": "hahahah@example.com"
+    },
+    {
+      "timestamp": 1788270617239,
+      "groupId": "2",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 0.25,
+      "coins": 10000,
+      "taName": "Arvin",
+      "taEmail": ""
+    },
+    {
+      "timestamp": 1788270620237,
+      "groupId": "2",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 0.25,
+      "coins": 10000,
+      "taName": "Arvin",
+      "taEmail": ""
+    },
+    {
+      "timestamp": 1788270800970,
+      "groupId": "12",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 6.25,
+      "coins": 250000,
+      "taName": "Arvin",
+      "taEmail": "arvintalebi261@gmail.com"
+    },
+    {
+      "timestamp": 1788294208931,
+      "groupId": "12",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 2.0,
+      "coins": 80000,
+      "taName": "Arvin",
+      "taEmail": "arvintalebi261@gmail.com"
+    }
+  ]
+}
