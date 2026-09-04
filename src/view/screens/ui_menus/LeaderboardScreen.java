@@ -27,6 +27,7 @@ import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.screens.generals.UiScreen;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -165,6 +166,8 @@ public class LeaderboardScreen extends UiScreen {
             case FROSTBITE_CAVES -> "Frostbite";
             case BIG_WAVE_BEACH -> "Beach";
             case DARK_AGES -> "Dark Ages";
+            case PIRATES -> "pirates";
+            case FUTURE -> "Future";
         };
     }
 
@@ -219,7 +222,7 @@ public class LeaderboardScreen extends UiScreen {
     private List<LeaderboardRowDto> loadRows() {
         List<LeaderboardRowDto> online = NetworkClient.get().getLeaderboardRows();
         if (NetworkClient.get().isSignedIn() && online != null) {
-            return new java.util.ArrayList<>(online);
+            return new ArrayList<>(online);
         }
         List<Level> allLevels;
         try {

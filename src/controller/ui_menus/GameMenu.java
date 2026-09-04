@@ -38,7 +38,7 @@ public class GameMenu extends Menu {
 
         super.handleCommand(text);
         if (isGeneralCmd) return;
-        
+
         if (Regex.MENU_TRAVEL_LOG.getMatcherRaw(text).matches()) {
             App.currentMenu = new TravelLogMenu();
 
@@ -112,7 +112,7 @@ public class GameMenu extends Menu {
     private void showChapters() {
         try {
             List<Level> allLevels = LevelProgression.sorted(LevelLoader.loadLevels());
-            for (String chapter : List.of("Egypt", "Frostbite Caves", "Big Wave Beach", "Dark Ages")) {
+            for (String chapter : List.of("Egypt", "Frostbite Caves", "Big Wave Beach", "Dark Ages", "Future")) {
                 boolean unlocked = allLevels.stream()
                         .filter(level -> level.getSeason().getName().equalsIgnoreCase(chapter))
                         .anyMatch(level -> LevelProgression.isUnlocked(allLevels,

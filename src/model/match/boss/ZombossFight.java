@@ -15,10 +15,7 @@ import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 import view.GeneralPrinter;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class ZombossFight {
 
@@ -96,6 +93,8 @@ public class ZombossFight {
             case ICE_AGE -> new IceAgeZombossBehavior(this);
             case BEACH -> new BeachZombossBehavior(this);
             case DARK_AGES -> new DarkAgeZombossBehavior(this);
+            case PIRATES -> new EgyptZombossBehavior(this);
+            case FUTURE -> null;
         };
     }
 
@@ -140,7 +139,7 @@ public class ZombossFight {
     }
 
     private void dealOpeningDeckByThreat() {
-        minionDeck.sort(java.util.Comparator.comparingDouble(this::rampScore));
+        minionDeck.sort(Comparator.comparingDouble(this::rampScore));
     }
 
     private double rampScore(String alias) {

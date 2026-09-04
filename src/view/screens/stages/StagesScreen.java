@@ -262,7 +262,8 @@ public abstract class StagesScreen extends UiScreen {
         playButton = primaryButton("Play", () -> {
             Level selected = MatchMenu.selectedLevel;
 
-            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()) {
+            if (selected != null && !chapterLevels.isEmpty() && selected.getId() == chapterLevels.get(0).getId()
+                    && getComicSheetPath() != null && !getComicSheetPath().isEmpty()) {
                 ComicIntroScreen.COMIC_SHEET_PATH = getComicSheetPath();
                 ScreenManager.setScreen(new ComicIntroScreen(() -> runCommand("start game")));
             } else {

@@ -13,14 +13,11 @@ import model.App;
 import model.match.main.levels.Level;
 import view.screens.generals.BaseScreen;
 import view.screens.match.after.AfterMatchScreen;
+import view.screens.stages.*;
 import view.screens.ui_menus.*;
 
 import view.screens.match.before.BeforeMatchScreen;
 import view.screens.match.gameplay.*;
-import view.screens.stages.BigWaveBeachStagesScreen;
-import view.screens.stages.DarkAgesStagesScreen;
-import view.screens.stages.EgyptStagesScreen;
-import view.screens.stages.FrostbiteCavesStagesScreen;
 import view.screens.generals.GameScreen;
 import controller.match.mini_games.*;
 import view.screens.match.gameplay.mini_games.*;
@@ -199,6 +196,13 @@ public final class ScreenManager {
             if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
                 return new DarkAgesStagesScreen();
             }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
+                return new PirateStagesScreen();
+            }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Future")) {
+                return new FutureStagesScreen();
+            }
+
         }
         return new PlaceholderScreen(menu);
     }
@@ -220,6 +224,9 @@ public final class ScreenManager {
         }
         if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
             return new DarkAgesGameScreen();
+        }
+        if (seasonName != null && seasonName.equalsIgnoreCase("Future")) {
+            return new FutureGameScreen();
         }
         if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
             return new BigWaveBeachGameScreen();
