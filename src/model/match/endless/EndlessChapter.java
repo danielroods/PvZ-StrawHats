@@ -12,7 +12,9 @@ public enum EndlessChapter {
     EGYPT("egypt", "Egypt", "Ancient Egypt"),
     FROSTBITE_CAVES("frostbite_caves", "Frostbite Caves", "Frostbite Caves"),
     BIG_WAVE_BEACH("big_wave_beach", "Big Wave Beach", "Big Wave Beach"),
-    DARK_AGES("dark_ages", "Dark Ages", "Dark Ages");
+    DARK_AGES("dark_ages", "Dark Ages", "Dark Ages"),
+    PIRATES("pirates", "Pirates", "Pirates"),
+    FUTURE("future", "Future", "Future");
 
     /**
      * Lottery levels are synthetic - they are never listed in Levels.json - so they take
@@ -66,6 +68,7 @@ public enum EndlessChapter {
             case "cave" -> FROSTBITE_CAVES;
             case "beach" -> BIG_WAVE_BEACH;
             case "darkage" -> DARK_AGES;
+            case "pirate" -> PIRATES;
             default -> null;
         };
     }

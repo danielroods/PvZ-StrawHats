@@ -34,7 +34,25 @@ public enum ZombossChapter {
             List.of("die", "die_talk", "die_exit"),
             List.of("A dragon. I built myself a DRAGON.",
                     "Every grave on this lawn answers to me tonight.",
-                    "Burn, little garden. Burn brightly."));
+                    "Burn, little garden. Burn brightly.")),
+
+    PIRATES(1.0, "Pirates", "ZombieEgyptZomboss",
+            "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_ZOMBOSS/ZOMBIE_EGYPT_ZOMBOSS.PAM",
+            "stun_start", "stun_loop", "stun_end",
+            List.of("die", "die_idle", "die_talk", "die_exit"),
+            List.of("So the little sprouts dug their way into MY pyramid.",
+                    "Ten thousand years I spent building this machine.",
+                    "Let us see how your garden holds up against a god-king!")),
+
+    // Placeholder assets (reusing the Dark Ages Zomboss, the same way Pirates
+    // reuses Egypt's) until dedicated Future Zomboss art/PAM clips exist.
+    FUTURE(1.35, "Future", "ZombieDarkZomboss",
+            "768/FULL/ZOMBIE/ZOMBIE_DARK_ZOMBOSS/ZOMBIE_DARK_ZOMBOSS.PAM",
+            "stun_start", "stun_loop", "stun_end",
+            List.of("die", "die_talk", "die_exit"),
+            List.of("You really thought you could out-tech ME?",
+                    "Every gadget on this lawn answers to my signal now.",
+                    "Let us see your garden survive the future!"));
 
     public static final String NPC_PAM = "768/FULL/NPC/ZOMBOSS/ZOMBOSS.PAM";
     public static final String NPC_ENTER_CLIP = "zomboss_enter";
@@ -96,6 +114,8 @@ public enum ZombossChapter {
             case "cave", "ice_age", "iceage", "frostbite_caves" -> ICE_AGE;
             case "beach", "big_wave_beach" -> BEACH;
             case "darkage", "dark_age", "dark_ages" -> DARK_AGES;
+            case "pirate", "pirates" -> PIRATES;
+            case "future" -> FUTURE;
             default -> null;
         };
     }

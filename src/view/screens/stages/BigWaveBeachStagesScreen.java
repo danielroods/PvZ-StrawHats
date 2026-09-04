@@ -37,7 +37,7 @@ public class BigWaveBeachStagesScreen extends StagesScreen {
     private static final String COIN_ICON = "images/ui/buttons_coin_buy_normal.png";
     private static final String GEM_ICON = "images/ui/buttons_premium_normal.png";
 
-    private static final String CHAPTER_BACKGROUND = "images/backg/beaches_stages.png";
+    private static final String CHAPTER_BACKGROUND = "assets/images/backg/newbeach.png";
     private static final String COMIC_SHEET_PATH = "assets/images/chapters/beach/introcomic.png";
     private static final String SPLASH_PARTICLE_PATH = "assets/images/chapters/beach/seashooter_projectile_28x28.png";
 

@@ -36,6 +36,7 @@ public class LeaderboardMenu extends Menu {
         columns.put("frostbite", EndlessChapter.FROSTBITE_CAVES);
         columns.put("beach", EndlessChapter.BIG_WAVE_BEACH);
         columns.put("darkages", EndlessChapter.DARK_AGES);
+        columns.put("future", EndlessChapter.FUTURE);
         return columns;
     }
 

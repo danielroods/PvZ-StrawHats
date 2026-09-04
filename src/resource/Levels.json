@@ -8,14 +8,50 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Peashooter", "Wall-nut"],
-    "forcedPlants": ["Sunflower", "Peashooter"],
-    "zombiePool": ["ZombieDefault", "ZombieImp", "ZombieArmor1"],
+    "availablePlants": [
+      "Sunflower",
+      "Peashooter",
+      "Wall-nut"
+    ],
+    "forcedPlants": [
+      "Sunflower",
+      "Peashooter"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieDefault"]},
-      {"delay": 20, "zombies": ["ZombieDefault", "ZombieImp"]},
-      {"delay": 25, "zombies": ["ZombieArmor1", "ZombieDefault"]},
-      {"delay": 30, "zombies": ["ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 25,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 30,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -29,14 +65,55 @@
     "initialSun": 50,
     "availablePlants": [],
     "forcedPlants": [],
-    "conveyorPlants": ["Peashooter", "Wall-nut", "Sunflower", "Potato Mine"],
+    "conveyorPlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Sunflower",
+      "Potato Mine"
+    ],
     "maxConveyorSize": 8,
-    "zombiePool": ["ZombieDefault", "ZombieImp", "ZombieArmor1", "ZombieArmor2", "ZombieExplorer", "ZombieLostCityJane"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieExplorer",
+      "ZombieLostCityJane"
+    ],
     "waves": [
-      {"delay": 12, "zombies": ["ZombieDefault", "ZombieImp"]},
-      {"delay": 20, "zombies": ["ZombieArmor1", "ZombieDefault"]},
-      {"delay": 24, "zombies": ["ZombieExplorer", "ZombieArmor1", "ZombieDefault"]},
-      {"delay": 28, "zombies": ["ZombieExplorer", "ZombieLostCityJane", "ZombieArmor2", "ZombieArmor1", "ZombieDefault", "ZombieImp"]}
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieExplorer",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieExplorer",
+          "ZombieLostCityJane",
+          "ZombieArmor2",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      }
     ]
   },
   {
@@ -48,23 +125,101 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Peashooter", "Wall-nut", "Potato Mine"],
+    "availablePlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Potato Mine"
+    ],
     "forcedPlants": [],
     "lockedPlants": [
-      "Sunflower", "Twin Sunflower", "Sun-shroom", "Primal Sunflower", "Gold Bloom", "Sun Bean", "Repeater",
-      "Threepeater", "Snow Pea", "Pea Pod", "Citron", "Caulipower", "Electric Blueberry", "Bowling Bulb",
-      "Fire Peashooter", "Mega Gatling Pea", "Melon-pult", "Winter Melon", "Primal Potato Mine",
-      "Cherry Bomb", "Grapeshot", "Jalapeno", "Doom-shroom", "Wasabi Whip", "Kiwibeast", "Tall-nut", "Explode-o-nut",
-      "Pumpkin", "Torchwood", "Magnet-shroom", "Hypno-shroom", "Imitater", "Enlighten-mint", "Appease-mint",
-      "Arma-mint", "Bombard-mint", "Enforce-mint", "Reinforce-mint", "Enchant-mint", "Pierce-mint", "catTail-mint"
+      "Sunflower",
+      "Twin Sunflower",
+      "Sun-shroom",
+      "Primal Sunflower",
+      "Gold Bloom",
+      "Sun Bean",
+      "Repeater",
+      "Threepeater",
+      "Snow Pea",
+      "Pea Pod",
+      "Citron",
+      "Caulipower",
+      "Electric Blueberry",
+      "Bowling Bulb",
+      "Fire Peashooter",
+      "Mega Gatling Pea",
+      "Melon-pult",
+      "Winter Melon",
+      "Primal Potato Mine",
+      "Cherry Bomb",
+      "Grapeshot",
+      "Jalapeno",
+      "Doom-shroom",
+      "Wasabi Whip",
+      "Kiwibeast",
+      "Tall-nut",
+      "Explode-o-nut",
+      "Pumpkin",
+      "Torchwood",
+      "Magnet-shroom",
+      "Hypno-shroom",
+      "Imitater",
+      "Enlighten-mint",
+      "Appease-mint",
+      "Arma-mint",
+      "Bombard-mint",
+      "Enforce-mint",
+      "Reinforce-mint",
+      "Enchant-mint",
+      "Pierce-mint",
+      "catTail-mint"
     ],
-    "alwaysAvailable": ["Peashooter"],
-    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieArmor2", "ZombieRa", "ZombieExplorer", "ZombieTombRaiser"],
+    "alwaysAvailable": [
+      "Peashooter"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieRa",
+      "ZombieExplorer",
+      "ZombieTombRaiser"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieArmor1", "ZombieDefault"]},
-      {"delay": 20, "zombies": ["ZombieRa", "ZombieExplorer", "ZombieDefault"]},
-      {"delay": 24, "zombies": ["ZombieTombRaiser", "ZombieArmor1", "ZombieDefault"]},
-      {"delay": 28, "zombies": ["ZombieTombRaiser", "ZombieExplorer", "ZombieRa", "ZombieArmor2", "ZombieArmor1", "ZombieDefault"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieRa",
+          "ZombieExplorer",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieTombRaiser",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieTombRaiser",
+          "ZombieExplorer",
+          "ZombieRa",
+          "ZombieArmor2",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -115,14 +270,52 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Snow Pea", "Wall-nut", "Torchwood"],
+    "availablePlants": [
+      "Sunflower",
+      "Snow Pea",
+      "Wall-nut",
+      "Torchwood"
+    ],
     "forcedPlants": [],
-    "zombiePool": ["ZombieDefault", "ZombieArmor2", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeTroglobite"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor2",
+      "ZombieIceAgeDodo",
+      "ZombieIceAgeHunter",
+      "ZombieIceAgeTroglobite"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieIceAgeDodo"]},
-      {"delay": 20, "zombies": ["ZombieIceAgeDodo", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 24, "zombies": ["ZombieIceAgeHunter", "ZombieIceAgeDodo"]},
-      {"delay": 28, "zombies": ["ZombieIceAgeTroglobite", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieArmor2", "ZombieDefault"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieIceAgeDodo"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieIceAgeDodo",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieIceAgeHunter",
+          "ZombieIceAgeDodo"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieIceAgeTroglobite",
+          "ZombieIceAgeDodo",
+          "ZombieIceAgeHunter",
+          "ZombieArmor2",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -134,15 +327,57 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Snow Pea", "Wall-nut", "Chomper"],
+    "availablePlants": [
+      "Sunflower",
+      "Snow Pea",
+      "Wall-nut",
+      "Chomper"
+    ],
     "forcedPlants": [],
     "deadLineColumn": 2,
-    "zombiePool": ["ZombieDefault", "ZombieImp", "ZombieArmor1", "ZombieModernAllStar", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeTroglobite"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1",
+      "ZombieModernAllStar",
+      "ZombieIceAgeDodo",
+      "ZombieIceAgeHunter",
+      "ZombieIceAgeTroglobite"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieIceAgeDodo", "ZombieImp"]},
-      {"delay": 18, "zombies": ["ZombieIceAgeHunter", "ZombieArmor1", "ZombieDefault", "ZombieImp"]},
-      {"delay": 22, "zombies": ["ZombieModernAllStar", "ZombieDefault", "ZombieImp"]},
-      {"delay": 26, "zombies": ["ZombieModernAllStar", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeTroglobite"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieIceAgeDodo",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 18,
+        "zombies": [
+          "ZombieIceAgeHunter",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 22,
+        "zombies": [
+          "ZombieModernAllStar",
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 26,
+        "zombies": [
+          "ZombieModernAllStar",
+          "ZombieIceAgeDodo",
+          "ZombieIceAgeHunter",
+          "ZombieIceAgeTroglobite"
+        ]
+      }
     ]
   },
   {
@@ -154,14 +389,60 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 100,
-    "availablePlants": ["Sunflower", "Sun-shroom", "Snow Pea", "Wall-nut"],
-    "forcedPlants": ["Sunflower"],
-    "zombiePool": ["ZombieDefault", "ZombieProspector", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeTroglobite"],
+    "availablePlants": [
+      "Sunflower",
+      "Sun-shroom",
+      "Snow Pea",
+      "Wall-nut"
+    ],
+    "forcedPlants": [
+      "Sunflower"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieProspector",
+      "ZombieIceAgeDodo",
+      "ZombieIceAgeHunter",
+      "ZombieIceAgeTroglobite"
+    ],
     "waves": [
-      {"delay": 14, "zombies": ["ZombieIceAgeDodo", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 22, "zombies": ["ZombieIceAgeHunter", "ZombieIceAgeDodo"]},
-      {"delay": 25, "zombies": ["ZombieIceAgeTroglobite", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieProspector"]},
-      {"delay": 30, "zombies": ["ZombieIceAgeTroglobite", "ZombieIceAgeTroglobite", "ZombieIceAgeDodo", "ZombieIceAgeDodo", "ZombieIceAgeHunter", "ZombieIceAgeHunter", "ZombieProspector", "ZombieProspector"]}
+      {
+        "delay": 14,
+        "zombies": [
+          "ZombieIceAgeDodo",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 22,
+        "zombies": [
+          "ZombieIceAgeHunter",
+          "ZombieIceAgeDodo"
+        ]
+      },
+      {
+        "delay": 25,
+        "zombies": [
+          "ZombieIceAgeTroglobite",
+          "ZombieIceAgeDodo",
+          "ZombieIceAgeHunter",
+          "ZombieProspector"
+        ]
+      },
+      {
+        "delay": 30,
+        "zombies": [
+          "ZombieIceAgeTroglobite",
+          "ZombieIceAgeTroglobite",
+          "ZombieIceAgeDodo",
+          "ZombieIceAgeDodo",
+          "ZombieIceAgeHunter",
+          "ZombieIceAgeHunter",
+          "ZombieProspector",
+          "ZombieProspector"
+        ]
+      }
     ]
   },
   {
@@ -213,14 +494,51 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Peashooter", "Lily Pad", "Tangle Kelp"],
-    "forcedPlants": ["Lily Pad"],
-    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachFisherman"],
+    "availablePlants": [
+      "Sunflower",
+      "Peashooter",
+      "Lily Pad",
+      "Tangle Kelp"
+    ],
+    "forcedPlants": [
+      "Lily Pad"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieBeachSnorkel",
+      "ZombieBeachFisherman"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieBeachSnorkel"]},
-      {"delay": 20, "zombies": ["ZombieBeachSnorkel", "ZombieDefault"]},
-      {"delay": 24, "zombies": ["ZombieBeachSnorkel", "ZombieArmor1", "ZombieDefault"]},
-      {"delay": 28, "zombies": ["ZombieBeachFisherman", "ZombieBeachSnorkel", "ZombieDefault"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieBeachSnorkel"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieBeachSnorkel",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieBeachSnorkel",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieBeachFisherman",
+          "ZombieBeachSnorkel",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -232,15 +550,53 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Peashooter", "Wall-nut", "Snow Pea"],
+    "availablePlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Snow Pea"
+    ],
     "forcedPlants": [],
-    "seedPositions": {"1,4": "Wall-nut", "3,4": "Wall-nut"},
-    "zombiePool": ["ZombieArmor1", "ZombieArmor2", "ZombieBeachSnorkel", "ZombieBeachFisherman", "ZombieBeachOctopus"],
+    "seedPositions": {
+      "1,4": "Wall-nut",
+      "3,4": "Wall-nut"
+    },
+    "zombiePool": [
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieBeachSnorkel",
+      "ZombieBeachFisherman",
+      "ZombieBeachOctopus"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieBeachSnorkel", "ZombieArmor1"]},
-      {"delay": 18, "zombies": ["ZombieBeachFisherman"]},
-      {"delay": 22, "zombies": ["ZombieBeachOctopus", "ZombieBeachSnorkel"]},
-      {"delay": 26, "zombies": ["ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieArmor2", "ZombieBeachSnorkel"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieBeachSnorkel",
+          "ZombieArmor1"
+        ]
+      },
+      {
+        "delay": 18,
+        "zombies": [
+          "ZombieBeachFisherman"
+        ]
+      },
+      {
+        "delay": 22,
+        "zombies": [
+          "ZombieBeachOctopus",
+          "ZombieBeachSnorkel"
+        ]
+      },
+      {
+        "delay": 26,
+        "zombies": [
+          "ZombieBeachOctopus",
+          "ZombieBeachFisherman",
+          "ZombieArmor2",
+          "ZombieBeachSnorkel"
+        ]
+      }
     ]
   },
   {
@@ -252,18 +608,183 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Peashooter", "Repeater", "Lily Pad"],
+    "availablePlants": [
+      "Sunflower",
+      "Peashooter",
+      "Repeater",
+      "Lily Pad"
+    ],
     "forcedPlants": [],
     "timeLimitSeconds": 120,
-    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachFisherman", "ZombieBeachOctopus", "ZombieArmor2"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieBeachSnorkel",
+      "ZombieBeachFisherman",
+      "ZombieBeachOctopus",
+      "ZombieArmor2"
+    ],
     "waves": [
-      {"delay": 5, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 12, "zombies": ["ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 12, "zombies": ["ZombieBeachFisherman", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieArmor1", "ZombieArmor1", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 12, "zombies": ["ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachFisherman", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 12, "zombies": ["ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 12, "zombies": ["ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 14, "zombies": ["ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieArmor2", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachOctopus", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieBeachFisherman", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieArmor1", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieBeachSnorkel", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault", "ZombieDefault"]}
+      {
+        "delay": 5,
+        "zombies": [
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieBeachFisherman",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachFisherman",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 14,
+        "zombies": [
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieArmor2",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachOctopus",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieBeachFisherman",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieBeachSnorkel",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -312,14 +833,51 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Sun-shroom", "Peashooter", "Wall-nut"],
-    "forcedPlants": ["Sun-shroom"],
-    "zombiePool": ["ZombieDefault", "ZombieDarkJuggler", "ZombieWizard", "ZombieDarkImpDragon"],
+    "availablePlants": [
+      "Sunflower",
+      "Sun-shroom",
+      "Peashooter",
+      "Wall-nut"
+    ],
+    "forcedPlants": [
+      "Sun-shroom"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieDarkImpDragon", "ZombieDefault"]},
-      {"delay": 20, "zombies": ["ZombieDarkJuggler"]},
-      {"delay": 24, "zombies": ["ZombieDarkJuggler", "ZombieDarkImpDragon", "ZombieDefault"]},
-      {"delay": 28, "zombies": ["ZombieWizard", "ZombieDarkJuggler", "ZombieDarkImpDragon"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieDarkJuggler"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      }
     ]
   },
   {
@@ -331,15 +889,55 @@
     "rows": 5,
     "cols": 9,
     "initialSun": 150,
-    "availablePlants": ["Sunflower", "Sun-shroom", "Peashooter", "Wall-nut", "Tall-nut"],
+    "availablePlants": [
+      "Sunflower",
+      "Sun-shroom",
+      "Peashooter",
+      "Wall-nut",
+      "Tall-nut"
+    ],
     "forcedPlants": [],
     "maxPlantLoss": 5,
-    "zombiePool": ["ZombieDefault", "ZombiePiano", "ZombieNewspaper", "ZombieDarkJuggler", "ZombieWizard", "ZombieDarkImpDragon"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombiePiano",
+      "ZombieNewspaper",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
     "waves": [
-      {"delay": 10, "zombies": ["ZombieDarkJuggler", "ZombieDefault"]},
-      {"delay": 18, "zombies": ["ZombieNewspaper", "ZombieDarkImpDragon"]},
-      {"delay": 22, "zombies": ["ZombieWizard", "ZombieDarkJuggler"]},
-      {"delay": 26, "zombies": ["ZombieWizard", "ZombiePiano", "ZombieNewspaper", "ZombieDarkJuggler", "ZombieDarkImpDragon"]}
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 18,
+        "zombies": [
+          "ZombieNewspaper",
+          "ZombieDarkImpDragon"
+        ]
+      },
+      {
+        "delay": 22,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler"
+        ]
+      },
+      {
+        "delay": 26,
+        "zombies": [
+          "ZombieWizard",
+          "ZombiePiano",
+          "ZombieNewspaper",
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      }
     ]
   },
   {
@@ -351,14 +949,60 @@
     "rows": 5,
     "cols": 9,
     "primarySun": 800,
-    "availablePlants": ["Peashooter", "Wall-nut", "Repeater", "Snow Pea", "Potato Mine", "Cabbage-pult"],
+    "availablePlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Repeater",
+      "Snow Pea",
+      "Potato Mine",
+      "Cabbage-pult"
+    ],
     "forcedPlants": [],
-    "zombiePool": ["ZombieDefault", "ZombieArmor1", "ZombieNewspaper", "ZombieDarkJuggler", "ZombieWizard", "ZombieDarkImpDragon"],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieNewspaper",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
     "waves": [
-      {"delay": 12, "zombies": ["ZombieDarkJuggler", "ZombieDarkImpDragon"]},
-      {"delay": 20, "zombies": ["ZombieNewspaper", "ZombieDefault", "ZombieDefault"]},
-      {"delay": 24, "zombies": ["ZombieWizard", "ZombieDarkJuggler", "ZombieArmor1", "ZombieDefault"]},
-      {"delay": 28, "zombies": ["ZombieWizard", "ZombieWizard", "ZombieDarkJuggler", "ZombieNewspaper", "ZombieArmor1", "ZombieDarkImpDragon", "ZombieDefault"]}
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieNewspaper",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieNewspaper",
+          "ZombieArmor1",
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      }
     ]
   },
   {
@@ -401,5 +1045,489 @@
     ],
     "waves": [],
     "chapter": "darkage"
+  },
+  {
+    "type": "intro",
+    "gameMode": "Adventure - Introduction",
+    "id": 501,
+    "name": "Pirates - Day 1",
+    "season": "pirates",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 150,
+    "availablePlants": [
+      "Sunflower",
+      "Peashooter",
+      "Wall-nut"
+    ],
+    "forcedPlants": [
+      "Sunflower",
+      "Peashooter"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1"
+    ],
+    "waves": [
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 25,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 30,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "conveyor",
+    "gameMode": "Adventure - Special: Conveyor Belt",
+    "id": 502,
+    "name": "Pirates - Day 2",
+    "season": "pirates",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 50,
+    "availablePlants": [],
+    "forcedPlants": [],
+    "conveyorPlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Sunflower",
+      "Potato Mine"
+    ],
+    "maxConveyorSize": 8,
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieExplorer",
+      "ZombieLostCityJane"
+    ],
+    "waves": [
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieExplorer",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieExplorer",
+          "ZombieLostCityJane",
+          "ZombieArmor2",
+          "ZombieArmor1",
+          "ZombieDefault",
+          "ZombieImp"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "locked",
+    "gameMode": "Adventure - Special: Locked Plants",
+    "id": 503,
+    "name": "Pirates - Day 3",
+    "season": "pirates",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 150,
+    "availablePlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Potato Mine"
+    ],
+    "forcedPlants": [],
+    "lockedPlants": [
+      "Sunflower",
+      "Twin Sunflower",
+      "Sun-shroom",
+      "Primal Sunflower",
+      "Gold Bloom",
+      "Sun Bean",
+      "Repeater",
+      "Threepeater",
+      "Snow Pea",
+      "Pea Pod",
+      "Citron",
+      "Caulipower",
+      "Electric Blueberry",
+      "Bowling Bulb",
+      "Fire Peashooter",
+      "Mega Gatling Pea",
+      "Melon-pult",
+      "Winter Melon",
+      "Primal Potato Mine",
+      "Cherry Bomb",
+      "Grapeshot",
+      "Jalapeno",
+      "Doom-shroom",
+      "Wasabi Whip",
+      "Kiwibeast",
+      "Tall-nut",
+      "Explode-o-nut",
+      "Pumpkin",
+      "Torchwood",
+      "Magnet-shroom",
+      "Hypno-shroom",
+      "Imitater",
+      "Enlighten-mint",
+      "Appease-mint",
+      "Arma-mint",
+      "Bombard-mint",
+      "Enforce-mint",
+      "Reinforce-mint",
+      "Enchant-mint",
+      "Pierce-mint",
+      "catTail-mint"
+    ],
+    "alwaysAvailable": [
+      "Peashooter"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieRa",
+      "ZombieExplorer",
+      "ZombieTombRaiser"
+    ],
+    "waves": [
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieRa",
+          "ZombieExplorer",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieTombRaiser",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieTombRaiser",
+          "ZombieExplorer",
+          "ZombieRa",
+          "ZombieArmor2",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "boss",
+    "gameMode": "Adventure - Boss",
+    "id": 504,
+    "name": "Pirates - Zomboss: Sphinxinator",
+    "season": "pirates",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 1500,
+    "availablePlants": [
+      "Sunflower",
+      "Twin Sunflower",
+      "Peashooter",
+      "Repeater",
+      "Threepeater",
+      "Wall-nut",
+      "Tall-nut",
+      "Potato Mine",
+      "Cherry Bomb",
+      "Torchwood",
+      "Melon-pult",
+      "Iceberg Lettuce"
+    ],
+    "forcedPlants": [],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieArmor4",
+      "ZombieGargantuar",
+      "ZombieRa",
+      "ZombieExplorer",
+      "ZombieTombRaiser",
+      "ZombieCrystalSkull"
+    ],
+    "waves": [],
+    "chapter": "pirates"
+  },
+  {
+    "type": "normal",
+    "gameMode": "Adventure - Normal",
+    "id": 601,
+    "name": "Future - Day 1",
+    "season": "future",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 150,
+    "availablePlants": [
+      "Sunflower",
+      "Sun-shroom",
+      "Peashooter",
+      "Wall-nut"
+    ],
+    "forcedPlants": [
+      "Sun-shroom"
+    ],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
+    "waves": [
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieDarkJuggler"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "lovePlants",
+    "gameMode": "Adventure - Special: Love Your Plants",
+    "id": 602,
+    "name": "Future - Day 2",
+    "season": "future",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 150,
+    "availablePlants": [
+      "Sunflower",
+      "Sun-shroom",
+      "Peashooter",
+      "Wall-nut",
+      "Tall-nut"
+    ],
+    "forcedPlants": [],
+    "maxPlantLoss": 5,
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombiePiano",
+      "ZombieNewspaper",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
+    "waves": [
+      {
+        "delay": 10,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 18,
+        "zombies": [
+          "ZombieNewspaper",
+          "ZombieDarkImpDragon"
+        ]
+      },
+      {
+        "delay": 22,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler"
+        ]
+      },
+      {
+        "delay": 26,
+        "zombies": [
+          "ZombieWizard",
+          "ZombiePiano",
+          "ZombieNewspaper",
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "plantWhatYouGet",
+    "gameMode": "Adventure - Special: Plant What You Get",
+    "id": 603,
+    "name": "Future - Day 3",
+    "season": "future",
+    "rows": 5,
+    "cols": 9,
+    "primarySun": 800,
+    "availablePlants": [
+      "Peashooter",
+      "Wall-nut",
+      "Repeater",
+      "Snow Pea",
+      "Potato Mine",
+      "Cabbage-pult"
+    ],
+    "forcedPlants": [],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieArmor1",
+      "ZombieNewspaper",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkImpDragon"
+    ],
+    "waves": [
+      {
+        "delay": 12,
+        "zombies": [
+          "ZombieDarkJuggler",
+          "ZombieDarkImpDragon"
+        ]
+      },
+      {
+        "delay": 20,
+        "zombies": [
+          "ZombieNewspaper",
+          "ZombieDefault",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 24,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieArmor1",
+          "ZombieDefault"
+        ]
+      },
+      {
+        "delay": 28,
+        "zombies": [
+          "ZombieWizard",
+          "ZombieWizard",
+          "ZombieDarkJuggler",
+          "ZombieNewspaper",
+          "ZombieArmor1",
+          "ZombieDarkImpDragon",
+          "ZombieDefault"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "boss",
+    "gameMode": "Adventure - Boss",
+    "id": 604,
+    "name": "Future - Zomboss: Circuit Breaker",
+    "season": "future",
+    "rows": 5,
+    "cols": 9,
+    "initialSun": 1500,
+    "availablePlants": [
+      "Sun-shroom",
+      "Sunflower",
+      "Twin Sunflower",
+      "Peashooter",
+      "Repeater",
+      "Threepeater",
+      "Wall-nut",
+      "Tall-nut",
+      "Fire Peashooter",
+      "Torchwood",
+      "Snow Pea",
+      "Winter Melon",
+      "Melon-pult"
+    ],
+    "forcedPlants": [],
+    "zombiePool": [
+      "ZombieDefault",
+      "ZombieImp",
+      "ZombieArmor1",
+      "ZombieArmor4",
+      "ZombieDarkArmor3",
+      "ZombieGargantuar",
+      "ZombiePiano",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieDarkKing",
+      "ZombieDarkImpDragon"
+    ],
+    "waves": [],
+    "chapter": "future"
   }
 ]

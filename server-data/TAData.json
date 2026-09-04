@@ -12,7 +12,7 @@
     }
   ],
   "groupScores": {
-    "12": 10.75,
+    "12": 11.0,
     "2": 0.5
   },
   "transactions": [
@@ -65,6 +65,16 @@
       "coins": 80000,
       "taName": "Arvin",
       "taEmail": "arvintalebi261@gmail.com"
+    },
+    {
+      "timestamp": 1788355357255,
+      "groupId": "12",
+      "username": "Ana",
+      "email": "Ana1385@gmail.com",
+      "addedScore": 0.25,
+      "coins": 10000,
+      "taName": "Pouya Astaraki1234",
+      "taEmail": "pouyaastaraki1234@gmail.com"
     }
   ]
 }

@@ -143,7 +143,8 @@ class SeasonOverlayRenderer {
 
     private boolean isDarkAge() {
         return screen.session.getLevel() != null && screen.session.getLevel().getSeason() != null
-                && "Dark Ages".equalsIgnoreCase(screen.session.getLevel().getSeason().getName());
+                && ("Dark Ages".equalsIgnoreCase(screen.session.getLevel().getSeason().getName())
+                || "Future".equalsIgnoreCase(screen.session.getLevel().getSeason().getName()));
     }
 
     private void drawSeasonGraves() {
