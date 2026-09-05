@@ -120,8 +120,17 @@ public class AnimationFactory {
     public static String exactClipNameForPath(String pamPath, String exactState) {
         if (pamPath == null || exactState == null || exactState.isBlank()) return null;
         autoInit();
+
+        // Not every standalone PAM is listed in animations.json.  The Pirate
+        // Captain's parrot is one such asset: its clips live directly in the
+        // PAM, so refusing the state here makes drawPamExact() silently fail
+        // even though PamPlayer can load the clip.  Keep the registry lookup
+        // when available, but let direct PAM users request an exact clip when
+        // the registry has no entry for that path.
         AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
-        if (config == null || config.clips == null || config.clips.isEmpty()) return null;
+        if (config == null || config.clips == null || config.clips.isEmpty()) {
+            return exactState;
+        }
         return config.clips.containsKey(exactState) ? exactState : null;
     }
 

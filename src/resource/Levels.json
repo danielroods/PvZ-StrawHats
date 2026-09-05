@@ -136,7 +136,9 @@
       "Snow Pea"
     ],
     "forcedPlants": [],
-    "blockedColumns": [0],
+    "blockedColumns": [
+      0
+    ],
     "zombiePool": [
       "ZombieDefault",
       "ZombieArmor1",
@@ -1020,43 +1022,42 @@
       "Peashooter",
       "Wall-nut"
     ],
-    "forcedPlants": [
-      "Sunflower",
-      "Peashooter"
-    ],
+    "forcedPlants": [],
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieImp",
-      "ZombieArmor1"
+      "ZombiePirateBasic",
+      "ZombiePirateImp",
+      "ZombieArmor1",
+      "ZombieArmor2",
+      "ZombieArmor4",
+      "ZombiePirateBasicFlag",
+      "ZombieSwashbuckler"
     ],
     "waves": [
       {
         "delay": 10,
         "zombies": [
-          "ZombieDefault"
+          "ZombieSwashbuckler"
         ]
       },
       {
         "delay": 20,
         "zombies": [
-          "ZombieDefault",
-          "ZombieImp"
+          "ZombieArmor1"
         ]
       },
       {
         "delay": 25,
         "zombies": [
           "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieSwashbuckler"
         ]
       },
       {
         "delay": 30,
         "zombies": [
-          "ZombieArmor1",
-          "ZombieArmor1",
-          "ZombieDefault",
-          "ZombieDefault"
+          "ZombieArmor2",
+          "ZombieSwashbuckler",
+          "ZombiePirateBasic"
         ]
       }
     ]
@@ -1082,45 +1083,43 @@
     ],
     "maxConveyorSize": 8,
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieImp",
+      "ZombiePirateBasic",
+      "ZombiePirateImp",
+      "ZombiePiratePelican",
+      "ZombiePirateSeagull",
       "ZombieArmor1",
       "ZombieArmor2",
-      "ZombieExplorer",
-      "ZombieLostCityJane"
+      "ZombieArmor4",
+      "ZombiePirateBasicFlag",
+      "ZombieSwashbuckler"
     ],
     "waves": [
       {
         "delay": 12,
         "zombies": [
-          "ZombieDefault",
-          "ZombieImp"
+          "ZombieArmor1"
         ]
       },
       {
         "delay": 20,
         "zombies": [
           "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieSwashbuckler"
         ]
       },
       {
         "delay": 24,
         "zombies": [
-          "ZombieExplorer",
-          "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieArmor2"
         ]
       },
       {
         "delay": 28,
         "zombies": [
-          "ZombieExplorer",
-          "ZombieLostCityJane",
           "ZombieArmor2",
           "ZombieArmor1",
-          "ZombieDefault",
-          "ZombieImp"
+          "ZombieSwashbuckler",
+          "ZombiePiratePelican"
         ]
       }
     ]
@@ -1187,46 +1186,45 @@
       "Peashooter"
     ],
     "zombiePool": [
-      "ZombieDefault",
+      "ZombiePirateBasic",
+      "ZombiePirateCaptain",
+      "ZombiePiratePelican",
+      "ZombieBarrelRoller",
       "ZombieArmor1",
       "ZombieArmor2",
-      "ZombieRa",
-      "ZombieExplorer",
-      "ZombieTombRaiser"
+      "ZombieArmor4",
+      "ZombiePirateBasicFlag",
+      "ZombieSwashbuckler"
     ],
     "waves": [
       {
         "delay": 10,
         "zombies": [
-          "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieArmor1"
         ]
       },
       {
         "delay": 20,
         "zombies": [
-          "ZombieRa",
-          "ZombieExplorer",
-          "ZombieDefault"
+          "ZombieArmor1",
+          "ZombieSwashbuckler"
         ]
       },
       {
         "delay": 24,
         "zombies": [
-          "ZombieTombRaiser",
           "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieSwashbuckler",
+          "ZombiePirateBasicFlag"
         ]
       },
       {
         "delay": 28,
         "zombies": [
-          "ZombieTombRaiser",
-          "ZombieExplorer",
-          "ZombieRa",
           "ZombieArmor2",
           "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieSwashbuckler",
+          "ZombiePirateCaptain"
         ]
       }
     ]
@@ -1256,16 +1254,17 @@
     ],
     "forcedPlants": [],
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieImp",
+      "ZombiePirateBasic",
+      "ZombiePirateImp",
+      "ZombiePirateGargantuar",
+      "ZombiePirateCaptain",
+      "ZombiePiratePelican",
+      "ZombieBarrelRoller",
       "ZombieArmor1",
       "ZombieArmor2",
       "ZombieArmor4",
-      "ZombieGargantuar",
-      "ZombieRa",
-      "ZombieExplorer",
-      "ZombieTombRaiser",
-      "ZombieCrystalSkull"
+      "ZombiePirateBasicFlag",
+      "ZombieSwashbuckler"
     ],
     "waves": [],
     "chapter": "pirates"

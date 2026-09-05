@@ -7,6 +7,7 @@ import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.Environment;
+import model.pitches.WaterCrossing;
 import model.utils.GameSession;
 
 public class PusherMove implements MoveBehavior {
@@ -20,6 +21,18 @@ public class PusherMove implements MoveBehavior {
 
         double deltaX = zombie.getSpeed().x() * deltaTime;
         double targetZombieX = pos.x() + deltaX;
+
+        // Pirate Seas: a barrel roller can't shove its barrel across open
+        // water any more than any other ground zombie can walk across it -
+        // hold both the zombie and its barrel at the water's edge.
+        int row = (int) Math.round(pos.y());
+        int oldColClamp = (int) pos.x();
+        int newColClamp = (int) targetZombieX;
+        if (newColClamp != oldColClamp && WaterCrossing.isOpenWater(session, row, newColClamp)) {
+            targetZombieX = pos.x();
+            deltaX = 0;
+        }
+
         PushableStructure structure = zombie.getPushedStructure();
 
         if (structure != null && structure.isFalling()) {
@@ -34,7 +47,6 @@ public class PusherMove implements MoveBehavior {
             // it persists until cleared below rather than auto-expiring.
             zombie.setActionAnimationState("push", 0, true);
 
-            int row = (int) Math.round(pos.y());
             Position oldPosition = structure.getPosition();
             if (oldPosition == null || Math.abs(oldPosition.y() - row) > 0.5
                     || Math.abs((pos.x() - oldPosition.x()) - PUSH_GAP) > 0.75) {

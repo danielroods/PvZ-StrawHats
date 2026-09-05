@@ -61,6 +61,14 @@ class ZombieRenderer {
     private static final float BARREL_OFFSET_X = -18f;
     private static final float BARREL_OFFSET_Y = 30f;
     private static final float DEFAULT_BARREL_DEATH_DURATION = 0.6f;
+    private static final String ZOMBIE_PIRATE_CAPTAIN_ALIAS = "ZombiePirateCaptain";
+    private static final String CAPTAIN_PARROT_PAM =
+            "768/FULL/ZOMBIE/ZOMBIE_PIRATE_CAPTAIN_PARROT/ZOMBIE_PIRATE_CAPTAIN_PARROT.PAM";
+    // Companion sits just above/ahead of the captain's shoulder while riding, matching
+    // where the combined idle/walk PAM already draws the perched parrot.
+    private static final float PARROT_OFFSET_X = 30f;
+    private static final float PARROT_OFFSET_Y = 60f;
+    private static final float PARROT_SCALE = 0.52f;
     private static final String ZOMBIE_TROGLOBITE_ALIAS = "ZombieIceAgeTroglobite";
     // The pushed ice block reuses the same texture the Troglobite was frozen inside
     // (see FrostbiteRenderer.drawFrostbiteIceBlocks / GameScreenAssets.zombieIceBlockTexture)
@@ -87,6 +95,13 @@ class ZombieRenderer {
     private static final String BUTTER_ELEMENT_NAME = "butter";
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
+    private static final String SWASHBUCKLER_WATER_SPLASH_PAM =
+            "768/FULL/EFFECTS/WATER_SPLASH/WATER_SPLASH.PAM";
+    private static final String SWASHBUCKLER_WATER_SPLASH_STATE = "water_splash_01";
+    private static final float SWASHBUCKLER_FAILURE_DURATION = 1.0f;
+    private static final float SWASHBUCKLER_SPLASH_DURATION = 0.8f;
+    private static final float SWASHBUCKLER_SPLASH_OFFSET_X = 215f;
+    private static final float SWASHBUCKLER_SPLASH_OFFSET_Y = -300f;
     private static final String WATER_GARGANTUAR_RIPPLE_PAM =
             "768/FULL/BACKGROUNDS/WATER_GARGANTUAR_RIPPLE/WATER_GARGANTUAR_RIPPLE.PAM";
     private static final String WATER_IMP_RIPPLE_PAM =
@@ -148,6 +163,7 @@ class ZombieRenderer {
         final String ashPath;
         final float ashDuration;
         final boolean barrelBroken;
+        final boolean swashbucklerWaterDeath;
         // The barrel survives independently of the pusher zombie.  Keep the actual
         // structure reference so it can continue rolling after the zombie's death
         // sequence has finished.
@@ -159,6 +175,7 @@ class ZombieRenderer {
         DyingZombie(String alias, Position position, boolean facingRight,
                     float duration, String shockPath, float shockDuration,
                     String ashPath, float ashDuration, boolean barrelBroken,
+                    boolean swashbucklerWaterDeath,
                     PushableStructure barrelStructure) {
             this.alias = alias;
             this.position = position;
@@ -169,6 +186,7 @@ class ZombieRenderer {
             this.ashPath = ashPath;
             this.ashDuration = ashDuration;
             this.barrelBroken = barrelBroken;
+            this.swashbucklerWaterDeath = swashbucklerWaterDeath;
             this.barrelStructure = barrelStructure;
             this.barrelRollTime = 0f;
             this.barrelDeathTime = -1f;
@@ -440,6 +458,7 @@ class ZombieRenderer {
             drawZombieArcade(zombie, delta, boardTileWidth, zombie.isFacingRight());
             drawZombieIceBlock(zombie, boardTileWidth, boardTileHeight);
             drawZombieBarrel(zombie, delta, boardTileWidth);
+            drawZombieParrot(zombie, t, delta, x, zombieDrawY, zombie.isFacingRight());
             if (tinted) screen.batch.setColor(tint);
             boolean pamDrawn;
             if (zombie.isFacingRight()) {
@@ -528,9 +547,17 @@ class ZombieRenderer {
                     && zombie.getPushedStructure() != null
                     && zombie.getPushedStructure().getType() == model.pitches.obstacles.PushableType.BARREL
                     && !zombie.getPushedStructure().isAlive();
+            boolean swashbucklerWaterDeath = zombie.diedFromSwashbucklerWater();
             String deathState = barrelBroken ? "die2" : "die";
             float normalDeathDuration = screen.pam().resolveClipDuration(zombie.getAlias(), deathState);
             if (normalDeathDuration <= 0f) normalDeathDuration = DEATH_ANIM_DURATION;
+
+            if (swashbucklerWaterDeath) {
+                // This death is a rope-swing failure, not the ordinary corpse animation.
+                // The zombie PAM supplies the "swing failure" clip; the water splash is
+                // rendered separately after it finishes.
+                normalDeathDuration = SWASHBUCKLER_FAILURE_DURATION + SWASHBUCKLER_SPLASH_DURATION;
+            }
 
             float deathSequenceDuration = shockDuration;
             if (shockPath != null) {
@@ -542,7 +569,7 @@ class ZombieRenderer {
             dyingZombies.add(new DyingZombie(
                     zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(),
                     deathSequenceDuration, shockPath, shockDuration,
-                    ashPath, ashDuration, barrelBroken, barrelStructure));
+                    ashPath, ashDuration, barrelBroken, swashbucklerWaterDeath, barrelStructure));
             zombieAnimTimes.remove(zombie);
             screen.onZombieDied(zombie);
         }
@@ -557,6 +584,29 @@ class ZombieRenderer {
             float y = screen.cellY((int) dz.position.y());
             float zombieOffsetY = y + 40f;
             int row = (int) dz.position.y();
+
+            if (dz.swashbucklerWaterDeath) {
+                float failureTime = Math.min(dz.time, SWASHBUCKLER_FAILURE_DURATION);
+                if (dz.time < SWASHBUCKLER_FAILURE_DURATION) {
+                    screen.queueRowDraw(row, () -> screen.drawPam(
+                            ZombieAnimationRegistry.pathFor(dz.alias, screen.seasonFolder),
+                            "swing failure", failureTime,
+                            x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
+                } else if (dz.time < SWASHBUCKLER_FAILURE_DURATION + SWASHBUCKLER_SPLASH_DURATION) {
+                    float splashTime = Math.min(
+                            dz.time - SWASHBUCKLER_FAILURE_DURATION,
+                            SWASHBUCKLER_SPLASH_DURATION);
+                    screen.queueRowDraw(row, () -> screen.drawPam(
+                            SWASHBUCKLER_WATER_SPLASH_PAM,
+                            SWASHBUCKLER_WATER_SPLASH_STATE,
+                            splashTime,
+                            x + SWASHBUCKLER_SPLASH_OFFSET_X,
+                            zombieOffsetY + SWASHBUCKLER_SPLASH_OFFSET_Y,
+                            1.0f,
+                            false));
+                }
+                continue;
+            }
 
             boolean inShockPhase = dz.shockPath != null && dz.time < dz.shockDuration;
             if (inShockPhase) {
@@ -826,6 +876,68 @@ class ZombieRenderer {
                 drawWaterRipple(zombie.getAlias(), rippleX, rippleY, facingRight, arcadeRipple);
             }
         }
+    }
+
+    private final Map<Zombie, String> parrotLastState = new IdentityHashMap<>();
+    private final Map<Zombie, Float> parrotStateElapsed = new IdentityHashMap<>();
+    private static final java.util.Set<String> PARROT_RAID_STATES = java.util.Set.of(
+            "parrot_releas", "fly", "carry", "fly back", "die");
+    private static final java.util.Set<String> PARROT_OBJECT_STATES = java.util.Set.of(
+            "fly", "carry", "fly back", "die");
+    private static final float PARROT_ACTION_SPEED_FACTOR = 1.8f;
+    // How far (in px) the parrot travels from the captain's shoulder during its raid,
+    // since there's no real per-plant target position tracked on the model side yet.
+    private static final float PARROT_RAID_DISTANCE = 220f;
+
+    /**
+     * Draws the Pirate Captain's parrot whenever {@link model.collections.zombie.zombie_effect.ParrotCompanionEffect}
+     * has it off the captain's shoulder (see the {@code actionAnimationState} names it drives).
+     * While riding, the perched parrot is already baked into the captain's own idle/walk/eat
+     * PAM, so this deliberately draws nothing outside the raid states. "parrot_releas" and
+     * "parrot_land" are also skipped here - those play on the captain's own body PAM, not on
+     * {@link #CAPTAIN_PARROT_PAM}, so the standalone parrot object has nothing to draw during them.
+     */
+    private void drawZombieParrot(Zombie zombie, float t, float delta, float x, float zombieDrawY, boolean facingRight) {
+        if (!ZOMBIE_PIRATE_CAPTAIN_ALIAS.equals(zombie.getAlias())) return;
+
+        String state = zombie.getActionAnimationState();
+        if (state == null || !PARROT_RAID_STATES.contains(state)) {
+            parrotLastState.remove(zombie);
+            parrotStateElapsed.remove(zombie);
+            return;
+        }
+
+        boolean sameState = state.equals(parrotLastState.put(zombie, state));
+        float elapsed = (sameState ? parrotStateElapsed.getOrDefault(zombie, 0f) : 0f) + delta;
+        parrotStateElapsed.put(zombie, elapsed);
+
+        if (!PARROT_OBJECT_STATES.contains(state)) return;
+
+        float duration = AnimationFactory.exactClipDurationForPath(CAPTAIN_PARROT_PAM, state);
+        float actionElapsed = elapsed / PARROT_ACTION_SPEED_FACTOR;
+        float parrotTime = duration > 0f ? Math.min(actionElapsed, duration) : actionElapsed;
+        float progress = duration > 0f
+                ? Math.min(1f, elapsed / (duration * PARROT_ACTION_SPEED_FACTOR))
+                : Math.min(1f, elapsed / 1.0f);
+
+        // Outbound leg grows the offset from 0 to the full raid distance, the carry
+        // leg holds it at full distance, and the return leg shrinks it back to 0.
+        float travel = switch (state) {
+            case "fly" -> PARROT_RAID_DISTANCE * progress;
+            case "carry" -> PARROT_RAID_DISTANCE;
+            case "fly back" -> PARROT_RAID_DISTANCE * (1f - progress);
+            default -> 0f;
+        };
+
+        // "carry" is authored moving to the right, but the parrot always carries its
+        // stolen plant leftward toward the nearest un-bridged water tile - flip only
+        // this clip on top of the zombie's own facing so it reads correctly either way.
+        boolean drawFacingRight = "carry".equals(state) != facingRight;
+
+        float direction = facingRight ? 1f : -1f;
+        float parrotX = x + direction * (PARROT_OFFSET_X + travel);
+        float parrotY = zombieDrawY + PARROT_OFFSET_Y;
+        screen.pam().drawPamExact(CAPTAIN_PARROT_PAM, state, parrotTime, parrotX, parrotY, PARROT_SCALE, drawFacingRight);
     }
 
     /**

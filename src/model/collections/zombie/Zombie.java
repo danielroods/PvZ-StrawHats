@@ -61,6 +61,7 @@ public class Zombie extends Item implements Attack {
     // over the grab's duration, then the zombie is killed once fully submerged.
     private double dragUnderWaterProgress = 0.0;
     private boolean dragUnderWaterDeath = false;
+    private boolean swashbucklerWaterDeath = false;
 
     // Optional visual-only animation override (e.g. "toss", "push", "cast",
     // "cast_loop", "reel") on top of the coarse WALKING/EATING/DEAD state.
@@ -512,6 +513,13 @@ public class Zombie extends Item implements Attack {
     public void markDragUnderWaterDeath() { this.dragUnderWaterDeath = true; }
 
     public boolean diedFromDragUnderWater() { return dragUnderWaterDeath; }
+
+    /** Marks a Swashbuckler that failed its rope swing and fell into open water. */
+    public void markSwashbucklerWaterDeath() { this.swashbucklerWaterDeath = true; }
+
+    /** True when this zombie's death should use the Swashbuckler water-fall sequence. */
+    public boolean diedFromSwashbucklerWater() { return swashbucklerWaterDeath; }
+
 
     public void move(double deltaTimeSeconds) {
         Position pos = getPosition();

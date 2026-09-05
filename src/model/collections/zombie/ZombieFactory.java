@@ -96,6 +96,21 @@ public class ZombieFactory {
         return ((Number) data.getOrDefault("WavePointCost", DEFAULT_WAVE_POINT_COST)).intValue();
     }
 
+    /**
+     * True for zombies whose configured movement is airborne/flying. Pirate Seas uses
+     * this when choosing spawn lanes: flyers may enter any lane, while ground zombies
+     * must enter through a bridge lane so they never appear in the open-water section.
+     */
+    public static boolean isFlying(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        if (data == null) return false;
+        Object move = data.get("move");
+        Object type = move instanceof Map<?, ?> spec ? ((Map<?, ?>) spec).get("type") : move;
+        if (!(type instanceof String moveType)) return false;
+        return "SeagullFlyMove".equals(moveType) || "PelicanFlyMove".equals(moveType);
+    }
+
     public static boolean isStationaryMover(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);
@@ -139,6 +154,14 @@ public class ZombieFactory {
         Zombie zombie = buildBaseZombie(alias, data, row, col);
 
         Object moveSpec = data.getOrDefault("move", "NormalWalk");
+
+        // Generic armor aliases reuse the chapter's basic-zombie art. In Pirate
+        // Seas they must also use the pirate ground movement so they respect
+        // bridges/open water exactly like ZombiePirateBasic.
+        if (isPirateSeason() && isGenericArmorAlias(alias)) {
+            moveSpec = "PirateGroundWalk";
+        }
+
         Object attackSpec = data.getOrDefault("attack", "ChompAttack");
         if ("ZombiePiano".equals(alias) && attackSpec instanceof String) {
             attackSpec = Map.of("type", "CrushAttack", "crushDamage", 99999);
@@ -155,6 +178,23 @@ public class ZombieFactory {
         attachPushedStructureIfNeeded(zombie, data);
 
         return zombie;
+    }
+
+    private static boolean isGenericArmorAlias(String alias) {
+        return "ZombieArmor1".equals(alias)
+                || "ZombieArmor2".equals(alias)
+                || "ZombieArmor4".equals(alias);
+    }
+
+    private static boolean isPirateSeason() {
+        GameSession session = GameSession.peekInstance();
+        if (session == null || session.getLevel() == null || session.getLevel().getSeason() == null) {
+            return false;
+        }
+        String season = session.getLevel().getSeason().getName();
+        if (season == null) return false;
+        String normalized = season.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("pirate");
     }
 
     @SuppressWarnings("unchecked")

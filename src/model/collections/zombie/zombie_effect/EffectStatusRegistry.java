@@ -51,6 +51,8 @@ public class EffectStatusRegistry {
             case "KingBuffEffect" -> new KingBuffEffect(getDouble(params, data, "coronationCooldown", 10.0));
             case "PianistMusicEffect" -> new PianistMusicEffect(getDouble(params, data, "tempoDelay", 5.0));
 
+            case "ParrotCompanionEffect" -> new ParrotCompanionEffect(getDouble(params, data, "raidCooldown", 12.0));
+
             case "SunThief" -> new SunThief(
                     getBoolean(params, data, "isBankThief", false),
                     getInt(params, data, "maxSunsToSteal", 50),
@@ -88,6 +90,16 @@ public class EffectStatusRegistry {
     private static String resolveImpAlias(String raw) {
         if (raw == null) return "ZombieImp";
         String normalized = raw.toLowerCase().replace("-", "").replace("_", "").replace(" ", "");
+
+        // Chapter-specific imps (e.g. "pirate_imp" -> ZombiePirateImp) get their own
+        // aliased blueprint, so prefer an exact alias match before the generic fallback.
+        for (String alias : model.collections.zombie.ZombieFactory.getAllZombieAliases()) {
+            String aliasNormalized = alias.toLowerCase().replace("_", "");
+            if (aliasNormalized.equals(normalized) || aliasNormalized.equals("zombie" + normalized)) {
+                return alias;
+            }
+        }
+
         return normalized.contains("imp") ? "ZombieImp" : raw;
     }
 

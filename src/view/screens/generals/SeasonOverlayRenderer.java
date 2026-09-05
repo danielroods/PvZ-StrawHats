@@ -14,6 +14,7 @@ import model.match.main.levels.special_levels.SaveOurSeedsLevel;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.Grave;
+import model.pitches.obstacles.Bridge;
 import model.utils.GameSettings;
 
 /**
@@ -69,11 +70,43 @@ class SeasonOverlayRenderer {
                 }
             }
         }
+
+        // Pirate Seas bridge: one plank sprite spans the complete four-tile water
+        // crossing. Bridge objects still live on each of the four cells for gameplay
+        // collision/pathing; the art is drawn only once per row so it is not duplicated.
+        drawPirateBridges(boardTileWidth, boardTileHeight);
+
         if (GameSettings.get().isShowGrid()) {
             screen.batch.setColor(1f, 1f, 1f, 0.18f);
             for (int c = 0; c <= screen.session.getCols(); c++) screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth, GameScreen.BOARD_Y, 1f, bh);
             for (int r = 0; r <= screen.session.getRows(); r++) screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X, GameScreen.BOARD_Y + r * boardTileHeight, bw, 1f);
             screen.batch.setColor(Color.WHITE);
+        }
+    }
+
+    private void drawPirateBridges(float boardTileWidth, float boardTileHeight) {
+        if (screen.session == null || screen.session.getLevel() == null
+                || screen.session.getLevel().getSeason() == null
+                || !"Pirates".equalsIgnoreCase(screen.session.getLevel().getSeason().getName())) {
+            return;
+        }
+
+        final String bridgePath = Bridge.PLANK_TEXTURE;
+        final float bridgeWidth = boardTileWidth * 4.35f;
+        final float bridgeHeight = boardTileHeight * 1.15f;
+        final float bridgeOffsetY = -boardTileHeight * 0.10f;
+
+        for (int r = 0; r < screen.session.getRows(); r++) {
+            // A bridge is represented by four Bridge obstacles, one on each water cell.
+            // Draw the texture once from the first bridged water cell.
+            int waterStart = Math.max(0, screen.session.getCols() - 4);
+            Cell first = screen.session.getEnvironment().getCell(r, waterStart);
+            if (first == null || !(first.getObstacle() instanceof Bridge)) continue;
+
+            // Keep the sprite exactly one tile high and exactly four tiles wide.
+            float x = GameScreen.BOARD_X + waterStart * boardTileWidth - (bridgeWidth - boardTileWidth * 4f) * 0.5f;
+            float y = screen.cellY(r) - (bridgeHeight - boardTileHeight) * 0.5f + bridgeOffsetY;
+            screen.assets().drawStaticEffectStretched(bridgePath, x, y, bridgeWidth, bridgeHeight);
         }
     }
 

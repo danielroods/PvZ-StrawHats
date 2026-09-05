@@ -248,6 +248,12 @@ class WaveScheduler {
         double baseX = entryColumnFor(spawn.alias(), cols);
 
         List<Integer> laneOrder = laneBag.preferenceOrder(spawn.preferredLane());
+        laneOrder = pirateGroundSpawnLanes(spawn.alias(), laneOrder);
+        if (laneOrder.isEmpty()) {
+            // Should only be possible on a malformed/empty board. Keep the normal
+            // spawn path rather than making the whole wave fail to load.
+            laneOrder = laneBag.preferenceOrder(spawn.preferredLane());
+        }
         SpawnPlacement.Placement placement = !activeSandStorm
                 && ZombieFactory.isStationaryMover(spawn.alias())
                 ? SpawnPlacement.resolveInward(session.getZombies(), spawn.alias(), cols,
@@ -280,6 +286,32 @@ class WaveScheduler {
         } else if (activeSandStorm) {
             attachSandStormEntry(zombie, lane, spawnX, rows, cols);
         }
+    }
+
+    /**
+     * In Pirate Seas, a ground zombie must enter through one of the rows that has a
+     * bridge. Flying zombies (seagull/pelican) are unrestricted and can spawn in any
+     * row, including the open-water rows. This is lane selection only; wave costs and
+     * authored spawn counts are untouched.
+     */
+    private List<Integer> pirateGroundSpawnLanes(String alias, List<Integer> laneOrder) {
+        if (session.getLevel() == null || session.getLevel().getSeason() == null
+                || !(session.getLevel().getSeason() instanceof model.match.main.season.travellog.pirate.Pirate pirate)
+                || ZombieFactory.isFlying(alias)) {
+            return laneOrder;
+        }
+
+        List<Integer> selected = new ArrayList<>();
+        boolean swashbuckler = "ZombieSwashbuckler".equals(alias);
+        for (int lane : laneOrder) {
+            // Swashbuckler is the exception to the normal Pirate Seas ground-spawn
+            // rule: it deliberately enters through an unbridged row and performs
+            // its rope swing across the open water.
+            if (swashbuckler ? !pirate.rowHasBridge(lane) : pirate.rowHasBridge(lane)) {
+                selected.add(lane);
+            }
+        }
+        return selected;
     }
 
     private double entryColumnFor(String alias, int cols) {

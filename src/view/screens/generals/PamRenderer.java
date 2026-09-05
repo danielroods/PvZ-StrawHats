@@ -45,16 +45,25 @@ class PamRenderer {
             if (pamPath.startsWith("assets/pvz-assets/")) {
                 pamPath = pamPath.substring("assets/pvz-assets/".length());
             }
-            String clipName = AnimationFactory.exactClipNameForPath(pamPath, exactState);
-            if (clipName == null) {
+            // Some standalone effect/zombie PAMs (notably the Pirate Captain's
+            // parrot) are valid assets but are intentionally not present in
+            // animations.json.  The old implementation rejected those clips before
+            // PamPlayer even got a chance to load them.  Try the exact state directly
+            // first; the animation catalog is only a duration/lookup aid, not the
+            // source of truth for whether a PAM clip exists.
+            String clipName = exactState;
+            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
+            if (clip == null) {
+                clipName = AnimationFactory.exactClipNameForPath(pamPath, exactState);
+                if (clipName != null) clip = pamPlayer.getClip(pamPath, clipName);
+            }
+            if (clip == null) {
                 if (GameSettings.get().isDebugMode()) {
                     Gdx.app.error("SQUASH_CLIP_MISSING",
                             "Exact PAM clip not found: path=" + pamPath + " clip=" + exactState);
                 }
                 return false;
             }
-            ClipRef clip = pamPlayer.getClip(pamPath, clipName);
-            if (clip == null) return false;
 
             screen.batch.flush();
             com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();

@@ -28,6 +28,17 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombiePiano", "ZOMBIE_PIANO"),
             Map.entry("ZombieArcade", "ZOMBIE_80S_ARCADE"),
             Map.entry("ZombieBarrelRoller", "ZOMBIE_PIRATE_BARREL_PUSHER"),
+            Map.entry("ZombiePirateBasic", "ZOMBIE_PIRATE_BASIC"),
+            Map.entry("ZombiePirateBasicFlag", "ZOMBIE_PIRATE_BASIC_FLAG"),
+            Map.entry("ZombiePirateImp", "ZOMBIE_PIRATE_IMP"),
+            Map.entry("ZombiePirateSeagull", "ZOMBIE_PIRATE_SEAGULL"),
+            Map.entry("ZombiePiratePelican", "ZOMBIE_PIRATE_PELICAN"),
+            Map.entry("ZombiePirateGargantuar", "PIRATE_GARGANTUAR"),
+            Map.entry("ZombiePirateCaptain", "ZOMBIE_PIRATE_CAPTAIN"),
+            // Swashbuckler's PAM is a direct asset and contains the normal zombie
+            // clips plus the rope-swing clips: "swing back", "swing success",
+            // and "swing failure".
+            Map.entry("ZombieSwashbuckler", "ZOMBIE_SWASHBUCKLER"),
             Map.entry("ZombiePeashooter", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieGatlingPea", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieWallnut", "ZOMBIE_TUTORIAL"),
@@ -68,6 +79,9 @@ public class ZombieAnimationRegistry {
         if ("ZombieBarrelRoller".equalsIgnoreCase(zombieAlias)) {
             return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BARREL_PUSHER/ZOMBIE_PIRATE_BARREL_PUSHER.PAM";
         }
+        if ("ZombieSwashbuckler".equalsIgnoreCase(zombieAlias)) {
+            return "768/FULL/ZOMBIE/ZOMBIE_SWASHBUCKLER/ZOMBIE_SWASHBUCKLER.PAM";
+        }
         AnimationJsonParser.AnimationConfig config = resolve(zombieAlias);
         return config == null ? null : config.path;
     }
@@ -82,12 +96,14 @@ public class ZombieAnimationRegistry {
             boolean isBeach = s.contains("beach");
             boolean isIce = s.contains("ice") || s.contains("cave") || s.contains("frostbite");
             boolean isDark = s.contains("dark");
+            boolean isPirate = s.contains("pirate");
 
             if ("ZombieGargantuar".equalsIgnoreCase(zombieAlias)) {
                 if (isEgypt) return "768/INITIAL/ZOMBIE/EGYPT_GARGANTUAR/EGYPT_GARGANTUAR.PAM";
                 if (isBeach) return "768/FULL/ZOMBIE/BEACH_GARGANTUAR/BEACH_GARGANTUAR.PAM";
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_GARGANTUAR/ZOMBIE_ICEAGE_GARGANTUAR.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/DARK_GARGANTUAR/DARK_GARGANTUAR.PAM";
+                if (isPirate) return "768/FULL/ZOMBIE/PIRATE_GARGANTUAR/PIRATE_GARGANTUAR.PAM";
             }
 
             if ("ZombieDefault".equalsIgnoreCase(zombieAlias)
@@ -98,6 +114,7 @@ public class ZombieAnimationRegistry {
                 if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_BASIC/ZOMBIE_BEACH_BASIC.PAM";
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_BASIC/ZOMBIE_ICEAGE_BASIC.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_BASIC/ZOMBIE_DARK_BASIC.PAM";
+                if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BASIC/ZOMBIE_PIRATE_BASIC.PAM";
             }
 
             if ("ZombieImp".equalsIgnoreCase(zombieAlias)) {
@@ -105,6 +122,7 @@ public class ZombieAnimationRegistry {
                 if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_IMP_MERMAID/ZOMBIE_BEACH_IMP_MERMAID.PAM";
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_IMP_MONK/ZOMBIE_DARK_IMP_MONK.PAM";
+                if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_IMP/ZOMBIE_PIRATE_IMP.PAM";
             }
 
             if ("ZombieFlag".equalsIgnoreCase(zombieAlias)) {
@@ -112,6 +130,7 @@ public class ZombieAnimationRegistry {
                 if (isBeach) return "768/FULL/ZOMBIE/ZOMBIE_BEACH_FLAG/ZOMBIE_BEACH_FLAG.PAM";
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_FLAG/ZOMBIE_ICEAGE_FLAG.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_FLAG/ZOMBIE_DARK_FLAG.PAM";
+                if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BASIC_FLAG/ZOMBIE_PIRATE_BASIC_FLAG.PAM";
             }
         }
 

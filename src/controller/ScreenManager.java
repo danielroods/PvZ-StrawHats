@@ -234,6 +234,9 @@ public final class ScreenManager {
         if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
             return new FrostbiteCavesGameScreen();
         }
+        if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
+            return new view.screens.match.gameplay.PirateGameScreen();
+        }
         // Regular season game screen also handles ConveyorBeltLevel special levels -
         // that level type is a gameplay mechanic (see model.match.main.levels.special_levels.
         // ConveyorBeltLevel), not a separate screen, so it rides along with whatever

@@ -16,6 +16,7 @@ import model.pitches.Cell;
 import model.pitches.Environment;
 import model.pitches.LawnMower;
 import model.pitches.TileType;
+import model.pitches.obstacles.Bridge;
 import model.pitches.obstacles.Grave;
 import model.pitches.obstacles.IceBlock;
 
@@ -100,7 +101,7 @@ class SessionBoard {
                 Cell cell = environment.getCell(r, c);
 
                 boolean isWaterTile = cell.getTile() != null && cell.getTile().type() == TileType.Water;
-                if (!isWaterTile) continue;
+                if (!isWaterTile || cell.getObstacle() instanceof Bridge) continue;
 
                 Plant top = cell.getPlant();
                 if (top == null) continue;
@@ -262,7 +263,8 @@ class SessionBoard {
 
         if (plant.isGraveBuster() && !handlesGrave) return false;
 
-        boolean handlesObstacle = handlesIceBlock || handlesGrave;
+        boolean handlesObstacle = handlesIceBlock || handlesGrave
+                || cell.getObstacle() instanceof Bridge;
 
         if (cell.getObstacle() != null && !handlesObstacle) return false;
 
@@ -404,7 +406,10 @@ class SessionBoard {
 
         if (existing != null && !lilySupport) return false;
 
+        boolean onPirateBridge = cell.getObstacle() instanceof Bridge;
+
         if (flooded
+                && !onPirateBridge
                 && !plant.getTags().contains(PlantTag.WATER)
                 && !lilySupport
                 && !plant.isGraveBuster()) {
