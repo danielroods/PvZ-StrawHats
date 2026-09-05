@@ -107,6 +107,13 @@ public final class ScreenManager {
         if (menu instanceof GameMenu) {
             return new GameMenuScreen();
         }
+        if (menu instanceof controller.ui_menus.ConsoleMenu) {
+            return new view.screens.ui_menus.ConsoleScreen();
+        }
+        if (menu instanceof controller.ui_menus.ZombiePackmanMenu) {
+            return new view.screens.generals.LoadingScreen(
+                    view.screens.match.gameplay.mini_games.ZombiePackmanGameScreen::new);
+        }
         if (menu instanceof ProfileMenu) {
             return new ProfileMenuScreen();
         }

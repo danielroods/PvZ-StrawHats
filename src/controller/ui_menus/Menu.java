@@ -33,6 +33,8 @@ public abstract class Menu {
             case "login" -> App.currentMenu = new LoginMenu();
             case "collection" -> App.currentMenu = new CollectionMenu();
             case "travellog" -> App.currentMenu = new TravelLogMenu();
+            case "console" -> App.currentMenu = new ConsoleMenu();
+            case "zombie packman", "zombiepackman", "packman", "pacman" -> App.currentMenu = new ZombiePackmanMenu();
             case "leaderboard" -> App.currentMenu = new LeaderboardMenu();
             case "network", "multiplayer", "onlinematch", "online match" ->
                     App.currentMenu = new controller.ui_menus.network.NetworkMenu();
