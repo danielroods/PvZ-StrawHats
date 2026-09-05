@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -70,6 +72,18 @@ public class GameScreen extends UiScreen {
     private final ZombossRenderer zomboss = new ZombossRenderer(this);
     private final NukeEffect nukeEffect = new NukeEffect(this);
     private Image nukeFlashOverlay;
+
+    // Lightweight gameplay camera shake. The base camera position is never changed;
+    // a temporary offset is applied for the duration of the effect and restored after draw.
+    private float screenShakeTime = 0f;
+    private float screenShakeDuration = 0f;
+    private float screenShakeStrength = 0f;
+
+    // Wave-start banner state. The scheduler already exposes the authoritative spawned-wave count.
+    private int lastDisplayedWaveCount = 0;
+    private float waveBannerTime = 0f;
+    private String waveBannerText = null;
+    private final GlyphLayout waveBannerLayout = new GlyphLayout();
 
     private view.hud.ZombossDialogueBox zombossDialogue;
     // Play the Zomboss NPC voice only once for the whole NPC dialogue sequence.
@@ -142,6 +156,10 @@ public class GameScreen extends UiScreen {
         createZombossDialogue();
         nukeEffect.preload();
         createNukeFlashOverlay();
+        lastDisplayedWaveCount = session == null ? 0 : session.getWavesSpawnedCount();
+        waveBannerTime = 0f;
+        waveBannerText = null;
+        screenShakeTime = 0f;
     }
 
     /**
@@ -278,30 +296,42 @@ public class GameScreen extends UiScreen {
             nukeFlashOverlay.setVisible(a > 0f);
         }
 
+        updateGameplayPresentation(delta);
         refreshHud(delta);
         refreshZombossDialogue();
         refreshSandStormAudio();
 
         Object camera = stage.getViewport().getCamera();
         OrthographicCamera orthoCamera = camera instanceof OrthographicCamera ? (OrthographicCamera) camera : null;
-        float shakeX = 0f, shakeY = 0f;
-        if (orthoCamera != null && nukeEffect.isActive()) {
-            shakeX = nukeEffect.shakeOffsetX();
-            shakeY = nukeEffect.shakeOffsetY();
-            orthoCamera.position.x += shakeX;
-            orthoCamera.position.y += shakeY;
-            orthoCamera.update();
+        float baseCameraX = 0f;
+        float baseCameraY = 0f;
+        float baseCameraZ = 0f;
+        if (orthoCamera != null) {
+            baseCameraX = orthoCamera.position.x;
+            baseCameraY = orthoCamera.position.y;
+            baseCameraZ = orthoCamera.position.z;
+            applyScreenShake(orthoCamera);
+            if (nukeEffect.isActive()) {
+                orthoCamera.position.x += nukeEffect.shakeOffsetX();
+                orthoCamera.position.y += nukeEffect.shakeOffsetY();
+                orthoCamera.update();
+            }
         }
 
         drawBoard(delta);
         stage.act(delta);
 
-        if (controller.ScreenManager.getScreen() != this) return;
+        if (controller.ScreenManager.getScreen() != this) {
+            if (orthoCamera != null) {
+                orthoCamera.position.set(baseCameraX, baseCameraY, baseCameraZ);
+                orthoCamera.update();
+            }
+            return;
+        }
         stage.draw();
 
-        if (orthoCamera != null && (shakeX != 0f || shakeY != 0f)) {
-            orthoCamera.position.x -= shakeX;
-            orthoCamera.position.y -= shakeY;
+        if (orthoCamera != null) {
+            orthoCamera.position.set(baseCameraX, baseCameraY, baseCameraZ);
             orthoCamera.update();
         }
     }
@@ -369,6 +399,83 @@ public class GameScreen extends UiScreen {
             AudioManager.get().playSound(AudioEnum.SFX_SANDSTORM);
         }
         lastSandStormActive = active;
+    }
+
+    /** Called by ZombieRenderer when a heavy zombie enters the board. */
+    void triggerScreenShake(float strength, float duration) {
+        if (strength <= 0f || duration <= 0f) return;
+        screenShakeStrength = Math.max(screenShakeStrength, strength);
+        screenShakeDuration = Math.max(screenShakeDuration, duration);
+        screenShakeTime = Math.max(screenShakeTime, duration);
+    }
+
+    private void updateGameplayPresentation(float delta) {
+        if (screenShakeTime > 0f) {
+            screenShakeTime = Math.max(0f, screenShakeTime - delta);
+            if (screenShakeTime <= 0f) {
+                screenShakeDuration = 0f;
+                screenShakeStrength = 0f;
+            }
+        }
+
+        int waveCount = session == null ? 0 : session.getWavesSpawnedCount();
+        if (waveCount > lastDisplayedWaveCount) {
+            lastDisplayedWaveCount = waveCount;
+            waveBannerText = "Wave " + waveCount + " Started!";
+            waveBannerTime = 1.45f;
+        }
+        if (waveBannerTime > 0f) {
+            waveBannerTime = Math.max(0f, waveBannerTime - delta);
+        }
+    }
+
+    private void applyScreenShake(OrthographicCamera camera) {
+        if (screenShakeTime <= 0f || screenShakeDuration <= 0f) return;
+        float progress = Math.max(0f, Math.min(1f, screenShakeTime / screenShakeDuration));
+        float fade = progress * progress;
+        float x = (float) (Math.random() * 2.0 - 1.0) * screenShakeStrength * fade;
+        float y = (float) (Math.random() * 2.0 - 1.0) * screenShakeStrength * fade;
+        camera.position.x += x;
+        camera.position.y += y;
+        camera.update();
+    }
+
+    private void drawWaveBanner() {
+        if (waveBannerText == null || waveBannerTime <= 0f || skin == null) return;
+        BitmapFont font = skin.has("default-font", BitmapFont.class)
+                ? skin.getFont("default-font") : null;
+        if (font == null) return;
+
+        float alpha = Math.min(1f, waveBannerTime / 0.22f);
+        if (waveBannerTime > 1.15f) alpha = 1f;
+        float oldScaleX = font.getData().scaleX;
+        float oldScaleY = font.getData().scaleY;
+        font.getData().setScale(1.65f);
+        font.getColor().set(1f, 0f, 0f, alpha);
+        waveBannerLayout.setText(font, waveBannerText);
+
+        float cx = stage.getViewport().getWorldWidth() * 0.5f;
+        float cy = stage.getViewport().getWorldHeight() * 0.72f;
+        float x = cx - waveBannerLayout.width * 0.5f;
+        float y = cy + waveBannerLayout.height * 0.5f;
+
+        // Black broken/dashed-looking letter border: several separated offset passes
+        // rather than a solid rectangular box. The red glyphs remain the focal layer.
+        font.getColor().set(0f, 0f, 0f, alpha);
+        float d = 2.5f;
+        font.draw(batch, waveBannerText, x - d, y);
+        font.draw(batch, waveBannerText, x + d, y);
+        font.draw(batch, waveBannerText, x, y - d);
+        font.draw(batch, waveBannerText, x, y + d);
+        font.draw(batch, waveBannerText, x - d, y - d);
+        font.draw(batch, waveBannerText, x + d, y + d);
+        font.draw(batch, waveBannerText, x - d, y + d);
+        font.draw(batch, waveBannerText, x + d, y - d);
+
+        font.getColor().set(1f, 0f, 0f, alpha);
+        font.draw(batch, waveBannerText, x, y);
+        font.getColor().set(Color.WHITE);
+        font.getData().setScale(oldScaleX, oldScaleY);
     }
 
     protected void refreshHud(float delta) {
@@ -540,6 +647,7 @@ public class GameScreen extends UiScreen {
         interaction.drawDragPreview(delta);
         matchEnd.drawMatchEndOverlay();
         drawMatchStartOverlay();
+        drawWaveBanner();
 
         batch.end();
     }

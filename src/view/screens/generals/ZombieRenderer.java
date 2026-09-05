@@ -197,6 +197,7 @@ class ZombieRenderer {
     private final ZombieArmorMask armorMask;
 
     private final Map<Zombie, Float> zombieSpawnEffects = new IdentityHashMap<>();
+    private final Map<Zombie, Boolean> gargantuarShakeTriggered = new IdentityHashMap<>();
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> zombieWaterRipples = new IdentityHashMap<>();
     private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
@@ -218,6 +219,10 @@ class ZombieRenderer {
         this.armorMask = new ZombieArmorMask();
     }
 
+    private static boolean isGargantuarAlias(String alias) {
+        return alias != null && alias.toLowerCase().contains("gargantuar");
+    }
+
     void drawZombies(float delta, float bw, float bh) {
         if (screen.isBeforeMatchPreview()) return;
 
@@ -228,6 +233,14 @@ class ZombieRenderer {
         for (Zombie zombie : zombies) {
             if (zombie == null || zombie.getPosition() == null) continue;
             if (zombie.isBoss()) continue;
+
+            // A Gargantuar entering the active zombie list gets a very small, short
+            // camera jolt. Edge-detected per instance so it never shakes every frame.
+            if (isGargantuarAlias(zombie.getAlias())
+                    && !gargantuarShakeTriggered.getOrDefault(zombie, false)) {
+                gargantuarShakeTriggered.put(zombie, true);
+                screen.triggerScreenShake(2.2f, 0.16f);
+            }
             boolean frozenInIce = FrostbiteFreezing.isFrozenInIce(screen.session, zombie);
             float t = zombieAnimTimes.getOrDefault(zombie, 0f);
             if (!frozenInIce) {
