@@ -67,9 +67,11 @@
     "forcedPlants": [],
     "conveyorPlants": [
       "Peashooter",
-      "Wall-nut",
-      "Sunflower",
-      "Potato Mine"
+      "Repeater",
+      "Potato Mine",
+      "Cherry Bomb",
+      "Jalapeno",
+      "Wall-nut"
     ],
     "maxConveyorSize": 8,
     "zombiePool": [
@@ -117,8 +119,8 @@
     ]
   },
   {
-    "type": "locked",
-    "gameMode": "Adventure - Special: Locked Plants",
+    "type": "moldBlock",
+    "gameMode": "Adventure - Special: Not Every Where You Can Plant!",
     "id": 103,
     "name": "Ancient Egypt - Day 3",
     "season": "egypt",
@@ -127,56 +129,14 @@
     "initialSun": 150,
     "availablePlants": [
       "Peashooter",
+      "Repeater",
       "Wall-nut",
-      "Potato Mine"
+      "Potato Mine",
+      "Cherry Bomb",
+      "Snow Pea"
     ],
     "forcedPlants": [],
-    "lockedPlants": [
-      "Sunflower",
-      "Twin Sunflower",
-      "Sun-shroom",
-      "Primal Sunflower",
-      "Gold Bloom",
-      "Sun Bean",
-      "Repeater",
-      "Threepeater",
-      "Snow Pea",
-      "Pea Pod",
-      "Citron",
-      "Caulipower",
-      "Electric Blueberry",
-      "Bowling Bulb",
-      "Fire Peashooter",
-      "Mega Gatling Pea",
-      "Melon-pult",
-      "Winter Melon",
-      "Primal Potato Mine",
-      "Cherry Bomb",
-      "Grapeshot",
-      "Jalapeno",
-      "Doom-shroom",
-      "Wasabi Whip",
-      "Kiwibeast",
-      "Tall-nut",
-      "Explode-o-nut",
-      "Pumpkin",
-      "Torchwood",
-      "Magnet-shroom",
-      "Hypno-shroom",
-      "Imitater",
-      "Enlighten-mint",
-      "Appease-mint",
-      "Arma-mint",
-      "Bombard-mint",
-      "Enforce-mint",
-      "Reinforce-mint",
-      "Enchant-mint",
-      "Pierce-mint",
-      "catTail-mint"
-    ],
-    "alwaysAvailable": [
-      "Peashooter"
-    ],
+    "blockedColumns": [0],
     "zombiePool": [
       "ZombieDefault",
       "ZombieArmor1",
@@ -1113,10 +1073,12 @@
     "availablePlants": [],
     "forcedPlants": [],
     "conveyorPlants": [
-      "Peashooter",
-      "Wall-nut",
-      "Sunflower",
-      "Potato Mine"
+      "Snow Pea",
+      "Threepeater",
+      "Grapeshot",
+      "Doom-shroom",
+      "Squash",
+      "Tall-nut"
     ],
     "maxConveyorSize": 8,
     "zombiePool": [
@@ -1425,23 +1387,29 @@
     ]
   },
   {
-    "type": "plantWhatYouGet",
-    "gameMode": "Adventure - Special: Plant What You Get",
+    "type": "saveSeeds",
+    "gameMode": "Adventure - Special: Save Your Seeds",
     "id": 603,
     "name": "Future - Day 3",
     "season": "future",
     "rows": 5,
     "cols": 9,
-    "primarySun": 800,
+    "initialSun": 150,
     "availablePlants": [
       "Peashooter",
       "Wall-nut",
       "Repeater",
       "Snow Pea",
       "Potato Mine",
-      "Cabbage-pult"
+      "Cabbage-pult",
+      "Melon-pult",
+      "Citron"
     ],
     "forcedPlants": [],
+    "seedPositions": {
+      "1,2": "Melon-pult",
+      "3,2": "Citron"
+    },
     "zombiePool": [
       "ZombieDefault",
       "ZombieArmor1",

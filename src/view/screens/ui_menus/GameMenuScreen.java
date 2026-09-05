@@ -36,8 +36,8 @@ public class GameMenuScreen extends UiScreen {
             "assets/images/chapters/iceage.png",
             "assets/images/chapters/beach.png",
             "assets/images/chapters/dark.png",
-            "assets/images/chapters/pirate/island11.png",
-            "assets/images/chapters/future/island22.png"
+            "assets/images/chapters/pirate/pirate.png",
+            "assets/images/chapters/future/future.png"
     };
 
     private static final float CARD_WIDTH = 280f;

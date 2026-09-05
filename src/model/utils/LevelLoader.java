@@ -61,6 +61,7 @@ public class LevelLoader {
             case "conveyor":        level = new ConveyorBeltLevel(); break;
             case "locked":          level = new LockedPlantsLevel(); break;
             case "saveSeeds":       level = new SaveOurSeedsLevel(); break;
+            case "moldBlock":       level = new NotEveryWhereYouCanPlantLevel(); break;
             case "timedWar":        level = new TimedWarLevel(); break;
             case "nightOps":        level = new NightOpsLevel(); break;
             case "deadLine":        level = new DeadLineLevel(); break;
@@ -174,6 +175,12 @@ public class LevelLoader {
                 }
                 ((SaveOurSeedsLevel) level).setSeedPositions(seedMap);
             }
+        } else if (level instanceof NotEveryWhereYouCanPlantLevel) {
+            if (raw.has("blockedColumns")) {
+                List<Integer> blocked = new ArrayList<>();
+                raw.get("blockedColumns").getAsJsonArray().forEach(e -> blocked.add(e.getAsInt()));
+                ((NotEveryWhereYouCanPlantLevel) level).setBlockedColumns(blocked);
+            }
         } else if (level instanceof TimedWarLevel) {
             double timeSec = raw.get("timeLimitSeconds").getAsDouble();
             ((TimedWarLevel) level).setTimeLimit(new Time(timeSec));
@@ -218,7 +225,8 @@ public class LevelLoader {
             case "boss" -> "Adventure - Boss";
             case "conveyor" -> "Adventure - Special: Conveyor Belt";
             case "locked" -> "Adventure - Special: Locked Plants";
-            case "saveSeeds" -> "Adventure - Special: Save Our Seeds";
+            case "saveSeeds" -> "Adventure - Special: Save Your Seeds";
+            case "moldBlock" -> "Adventure - Special: Not Every Where You Can Plant!";
             case "timedWar" -> "Adventure - Special: Timed War";
             case "nightOps" -> "Adventure - Special: Night Ops";
             case "deadLine" -> "Adventure - Special: Dead Line";

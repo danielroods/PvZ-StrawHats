@@ -19,6 +19,7 @@ import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.obstacles.OctopusWrap;
+import model.pitches.obstacles.MoldBlock;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.pitches.TileType;
 import service.resource_manager.AudioEnum;
@@ -78,6 +79,7 @@ class PlantRenderer {
     private final Map<Plant, Float> plantAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> sheepAnimTimes = new IdentityHashMap<>();
     private final Map<Cell, Float> octopusWrapAnimTimes = new IdentityHashMap<>();
+    private final Map<Cell, Float> moldBlockAnimTimes = new IdentityHashMap<>();
     // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
     private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
@@ -369,6 +371,7 @@ class PlantRenderer {
 
         drawDyingShroomEffects(delta, boardTileWidth, boardTileHeight);
         drawOctopusWraps(delta, boardTileWidth, boardTileHeight);
+        drawMoldBlocks(delta, boardTileWidth, boardTileHeight);
     }
 
     private record PlantVisualArgs(
@@ -784,6 +787,31 @@ class PlantRenderer {
             }
         }
         octopusWrapAnimTimes.keySet().removeIf(cell -> cell == null || cell.getObstacle() == null);
+    }
+
+    /**
+     * Draws the idle mold animation over any tile blocked by {@link MoldBlock}
+     * (e.g. the unplantable column in the "Not Every Where You Can Plant!" level).
+     */
+    private void drawMoldBlocks(float delta, float boardTileWidth, float boardTileHeight) {
+        if (screen.session.getEnvironment() == null) return;
+
+        for (int row = 0; row < screen.session.getEnvironment().getRows(); row++) {
+            for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
+                Cell cell = screen.session.getEnvironment().getCell(row, col);
+                if (cell == null || !(cell.getObstacle() instanceof MoldBlock)) continue;
+
+                float time = moldBlockAnimTimes.getOrDefault(cell, 0f) + delta;
+                moldBlockAnimTimes.put(cell, time);
+
+                int finalRow = row;
+                float x = GameScreen.BOARD_X + col * boardTileWidth + 20f;
+                float y = screen.cellY(row) + 40f;
+                screen.queueRowDraw(finalRow, () -> screen.drawPam(
+                        MoldBlock.PAM_PATH, MoldBlock.PAM_CLIP, time, x, y, 0.55f, false));
+            }
+        }
+        moldBlockAnimTimes.keySet().removeIf(cell -> cell == null || !(cell.getObstacle() instanceof MoldBlock));
     }
 
     /**
