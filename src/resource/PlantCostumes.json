@@ -1,0 +1,1184 @@
+[
+  {
+    "plant": "Sunflower",
+    "costumes": [
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_halloween",
+        "elements": [
+          "custom_halloween"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Twin Sunflower",
+    "costumes": [
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Primal Sunflower",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Sun Bean",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Sun-shroom",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Gold Bloom",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Peashooter",
+    "costumes": [
+      {
+        "id": "custom_thingsandstuff",
+        "elements": [
+          "custom_thingsandstuff"
+        ]
+      },
+      {
+        "id": "custom_holiday",
+        "elements": [
+          "custom_holiday"
+        ]
+      },
+      {
+        "id": "custom_halloween",
+        "elements": [
+          "custom_halloween"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Repeater",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      },
+      {
+        "id": "custom_valentines",
+        "elements": [
+          "custom_valentines"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Threepeater",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Snow Pea",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Rotobaga",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Pea Pod",
+    "costumes": [
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Split Pea",
+    "costumes": [
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03_blue",
+          "custom_03_orange"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02_robber",
+          "custom_02_cop"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01_halo",
+          "custom_01_horns"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Citron",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Caulipower",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Electric Blueberry",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Bowling Bulb",
+    "costumes": [
+      {
+        "id": "custom_1",
+        "elements": [
+          "custom_1"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Cactus",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Fire Peashooter",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Starfruit",
+    "costumes": [
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Goo Peashooter",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Mega Gatling Pea",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Sea-shroom",
+    "costumes": []
+  },
+  {
+    "plant": "Puff-shroom",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Fume-shroom",
+    "costumes": [
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Cabbage-pult",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Kernel-pult",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Melon-pult",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Winter Melon",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Pepper-pult",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Potato Mine",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Primal Potato Mine",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Cherry Bomb",
+    "costumes": [
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03_left",
+          "custom_03_right"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02_right",
+          "custom_02_left"
+        ]
+      },
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01_right",
+          "custom_01_left"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Squash",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Grapeshot",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Jalapeno",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Doom-shroom",
+    "costumes": []
+  },
+  {
+    "plant": "Tangle Kelp",
+    "costumes": []
+  },
+  {
+    "plant": "Iceberg Lettuce",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Bonk Choy",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      },
+      {
+        "id": "custom_06",
+        "elements": [
+          "custom_06"
+        ]
+      },
+      {
+        "id": "custom_07",
+        "elements": [
+          "custom_07"
+        ]
+      },
+      {
+        "id": "custom_08",
+        "elements": [
+          "custom_08"
+        ]
+      },
+      {
+        "id": "custom_09",
+        "elements": [
+          "custom_09"
+        ]
+      },
+      {
+        "id": "custom_valentines",
+        "elements": [
+          "custom_valentines"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Phat Beet",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Chomper",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Wasabi Whip",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Kiwibeast",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Wall-nut",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_valentines",
+        "elements": [
+          "custom_valentines"
+        ]
+      },
+      {
+        "id": "custom_halloween",
+        "elements": [
+          "custom_halloween"
+        ]
+      },
+      {
+        "id": "custom_holiday",
+        "elements": [
+          "custom_holiday"
+        ]
+      },
+      {
+        "id": "custom_thingsandstuff",
+        "elements": [
+          "custom_thingsandstuff"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Tall-nut",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_04",
+        "elements": [
+          "custom_04"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      },
+      {
+        "id": "custom_valentines",
+        "elements": [
+          "custom_valentines"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Explode-o-nut",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Sweet Potato",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Garlic",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Endurian",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Pumpkin",
+    "costumes": []
+  },
+  {
+    "plant": "Torchwood",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      },
+      {
+        "id": "custom_05",
+        "elements": [
+          "custom_05"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Magnet-shroom",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Hypno-shroom",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Cat-tail",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Imitater",
+    "costumes": []
+  },
+  {
+    "plant": "Ice-shroom",
+    "costumes": []
+  },
+  {
+    "plant": "Lily Pad",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Hot Potato",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Grave Buster",
+    "costumes": [
+      {
+        "id": "custom_01",
+        "elements": [
+          "custom_01"
+        ]
+      },
+      {
+        "id": "custom_02",
+        "elements": [
+          "custom_02"
+        ]
+      },
+      {
+        "id": "custom_03",
+        "elements": [
+          "custom_03"
+        ]
+      }
+    ]
+  },
+  {
+    "plant": "Enlighten-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Appease-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Arma-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Bombard-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Enforce-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Reinforce-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Enchant-mint",
+    "costumes": []
+  },
+  {
+    "plant": "Pierce-mint",
+    "costumes": []
+  },
+  {
+    "plant": "catTail-mint",
+    "costumes": []
+  }
+]

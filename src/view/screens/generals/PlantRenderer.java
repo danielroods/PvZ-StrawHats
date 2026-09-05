@@ -380,6 +380,11 @@ class PlantRenderer {
             boolean growing, float growthTime, String path, float x, float y, float plantOffsetX,
             float plantOffsetY, boolean squashJumping, float boardTileWidth, float boardTileHeight) { }
 
+    private Map<String, Boolean> plantCostumeVisibility(Plant plant) {
+        if (plant == null) return null;
+        return PlantCostumeMask.forPlant(plant.getId(), plant.getName());
+    }
+
     private void drawPlantVisual(Plant plant, PlantVisualArgs a) {
         boolean frozenInIce = a.frozenInIce();
         boolean prepping = a.prepping();
@@ -625,17 +630,17 @@ class PlantRenderer {
         if (explodeONutArmorState) {
             drawn = screen.drawPam(path, preferredState, animTime,
                     plantOffsetX, plantOffsetY, 0.55f, false,
-                    explodeONutArmorVisibility(preferredState));
+                    PlantCostumeMask.merge(explodeONutArmorVisibility(preferredState), plantCostumeVisibility(plant)));
         } else if (explodeONutExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (potatoMineExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (squashExactState) {
             boolean squashMirror = "turn".equals(preferredState) && plant.isMeleeFacingLeft();
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, squashMirror);
+                    plantOffsetX, plantOffsetY, 0.55f, squashMirror, plantCostumeVisibility(plant));
         } else if (pumpkinPlantFoodState) {
             Map<String, Boolean> pumpkinPfVisibility = new java.util.HashMap<>();
             pumpkinPfVisibility.put("pumpkin_armor_01", "idle_plantfood".equals(preferredState));
@@ -643,26 +648,26 @@ class PlantRenderer {
             pumpkinPfVisibility.put("pumpkin_armor_03", "idle_plantfood3".equals(preferredState));
             pumpkinPfVisibility.put("pumpkin_armor_04", "idle_plantfood4".equals(preferredState));
             drawn = screen.drawPam(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false, pumpkinPfVisibility);
+                    plantOffsetX, plantOffsetY, 0.55f, false, PlantCostumeMask.merge(pumpkinPfVisibility, plantCostumeVisibility(plant)));
         } else if (pumpkinExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (wallNutPlantFoodState) {
             Map<String, Boolean> wallNutPfVisibility = new java.util.HashMap<>();
             wallNutPfVisibility.put("wallnut_plantfood_armor_01", "plantfood".equals(preferredState));
             wallNutPfVisibility.put("wallnut_plantfood_armor_02", "plantfood2".equals(preferredState));
             wallNutPfVisibility.put("wallnut_plantfood_armor_03", "plantfood3".equals(preferredState));
             drawn = screen.drawPam(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false, wallNutPfVisibility);
+                    plantOffsetX, plantOffsetY, 0.55f, false, PlantCostumeMask.merge(wallNutPfVisibility, plantCostumeVisibility(plant)));
         } else if (wallNutExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (garlicExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (sweetPotatoExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (tallNutArmorState) {
             Map<String, Boolean> tallNutArmorVisibility = new java.util.HashMap<>();
             tallNutArmorVisibility.put("_tallnut_plantfood_armor", true);
@@ -677,16 +682,16 @@ class PlantRenderer {
                 default -> { }
             }
             drawn = screen.drawPam(path, "idle", animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false, tallNutArmorVisibility);
+                    plantOffsetX, plantOffsetY, 0.55f, false, PlantCostumeMask.merge(tallNutArmorVisibility, plantCostumeVisibility(plant)));
         } else if (tallNutExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (sunProducerPlantFoodExactState) {
             drawn = screen.pam().drawPamExact(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, false);
+                    plantOffsetX, plantOffsetY, 0.55f, false, plantCostumeVisibility(plant));
         } else if (endurian) {
             drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
-                    0.55f, false, endurianVisibility(plant, preferredState));
+                    0.55f, false, PlantCostumeMask.merge(endurianVisibility(plant, preferredState), plantCostumeVisibility(plant)));
         } else if (isMagnetShroom(plant)) {
             // The "Magnet_Item" slot is where the real game swaps in whatever metal object
             // the magnet just pulled off a zombie. The shipped atlas has no such artwork
@@ -699,9 +704,9 @@ class PlantRenderer {
             Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
             magnetVisibility.put(MAGNET_ITEM_ELEMENT, false);
             drawn = screen.drawPam(path, preferredState, animTime,
-                    plantOffsetX, plantOffsetY, 0.55f, mirror, magnetVisibility);
+                    plantOffsetX, plantOffsetY, 0.55f, mirror, PlantCostumeMask.merge(magnetVisibility, plantCostumeVisibility(plant)));
         } else {
-            drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror);
+            drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY, 0.55f, mirror, plantCostumeVisibility(plant));
         }
         if (!drawn) {
             TextureRegion region = GameAssetManager.get().getPlantRegion(plant.getName());

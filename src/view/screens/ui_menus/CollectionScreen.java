@@ -32,6 +32,8 @@ import model.resoures.CurrencyType;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.armour.Armour;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantCostume;
+import model.collections.plant.PlantCostumeManager;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.user_data.User;
@@ -40,6 +42,7 @@ import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
 import service.card_factory.ZombieIconCard;
 import service.card_factory.ZombieIconCardFactory;
+import view.screens.generals.PlantCostumeMask;
 import view.screens.generals.UiScreen;
 import view.screens.generals.ParticleCreator;
 
@@ -138,6 +141,9 @@ public class CollectionScreen extends UiScreen {
     private static final Color YELLOW = new Color(0.95f, 0.80f, 0.15f, 1f);
     private static final Color GREEN = new Color(0.30f, 0.75f, 0.25f, 1f);
     private static final Color GRAY = new Color(0.45f, 0.45f, 0.45f, 1f);
+    private static final Color PURPLE = new Color(0.55f, 0.30f, 0.85f, 1f);
+    private static final String COSTUME_NEXT_ICON = "assets/images/ui/stats_screen_nav_arrow_next.png";
+    private static final String COSTUME_PREVIOUS_ICON = "assets/images/ui/stats_screen_nav_arrow_previous.png";
 
     private enum CollectionTab { PLANTS, ZOMBIES }
 
@@ -149,6 +155,7 @@ public class CollectionScreen extends UiScreen {
 
     private Integer openPlantId = null;
     private String openZombieAlias = null;
+    private final Map<Integer, String> previewPlantCostumes = new HashMap<>();
     private Actor popupOverlay;
     private Actor currentParticleActor;
 
@@ -734,12 +741,25 @@ public class CollectionScreen extends UiScreen {
         } catch (Throwable t) {
             Gdx.app.error("CollectionScreen", "Failed to resolve idle animation for " + config.name, t);
         }
-        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(animationPath, 0, 0);
+        String initialPreview = previewPlantCostumes.get(config.id);
+        if (initialPreview == null && !previewPlantCostumes.containsKey(config.id)) {
+            initialPreview = PlantCostumeManager.selectedCostume(config.id);
+            previewPlantCostumes.put(config.id, initialPreview);
+        }
+        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(
+                config.id, config.name, animationPath, initialPreview, 0, 0);
         Table animLayer = new Table();
         animLayer.setFillParent(true);
         animLayer.add(animActor).size(220, 220);
         animBox.add(animLayer);
-        body.add(animBox).size(250, 250).top().padRight(SPACE_LG);
+
+        Table animationColumn = new Table();
+        animationColumn.top();
+        animationColumn.add(animBox).size(250, 250).row();
+        if (PlantCostumeManager.hasCostumes(config.name)) {
+            animationColumn.add(buildPlantCostumeControls(config, animActor)).padTop(8f).center();
+        }
+        body.add(animationColumn).top().padRight(SPACE_LG);
 
         Table info = new Table();
         info.top().left();
@@ -820,6 +840,37 @@ public class CollectionScreen extends UiScreen {
         return solidColorDrawable(new Color(0f, 0f, 0f, 0f));
     }
 
+    private Table buildPlantCostumeControls(PlantJsonParser.PlantConfig config, PlantIdleAnimationActor animActor) {
+        Table controls = new Table();
+        controls.center();
+
+        ImageButton previous = createIconButton(COSTUME_PREVIOUS_ICON, 46, 46, () -> {
+            animActor.movePreview(-1);
+            previewPlantCostumes.put(config.id, animActor.getPreviewCostumeId());
+            animActor.updateActionButton();
+        });
+        ImageButton next = createIconButton(COSTUME_NEXT_ICON, 46, 46, () -> {
+            animActor.movePreview(1);
+            previewPlantCostumes.put(config.id, animActor.getPreviewCostumeId());
+            animActor.updateActionButton();
+        });
+
+        Label name = new Label("", skin, "main");
+        name.setFontScale(0.85f);
+        animActor.costumeNameLabel = name;
+
+        TextButton action = coloredButton("", GRAY);
+        action.setSize(220, 50);
+        animActor.costumeActionButton = action;
+        animActor.refreshCostumeUi();
+
+        controls.add(previous).size(46, 46).padRight(8f);
+        controls.add(name).width(130).center();
+        controls.add(next).size(46, 46).padLeft(8f).row();
+        controls.add(action).colspan(3).width(240).height(52).padTop(6f);
+        return controls;
+    }
+
     private TextButton buildActionButton(PlantJsonParser.PlantConfig config, UserState state, boolean unlocked) {
         if (!unlocked) {
             int cost = CollectionManager.getPurchaseCost();
@@ -872,15 +923,29 @@ public class CollectionScreen extends UiScreen {
     }
 
     private class PlantIdleAnimationActor extends Actor {
+        private final int plantId;
+        private final String plantName;
         private final String animationPath;
         private float stateTime = 0f;
         private float offsetX = 0f;
         private float offsetY = 0f;
+        private int previewIndex;
+        private String previewCostumeId;
+        private Label costumeNameLabel;
+        private TextButton costumeActionButton;
 
         PlantIdleAnimationActor(String animationPath, float ox, float oy) {
+            this(-1, null, animationPath, null, ox, oy);
+        }
+
+        PlantIdleAnimationActor(int plantId, String plantName, String animationPath,
+                                String previewCostumeId, float ox, float oy) {
+            this.plantId = plantId;
+            this.plantName = plantName;
             this.animationPath = animationPath;
             this.offsetX = ox + 110f;
             this.offsetY = oy + 85f;
+            setPreviewCostumeId(previewCostumeId);
         }
 
         @Override
@@ -889,28 +954,136 @@ public class CollectionScreen extends UiScreen {
             stateTime += delta;
         }
 
-        @Override
-        public void draw(Batch batch, float parentAlpha) {
-            if (pamPlayer == null || animationPath == null) {
-                return;
-            }
-            try {
-                String clipName = AnimationFactory.resolveClipNameForPath(animationPath, "idle");
-                if (clipName == null) {
-                    return;
-                }
+        String getPreviewCostumeId() {
+            return previewCostumeId;
+        }
 
-                ClipRef clip = pamPlayer.getClip(animationPath, clipName);
-                if(!animationPath.contains("MAGNETSHROOM")) {
-
-                    if (clip != null) {
-                        pamPlayer.draw(batch, clip, stateTime, getX() + offsetX, getY() + offsetY, true);
+        void setPreviewCostumeId(String costumeId) {
+            List<PlantCostume> costumes = PlantCostumeManager.costumesForPlant(plantName);
+            previewCostumeId = null;
+            previewIndex = 0;
+            if (costumeId != null) {
+                for (int i = 0; i < costumes.size(); i++) {
+                    if (costumeId.equalsIgnoreCase(costumes.get(i).id)) {
+                        previewCostumeId = costumes.get(i).id;
+                        previewIndex = i + 1;
+                        break;
                     }
                 }
-                else {
-                    visibility.put("Magnet_Item",false);
-                    if (clip != null) {
-                        pamPlayer.draw(batch, clip, stateTime, getX() + offsetX, getY() + offsetY, true,visibility);
+            }
+            refreshCostumeUi();
+        }
+
+        void movePreview(int delta) {
+            List<PlantCostume> costumes = PlantCostumeManager.costumesForPlant(plantName);
+            int total = costumes.size() + 1; // index 0 is the original/default art.
+            previewIndex = (previewIndex + delta) % total;
+            if (previewIndex < 0) previewIndex += total;
+            previewCostumeId = previewIndex == 0 ? null : costumes.get(previewIndex - 1).id;
+            stateTime = 0f;
+            refreshCostumeUi();
+        }
+
+        void refreshCostumeUi() {
+            if (costumeNameLabel != null) {
+                costumeNameLabel.setText(previewCostumeId == null ? "Default" : previewCostumeId);
+            }
+            updateActionButton();
+        }
+
+        void updateActionButton() {
+            if (costumeActionButton == null) return;
+            costumeActionButton.clearListeners();
+
+            UserState currentState = User.currentUser == null ? null : User.currentUser.userState;
+            if (currentState == null || !currentState.isPlantUnlocked(plantId)) {
+                applyCostumeButton("Unlock plant first", GRAY, true);
+                return;
+            }
+
+            String selected = PlantCostumeManager.selectedCostume(plantId);
+            if (previewCostumeId == null) {
+                boolean chosen = selected == null;
+                applyCostumeButton(chosen ? "Chosen" : "Choose", chosen ? GRAY : PURPLE, chosen);
+                if (!chosen) {
+                    costumeActionButton.addListener(new ClickListener() {
+                        @Override
+                        public void clicked(InputEvent event, float x, float y) {
+                            if (PlantCostumeManager.choose(plantId, plantName, null)) {
+                                previewPlantCostumes.put(plantId, null);
+                                build();
+                            }
+                        }
+                    });
+                }
+                return;
+            }
+
+            if (!PlantCostumeManager.isOwned(plantId, previewCostumeId)) {
+                boolean canBuy = User.currentUser != null && User.currentUser.userState != null
+                        && User.currentUser.userState.coins >= PlantCostumeManager.COST;
+                applyCostumeButton("Purchase - " + PlantCostumeManager.COST + " coins",
+                        canBuy ? GREEN : GRAY, false);
+                costumeActionButton.setDisabled(!canBuy);
+                if (canBuy) {
+                    costumeActionButton.addListener(new ClickListener() {
+                        @Override
+                        public void clicked(InputEvent event, float x, float y) {
+                            if (PlantCostumeManager.purchase(plantId, plantName, previewCostumeId)) {
+                                build();
+                            }
+                        }
+                    });
+                }
+                return;
+            }
+
+            boolean chosen = previewCostumeId.equalsIgnoreCase(selected == null ? "" : selected);
+            applyCostumeButton(chosen ? "Chosen" : "Choose", chosen ? GRAY : PURPLE, chosen);
+            if (!chosen) {
+                costumeActionButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        if (PlantCostumeManager.choose(plantId, plantName, previewCostumeId)) {
+                            build();
+                        }
+                    }
+                });
+            }
+        }
+
+        void applyCostumeButton(String text, Color color, boolean disabled) {
+            TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
+            style.font = skin.getFont("default-font");
+            style.fontColor = Color.BLACK;
+            style.up = roundedFilledDrawable(color, Color.WHITE, 14f, 2f);
+            style.down = roundedFilledDrawable(color.cpy().mul(0.85f, 0.85f, 0.85f, 1f), Color.WHITE, 14f, 2f);
+            style.disabled = roundedFilledDrawable(GRAY, Color.WHITE, 14f, 2f);
+            style.disabledFontColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            costumeActionButton.setStyle(style);
+            costumeActionButton.setText(text);
+            costumeActionButton.setDisabled(disabled);
+        }
+
+        @Override
+        public void draw(Batch batch, float parentAlpha) {
+            if (pamPlayer == null || animationPath == null) return;
+            try {
+                String clipName = AnimationFactory.resolveClipNameForPath(animationPath, "idle");
+                if (clipName == null) return;
+
+                ClipRef clip = pamPlayer.getClip(animationPath, clipName);
+                if (clip != null) {
+                    Map<String, Boolean> costumeVisibility =
+                            PlantCostumeMask.forCostume(plantName, previewCostumeId);
+                    if (animationPath.contains("MAGNETSHROOM")) {
+                        if (costumeVisibility == null) costumeVisibility = new HashMap<>();
+                        costumeVisibility.put("Magnet_Item", false);
+                    }
+                    if (costumeVisibility != null) {
+                        pamPlayer.draw(batch, clip, stateTime, getX() + offsetX, getY() + offsetY, true, costumeVisibility);
+                    } else {
+                        pamPlayer.draw(batch, clip, stateTime, getX() + offsetX, getY() + offsetY, true);
                     }
                 }
             } catch (Throwable t) {

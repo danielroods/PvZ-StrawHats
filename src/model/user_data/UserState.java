@@ -21,6 +21,12 @@ public class UserState {
     public Map<Integer, Integer> plantLevels = new HashMap<>();
     public Map<Integer, Integer> seedPacketInventory = new HashMap<>();
     public Map<Integer, Boolean> plantBoosts = new HashMap<>();
+
+    /** Permanently purchased plant costumes, kept per plant and per account. */
+    public Map<Integer, Set<String>> ownedPlantCostumes = new HashMap<>();
+
+    /** Selected costume per plant. Missing/null means the original/default art. */
+    public Map<Integer, String> selectedPlantCostumes = new HashMap<>();
     public List<List<PotData>> greenhousePots;
     public int plantFoodCount = 0;
 
@@ -92,6 +98,33 @@ public class UserState {
         return true;
     }
 
+    public Map<Integer, Set<String>> ownedPlantCostumes() {
+        if (ownedPlantCostumes == null) ownedPlantCostumes = new HashMap<>();
+        return ownedPlantCostumes;
+    }
+
+    public boolean hasOwnedPlantCostume(int plantId, String costumeId) {
+        if (costumeId == null || costumeId.isBlank()) return false;
+        return ownedPlantCostumes().getOrDefault(plantId, Collections.emptySet()).contains(costumeId);
+    }
+
+    public void addOwnedPlantCostume(int plantId, String costumeId) {
+        if (costumeId == null || costumeId.isBlank()) return;
+        ownedPlantCostumes().computeIfAbsent(plantId, ignored -> new HashSet<>()).add(costumeId);
+    }
+
+    public String getSelectedPlantCostume(int plantId) {
+        if (selectedPlantCostumes == null) selectedPlantCostumes = new HashMap<>();
+        String value = selectedPlantCostumes.get(plantId);
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    public void setSelectedPlantCostume(int plantId, String costumeId) {
+        if (selectedPlantCostumes == null) selectedPlantCostumes = new HashMap<>();
+        if (costumeId == null || costumeId.isBlank()) selectedPlantCostumes.remove(plantId);
+        else selectedPlantCostumes.put(plantId, costumeId);
+    }
+
     public boolean consumeBoost(int plantId) {
         if (plantBoosts == null) plantBoosts = new HashMap<>();
         if (!hasBoost(plantId)) return false;
@@ -130,6 +163,8 @@ public class UserState {
         if (plantLevels == null) plantLevels = new HashMap<>();
         if (seedPacketInventory == null) seedPacketInventory = new HashMap<>();
         if (plantBoosts == null) plantBoosts = new HashMap<>();
+        if (ownedPlantCostumes == null) ownedPlantCostumes = new HashMap<>();
+        if (selectedPlantCostumes == null) selectedPlantCostumes = new HashMap<>();
         if (activeQuests == null) activeQuests = new ArrayList<>();
         if (miniGameHighestLevelWon == null) miniGameHighestLevelWon = new HashMap<>();
         if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();

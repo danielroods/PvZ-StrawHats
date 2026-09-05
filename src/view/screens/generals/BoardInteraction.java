@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import controller.assets.GameAssetManager;
 import model.collections.animations.AnimationFactory;
+import model.collections.plant.PlantCostumeManager;
 import model.collections.item.GroundItem;
 import model.collections.item.GroundSun;
 import model.collections.plant.Plant;
@@ -20,6 +21,8 @@ import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match_mechanisms.vector.Position;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
+
+import java.util.Map;
 
 class BoardInteraction {
 
@@ -185,7 +188,7 @@ class BoardInteraction {
         GroundItem item = itemUnderMouse(click);
         if (item == null) return false;
 
-       if (item instanceof GroundSun sun
+        if (item instanceof GroundSun sun
                 && sun.getDropType() == GroundSun.SunDropType.RADIOACTIVE
                 && sun.isFalling()) {
             Position detonationTile = tilePositionAt(click);
@@ -303,7 +306,9 @@ class BoardInteraction {
 
         screen.batch.setColor(1f, 1f, 1f, 0.85f);
         String path = AnimationFactory.pathForDisplayName(selectedPlant);
-        boolean drawn = screen.drawPam(path, "idle", dragPreviewTime, drawX + size * 0.15f, drawY, 0.5f, false);
+        Map<String, Boolean> costumeVisibility = PlantCostumeMask.forCostume(
+                selectedPlant, PlantCostumeManager.selectedCostumeForPlantName(selectedPlant));
+        boolean drawn = screen.drawPam(path, "idle", dragPreviewTime, drawX + size * 0.15f, drawY, 0.5f, false, costumeVisibility);
         screen.batch.setColor(Color.WHITE);
         if (!drawn) {
             TextureRegion region = GameAssetManager.get().getPlantRegion(selectedPlant);

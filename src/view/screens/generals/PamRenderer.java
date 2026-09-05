@@ -38,6 +38,11 @@ class PamRenderer {
     }
 
     boolean drawPamExact(String path, String exactState, float time, float x, float y, float scale, boolean flip) {
+        return drawPamExact(path, exactState, time, x, y, scale, flip, null);
+    }
+
+    boolean drawPamExact(String path, String exactState, float time, float x, float y, float scale,
+                         boolean flip, Map<String, Boolean> elementVisibility) {
         PamPlayer pamPlayer = screen.pamPlayer;
         if (pamPlayer == null || path == null || exactState == null) return false;
         try {
@@ -69,7 +74,11 @@ class PamRenderer {
             com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();
             screen.batch.getTransformMatrix().translate(x, y, 0f).scale(scale, scale, 1f);
             screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
-            pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip);
+            if (elementVisibility != null) {
+                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip, elementVisibility);
+            } else {
+                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip);
+            }
             screen.batch.flush();
             screen.batch.setTransformMatrix(old);
             return true;
