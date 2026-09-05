@@ -74,8 +74,10 @@ class PamRenderer {
             com.badlogic.gdx.math.Matrix4 old = screen.batch.getTransformMatrix().cpy();
             screen.batch.getTransformMatrix().translate(x, y, 0f).scale(scale, scale, 1f);
             screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
-            if (elementVisibility != null) {
-                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip, elementVisibility);
+            Map<String, Boolean> resolvedVisibility =
+                    PlantCostumeMask.expandHierarchy(pamPlayer, pamPath, elementVisibility);
+            if (resolvedVisibility != null) {
+                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip, resolvedVisibility);
             } else {
                 pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip);
             }
@@ -117,8 +119,10 @@ class PamRenderer {
             screen.batch.getTransformMatrix().translate(x, y, 0f).scale(scale, scale, 1f);
             screen.batch.setTransformMatrix(screen.batch.getTransformMatrix());
 
-            if (elementVisibility != null) {
-                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip, elementVisibility);
+            Map<String, Boolean> resolvedVisibility =
+                    PlantCostumeMask.expandHierarchy(pamPlayer, pamPath, elementVisibility);
+            if (resolvedVisibility != null) {
+                pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip, resolvedVisibility);
             } else {
                 pamPlayer.draw(screen.batch, clip, time, 0f, 0f, flip);
             }

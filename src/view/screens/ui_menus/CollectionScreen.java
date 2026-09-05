@@ -1076,6 +1076,8 @@ public class CollectionScreen extends UiScreen {
                 if (clip != null) {
                     Map<String, Boolean> costumeVisibility =
                             PlantCostumeMask.forCostume(plantName, previewCostumeId);
+                    costumeVisibility = PlantCostumeMask.expandHierarchy(
+                            pamPlayer, animationPath, costumeVisibility);
                     if (animationPath.contains("MAGNETSHROOM")) {
                         if (costumeVisibility == null) costumeVisibility = new HashMap<>();
                         costumeVisibility.put("Magnet_Item", false);
