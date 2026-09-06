@@ -20,25 +20,18 @@ import controller.TrophyManager;
 import controller.assets.AssetPaths;
 import model.user_data.User;
 import model.resoures.CurrencyType;
+import model.user_data.UserState;
 import view.screens.generals.Modal;
 import view.screens.generals.UiScreen;
 
 import java.util.List;
 
-/**
- * A trophy "cabinet": one shelf per chapter, each holding that chapter's trophy (earned
- * by beating its Zomboss) and key side by side, mirroring the real game's Almanac
- * Upgrades tab. Locked slots show a dim silhouette instead of the real artwork.
- * Clicking an earned trophy pops it up enlarged in a modal - nothing here tracks state
- * of its own; {@link TrophyManager} derives earned/locked purely from the user's
- * existing level progression each time the screen builds.
- */
+
 public class TrophiesScreen extends UiScreen {
 
     private static final float SHELF_WIDTH = 900f;
     private static final float TROPHY_SIZE_X = 135f;
     private static final float TROPHY_SIZE_Y = 240f;
-    private static final float KEY_SIZE = 96f;
 
     private final TrophyManager manager = new TrophyManager();
 
@@ -73,9 +66,9 @@ public class TrophiesScreen extends UiScreen {
         rootTable.add(scrollPane).expand().fill().padTop(SPACE_MD).row();
     }
 
-    private model.user_data.UserState currentUserState() {
+    private UserState currentUserState() {
         User user = User.currentUser;
-        return (user != null) ? user.userState : new model.user_data.UserState(new java.util.ArrayList<>(), 0, 0, 0);
+        return (user != null) ? user.userState : new UserState(new java.util.ArrayList<>(), 0, 0, 0);
     }
 
     private Table buildTopBar() {
@@ -121,8 +114,7 @@ public class TrophiesScreen extends UiScreen {
         shelf.add(chapterLabel).colspan(2).padBottom(SPACE_SM).row();
 
         Table slotsRow = new Table();
-        slotsRow.add(buildTrophySlot(entry)).padRight(SPACE_XL);
-        slotsRow.add(buildKeySlot(entry));
+        slotsRow.add(buildTrophySlot(entry));
         shelf.add(slotsRow).colspan(2);
 
         return shelf;
@@ -161,16 +153,7 @@ public class TrophiesScreen extends UiScreen {
         return slot;
     }
 
-    private Table buildKeySlot(TrophyManager.TrophyEntry entry) {
-        Table slot = new Table();
-        String imagePath = entry.earned() ? entry.keyImagePath() : AssetPaths.KEY_LOCKED_SILHOUETTE;
-        Image keyImage = new Image(loadTextureSafe(imagePath));
-        keyImage.setColor(1f, 1f, 1f, entry.earned() ? 1f : 0.35f);
 
-        slot.add(keyImage).size(KEY_SIZE, KEY_SIZE).row();
-        slot.add(new Label(entry.earned() ? "Key" : "???", skin, "muted")).padTop(4);
-        return slot;
-    }
 
     private Drawable loadDrawableSafe(String path) {
         Texture texture = loadTextureSafe(path);
@@ -197,13 +180,13 @@ public class TrophiesScreen extends UiScreen {
 
             Label title = new Label(entry.chapterName() + " Trophy", skin, "title");
             title.setAlignment(Align.center);
-            content.add(title).padBottom(SPACE_SM).row();
+            title.setWrap(true);
+            content.add(title).width(360).padBottom(SPACE_SM).row();
 
-            Label subtitle = new Label("You defeated Dr. Zomboss in " + entry.chapterName() + ".",
-                    skin, "muted");
+            Label subtitle = new Label(entry.trophyDescription(), skin, "muted");
             subtitle.setWrap(true);
             subtitle.setAlignment(Align.center);
-            content.add(subtitle).width(320f).padBottom(SPACE_MD).row();
+            content.add(subtitle).width(360f).padBottom(SPACE_MD).row();
 
             content.add(secondaryButton("Close", this::hide)).width(160).height(48);
         }
