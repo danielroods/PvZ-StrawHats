@@ -116,9 +116,130 @@ class ProjectileSystemTest {
         ProjectileImpact impact = impacts.get(0);
         assertEquals("Peashooter", impact.plantName());
         assertFalse(impact.plantFood());
-        assertEquals(4.0, impact.position().x(), 0.5,
-                "the splat is placed at the point of contact, not a tick behind it");
+        assertEquals(4.0 - Projectile.PEA_IMPACT_ALIGNMENT_TILES, impact.position().x(), 1.0e-9,
+                "the splat is placed on the zombie's body, not a tick behind it");
         assertEquals(2.0, impact.position().y(), 0.01);
+    }
+
+    @Test
+    void everyPeaSplatsTheSameDistanceIntoTheZombieWhereverTheTickLands() {
+        plant("Peashooter", 2, 0);
+        plant("Peashooter", 3, 0);
+        Zombie onTheTile = zombie(2, 4.0, 100000);
+        Zombie betweenTiles = zombie(3, 4.17, 100000);
+        onTheTile.setSpeed(Position.ShowZero());
+        betweenTiles.setSpeed(Position.ShowZero());
+        session.drainProjectileImpacts();
+
+        int firstHp = onTheTile.getHP();
+        int secondHp = betweenTiles.getHP();
+        for (int i = 0; i < 60 && (onTheTile.getHP() == firstHp || betweenTiles.getHP() == secondHp); i++) {
+            session.tick();
+        }
+        assertTrue(onTheTile.getHP() < firstHp && betweenTiles.getHP() < secondHp,
+                "both peas should have connected");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertEquals(2, impacts.size());
+        for (ProjectileImpact impact : impacts) {
+            double zombieX = Math.abs(impact.position().y() - 2.0) < 0.5 ? 4.0 : 4.17;
+            assertEquals(zombieX - Projectile.PEA_IMPACT_ALIGNMENT_TILES,
+                    impact.position().x(), 1.0e-9,
+                    "the splat sits on the body whatever sub-tile offset the shot stopped at");
+        }
+    }
+
+    @Test
+    void aNonPeaShooterKeepsItsOriginalImpactPoint() {
+        plant("Puff-shroom", 2, 0);
+        Zombie target = zombie(2, 3.0, 100000);
+        target.setSpeed(Position.ShowZero());
+
+        Projectile puff = firstFlyingShot(30);
+        assertNotNull(puff, "Puff-shroom never fired");
+        assertFalse(puff.isPeaShot(), "a Puff-shroom's spore is not a pea");
+        session.drainProjectileImpacts();
+
+        int hp = target.getHP();
+        for (int i = 0; i < 40 && target.getHP() == hp; i++) session.tick();
+        assertTrue(target.getHP() < hp, "the spore never reached the zombie");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty());
+        assertEquals(3.0, impacts.get(0).position().x(), 0.5,
+                "only pea shooters are realigned, everything else lands where it always did");
+    }
+
+    @Test
+    void aPlantFoodShotSplatsOnTheBodyLikeAnOrdinaryShot() {
+        Plant peashooter = plant("Peashooter", 2, 0);
+        Zombie target = zombie(2, 5.0, 100000);
+        target.setSpeed(Position.ShowZero());
+
+        peashooter.setPlantFoodTimer(5.0);
+        peashooter.setInternalTimer(0);
+        session.drainProjectileImpacts();
+
+        int hp = target.getHP();
+        for (int i = 0; i < 60 && target.getHP() == hp; i++) session.tick();
+        assertTrue(target.getHP() < hp, "the Plant Food volley never reached the zombie");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty(), "a Plant Food hit still queues a splat");
+        assertEquals(5.0 - Projectile.PEA_IMPACT_ALIGNMENT_TILES,
+                impacts.get(0).position().x(), 1.0e-9,
+                "Plant Food shots use the same body alignment as normal ones");
+        assertTrue(peashooter.isPlantFoodActive());
+    }
+
+    @Test
+    void aLobSplatsOnTheZombiesBodyWithItsOwnAlignment() {
+        plant("Cabbage-pult", 2, 0);
+        Zombie target = zombie(2, 5.0, 100000);
+        target.setSpeed(Position.ShowZero());
+        session.drainProjectileImpacts();
+
+        int hp = target.getHP();
+        for (int i = 0; i < 120 && target.getHP() == hp; i++) session.tick();
+        assertTrue(target.getHP() < hp, "the cabbage never landed");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty(), "a lob that connects still queues a splat");
+        assertEquals(5.0 - Projectile.LOB_IMPACT_ALIGNMENT_TILES,
+                impacts.get(0).position().x(), 1.0e-9,
+                "a lob lands on the body, not a third of a tile past it");
+    }
+
+    @Test
+    void aLobThatComesDownOnAnEmptyLaneSplashesAtItsAlignedLandingPoint() {
+        plant("Cabbage-pult", 2, 0);
+        Zombie target = zombie(2, 5.0, 100000);
+        target.setSpeed(Position.ShowZero());
+
+        Projectile cabbage = firstFlyingShot(30);
+        assertNotNull(cabbage);
+        assertTrue(cabbage.isLobbed());
+        session.drainProjectileImpacts();
+
+        Zombie replacement = zombie(2, 5.0, 100000);
+        replacement.setSpeed(Position.ShowZero());
+        target.setAlive(false);
+
+        int hp = replacement.getHP();
+        for (int i = 0; i < 80 && replacement.getHP() == hp; i++) session.tick();
+        assertTrue(replacement.getHP() < hp, "the cabbage never came down on what was there");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty());
+        assertTrue(impacts.get(0).position().x() < 5.0,
+                "the landing splash is aligned onto the body too, not left where the arc ended");
+    }
+
+    @Test
+    void theLobAlignmentIsSeparateFromThePeaOne() {
+        assertTrue(Projectile.LOB_IMPACT_ALIGNMENT_TILES > 0);
+        assertTrue(Projectile.LOB_IMPACT_ALIGNMENT_TILES < Projectile.PEA_IMPACT_ALIGNMENT_TILES,
+                "a lob's correction is its own, smaller one");
     }
 
     @Test
@@ -323,6 +444,117 @@ class ProjectileSystemTest {
 
         tick(40);
         assertTrue(graveHp(2, 4) < before, "the pea must damage the grave in its path");
+    }
+
+    @Test
+    void aPeaSplatsOnTheGravesOwnRowNotTheEdgeItCrossed() {
+        plant("Peashooter", 0, 0);
+        session.getEnvironment().getCell(0, 4)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        session.drainProjectileImpacts();
+
+        int before = graveHp(0, 4);
+        assertTrue(before > 0);
+        for (int i = 0; i < 40 && graveHp(0, 4) == before; i++) session.tick();
+        assertTrue(graveHp(0, 4) < before, "the pea never reached the grave");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty(), "breaking a grave queues a splat");
+        assertEquals(0.0, impacts.get(0).position().y(), 1.0e-9,
+                "the splat sits on the grave's row, never a row above it");
+    }
+
+    @Test
+    void aLaneShiftingShotStillSplatsOnTheGravesRowWhileItIsStillSliding() {
+        plant("Threepeater", 2, 0);
+        session.getEnvironment().getCell(1, 2)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        zombie(1, 8.0, 100000);
+        zombie(2, 8.0, 100000);
+        zombie(3, 8.0, 100000);
+        session.drainProjectileImpacts();
+
+        int before = graveHp(1, 2);
+        for (int i = 0; i < 40 && graveHp(1, 2) == before; i++) session.tick();
+        assertTrue(graveHp(1, 2) < before, "the upward shot never reached the grave");
+
+        for (ProjectileImpact impact : session.drainProjectileImpacts()) {
+            double y = impact.position().y();
+            assertEquals(Math.round(y), y, 1.0e-9,
+                    "an impact always lands on a whole row, never between two, got " + y);
+        }
+    }
+
+    @Test
+    void aLobDoesNotBreakAGraveInTheRowItMerelyArcsOver() {
+        plant("Cabbage-pult", 2, 0);
+        session.getEnvironment().getCell(1, 3)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        session.getEnvironment().getCell(2, 5)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        session.drainProjectileImpacts();
+
+        int above = graveHp(1, 3);
+        int inLane = graveHp(2, 5);
+        for (int i = 0; i < 120 && graveHp(2, 5) == inLane; i++) session.tick();
+
+        assertTrue(graveHp(2, 5) < inLane, "the cabbage never came down on its own lane's grave");
+        assertEquals(above, graveHp(1, 3),
+                "a lob must not detonate on a grave in a row it is only flying over");
+
+        List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+        assertFalse(impacts.isEmpty());
+        assertEquals(2.0, impacts.get(0).position().y(), 1.0e-9,
+                "the splat lands on the grave's row, not the tile edge the arc crossed");
+    }
+
+    @Test
+    void aPlantFoodBarrageLobAimsItsBlockerSearchAtTheRowItIsFlyingTo() {
+        Plant pult = plant("Cabbage-pult", 2, 0);
+        session.getEnvironment().getCell(2, 3)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        pult.setPlantFoodTimer(5.0);
+        pult.setInternalTimer(0);
+        session.drainProjectileImpacts();
+
+        boolean reachedFarRow = false;
+        for (int i = 0; i < 200 && !reachedFarRow; i++) {
+            session.tick();
+            for (ProjectileImpact impact : session.drainProjectileImpacts()) {
+                if (Math.abs(impact.position().y() - 4.0) < 1.0e-9) reachedFarRow = true;
+            }
+        }
+        assertTrue(reachedFarRow,
+                "a blind lob aimed at row 4 must not detonate on a grave sitting in the plant's row");
+    }
+
+    @Test
+    void aLobsGraveSplatSitsRightOfWhereADirectShotsDoes() {
+        double direct = graveImpactX("Peashooter");
+        assertEquals(4.5, direct, 1.0e-9,
+                "a direct shot still splats at the tile edge it crossed");
+
+        double lobbed = graveImpactX("Cabbage-pult");
+        assertTrue(lobbed > direct + Projectile.LOB_GRAVE_IMPACT_ALIGNMENT_TILES - 1.0e-9,
+                "a lob's grave splat is nudged right, got " + lobbed + " against " + direct);
+    }
+
+    private double graveImpactX(String plantName) {
+        session = new GameSession(ROWS, COLS);
+        GameSession.setCurrent(session);
+        session.setZombieBreachesEnabled(false);
+        session.setLawnMowersEnabled(false);
+        plant(plantName, 2, 0);
+        session.getEnvironment().getCell(2, 5)
+                .setObstacle(new model.pitches.obstacles.Grave());
+        session.drainProjectileImpacts();
+
+        for (int i = 0; i < 200; i++) {
+            session.tick();
+            List<ProjectileImpact> impacts = session.drainProjectileImpacts();
+            if (!impacts.isEmpty()) return impacts.get(0).position().x();
+        }
+        throw new AssertionError(plantName + " never hit the grave");
     }
 
     private int graveHp(int row, int col) {
