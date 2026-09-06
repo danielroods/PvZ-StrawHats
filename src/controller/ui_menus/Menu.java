@@ -32,6 +32,7 @@ public abstract class Menu {
             case "main" -> App.currentMenu = new MainMenu();
             case "login" -> App.currentMenu = new LoginMenu();
             case "collection" -> App.currentMenu = new CollectionMenu();
+            case "trophies", "trophy" -> App.currentMenu = new TrophiesMenu();
             case "travellog" -> App.currentMenu = new TravelLogMenu();
             case "console" -> App.currentMenu = new ConsoleMenu();
             case "zombie packman", "zombiepackman", "packman", "pacman" -> App.currentMenu = new ZombiePackmanMenu();

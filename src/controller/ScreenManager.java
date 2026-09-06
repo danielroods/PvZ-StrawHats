@@ -107,12 +107,12 @@ public final class ScreenManager {
         if (menu instanceof GameMenu) {
             return new GameMenuScreen();
         }
-        if (menu instanceof controller.ui_menus.ConsoleMenu) {
-            return new view.screens.ui_menus.ConsoleScreen();
+        if (menu instanceof ConsoleMenu) {
+            return new ConsoleScreen();
         }
-        if (menu instanceof controller.ui_menus.ZombiePackmanMenu) {
+        if (menu instanceof ZombiePackmanMenu) {
             return new view.screens.generals.LoadingScreen(
-                    view.screens.match.gameplay.mini_games.ZombiePackmanGameScreen::new);
+                    ZombiePackmanGameScreen::new);
         }
         if (menu instanceof ProfileMenu) {
             return new ProfileMenuScreen();
@@ -138,16 +138,19 @@ public final class ScreenManager {
         if (menu instanceof CollectionMenu) {
             return new CollectionScreen();
         }
+        if (menu instanceof TrophiesMenu) {
+            return new TrophiesScreen();
+        }
         if (menu instanceof controller.ui_menus.network.NetworkMenu) {
-            return new view.screens.ui_menus.NetworkScreen();
+            return new NetworkScreen();
         }
-        if (menu instanceof controller.match.mini_games.CouchIZombieController) {
+        if (menu instanceof CouchIZombieController) {
             return new view.screens.generals.LoadingScreen(
-                    view.screens.match.gameplay.mini_games.CouchIZombieGameScreen::new);
+                    CouchIZombieGameScreen::new);
         }
-        if (menu instanceof controller.match.mini_games.NetIZombieController) {
+        if (menu instanceof NetIZombieController) {
             return new view.screens.generals.LoadingScreen(
-                    view.screens.match.gameplay.mini_games.NetIZombieGameScreen::new);
+                    NetIZombieGameScreen::new);
         }
 
         if (menu instanceof controller.match.NetBeforeMenu) {
@@ -185,7 +188,7 @@ public final class ScreenManager {
         }
         if (menu instanceof MiniGameEndMenu) {
             return new view.screens.generals.LoadingScreen(
-                    view.screens.match.gameplay.mini_games.MiniGameEndScreen::new);
+                    MiniGameEndScreen::new);
         }
 
         if (menu instanceof MatchMenu) {
@@ -242,7 +245,7 @@ public final class ScreenManager {
             return new FrostbiteCavesGameScreen();
         }
         if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
-            return new view.screens.match.gameplay.PirateGameScreen();
+            return new PirateGameScreen();
         }
         // Regular season game screen also handles ConveyorBeltLevel special levels -
         // that level type is a gameplay mechanic (see model.match.main.levels.special_levels.

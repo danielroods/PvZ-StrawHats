@@ -49,7 +49,9 @@ public class MainMenuScreen extends UiScreen {
 
         topLeft.add(createIconButtonWithLabel("assets/images/ui/buttons_hud_settings_selected.png", 54, 54, "Setting", () -> runCommand("menu enter settings"))).padRight(35);
 
-        topLeft.add(createIconButtonWithLabel("assets/images/ui/buttons_hud_news_selected copy 2.png", 54, 54, "News", () -> runCommand("menu enter news")));
+        topLeft.add(createIconButtonWithLabel("assets/images/ui/buttons_hud_news_selected copy 2.png", 54, 54, "News", () -> runCommand("menu enter news"))).padRight(35);
+
+        topLeft.add(createIconButtonWithLabel(controller.assets.AssetPaths.TROPHIES_IMAGES + "trophies_icon.png", 54, 54, "Trophies", () -> runCommand("menu enter trophies")));
 
         Table topRight = new Table();
         User user = User.currentUser;

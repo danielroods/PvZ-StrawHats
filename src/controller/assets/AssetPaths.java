@@ -41,6 +41,26 @@ public final class AssetPaths {
     public static final String SFX = AUDIO + "sfx/";
     public static final String MUSIC = AUDIO + "music/";
 
+    public static final String TROPHIES_IMAGES = UI_IMAGES + "trophies/";
+    public static final String TROPHIES_CABINET_BG = TROPHIES_IMAGES + "cabinet_background.png";
+    public static final String TROPHIES_SHELF_TILE = TROPHIES_IMAGES + "shelf_tile.png";
+    public static final String TROPHY_LOCKED_SILHOUETTE = TROPHIES_IMAGES + "trophy_locked.png";
+    public static final String KEY_LOCKED_SILHOUETTE = TROPHIES_IMAGES + "key_locked.png";
+    public static final String TROPHY_EGYPT = TROPHIES_IMAGES + "trophy_egypt.png";
+    public static final String KEY_EGYPT = TROPHIES_IMAGES + "key_egypt.png";
+    public static final String TROPHY_FROSTBITE_CAVES = TROPHIES_IMAGES + "trophy_iceage.png";
+    public static final String KEY_FROSTBITE_CAVES = TROPHIES_IMAGES + "key_frostbite_caves.png";
+    public static final String TROPHY_BIG_WAVE_BEACH = TROPHIES_IMAGES + "trophy_beach.png";
+    public static final String KEY_BIG_WAVE_BEACH = TROPHIES_IMAGES + "key_big_wave_beach.png";
+    public static final String TROPHY_DARK_AGES = TROPHIES_IMAGES + "trophy_dark.png";
+    public static final String KEY_DARK_AGES = TROPHIES_IMAGES + "key_dark_ages.png";
+    // Not yet playable chapters (see project notes) - paths reserved so TrophyManager's
+    // chapter list only needs a new entry, not new constants, once they're added for real.
+    public static final String TROPHY_PIRATE_SEAS = TROPHIES_IMAGES + "trophy_pirate.png";
+    public static final String KEY_PIRATE_SEAS = TROPHIES_IMAGES + "key_pirate_seas.png";
+    public static final String TROPHY_FAR_FUTURE = TROPHIES_IMAGES + "trophy_future.png";
+    public static final String KEY_FAR_FUTURE = TROPHIES_IMAGES + "key_far_future.png";
+
     public static String slug(String rawName) {
         if (rawName == null) {
             return "";

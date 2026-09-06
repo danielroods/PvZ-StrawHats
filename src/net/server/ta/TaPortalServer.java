@@ -61,10 +61,7 @@ public final class TaPortalServer {
      *  every teammate, regardless of which directory the game is launched from or which of
      *  these two conventional layouts their checkout uses. */
     private static final String[] HTML_CANDIDATE_PATHS = {
-            "src/web/ta/index.html",
-            "web/ta/index.html",
-            "src/assets/web/ta/index.html",
-            "assets/web/ta/index.html",
+            "src/web/ta/index.html"
     };
 
     private void handleStatic(HttpExchange ex) throws IOException {
