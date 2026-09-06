@@ -26,6 +26,16 @@ public class Projectile extends Item {
 
     private static final double TILE_HALF_EXTENT = 0.5;
     private static final double STRUCTURE_HIT_RADIUS = 0.6;
+    private static final double BOARD_TILE_WIDTH_PIXELS = 76.35;
+    private static final double PEA_IMPACT_ALIGNMENT_PIXELS = 85.0;
+    public static final double PEA_IMPACT_ALIGNMENT_TILES =
+            PEA_IMPACT_ALIGNMENT_PIXELS / BOARD_TILE_WIDTH_PIXELS;
+    private static final double LOB_IMPACT_ALIGNMENT_PIXELS = 30.0;
+    public static final double LOB_IMPACT_ALIGNMENT_TILES =
+            LOB_IMPACT_ALIGNMENT_PIXELS / BOARD_TILE_WIDTH_PIXELS;
+    private static final double LOB_GRAVE_IMPACT_ALIGNMENT_PIXELS = 30.0;
+    public static final double LOB_GRAVE_IMPACT_ALIGNMENT_TILES =
+            LOB_GRAVE_IMPACT_ALIGNMENT_PIXELS / BOARD_TILE_WIDTH_PIXELS;
 
     private final int damage;
     private final Item target;
@@ -240,7 +250,7 @@ public class Projectile extends Item {
 
         if (target instanceof Zombie targetZombie) {
             if (!hitZombies.contains(targetZombie) && isValidTarget(targetZombie)
-                    && collisionProjection(targetZombie.getPosition(),
+                    && collisionProjection(lobImpactCenter(targetZombie.getPosition()),
                     start, end, targetZombie.getHitRadius()) >= 0) {
                 resolveLobImpact(session, targetZombie.getPosition(), targetZombie, 0);
                 return;
@@ -257,10 +267,12 @@ public class Projectile extends Item {
         }
 
         if (target == null) {
-            Blocker blocker = findFirstBlocker(session, start, end, sourceRow());
+            Blocker blocker = findFirstBlocker(session, start, end,
+                    (int) Math.round(arc.getEndY()));
             if (blocker != null) {
+                Position impactAt = blockerImpact(blocker, start, end);
                 blocker.damage(this, session);
-                recordImpact(session, pointAlong(start, end, blocker.projection()));
+                recordImpact(session, impactAt);
                 setAlive(false);
                 return;
             }
@@ -278,9 +290,15 @@ public class Projectile extends Item {
         }
     }
 
+    private Position lobImpactCenter(Position at) {
+        if (at == null) return null;
+        return Position.of(at.x() - LOB_IMPACT_ALIGNMENT_TILES, at.y());
+    }
+
     private void resolveLobImpact(GameSession session, Position center, Zombie primary,
                                   double minimumRadius) {
         deflectedThisTick = false;
+        Position impactAt = lobImpactCenter(center);
 
         boolean connected = false;
         if (primary != null && isValidTarget(primary) && !hitZombies.contains(primary)) {
@@ -290,15 +308,15 @@ public class Projectile extends Item {
                 // A defense like the parasol zombie's absorbed the hit (0 damage)
                 // and already redirected this projectile onward via
                 // bounceOverZombie - leave it alive and flying, don't kill it here.
-                recordImpact(session, center);
+                recordImpact(session, impactAt);
                 return;
             }
             connected = true;
         }
-        if (splashAround(session, center, minimumRadius)) connected = true;
+        if (splashAround(session, impactAt, minimumRadius)) connected = true;
 
         if (connected) {
-            recordImpact(session, center);
+            recordImpact(session, impactAt);
             setAlive(false);
             return;
         }
@@ -312,7 +330,7 @@ public class Projectile extends Item {
         if (bounceToNextZombie(session, center)) return;
         if (bounceAlongGround(session, center)) return;
 
-        recordImpact(session, center);
+        recordImpact(session, impactAt);
         setAlive(false);
     }
 
@@ -414,6 +432,21 @@ public class Projectile extends Item {
         return any;
     }
 
+    public boolean isPeaShot() {
+        if (sourcePlant != null && sourcePlant.getTags() != null
+                && sourcePlant.getTags().contains(model.collections.plant.PlantTag.PEA)) {
+            return true;
+        }
+        return sourcePlantName != null
+                && sourcePlantName.toLowerCase().contains("peashooter");
+    }
+
+    private Position zombieHitCenter(Zombie zombie) {
+        Position at = zombie == null ? null : zombie.getPosition();
+        if (at == null || !isPeaShot()) return at;
+        return Position.of(at.x() - PEA_IMPACT_ALIGNMENT_TILES, at.y());
+    }
+
     private void resolveDirect(GameSession session, Position start, Position end) {
         Blocker blocker = findFirstBlocker(session, start, end, -1);
         double blockerProjection = blocker == null ? Double.MAX_VALUE : blocker.projection();
@@ -421,10 +454,11 @@ public class Projectile extends Item {
         List<ZombieHit> collisions = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
             if (!isValidTarget(zombie) || hitZombies.contains(zombie)) continue;
-            double projection = collisionProjection(zombie.getPosition(), start, end,
-                    zombie.getHitRadius());
+            Position hitCenter = zombieHitCenter(zombie);
+            double projection = collisionProjection(hitCenter, start, end, zombie.getHitRadius());
             if (projection >= 0 && projection <= blockerProjection) {
-                collisions.add(new ZombieHit(zombie, projection));
+                collisions.add(new ZombieHit(zombie, projection, isPeaShot() ? hitCenter
+                        : onRow(pointAlong(start, end, projection), zombie.getPosition().y())));
             }
         }
         collisions.sort(Comparator.comparingDouble(ZombieHit::projection));
@@ -437,7 +471,7 @@ public class Projectile extends Item {
         for (ZombieHit collision : collisions) {
             hitZombie(collision.zombie(), session);
             hitZombies.add(collision.zombie());
-            recordImpact(session, pointAlong(start, end, collision.projection()));
+            recordImpact(session, collision.impactAt());
             if (remainingHits > 0) remainingHits--;
             if (remainingHits == 0) {
                 setAlive(false);
@@ -446,8 +480,9 @@ public class Projectile extends Item {
         }
 
         if (blocker != null) {
+            Position impactAt = blockerImpact(blocker, start, end);
             blocker.damage(this, session);
-            recordImpact(session, pointAlong(start, end, blockerProjection));
+            recordImpact(session, impactAt);
             setAlive(false);
             return;
         }
@@ -461,15 +496,22 @@ public class Projectile extends Item {
                 new ProjectileImpact(sourcePlantName, plantFoodShot, assetVariant, at));
     }
 
+    private static Position onRow(Position along, double row) {
+        if (along == null || Double.isNaN(row)) return along;
+        return Position.of(along.x(), row);
+    }
+
+    private Position blockerImpact(Blocker blocker, Position start, Position end) {
+        if (blocker == null) return null;
+        Position at = onRow(pointAlong(start, end, blocker.projection()), blocker.targetRow());
+        if (at == null || !isLobbed() || !blocker.isGrave()) return at;
+        return Position.of(at.x() + LOB_GRAVE_IMPACT_ALIGNMENT_TILES, at.y());
+    }
+
     private static Position pointAlong(Position start, Position end, double projection) {
         if (start == null || end == null) return end;
         double clamped = Math.max(0, Math.min(1, projection));
         return start.add(end.sub(start).scale(clamped));
-    }
-
-    private int sourceRow() {
-        if (sourcePlant == null || sourcePlant.getPosition() == null) return -1;
-        return (int) Math.round(sourcePlant.getPosition().y());
     }
 
     private void hitZombie(Zombie primary, GameSession session) {
@@ -585,6 +627,17 @@ public class Projectile extends Item {
     }
 
     private record Blocker(Cell cell, PushableStructure structure, double projection) {
+        boolean isGrave() {
+            return cell != null && cell.getObstacle() instanceof Grave;
+        }
+
+        double targetRow() {
+            if (structure != null && structure.getPosition() != null) {
+                return structure.getPosition().y();
+            }
+            return cell == null ? Double.NaN : cell.getRow();
+        }
+
         void damage(Projectile projectile, GameSession session) {
             int amount = projectile.getEffectiveDamage();
             if (structure != null) {
@@ -720,7 +773,7 @@ public class Projectile extends Item {
     public int getDamage() { return damage; }
     public Plant getSourcePlant() { return sourcePlant; }
 
-    private record ZombieHit(Zombie zombie, double projection) {}
+    private record ZombieHit(Zombie zombie, double projection, Position impactAt) {}
 
     private boolean isOutsideLawnForLobber(GameSession session, Position position) {
         return position.x() < -1
