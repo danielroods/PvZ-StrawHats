@@ -18,6 +18,8 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 public class ModifyStrategy implements ActStrategy {
+    public static final String AUTO_PLANT_FOOD_TAG = "AUTO_PLANTFOOD_ON_ENTER";
+
     private static final double MODIFY_RADIUS = 0.7;
     private static final double IMITATER_IDLE_SECONDS = 1.0;
 
@@ -119,6 +121,9 @@ public class ModifyStrategy implements ActStrategy {
             session.plantAt(row, col, imitater);
             return;
         }
+        if (imitater.hasSpecialUpgrade(AUTO_PLANT_FOOD_TAG)) {
+            replacement.activatePlant(session);
+        }
         imitater.setAlive(false);
     }
 
@@ -166,7 +171,8 @@ public class ModifyStrategy implements ActStrategy {
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.isHypnotized() || zombie.getPosition() == null) continue;
             if (zombie.getPosition().distanceTo(user.getPosition()) <= 0.6) {
-                zombie.hypnotize();
+                zombie.hypnotize(user.getSpecialUpgrade("ZOMBIE_HEALTH_MULTIPLIER", 1.0),
+                        user.getSpecialUpgrade("ZOMBIE_DAMAGE_MULTIPLIER", 1.0));
                 user.setAlive(false);
                 return;
             }

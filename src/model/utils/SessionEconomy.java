@@ -137,6 +137,10 @@ class SessionEconomy {
         if (seconds > 0) plantCooldowns.put(plantId, seconds);
     }
 
+    void clearPlantCooldown(int plantId) {
+        plantCooldowns.remove(plantId);
+    }
+
     int getPlantsLostThisMatch() {
         return plantsLostThisMatch;
     }

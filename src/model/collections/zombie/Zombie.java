@@ -634,7 +634,18 @@ public class Zombie extends Item implements Attack {
     }
 
     public void hypnotize() {
+        hypnotize(1.0, 1.0);
+    }
+
+    public void hypnotize(double healthMultiplier, double damageMultiplier) {
         if (boss || faction == Faction.PLANTS || !isAlive()) return;
+        if (healthMultiplier > 1.0) {
+            this.maxHp = (int) Math.round(this.maxHp * healthMultiplier);
+            setHP((int) Math.round(getHP() * healthMultiplier));
+        }
+        if (damageMultiplier > 1.0) {
+            this.eatDps *= damageMultiplier;
+        }
         this.faction = Faction.PLANTS;
         this.status = Status.HYPNOTIZED;
         this.statusTimer = 0;

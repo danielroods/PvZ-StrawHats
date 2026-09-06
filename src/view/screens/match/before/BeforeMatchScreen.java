@@ -31,6 +31,9 @@ import model.App;
 import model.collections.animations.AnimationFactory;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantProgression;
+import model.collections.plant.PlantStats;
+import view.screens.ui_menus.PlantStatRows;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
 import model.match.main.levels.special_levels.LockedPlantsLevel;
@@ -526,7 +529,9 @@ public class BeforeMatchScreen extends GameScreen {
 
         UserState state = User.currentUser != null ? User.currentUser.userState : null;
         boolean unlocked = state != null && state.isPlantUnlocked(config.id);
-        int level = state != null ? Math.max(1, state.getPlantLevel(config.id)) : 1;
+        int level = PlantProgression.levelOf(state, config);
+        int maxLevel = PlantProgression.maxLevel(config);
+        PlantStats stats = PlantStats.of(config, unlocked ? level : PlantStats.MIN_LEVEL);
 
         Stack animBox = new Stack();
         animBox.add(new Image(getRoundedAnimBgDrawable()));
@@ -552,7 +557,8 @@ public class BeforeMatchScreen extends GameScreen {
         Table infoTable = new Table();
         infoTable.top().left();
 
-        Label nameLabel = new Label(config.name + " (Lv. " + level + ")", skin, "title");
+        Label nameLabel = new Label(config.name + " (Lv. " + level + "/" + maxLevel + ")",
+                skin, "title");
         nameLabel.setFontScale(0.9f);
         infoTable.add(nameLabel).left().padBottom(2).row();
 
@@ -560,9 +566,23 @@ public class BeforeMatchScreen extends GameScreen {
         catLabel.setFontScale(0.75f);
         infoTable.add(catLabel).left().row();
 
-        Label statsLabel = new Label("HP: " + config.baseHp + " | Dmg: " + config.damage + " | Rec: " + config.recharge + "s", skin, "main");
+        Label statsLabel = new Label("HP: " + stats.hp() + " | Dmg: " + stats.damage()
+                + " | Rec: " + stats.recharge() + "s", skin, "main");
         statsLabel.setFontScale(0.75f);
         infoTable.add(statsLabel).left().row();
+
+        Label economyLabel = new Label("Sun: " + stats.cost() + " | Interval: "
+                + String.format("%.2f", stats.actionInterval()) + "s", skin, "main");
+        economyLabel.setFontScale(0.75f);
+        infoTable.add(economyLabel).left().row();
+
+        if (!stats.specialTags().isEmpty()) {
+            Label perkLabel = new Label("Perks: "
+                    + String.join(", ", stats.specialTags()).replace('_', ' ').toLowerCase(),
+                    skin, "muted");
+            perkLabel.setFontScale(0.7f);
+            infoTable.add(perkLabel).left().row();
+        }
 
         String tagsStr = (config.tags == null || config.tags.isEmpty())
                 ? "None"
@@ -571,18 +591,28 @@ public class BeforeMatchScreen extends GameScreen {
         tagsLabel.setFontScale(0.75f);
         infoTable.add(tagsLabel).left().row();
 
+        String upgradeLine = PlantStatRows.upgradeLine(state, config, unlocked);
+        if (upgradeLine != null) {
+            Label upgradeLabel = new Label(upgradeLine, skin, "muted");
+            upgradeLabel.setFontScale(0.7f);
+            infoTable.add(upgradeLabel).left().row();
+        }
+
         box.add(infoTable).expandX().fillX().top().padRight(12);
 
         Table actionsTable = new Table();
         actionsTable.bottom().right();
 
         if (unlocked && state != null) {
-            int coinCost = level * 500;
-            int packetsNeeded = level;
+            boolean maxed = level >= maxLevel;
+            int coinCost = PlantProgression.upgradeCoinCost(level);
+            int packetsNeeded = PlantProgression.upgradePacketsRequired(level);
             int packetsOwned = state.seedPacketInventory.getOrDefault(config.id, 0);
-            boolean canUpgrade = state.coins >= coinCost && packetsOwned >= packetsNeeded;
+            boolean canUpgrade = !maxed && state.coins >= coinCost && packetsOwned >= packetsNeeded;
 
-            String upgText = "Upgrade Lv." + (level + 1) + "\n" + coinCost + " Coins (" + packetsOwned + "/" + packetsNeeded + ")";
+            String upgText = maxed
+                    ? "Max Level\nLv." + maxLevel
+                    : "Upgrade Lv." + (level + 1) + "\n" + coinCost + " Coins (" + packetsOwned + "/" + packetsNeeded + ")";
             TextButton upgBtn = coloredButton(upgText, canUpgrade ? GREEN : GRAY, 0.7f);
             upgBtn.setDisabled(!canUpgrade);
             final String plantName = config.name;

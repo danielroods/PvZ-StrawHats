@@ -110,6 +110,7 @@ public class LobberStrategy implements ActStrategy {
 
     private HitEffectStrategy buildHitEffect(Plant user) {
         int areaLength = user.getTags().contains(PlantTag.AOE) ? 3 : 1;
+        int splashBonus = (int) Math.round(user.getSpecialUpgrade("SPLASH_DAMAGE_BUFF", 0));
         if (user.getTags().contains(PlantTag.FIRE)) return new FireHit(areaLength, 1.0);
         if (user.getTags().contains(PlantTag.ICE)) {
             return new IceHit(areaLength, 5.0 + user.getSpecialUpgrade("CHILL_DURATION_EXT", 0));
@@ -124,7 +125,7 @@ public class LobberStrategy implements ActStrategy {
             }
         }
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
-        return new NormalHit(areaLength);
+        return new NormalHit(areaLength, splashBonus);
     }
 
     private Cell findNearestGraveInLane(Plant user, GameSession session) {

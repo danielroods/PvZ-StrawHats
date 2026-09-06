@@ -13,4 +13,5 @@ public interface HitEffectStrategy {
     default double getDamageMultiplier() { return 1.0; }
     default boolean bypassesArmor() { return false; }
     default boolean isFireDamage() { return false; }
+    default int getSplashDamageBonus() { return 0; }
 }

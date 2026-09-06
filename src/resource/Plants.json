@@ -188,8 +188,8 @@
       },
       {
         "level": 4,
-        "type": "BUFF_COST",
-        "value": -25.0,
+        "type": "BUFF_RECHARGE",
+        "value": -10.0,
         "specialTag": ""
       }
     ]

@@ -424,7 +424,7 @@ public class Projectile extends Item {
             Position at = zombie.getPosition();
             if (Math.abs(at.x() - center.x()) <= radius
                     && Math.abs(at.y() - center.y()) <= radius) {
-                applyDamageAndEffect(zombie);
+                applyDamageAndEffect(zombie, true);
                 hitZombies.add(zombie);
                 any = true;
             }
@@ -515,7 +515,7 @@ public class Projectile extends Item {
     }
 
     private void hitZombie(Zombie primary, GameSession session) {
-        applyDamageAndEffect(primary);
+        applyDamageAndEffect(primary, false);
         if (moveStrategy != null) moveStrategy.onHit(this);
 
         int areaLength = hitEffectStrategy == null ? 1 : hitEffectStrategy.getAreaLength();
@@ -528,15 +528,22 @@ public class Projectile extends Item {
             if (hitZombies.contains(zombie)) continue;
             if (Math.abs(zombie.getPosition().x() - center.x()) <= radius
                     && Math.abs(zombie.getPosition().y() - center.y()) <= radius) {
-                applyDamageAndEffect(zombie);
+                applyDamageAndEffect(zombie, true);
                 hitZombies.add(zombie);
             }
         }
     }
 
     private void applyDamageAndEffect(Zombie zombie) {
+        applyDamageAndEffect(zombie, false);
+    }
+
+    private void applyDamageAndEffect(Zombie zombie, boolean splashed) {
         if (hitEffectStrategy != null) hitEffectStrategy.beforeDamage(zombie);
         int effectiveDamage = getEffectiveDamage();
+        if (splashed && hitEffectStrategy != null) {
+            effectiveDamage += hitEffectStrategy.getSplashDamageBonus();
+        }
         if (hitEffectStrategy != null && hitEffectStrategy.bypassesArmor()) {
             zombie.takeDamage(effectiveDamage, true);
         } else {

@@ -11,6 +11,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MeleeStrategy implements ActStrategy {
+    public static final String TILE_RANGE_TAG = "TILE_RANGE_EXT";
+
     private static final double BONK_RANGE = 2.0;
     private static final double WASABI_RANGE = 3.0;
     private static final double PHAT_BEET_RANGE = 2.0;
@@ -40,13 +42,14 @@ public class MeleeStrategy implements ActStrategy {
 
         ArrayList<Zombie> targets;
         if ("Bonk Choy".equalsIgnoreCase(name) || "Wasabi Whip".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE);
+            targets = sameRowTargets(user, session, meleeRange(user,
+                    "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE));
         } else if ("Phat Beet".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, PHAT_BEET_RANGE);
+            targets = sameRowTargets(user, session, meleeRange(user, PHAT_BEET_RANGE));
         } else if ("Kiwibeast".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, KIWI_RANGE);
+            targets = sameRowTargets(user, session, meleeRange(user, KIWI_RANGE));
         } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, HEADBUTTER_LETTUCE_RANGE);
+            targets = sameRowTargets(user, session, meleeRange(user, HEADBUTTER_LETTUCE_RANGE));
         } else {
             targets = switch ((int) user.getAbilityValue()) {
                 case 1 -> frontBackDetect(user, session);
@@ -108,15 +111,15 @@ public class MeleeStrategy implements ActStrategy {
 
         double range;
         if ("Bonk Choy".equalsIgnoreCase(name) || "Wasabi Whip".equalsIgnoreCase(name)) {
-            range = "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE;
+            range = meleeRange(user, "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE);
         } else if ("Phat Beet".equalsIgnoreCase(name)) {
-            range = PHAT_BEET_RANGE;
+            range = meleeRange(user, PHAT_BEET_RANGE);
         } else if ("Kiwibeast".equalsIgnoreCase(name)) {
-            range = KIWI_RANGE;
+            range = meleeRange(user, KIWI_RANGE);
         } else if ("Chomper".equalsIgnoreCase(name)) {
-            range = CHOMPER_RANGE;
+            range = meleeRange(user, CHOMPER_RANGE);
         } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
-            range = HEADBUTTER_LETTUCE_RANGE;
+            range = meleeRange(user, HEADBUTTER_LETTUCE_RANGE);
         } else {
             int mode = (int) user.getAbilityValue();
             return attackStructuresLegacy(user, session, mode);
@@ -157,6 +160,10 @@ public class MeleeStrategy implements ActStrategy {
             }
         }
         return hit;
+    }
+
+    private static double meleeRange(Plant user, double baseRange) {
+        return baseRange + Math.max(0.0, user.getSpecialUpgrade(TILE_RANGE_TAG, 0.0));
     }
 
     private ArrayList<Zombie> sameRowTargets(Plant user, GameSession session, double range) {

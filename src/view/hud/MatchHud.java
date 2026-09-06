@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.Scaling;
 
 import model.collections.plant.Plant;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantProgression;
 import model.match.main.levels.Level;
 import model.match.main.levels.special_levels.BossLevel;
 import model.match.main.levels.special_levels.ConveyorBeltLevel;
@@ -544,7 +545,7 @@ public final class MatchHud extends Table implements Disposable {
 
     private SlotView createPlantSlot(GameSession session, String plantName) {
         PlantJsonParser.PlantConfig config = findConfig(plantName);
-        int cost = config == null ? 0 : config.cost;
+        int cost = config == null ? 0 : PlantProgression.currentStatsFor(config).cost();
         int id = config == null ? -1 : config.id;
 
         SeedPacketCard card = null;

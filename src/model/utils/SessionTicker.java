@@ -131,6 +131,7 @@ class SessionTicker {
         recordLevelSpecificDeaths();
         tickLevelSpecificLogic(deltaTimeSeconds);
 
+        model.collections.plant.UpgradeEffects.runFarewellBlasts(session);
         economy.countPlantsLost(session.getPlants());
         session.getPlants().removeIf(p -> !p.isAlive());
         session.getZombies().removeIf(z -> !z.isAlive());

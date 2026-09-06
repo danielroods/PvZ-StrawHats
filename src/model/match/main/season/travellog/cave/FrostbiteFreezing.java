@@ -146,12 +146,15 @@ public final class FrostbiteFreezing {
     }
 
     private static boolean hasAdjacentFirePlant(Environment environment, int row, int col) {
-        for (int rowOffset = -1; rowOffset <= 1; rowOffset++) {
-            for (int colOffset = -1; colOffset <= 1; colOffset++) {
-                if (rowOffset == 0 && colOffset == 0) continue;
-                Cell neighbour = environment.getCell(row + rowOffset, col + colOffset);
+        for (int r = 0; r < environment.getRows(); r++) {
+            for (int c = 0; c < environment.getCols(); c++) {
+                if (r == row && c == col) continue;
+                Cell neighbour = environment.getCell(r, c);
                 Plant plant = neighbour == null ? null : neighbour.getPlant();
-                if (plant != null && plant.isAlive() && plant.getTags().contains(PlantTag.FIRE)) return true;
+                if (plant == null || !plant.isAlive()
+                        || !plant.getTags().contains(PlantTag.FIRE)) continue;
+                int radius = model.collections.plant.UpgradeEffects.warmthRadius(plant);
+                if (Math.abs(r - row) <= radius && Math.abs(c - col) <= radius) return true;
             }
         }
         return false;

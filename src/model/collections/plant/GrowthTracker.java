@@ -1,5 +1,7 @@
 package model.collections.plant;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,12 +12,40 @@ public class GrowthTracker {
     private double ageInSeconds = 0.0;
 
     public GrowthTracker(List<Map<String, Object>> stages) {
-        this(stages, 0.0);
+        this(stages, 0.0, 0);
     }
 
     public GrowthTracker(List<Map<String, Object>> stages, double stageTimeShift) {
-        this.stages = stages;
+        this(stages, stageTimeShift, 0);
+    }
+
+    public GrowthTracker(List<Map<String, Object>> stages, double stageTimeShift, int extraStages) {
+        this.stages = withExtraStages(stages, extraStages);
         this.stageTimeShift = stageTimeShift;
+    }
+
+    private static List<Map<String, Object>> withExtraStages(List<Map<String, Object>> source,
+                                                             int extraStages) {
+        if (source == null || source.size() < 2 || extraStages <= 0) return source;
+
+        List<Map<String, Object>> extended = new ArrayList<>(source);
+        for (int added = 0; added < extraStages; added++) {
+            Map<String, Object> last = extended.get(extended.size() - 1);
+            Map<String, Object> previous = extended.get(extended.size() - 2);
+            Map<String, Object> next = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : last.entrySet()) {
+                Object previousValue = previous.get(entry.getKey());
+                if (!(entry.getValue() instanceof Number lastNumber)
+                        || !(previousValue instanceof Number previousNumber)) {
+                    next.put(entry.getKey(), entry.getValue());
+                    continue;
+                }
+                double step = lastNumber.doubleValue() - previousNumber.doubleValue();
+                next.put(entry.getKey(), lastNumber.doubleValue() + step);
+            }
+            extended.add(next);
+        }
+        return extended;
     }
 
     private double stageTime(Map<String, Object> stageData) {

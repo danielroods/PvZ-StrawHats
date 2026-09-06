@@ -106,8 +106,11 @@ class SessionReporter {
                     .findFirst().orElse(null);
             if (config == null) continue;
             double cooldown = session.getPlantCooldown(config.id);
+            model.collections.plant.PlantStats stats =
+                    model.collections.plant.PlantProgression.currentStatsFor(config);
             sb.append("\n  ").append(config.name)
-                    .append(" | cost: ").append(config.cost)
+                    .append(" | level: ").append(stats.level()).append("/").append(stats.maxLevel())
+                    .append(" | cost: ").append(stats.cost())
                     .append(" | ").append(GameClock.isZero(cooldown)
                             ? "ready" : String.format("recharging: %.1fs", cooldown));
         }

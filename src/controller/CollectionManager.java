@@ -2,6 +2,8 @@ package controller;
 
 import model.collections.plant.PlantFactory;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantProgression;
+import model.collections.plant.PlantStats;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieFactory;
 import model.match.main.levels.Level;
@@ -110,11 +112,19 @@ public class CollectionManager {
         String tags = config.tags == null || config.tags.isEmpty()
                 ? "None" : config.tags.stream().map(Enum::name).collect(Collectors.joining(", "));
         String family = config.tags == null || config.tags.isEmpty() ? "General" : config.tags.get(0).name();
+        PlantStats stats = PlantStats.of(config, unlocked ? level : PlantStats.MIN_LEVEL);
         return "Name: " + config.name +
                 " | Type: " + config.category +
                 " | Family: " + family +
                 " | Tags: " + tags +
-                " | Level: " + (unlocked ? level : "-") +
+                " | Level: " + (unlocked ? stats.level() + "/" + stats.maxLevel() : "-") +
+                " | HP: " + stats.hp() +
+                " | Damage: " + stats.damage() +
+                " | Sun: " + stats.cost() +
+                " | Recharge: " + stats.recharge() + "s" +
+                " | Interval: " + String.format("%.2f", stats.actionInterval()) + "s" +
+                " | Perks: " + (stats.specialTags().isEmpty()
+                        ? "None" : String.join(", ", stats.specialTags())) +
                 " | Status: " + (unlocked ? "Unlocked" : "Locked");
     }
 
@@ -139,7 +149,7 @@ public class CollectionManager {
         state.coins -= PURCHASE_COST;
         state.unlockPlant(config.id);
         NewsManager.generateNews("PLANT", config.name,
-                formatPlant(config, true, state.getPlantLevel(config.id)));
+                formatPlant(config, true, PlantProgression.levelOf(state, config)));
 
         // Persist the modified UserState immediately so coins/unlocks survive
         // leaving the collection screen or restarting the application.
@@ -148,10 +158,11 @@ public class CollectionManager {
     }
 
     public boolean upgradePlant(UserState state, PlantJsonParser.PlantConfig config) {
-        if (!state.isPlantUnlocked(config.id)) return false;
-        int currentLevel = state.getPlantLevel(config.id);
-        int coinCost = currentLevel * 500;
-        int packetsNeeded = currentLevel;
+        if (config == null || !state.isPlantUnlocked(config.id)) return false;
+        int currentLevel = PlantProgression.levelOf(state, config);
+        if (currentLevel >= PlantProgression.maxLevel(config)) return false;
+        int coinCost = PlantProgression.upgradeCoinCost(currentLevel);
+        int packetsNeeded = PlantProgression.upgradePacketsRequired(currentLevel);
         if (state.coins < coinCost || state.seedPacketInventory.getOrDefault(config.id, 0) < packetsNeeded) {
             return false;
         }

@@ -50,7 +50,8 @@ public class ExplodeStrategy implements ActStrategy {
         userAct(user, targets);
         damageStructures(user,session);
         if (user.getTags().contains(PlantTag.FIRE)) {
-            int mode = (int) user.getAbilityValue();
+            int mode = model.collections.plant.UpgradeEffects.iceMeltMode(
+                    user, (int) user.getAbilityValue());
             FrostbiteFreezing.damageAdjacentIceBlocks(session, user.getPosition(), mode, user.getDamage(), true);
         }
         user.setAlive(false);
