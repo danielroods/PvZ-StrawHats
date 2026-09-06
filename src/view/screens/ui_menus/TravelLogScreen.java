@@ -332,18 +332,7 @@ public class TravelLogScreen extends UiScreen {
 
 
 
-    private ImageButton createIconButton(String path, float width, float height, Runnable action) {
-        TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
-        ImageButton button = new ImageButton(drawable);
-        button.getImageCell().size(width, height);
-        button.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                action.run();
-            }
-        });
-        return button;
-    }
+    
 
 
 

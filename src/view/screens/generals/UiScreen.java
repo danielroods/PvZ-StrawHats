@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 
 import controller.ScreenManager;
@@ -184,6 +185,37 @@ public abstract class UiScreen extends BaseScreen {
         Texture fallback = new Texture(pixmap);
         pixmap.dispose();
         return fallback;
+    }
+
+    protected ImageButton createIconButton(String path, float width, float height, Runnable action) {
+        TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
+        ImageButton button = new ImageButton(drawable);
+        button.getImageCell().size(width, height);
+        button.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                action.run();
+            }
+        });
+        return button;
+    }
+
+    protected Actor createIconButtonWithLabel(String path, float width, float height, String text, Runnable action) {
+        Table container = new Table();
+        ImageButton btn = createIconButton(path, width, height, action);
+        Label label = new Label(text, skin, "title");
+        label.setAlignment(Align.center);
+
+        container.add(btn).row();
+        container.add(label).padTop(2);
+
+        container.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                action.run();
+            }
+        });
+        return container;
     }
 
     protected Table createResourceWidget(String iconPath, String value) {

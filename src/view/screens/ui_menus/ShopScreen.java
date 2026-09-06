@@ -379,7 +379,7 @@ public class ShopScreen extends UiScreen {
 
         Table topLeft = new Table();
         topLeft.add(backBtn).padRight(16);
-        topLeft.add(createIconButtonWithLabel("assets/images/ui/collection.png", 54, 54,
+        topLeft.add(createIconButtonWithLabelTable("assets/images/ui/collection.png", 54, 54,
                 "Collection", () -> runCommand("menu enter collection")));
 
         User user = User.currentUser;
@@ -409,20 +409,9 @@ public class ShopScreen extends UiScreen {
         return user.userState.seedPacketInventory.values().stream().mapToInt(Integer::intValue).sum();
     }
 
-    private ImageButton createIconButton(String path, float width, float height, Runnable action) {
-        TextureRegionDrawable drawable = new TextureRegionDrawable(loadTextureSafe(path));
-        ImageButton button = new ImageButton(drawable);
-        button.getImageCell().size(width, height);
-        button.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                action.run();
-            }
-        });
-        return button;
-    }
+    
 
-    private Table createIconButtonWithLabel(String path, float width, float height, String text, Runnable action) {
+    private Table createIconButtonWithLabelTable(String path, float width, float height, String text, Runnable action) {
         Table container = new Table();
         ImageButton btn = createIconButton(path, width, height, action);
         Label label = new Label(text, skin, "title");

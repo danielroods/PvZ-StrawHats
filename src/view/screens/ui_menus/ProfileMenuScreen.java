@@ -215,19 +215,7 @@ public class ProfileMenuScreen extends UiScreen {
         }
     }
 
-    private ImageButton createIconButton(String path, float width, float height, Runnable action) {
-        Texture texture = loadTextureSafe(path);
-        TextureRegionDrawable drawable = new TextureRegionDrawable(texture);
-        ImageButton button = new ImageButton(drawable);
-        button.getImageCell().size(width, height);
-        button.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                action.run();
-            }
-        });
-        return button;
-    }
+    
 
     private Texture loadFeatheredAvatarTexture(String path) {
         if (path == null || path.isEmpty() || !Gdx.files.internal(path).exists()) {

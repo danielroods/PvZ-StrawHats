@@ -230,19 +230,6 @@ public class NewsScreen extends UiScreen {
         runCommand("menu news show-all");
     }
 
-    private ImageButton createIconButton(String path, float width, float height, Runnable action) {
-        Texture texture = loadLinearTextureSafe(path);
-        TextureRegionDrawable drawable = new TextureRegionDrawable(texture);
-        ImageButton button = new ImageButton(drawable);
-        button.getImageCell().size(width, height);
-        button.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                action.run();
-            }
-        });
-        return button;
-    }
 
     private TextureRegionDrawable createTextureDrawable(String path) {
         return new TextureRegionDrawable(loadLinearTextureSafe(path));

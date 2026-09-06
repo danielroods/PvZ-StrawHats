@@ -1,11 +1,18 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 public class GameMenuScreen extends UiScreen {
 
@@ -31,125 +38,15 @@ public class GameMenuScreen extends UiScreen {
     // ============================================================
     // MENU AREAS
     // ============================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /*
      * GAMING CLUB / MINI-GAMES
      *
      * Upper-middle gaming room.
      */
-    private static final float GAMING_X = 490f;
-    private static final float GAMING_Y = 585f;
-    private static final float GAMING_W = 265f;
-    private static final float GAMING_H = 100f;
+    private static final float GAMING_X = VIRTUAL_WIDTH/3-150;
+    private static final float GAMING_Y = VIRTUAL_HEIGHT/2+30;
+    private static final float GAMING_W = 100f;
+    private static final float GAMING_H = 40f;
 
 
     /*
@@ -157,10 +54,10 @@ public class GameMenuScreen extends UiScreen {
      *
      * Collection / decoration area.
      */
-    private static final float COLLECTION_X = 205f;
-    private static final float COLLECTION_Y = 470f;
-    private static final float COLLECTION_W = 235f;
-    private static final float COLLECTION_H = 70f;
+    private static final float COLLECTION_X = VIRTUAL_WIDTH/2-50;
+    private static final float COLLECTION_Y = VIRTUAL_HEIGHT/4-70;
+    private static final float COLLECTION_W = 110f;
+    private static final float COLLECTION_H = 40f;
 
 
     /*
@@ -168,10 +65,10 @@ public class GameMenuScreen extends UiScreen {
      *
      * Glass greenhouse on the upper-right.
      */
-    private static final float GREENHOUSE_X = 850f;
-    private static final float GREENHOUSE_Y = 470f;
-    private static final float GREENHOUSE_W = 225f;
-    private static final float GREENHOUSE_H = 70f;
+    private static final float GREENHOUSE_X = VIRTUAL_WIDTH*2/3+120;
+    private static final float GREENHOUSE_Y = VIRTUAL_HEIGHT/2;
+    private static final float GREENHOUSE_W = 110f;
+    private static final float GREENHOUSE_H = 40f;
 
 
     /*
@@ -179,10 +76,10 @@ public class GameMenuScreen extends UiScreen {
      *
      * Large adventure/world-map area in the lower-left.
      */
-    private static final float ADVENTURE_X = 65f;
-    private static final float ADVENTURE_Y = 45f;
-    private static final float ADVENTURE_W = 300f;
-    private static final float ADVENTURE_H = 120f;
+    private static final float ADVENTURE_X = VIRTUAL_WIDTH/4-50;
+    private static final float ADVENTURE_Y = 95f;
+    private static final float ADVENTURE_W = 110f;
+    private static final float ADVENTURE_H = 40f;
 
 
     /*
@@ -190,10 +87,10 @@ public class GameMenuScreen extends UiScreen {
      *
      * Trophy/library area in the middle-right.
      */
-    private static final float ACHIEVEMENTS_X = 735f;
-    private static final float ACHIEVEMENTS_Y = 275f;
-    private static final float ACHIEVEMENTS_W = 350f;
-    private static final float ACHIEVEMENTS_H = 65f;
+    private static final float ACHIEVEMENTS_X = VIRTUAL_WIDTH/2-40;
+    private static final float ACHIEVEMENTS_Y = VIRTUAL_HEIGHT/2;
+    private static final float ACHIEVEMENTS_W = 100f;
+    private static final float ACHIEVEMENTS_H = 40f;
 
 
     /*
@@ -203,20 +100,21 @@ public class GameMenuScreen extends UiScreen {
      *
      * This is intentionally separate from achievements.
      */
-    private static final float LEADERBOARD_X = 950f;
-    private static final float LEADERBOARD_Y = 120f;
-    private static final float LEADERBOARD_W = 275f;
-    private static final float LEADERBOARD_H = 150f;
+    private static final float LEADERBOARD_X = VIRTUAL_WIDTH-300;
+    private static final float LEADERBOARD_Y = 100f;
+    private static final float LEADERBOARD_W = 130f;
+    private static final float LEADERBOARD_H = 40f;
+    private Texture textBackgroundTexture;
 
 
     @Override
     public void show() {
-        super.show();
-
         setBackground(
                 "assets/images/backg/gamemenu.png"
         );
+        super.show();
 
+        createTextBackground();
         createMenuButtons();
     }
 
@@ -364,6 +262,28 @@ public class GameMenuScreen extends UiScreen {
         });
     }
 
+    private void createTextBackground() {
+
+        Pixmap pixmap = new Pixmap(
+                1,
+                1,
+                Pixmap.Format.RGBA8888
+        );
+
+        pixmap.setColor(
+                0f,
+                0f,
+                0f,
+                0.50f
+        );
+
+        pixmap.fill();
+
+        textBackgroundTexture = new Texture(pixmap);
+
+        pixmap.dispose();
+    }
+
 
     /**
      * Creates an invisible TextButton.
@@ -382,26 +302,53 @@ public class GameMenuScreen extends UiScreen {
         TextButton.TextButtonStyle style =
                 new TextButton.TextButtonStyle();
 
-        style.up = null;
-        style.down = null;
-        style.over = null;
-        style.checked = null;
+
+        /*
+         * ----------------------------------------------------------
+         * BUTTON BACKGROUND
+         * ----------------------------------------------------------
+         *
+         * Instead of putting text directly on the artwork,
+         * we give it a dark translucent background.
+         */
+
+
+
+        /*
+         * ----------------------------------------------------------
+         * FONT
+         * ----------------------------------------------------------
+         */
+
+        BitmapFont font;
 
         if (skin.has(
                 "default-font",
-                com.badlogic.gdx.graphics.g2d.BitmapFont.class
+                BitmapFont.class
         )) {
-            style.font = skin.getFont("default-font");
+
+            font = skin.getFont("default-font");
+
         } else {
-            style.font =
-                    new com.badlogic.gdx.graphics.g2d.BitmapFont();
+
+            font = new BitmapFont();
         }
+
+        style.font = font;
 
         style.fontColor = Color.WHITE;
         style.overFontColor = Color.WHITE;
         style.downFontColor = Color.WHITE;
 
-        TextButton button = new TextButton(text, style);
+
+        /*
+         * Create button with empty text.
+         *
+         * We'll add our own Label so we can control
+         * font size independently.
+         */
+
+        TextButton button = new TextButton("", style);
 
         button.setBounds(
                 x,
@@ -411,6 +358,66 @@ public class GameMenuScreen extends UiScreen {
         );
 
         button.setTouchable(Touchable.enabled);
+
+        TextureRegionDrawable background =
+                new TextureRegionDrawable(
+                        new TextureRegion(textBackgroundTexture)
+                );
+
+        style.up = background;
+        style.down = background;
+        style.over = background;
+        style.checked = background;
+
+        /*
+         * ----------------------------------------------------------
+         * LARGE TEXT LABEL
+         * ----------------------------------------------------------
+         */
+
+        Label.LabelStyle labelStyle =
+                new Label.LabelStyle();
+
+        labelStyle.font = font;
+        labelStyle.fontColor = Color.WHITE;
+
+
+        Label label = new Label(
+                text,
+                labelStyle
+        );
+
+        /*
+         * Bigger text.
+         *
+         * 1.35 = 35% larger
+         */
+        label.setFontScale(1.35f);
+
+        /*
+         * Center the text.
+         */
+        label.setAlignment(
+                com.badlogic.gdx.utils.Align.center
+        );
+
+        /*
+         * Make label fill the button.
+         */
+
+        label.setBounds(
+                0,
+                0,
+                width,
+                height
+        );
+
+        /*
+         * The label itself must NOT consume clicks.
+         */
+        label.setTouchable(Touchable.disabled);
+
+        button.addActor(label);
 
         return button;
     }
