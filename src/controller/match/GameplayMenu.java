@@ -183,7 +183,7 @@ public class GameplayMenu extends Menu {
 
         int row = y - 1;
         int col = x - 1;
-        int level = state.getPlantLevel(config.id);
+        int level = model.collections.plant.PlantProgression.levelOf(state, config);
         Plant plant = PlantFactory.createPlant(config.id, level, new Position(col, row));
 
         boolean freePlantingTime = session.getLevel() instanceof PlantWhatYouGetLevel

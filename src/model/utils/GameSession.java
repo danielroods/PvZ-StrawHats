@@ -289,6 +289,8 @@ public class GameSession {
 
     public void startPlantCooldown(int plantId, double seconds) { economy.startPlantCooldown(plantId, seconds); }
 
+    public void clearPlantCooldown(int plantId) { economy.clearPlantCooldown(plantId); }
+
     public boolean plantAt(int row, int col, Plant plant) { return board.plantAt(row, col, plant); }
 
     public void scorchTile(int row, int col, double durationSeconds) {

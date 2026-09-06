@@ -16,6 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class HomingStrategy implements ActStrategy {
 
     public static final double HOMING_SPEED = 5.0;
+    public static final String PRIORITIZE_GARGANTUARS_TAG = "PRIORITIZE_GARGANTUARS";
     private static final double TURN_RATE_PER_SECOND = 6.0;
 
     @Override
@@ -27,7 +28,14 @@ public class HomingStrategy implements ActStrategy {
 
         boolean isMagic = user.getTags().contains(PlantTag.MAGIC);
         boolean randomTargeting = isMagic || user.getName().equalsIgnoreCase("Electric Blueberry");
-        Zombie target = randomTargeting ? randomTarget(zombies) : nearestTarget(user, zombies);
+        Zombie target = null;
+        if (user.hasSpecialUpgrade(PRIORITIZE_GARGANTUARS_TAG)) {
+            target = randomTargeting ? randomTarget(gargantuars(zombies))
+                    : nearestTarget(user, gargantuars(zombies));
+        }
+        if (target == null) {
+            target = randomTargeting ? randomTarget(zombies) : nearestTarget(user, zombies);
+        }
         if (target == null) return;
 
         session.getProjectiles().add(buildProjectile(user, target, isMagic, session));
@@ -55,6 +63,15 @@ public class HomingStrategy implements ActStrategy {
                 user.getDamage(), new HomingMove(target, speed, TURN_RATE_PER_SECOND),
                 new NormalHit(1)
         );
+    }
+
+    private List<Zombie> gargantuars(List<Zombie> zombies) {
+        return zombies.stream()
+                .filter(HomingStrategy::isTargetable)
+                .filter(zombie -> zombie.getRace() == model.collections.zombie.ZombieRace.GARGANTUAR
+                        || (zombie.getName() != null
+                        && zombie.getName().toLowerCase().contains("gargantuar")))
+                .toList();
     }
 
     private Zombie randomTarget(List<Zombie> zombies) {

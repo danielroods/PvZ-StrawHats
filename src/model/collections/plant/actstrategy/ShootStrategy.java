@@ -83,6 +83,11 @@ public class ShootStrategy implements ActStrategy {
         }
 
         user.setInternalTimer(user.getActionInterval());
+
+        if (!boosted && user.canUsePlantFood()
+                && model.collections.plant.UpgradeEffects.rollsAutoPlantFood(user)) {
+            user.activatePlant(session);
+        }
     }
 
     private MoveStrategy buildMoveStrategy(Plant user, Position direction, double speed) {
@@ -100,10 +105,14 @@ public class ShootStrategy implements ActStrategy {
         if (user.getTags().contains(PlantTag.ICE)) {
             return new IceHit(areaLength, 5.0 + user.getSpecialUpgrade("CHILL_DURATION_EXT", 0));
         }
-        if (user.getTags().contains(PlantTag.POISON)) return new PoisonHit(areaLength);
+        if (user.getTags().contains(PlantTag.POISON)) {
+            return new PoisonHit(areaLength, PoisonHit.BASE_POISON_SECONDS
+                    + user.getSpecialUpgrade("POISON_TICK_BUFF", 0));
+        }
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         if (user.getTags().contains(PlantTag.BUTTER)) return new ButterHit(1);
-        return new NormalHit(areaLength);
+        return new NormalHit(areaLength,
+                (int) Math.round(user.getSpecialUpgrade("SPLASH_DAMAGE_BUFF", 0)));
     }
 
     private Zombie findTargetAlongVector(Plant user, Position direction, GameSession session) {

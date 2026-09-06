@@ -106,7 +106,8 @@ public class MatchMenu extends Menu {
                 UserState state = User.currentUser.userState;
                 if (state.unlockPlant(config.id)) {
                     NewsManager.generateNews("PLANT", config.name,
-                            new CollectionManager().formatPlant(config, true, state.getPlantLevel(config.id)));
+                            new CollectionManager().formatPlant(config, true,
+                                    model.collections.plant.PlantProgression.levelOf(state, config)));
                 }
             }
         }

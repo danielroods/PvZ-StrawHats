@@ -141,7 +141,9 @@ public class LevelLoader {
                         }
                     }
                     if (plantId == null) return;
-                    Plant p = PlantFactory.createPlant(plantId, 1, new Position(9, 0));
+                    Plant p = PlantFactory.createPlant(plantId,
+                            model.collections.plant.PlantProgression.currentLevelOf(plantId),
+                            new Position(9, 0));
                     conveyorPlants.add(p);
                 });
             }

@@ -32,6 +32,7 @@ import model.resoures.CurrencyType;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.collections.armour.Armour;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantProgression;
 import model.collections.plant.PlantCostume;
 import model.collections.plant.PlantCostumeManager;
 import model.collections.plant.PlantTag;
@@ -467,11 +468,12 @@ public class CollectionScreen extends UiScreen {
         cell.add(cardStack).size(cardW, cardH).top().row();
 
         if (unlocked) {
-            int level = Math.max(1, state.getPlantLevel(config.id));
+            int level = PlantProgression.levelOf(state, config);
+            boolean maxed = level >= PlantProgression.maxLevel(config);
             int packetsOwned = Math.max(0, state.seedPacketInventory.getOrDefault(config.id, 0));
-            float progress = Math.min(1f, (float) packetsOwned / (float) level);
-            int coinCost = level * 500;
-            boolean canUpgrade = state.coins >= coinCost && packetsOwned >= level;
+            float progress = maxed ? 1f : Math.min(1f, (float) packetsOwned / (float) level);
+            int coinCost = PlantProgression.upgradeCoinCost(level);
+            boolean canUpgrade = !maxed && state.coins >= coinCost && packetsOwned >= level;
 
             SeedProgressBar bar = new SeedProgressBar(progress, canUpgrade, upgradeIconTexture);
             cell.add(bar).size(cardW, BAR_H).padTop(5f).top();
@@ -768,14 +770,12 @@ public class CollectionScreen extends UiScreen {
         nameLabel.setFontScale(1.3f);
         info.add(nameLabel).left().padBottom(SPACE_SM).row();
 
-        info.add(statLabel("Type: " + config.category)).left().row();
-        info.add(statLabel("HP: " + config.baseHp)).left().row();
-        info.add(statLabel("Damage: " + config.damage)).left().row();
-        info.add(statLabel("Recharge: " + config.recharge + "s")).left().row();
-        String tags = (config.tags == null || config.tags.isEmpty())
-                ? "None"
-                : config.tags.stream().map(Enum::name).collect(Collectors.joining(", "));
-        info.add(statLabel("Tags: " + tags)).left().padBottom(SPACE_LG).row();
+        for (String row : PlantStatRows.of(state, config, unlocked)) {
+            info.add(statLabel(row)).left().row();
+        }
+        String upgradeLine = PlantStatRows.upgradeLine(state, config, unlocked);
+        info.add(statLabel(upgradeLine == null ? "" : upgradeLine))
+                .left().padBottom(SPACE_LG).row();
 
         TextButton actionButton = buildActionButton(config, state, unlocked);
         info.add(actionButton).width(320).height(58).left();
@@ -884,9 +884,15 @@ public class CollectionScreen extends UiScreen {
             return button;
         }
 
-        int level = state.getPlantLevel(config.id);
-        int coinCost = level * 500;
-        int packetsNeeded = level;
+        int level = PlantProgression.levelOf(state, config);
+        int maxLevel = PlantProgression.maxLevel(config);
+        if (level >= maxLevel) {
+            TextButton maxed = coloredButton("Max Level (Lv " + maxLevel + ")", GRAY);
+            maxed.setDisabled(true);
+            return maxed;
+        }
+        int coinCost = PlantProgression.upgradeCoinCost(level);
+        int packetsNeeded = PlantProgression.upgradePacketsRequired(level);
         int packetsOwned = state.seedPacketInventory.getOrDefault(config.id, 0);
         boolean canUpgrade = state.coins >= coinCost && packetsOwned >= packetsNeeded;
 

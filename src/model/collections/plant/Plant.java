@@ -112,6 +112,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private PlantState state = PlantState.ACTIVE;
     private final List<String> rawUpgrades = new ArrayList<>();
     private final Map<String, Double> specialUpgrades = new HashMap<>();
+    private boolean farewellBlastFired = false;
+    private int damageUpgradeBonus = 0;
+    private double abilityUpgradeBonus = 0.0;
     private List<Position> shootingVectors = new ArrayList<>();
 
     public Plant(String name, Position position, int HP) {
@@ -476,7 +479,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         int base = this.damage;
         if (growthTracker != null) {
             Double staged = growthTracker.getStageValue("damage");
-            if (staged != null) base = staged.intValue();
+            if (staged != null) base = staged.intValue() + damageUpgradeBonus;
         }
         // Cactus deals reduced damage while ducked underground hiding from a zombie
         // standing on its tile - see tickCactusPosture().
@@ -508,6 +511,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return true;
     }
     public List<String> getRawUpgrades() { return rawUpgrades; }
+    public boolean hasFiredFarewellBlast() { return farewellBlastFired; }
+    public void markFarewellBlastFired() { farewellBlastFired = true; }
     public void addSpecialUpgrade(String tag, double value) {
         if (tag != null && !tag.isBlank()) specialUpgrades.merge(tag, value, Double::sum);
     }
@@ -541,14 +546,26 @@ public abstract class Plant extends Item implements Pluck, Attack {
     public double getAbilityValue() {
         if (growthTracker != null) {
             Double staged = growthTracker.getStageValue("abilityValue");
-            if (staged != null) return staged;
+            if (staged != null) return staged + abilityUpgradeBonus;
         }
         return this.abilityValue;
     }
-    public void setWrampUp(List<Map<String, Object>> wrampUp) { setWrampUp(wrampUp, 0.0); }
+
+    public void setUpgradeStatBonuses(int damageBonus, double abilityBonus) {
+        this.damageUpgradeBonus = damageBonus;
+        this.abilityUpgradeBonus = abilityBonus;
+    }
+
+    public int getDamageUpgradeBonus() { return damageUpgradeBonus; }
+
+    public double getAbilityUpgradeBonus() { return abilityUpgradeBonus; }
+    public void setWrampUp(List<Map<String, Object>> wrampUp) { setWrampUp(wrampUp, 0.0, 0); }
     public void setWrampUp(List<Map<String, Object>> wrampUp, double stageTimeShift) {
+        setWrampUp(wrampUp, stageTimeShift, 0);
+    }
+    public void setWrampUp(List<Map<String, Object>> wrampUp, double stageTimeShift, int extraStages) {
         this.growthTracker = (wrampUp != null && !wrampUp.isEmpty())
-                ? new GrowthTracker(wrampUp, stageTimeShift) : null;
+                ? new GrowthTracker(wrampUp, stageTimeShift, extraStages) : null;
     }
     public List<Position> getShootingVectors() { return shootingVectors; }
     public void setShootingVectors(List<Position> shootingVectors) { this.shootingVectors = shootingVectors; }

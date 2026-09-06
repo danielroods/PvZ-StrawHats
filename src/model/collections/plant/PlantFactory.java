@@ -83,48 +83,18 @@ public class PlantFactory {
             throw new IllegalArgumentException("Plant ID " + id + " does not exist in dataset.");
         }
 
-        int runtimeHp = config.baseHp;
-        int runtimeCost = config.cost;
-        double runtimeInterval = config.actionInterval;
-        int runtimeDamage = config.damage;
-        double runtimeRecharge = config.recharge;
-        double runtimeAbility = config.abilityValue;
-        double runtimeRange = config.attackRange;
-        double runtimeLifespan = config.lifespan;
-        double runtimePlantFoodValue = config.plantFoodValue;
-        List<String> specialTags = new ArrayList<>();
-        Map<String, Double> specialValues = new HashMap<>();
-
-        if (config.upgrades != null) {
-            for (PlantJsonParser.UpgradeConfig upgrade : config.upgrades) {
-                if (upgrade.level <= level) {
-                    switch (upgrade.type) {
-                        case BUFF_HP -> runtimeHp += (int) upgrade.value;
-                        case BUFF_COST -> runtimeCost += (int) upgrade.value;
-                        case BUFF_ACTION_INTERVAL -> runtimeInterval += upgrade.value;
-                        case BUFF_DAMAGE -> runtimeDamage += (int) upgrade.value;
-                        case BUFF_RECHARGE -> runtimeRecharge += upgrade.value;
-                        case SPECIAL_MECHANIC -> {
-                            specialTags.add(upgrade.specialTag);
-                            if (upgrade.specialTag != null && !upgrade.specialTag.isBlank()) {
-                                specialValues.merge(upgrade.specialTag, upgrade.value, Double::sum);
-                            }
-                            switch (upgrade.specialTag == null ? "" : upgrade.specialTag) {
-                                case "TILE_RANGE_EXT" -> {
-                                    if (runtimeRange > 0) runtimeRange += upgrade.value;
-                                }
-                                case "LIFESPAN_EXT" -> runtimeLifespan += upgrade.value;
-                                case "SUN_AMOUNT_BUFF", "SUN_DROP_INCREMENT", "ADDITIONAL_PIERCE" ->
-                                        runtimeAbility += upgrade.value;
-                                case "FREEZE_DURATION_EXT", "BONUS_GRAB_TARGETS" ->
-                                        runtimePlantFoodValue += upgrade.value;
-                                default -> { }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        PlantStats stats = PlantStats.of(config, level);
+        int runtimeHp = stats.hp();
+        int runtimeCost = stats.cost();
+        double runtimeInterval = stats.actionInterval();
+        int runtimeDamage = stats.damage();
+        int runtimeRecharge = stats.recharge();
+        double runtimeAbility = stats.abilityValue();
+        double runtimeRange = stats.attackRange();
+        double runtimeLifespan = stats.lifespan();
+        double runtimePlantFoodValue = stats.plantFoodValue();
+        List<String> specialTags = stats.specialTags();
+        Map<String, Double> specialValues = stats.specialValues();
 
         boolean oneShotPlant = runtimeHp <= 0 && (config.abilityType == AbilityType.INSTANT_EXPLOSIVE
                 || config.abilityType == AbilityType.INSTANT_SUN_BURST
@@ -146,27 +116,30 @@ public class PlantFactory {
         plant.setAbilityValue(runtimeAbility);
         plant.setAttackRange(runtimeRange);
         plant.setLifespanSeconds(Math.max(0, runtimeLifespan));
-        plant.setLevel(level);
+        plant.setLevel(stats.level());
+        PlantStats baseline = stats.baseline();
+        plant.setUpgradeStatBonuses(stats.damage() - baseline.damage(),
+                stats.abilityValue() - baseline.abilityValue());
         if (config.name.equalsIgnoreCase("Imitater")) {
             plant.setImitaterTargetName(imitaterTargetName);
         }
         plant.setPlantFoodType(config.plantFoodType);
-        plant.setWrampUp(config.wrampUp, specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0));
+        plant.setWrampUp(config.wrampUp, specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0),
+                (int) Math.round(specialValues.getOrDefault(
+                        UpgradeEffects.GROWTH_STAGE_MAX_UP_TAG, 0.0)));
         plant.getRawUpgrades().addAll(specialTags);
         specialValues.forEach(plant::addSpecialUpgrade);
 
         plant.setActStrategy(buildActStrategy(config));
 
-        plant.setPlantFoodEffect(buildPlantFoodEffect(config, runtimePlantFoodValue, level));
+        plant.setPlantFoodEffect(buildPlantFoodEffect(config, runtimePlantFoodValue, stats.level()));
         plant.setShootingVectors(buildShootingVectors(config));
         if (config.category == PlantType.SHOOTER && plant.getTags().contains(PlantTag.STACK)) {
             plant.setMaxStackNumber((int) runtimeAbility);
         }
         if ("Potato Mine".equalsIgnoreCase(config.name)
                 || "Primal Potato Mine".equalsIgnoreCase(config.name)) {
-            double baseArmTime = 14.0;
-            double armReduction = specialValues.getOrDefault("ARM_TIME_REDUCTION", 0.0);
-            plant.setInternalTimer(Math.max(0.1, baseArmTime - armReduction));
+            plant.setInternalTimer(stats.potatoMineArmSeconds());
             plant.setState(Plant.PlantState.PREPPING);
         } else if ("Cherry Bomb".equalsIgnoreCase(config.name)) {
             plant.setInternalTimer(0.70);

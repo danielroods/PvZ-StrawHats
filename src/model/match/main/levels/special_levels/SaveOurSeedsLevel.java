@@ -2,6 +2,7 @@ package model.match.main.levels.special_levels;
 
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFactory;
+import model.collections.plant.PlantProgression;
 import model.match.main.levels.Level;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
@@ -31,7 +32,8 @@ public class SaveOurSeedsLevel extends Level {
                 throw new IllegalStateException("Unknown guarded plant: " + entry.getValue());
             }
 
-            Plant plant = PlantFactory.createPlant(plantId, 1, position);
+            Plant plant = PlantFactory.createPlant(plantId,
+                    PlantProgression.currentLevelOf(plantId), position);
             if (!session.plantAt((int) position.y(), (int) position.x(), plant)) {
                 throw new IllegalStateException("Could not place guarded plant at " + position);
             }

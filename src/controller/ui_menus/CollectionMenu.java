@@ -5,6 +5,7 @@ import controller.CollectionManager;
 import model.App;
 import model.Regex;
 import model.collections.plant.PlantJsonParser;
+import model.collections.plant.PlantProgression;
 import model.collections.zombie.Zombie;
 import model.game_exceptions.GameException;
 import model.user_data.User;
@@ -63,13 +64,13 @@ public class CollectionMenu extends Menu {
     private void showAllPlants(UserState state) {
         for (PlantJsonParser.PlantConfig config : manager.getAllPlants()) {
             boolean unlocked = state.isPlantUnlocked(config.id);
-            GeneralPrinter.print(manager.formatPlant(config, unlocked, state.getPlantLevel(config.id)));
+            GeneralPrinter.print(manager.formatPlant(config, unlocked, PlantProgression.levelOf(state, config)));
         }
     }
 
     private void showUnlockedPlants(UserState state) {
         for (PlantJsonParser.PlantConfig config : manager.getUnlockedPlants(state)) {
-            GeneralPrinter.print(manager.formatPlant(config, true, state.getPlantLevel(config.id)));
+            GeneralPrinter.print(manager.formatPlant(config, true, PlantProgression.levelOf(state, config)));
         }
     }
 
@@ -79,7 +80,7 @@ public class CollectionMenu extends Menu {
             throw new GameException("no such plant.");
         }
         boolean unlocked = state.isPlantUnlocked(config.id);
-        GeneralPrinter.print(manager.formatPlant(config, unlocked, state.getPlantLevel(config.id)));
+        GeneralPrinter.print(manager.formatPlant(config, unlocked, PlantProgression.levelOf(state, config)));
     }
 
     private void showAllZombies() {
@@ -123,19 +124,26 @@ public class CollectionMenu extends Menu {
             throw new GameException("plant is locked.");
         }
 
-        int currentLevel = state.getPlantLevel(config.id);
-        int coinCost = currentLevel * 500;
-        int packetsNeeded = currentLevel;
+        int currentLevel = PlantProgression.levelOf(state, config);
+        int maxLevel = PlantProgression.maxLevel(config);
+        int coinCost = PlantProgression.upgradeCoinCost(currentLevel);
+        int packetsNeeded = PlantProgression.upgradePacketsRequired(currentLevel);
         int packetsOwned = state.seedPacketInventory.getOrDefault(config.id, 0);
 
-        if (state.coins < coinCost) {
+        if (currentLevel >= maxLevel) {
+            throw new GameException(config.name + " is already at its maximum level ("
+                    + maxLevel + ").");
+        } else if (state.coins < coinCost) {
             throw new GameException("not enough coins (" + state.coins + "/" + coinCost + ").");
         } else if (packetsOwned < packetsNeeded) {
             throw new GameException("not enough " + config.name + " seed packets (" + packetsOwned + "/" + packetsNeeded + "). Buy some from the store.");
         } else if (!manager.upgradePlant(state, config)) {
             throw new GameException("upgrade failed.");
         } else {
-            GeneralPrinter.print("Plant upgraded: " + config.name + " -> level " + state.getPlantLevel(config.id));
+            int newLevel = PlantProgression.levelOf(state, config);
+            GeneralPrinter.print("Plant upgraded: " + config.name + " -> level "
+                    + newLevel + "/" + maxLevel);
+            GeneralPrinter.print(manager.formatPlant(config, true, newLevel));
         }
     }
 
