@@ -84,7 +84,7 @@ public class LeaderboardMenu extends Menu {
 
     @Override
     public void exitMenu() {
-        App.currentMenu = new MainMenu();
+        App.currentMenu = new GameMenu();
     }
 
     @Override

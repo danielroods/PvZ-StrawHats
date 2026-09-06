@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -118,7 +119,18 @@ public class LeaderboardScreen extends UiScreen {
             bar.add(meowChip(chapter)).width(CHIP_WIDTH).height(CHIP_HEIGHT);
         }
         bar.add(createOrderToggleButton()).size(44, CHIP_HEIGHT).padLeft(SPACE_MD);
-        return bar;
+
+        ScrollPane scroll = new ScrollPane(bar);
+        scroll.setScrollingDisabled(false, true);
+        scroll.setFadeScrollBars(false);
+        scroll.setOverscroll(false, false);
+        return wrapInTable(scroll);
+    }
+
+    private Table wrapInTable(ScrollPane scroll) {
+        Table wrapper = new Table();
+        wrapper.add(scroll).width(ROW_WIDTH);
+        return wrapper;
     }
 
     private TextButton sortChip(SortColumn column) {

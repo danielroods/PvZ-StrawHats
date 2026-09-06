@@ -29,7 +29,7 @@ public class TrophiesMenu extends Menu {
 
     @Override
     public void exitMenu() {
-        model.App.currentMenu = new MainMenu();
+        model.App.currentMenu = new GameMenu();
     }
 
     @Override

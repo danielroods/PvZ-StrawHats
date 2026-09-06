@@ -1,10 +1,12 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -107,6 +109,23 @@ public class GameMenuScreen extends UiScreen {
     private Texture textBackgroundTexture;
 
 
+    // ============================================================
+    // ZOOM TRANSITION
+    // ============================================================
+
+    private static final float ZOOM_IN_DURATION = 0.45f;
+    private static final float ZOOM_TARGET = 0.35f;
+
+    private OrthographicCamera menuCamera;
+    private float camBaseX;
+    private float camBaseY;
+    private boolean zooming;
+    private float zoomTimer;
+    private float zoomTargetX;
+    private float zoomTargetY;
+    private Runnable zoomPendingCommand;
+
+
     @Override
     public void show() {
         setBackground(
@@ -114,8 +133,55 @@ public class GameMenuScreen extends UiScreen {
         );
         super.show();
 
+        Object camera = stage.getViewport().getCamera();
+        if (camera instanceof OrthographicCamera) {
+            menuCamera = (OrthographicCamera) camera;
+            camBaseX = menuCamera.position.x;
+            camBaseY = menuCamera.position.y;
+        }
+
         createTextBackground();
         createMenuButtons();
+    }
+
+    @Override
+    public void render(float delta) {
+        if (zooming && menuCamera != null) {
+            zoomTimer += delta;
+            float progress = Math.min(1f, zoomTimer / ZOOM_IN_DURATION);
+            float eased = Interpolation.smooth.apply(progress);
+
+            menuCamera.zoom = 1f - eased * (1f - ZOOM_TARGET);
+            menuCamera.position.x = camBaseX + (zoomTargetX - camBaseX) * eased;
+            menuCamera.position.y = camBaseY + (zoomTargetY - camBaseY) * eased;
+            menuCamera.update();
+
+            if (progress >= 1f) {
+                zooming = false;
+                Runnable command = zoomPendingCommand;
+                zoomPendingCommand = null;
+                if (command != null) {
+                    command.run();
+                }
+            }
+        }
+
+        super.render(delta);
+    }
+
+    private void zoomInto(TextButton button, String command) {
+        if (zooming || menuCamera == null) {
+            runCommand(command);
+            return;
+        }
+
+        buttonLayer.setTouchable(Touchable.disabled);
+
+        zoomTargetX = button.getX() + button.getWidth() / 2f;
+        zoomTargetY = button.getY() + button.getHeight() / 2f + 100;
+        zoomTimer = 0f;
+        zooming = true;
+        zoomPendingCommand = () -> runCommand(command);
     }
 
 
@@ -217,7 +283,7 @@ public class GameMenuScreen extends UiScreen {
         gaming.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu enter console");
+                zoomInto(gaming, "menu enter console");
             }
         });
 
@@ -225,7 +291,7 @@ public class GameMenuScreen extends UiScreen {
         collection.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu enter collection");
+                zoomInto(collection, "menu enter collection");
             }
         });
 
@@ -233,7 +299,7 @@ public class GameMenuScreen extends UiScreen {
         greenhouse.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu greenhouse");
+                zoomInto(greenhouse, "menu greenhouse");
             }
         });
 
@@ -241,7 +307,7 @@ public class GameMenuScreen extends UiScreen {
         adventure.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu enter adventure");
+                zoomInto(adventure, "menu enter adventure");
             }
         });
 
@@ -249,7 +315,7 @@ public class GameMenuScreen extends UiScreen {
         achievements.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu enter trophies");
+                zoomInto(achievements, "menu enter trophies");
             }
         });
 
@@ -257,7 +323,7 @@ public class GameMenuScreen extends UiScreen {
         leaderboard.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu leaderboard");
+                zoomInto(leaderboard, "menu leaderboard");
             }
         });
     }
