@@ -26,7 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GameMenuScreen extends UiScreen {
+public class AdventureScreen extends UiScreen {
 
     private static final String[] CHAPTERS = {
             "Egypt", "Frostbite Caves", "Big Wave Beach", "Dark Ages", "Pirates" , "Future"

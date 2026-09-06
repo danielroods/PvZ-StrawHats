@@ -32,30 +32,11 @@ public abstract class Menu {
             case "main" -> App.currentMenu = new MainMenu();
             case "login" -> App.currentMenu = new LoginMenu();
             case "collection" -> App.currentMenu = new CollectionMenu();
-            case "trophies", "trophy" -> App.currentMenu = new TrophiesMenu();
             case "travellog" -> App.currentMenu = new TravelLogMenu();
-            case "console" -> App.currentMenu = new ConsoleMenu();
-            case "zombie packman", "zombiepackman", "packman", "pacman" -> App.currentMenu = new ZombiePackmanMenu();
             case "leaderboard" -> App.currentMenu = new LeaderboardMenu();
-            case "network", "multiplayer", "onlinematch", "online match" ->
-                    App.currentMenu = new controller.ui_menus.network.NetworkMenu();
-            case "coop", "co-op", "izombiecoop" -> {
-                // Co-op has no level-supplied zombie pool, so it gets a bare NormalLevel
-                // with an empty pool - the zombie player builds their own roster on the
-                // CoopBeforeMatchScreen instead (see CoopBeforeMenu.selectedZombies).
-                model.match.main.levels.normal_levels.NormalLevel coopLevel =
-                        new model.match.main.levels.normal_levels.NormalLevel();
-                coopLevel.setName("Co-op");
-                coopLevel.setZombiePool(new java.util.ArrayList<>());
-
-                model.utils.GameSession coopSession = new model.utils.GameSession();
-                coopSession.setLevel(coopLevel);
-
-                controller.match.BeforeMenu.selectedPlants.clear();
-                controller.match.BeforeMenu.selectedZombies.clear();
-
-                App.currentMenu = new controller.match.CoopBeforeMenu();
-            }
+            case "trophy", "trophies" -> App.currentMenu = new TrophiesMenu();
+            case "console" -> App.currentMenu = new ConsoleMenu();
+            case "adventure" -> App.currentMenu = new AdventureMenu();
             default -> throw new GameException("no such menu.");
         }
         System.out.println("Menu changed to: " + menuKey + " menu");

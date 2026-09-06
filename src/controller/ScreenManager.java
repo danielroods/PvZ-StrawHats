@@ -12,12 +12,17 @@ import controller.ui_menus.greenhouse.ShopMenu;
 import model.App;
 import model.match.main.levels.Level;
 import view.screens.generals.BaseScreen;
+import view.screens.generals.GameMenuScreen;
 import view.screens.match.after.AfterMatchScreen;
 import view.screens.stages.*;
 import view.screens.ui_menus.*;
 
 import view.screens.match.before.BeforeMatchScreen;
 import view.screens.match.gameplay.*;
+import view.screens.stages.BigWaveBeachStagesScreen;
+import view.screens.stages.DarkAgesStagesScreen;
+import view.screens.stages.EgyptStagesScreen;
+import view.screens.stages.FrostbiteCavesStagesScreen;
 import view.screens.generals.GameScreen;
 import controller.match.mini_games.*;
 import view.screens.match.gameplay.mini_games.*;
@@ -107,6 +112,9 @@ public final class ScreenManager {
         if (menu instanceof GameMenu) {
             return new GameMenuScreen();
         }
+        if (menu instanceof AdventureMenu) {
+            return new AdventureScreen();
+        }
         if (menu instanceof ConsoleMenu) {
             return new ConsoleScreen();
         }
@@ -128,6 +136,9 @@ public final class ScreenManager {
         }
         if (menu instanceof LeaderboardMenu) {
             return new LeaderboardScreen();
+        }
+        if (menu instanceof TrophiesMenu) {
+            return new TrophiesScreen();
         }
         if (menu instanceof ShopMenu) {
             return new ShopScreen();
@@ -162,33 +173,50 @@ public final class ScreenManager {
                     view.screens.match.before.CoopBeforeMatchScreen::new);
         }
         if (menu instanceof BeforeMenu) {
-            return new view.screens.generals.LoadingScreen(BeforeMatchScreen::new);
+            return new BeforeMatchScreen();
         }
         if (menu instanceof GameplayMenu) {
-            return new view.screens.generals.LoadingScreen(ScreenManager::buildGameplayScreen);
+            Level level = model.utils.GameSession.peekInstance() == null
+                    ? null : model.utils.GameSession.peekInstance().getLevel();
+
+
+
+            String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
+            if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
+                return new EgyptGameScreen();
+            }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
+                return new DarkAgesGameScreen();
+            }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
+                return new BigWaveBeachGameScreen();
+            }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
+                return new FrostbiteCavesGameScreen();
+            }
+            return new GameScreen();
         }
         if (menu instanceof AfterMenu) {
-            return new view.screens.generals.LoadingScreen(AfterMatchScreen::new);
+            return new AfterMatchScreen();
         }
 
         if (menu instanceof VasebreakerController) {
-            return new view.screens.generals.LoadingScreen(VasebreakerGameScreen::new);
+            return new VasebreakerGameScreen();
         }
         if (menu instanceof WallnutBowlingController) {
-            return new view.screens.generals.LoadingScreen(WallnutBowlingGameScreen::new);
+            return new WallnutBowlingGameScreen();
         }
         if (menu instanceof ImZombieController) {
-            return new view.screens.generals.LoadingScreen(IZombieGameScreen::new);
+            return new IZombieGameScreen();
         }
         if (menu instanceof BeghouledController) {
-            return new view.screens.generals.LoadingScreen(BeghouledGameScreen::new);
+            return new BeghouledGameScreen();
         }
         if (menu instanceof ZombotanyController) {
-            return new view.screens.generals.LoadingScreen(ZombotanyGameScreen::new);
+            return new ZombotanyGameScreen();
         }
         if (menu instanceof MiniGameEndMenu) {
-            return new view.screens.generals.LoadingScreen(
-                    MiniGameEndScreen::new);
+            return new MiniGameEndScreen();
         }
 
         if (menu instanceof MatchMenu) {
@@ -217,41 +245,41 @@ public final class ScreenManager {
         return new PlaceholderScreen(menu);
     }
 
-    /**
-     * Gameplay always resolves on the level's own season, Lottery nodes included: an
-     * endless level carries its chapter's season, so it lands on that chapter's screen
-     * and gets the same map, hazards, overlays and music every other stage there does.
-     * The endless score panel rides on GameScreen itself (see
-     * {@code GameScreen.createEndlessHud}) rather than needing a screen of its own.
-     */
-    private static BaseScreen buildGameplayScreen() {
-        Level level = model.utils.GameSession.peekInstance() == null
-                ? null : model.utils.GameSession.peekInstance().getLevel();
+    private static boolean isDangerOrLotteryLevel(Level level) {
+        if (level == null) {
+            Level selected = MatchMenu.selectedLevel;
+            if (selected != null) {
+                return isDangerOrLotteryLevel(selected);
+            }
+            return false;
+        }
 
-        String seasonName = level == null || level.getSeason() == null ? null : level.getSeason().getName();
-        if (seasonName != null && seasonName.equalsIgnoreCase("Egypt")) {
-            return new EgyptGameScreen();
+        String className = level.getClass().getSimpleName().toLowerCase();
+        if (className.contains("danger") || className.contains("lottery") || className.contains("pipe")) {
+            return true;
         }
-        if (seasonName != null && seasonName.equalsIgnoreCase("Dark Ages")) {
-            return new DarkAgesGameScreen();
+
+        try {
+            if (level.getName() != null) {
+                String name = level.getName().toLowerCase();
+                if (name.contains("danger") || name.contains("lottery") || name.contains("pipe") || name.contains("لوله")) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        String[] checkMethods = {"isDangerNode", "isDanger", "isLottery", "isLotteryLevel"};
+        for (String methodName : checkMethods) {
+            try {
+                java.lang.reflect.Method m = level.getClass().getMethod(methodName);
+                Object val = m.invoke(level);
+                if (Boolean.TRUE.equals(val)) {
+                    return true;
+                }
+            } catch (Throwable ignored) {}
         }
-        if (seasonName != null && seasonName.equalsIgnoreCase("Future")) {
-            return new FutureGameScreen();
-        }
-        if (seasonName != null && seasonName.equalsIgnoreCase("Big Wave Beach")) {
-            return new BigWaveBeachGameScreen();
-        }
-        if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
-            return new FrostbiteCavesGameScreen();
-        }
-        if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
-            return new PirateGameScreen();
-        }
-        // Regular season game screen also handles ConveyorBeltLevel special levels -
-        // that level type is a gameplay mechanic (see model.match.main.levels.special_levels.
-        // ConveyorBeltLevel), not a separate screen, so it rides along with whatever
-        // season screen (or the plain GameScreen fallback) the level belongs to.
-        return new GameScreen();
+
+        return false;
     }
 
     public static BaseScreen getScreen() {
