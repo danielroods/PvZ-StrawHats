@@ -18,6 +18,7 @@ import model.projectile.zombie_projectile.OctopusProjectile;
 import model.projectile.zombie_projectile.SnowballProjectile;
 import model.projectile.zombie_projectile.BoneProjectile;
 import model.projectile.zombie_projectile.CrystalSkullBeamProjectile;
+import model.projectile.zombie_projectile.FutureGargantuarBeamProjectile;
 import model.projectile.zombie_projectile.ZombiePeaProjectile;
 import model.projectile.zombie_projectile.ZombieProjectile;
 import service.resource_manager.AudioEnum;
@@ -165,6 +166,17 @@ class EffectRenderer {
     // The beam clip is authored one tile wide; stretch it across however many
     // tiles separate the zombie from the plant it's hitting.
     private static final float CRYSTALSKULL_BEAM_HEIGHT_SCALE = PROJECTILE_PAM_SCALE * 2.0f;
+    private static final String FUTURE_GARGANTUAR_BEAM_PAM =
+            "768/FULL/EFFECTS/ZOMBIE_FUTURE_GARGANTUAR_BEAM/ZOMBIE_FUTURE_GARGANTUAR_BEAM.PAM";
+    private static final String FUTURE_GARGANTUAR_BEAM_STATE = "laser_beam";
+    private static final String FUTURE_GARGANTUAR_SCORCH_PAM =
+            "768/FULL/EFFECTS/ZOMBIE_FUTURE_GARGANTUAR_SCORCH/ZOMBIE_FUTURE_GARGANTUAR_SCORCH.PAM";
+    private static final String FUTURE_GARGANTUAR_SCORCH_STATE = "laser_hit";
+    private static final float FUTURE_GARGANTUAR_BEAM_HEIGHT_SCALE = PROJECTILE_PAM_SCALE * 2.4f;
+    private static final float FUTURE_GARGANTUAR_SCORCH_SCALE = PROJECTILE_PAM_SCALE * 2.0f;
+    // The beam leaves the gargantuar's chest, noticeably higher than a normal muzzle.
+    private static final float FUTURE_GARGANTUAR_BEAM_MUZZLE_Y = 0.62f;
+
     private static final String OCTOPUS_PROJECTILE_PAM =
             "768/FULL/EFFECTS/ZOMBIE_OCTOPUS_PROJECTILE/ZOMBIE_OCTOPUS_PROJECTILE.PAM";
 
@@ -1099,7 +1111,13 @@ class EffectRenderer {
             if (path != null) {
                 float x = GameScreen.BOARD_X + (float) position.x() * screen.getBoardTileWidth() - 10f;
                 float y = screen.cellY(position.y()) + 40f;
-                pamDrawn = screen.drawPam(path, "fly", age, x, y, 0.52f, impProjectile.isFacingRight());
+               String state = "fly";
+                if (AnimationFactory.hasExactClip(path, GargantuarImpProjectile.CLIP_RISING)) {
+                    state = impProjectile.isRising()
+                            ? GargantuarImpProjectile.CLIP_RISING
+                            : GargantuarImpProjectile.CLIP_FALLING;
+                }
+                pamDrawn = screen.drawPam(path, state, age, x, y, 0.52f, impProjectile.isFacingRight());
             }
             if (!pamDrawn) {
                 drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
@@ -1128,6 +1146,8 @@ class EffectRenderer {
             drawZombieProjectileTexture(BONE_PROJECTILE_TEXTURE, position, 0.34f, 90f);
         } else if (projectile instanceof CrystalSkullBeamProjectile beam) {
             drawCrystalSkullBeam(beam, position, age);
+        } else if (projectile instanceof FutureGargantuarBeamProjectile beam) {
+            drawFutureGargantuarBeam(beam, position, age);
         } else {
             drawSmallDot(position, new Color(0.8f, 0.18f, 0.18f, 1f));
         }
@@ -1164,6 +1184,38 @@ class EffectRenderer {
                 sourceX, y, scaleX, CRYSTALSKULL_BEAM_HEIGHT_SCALE, false)) {
             drawSmallDot(sourcePosition, new Color(0.55f, 0.85f, 0.95f, 1f));
         }
+    }
+
+    private void drawFutureGargantuarBeam(FutureGargantuarBeamProjectile beam,
+                                          Position sourcePosition, float age) {
+        Position targetPosition = beam.getBeamTargetPosition();
+        if (targetPosition == null) {
+            drawSmallDot(sourcePosition, new Color(1f, 0.35f, 0.2f, 1f));
+            return;
+        }
+
+        float boardTileWidth = screen.getBoardTileWidth();
+        float boardTileHeight = screen.getBoardTileHeight();
+        float sourceX = GameScreen.BOARD_X + (float) sourcePosition.x() * boardTileWidth
+                + boardTileWidth * 0.41f;
+        float targetX = GameScreen.BOARD_X + (float) targetPosition.x() * boardTileWidth
+                + boardTileWidth * 0.41f;
+        float beamY = screen.cellY(sourcePosition.y())
+                + boardTileHeight * FUTURE_GARGANTUAR_BEAM_MUZZLE_Y;
+
+        float distancePixels = targetX - sourceX;
+        float scaleX = distancePixels / boardTileWidth * PROJECTILE_PAM_SCALE;
+        if (Math.abs(scaleX) < 0.01f) scaleX = scaleX < 0 ? -0.01f : 0.01f;
+
+        boolean beamDrawn = screen.drawPamStretched(FUTURE_GARGANTUAR_BEAM_PAM,
+                FUTURE_GARGANTUAR_BEAM_STATE, age, sourceX, beamY, scaleX,
+                FUTURE_GARGANTUAR_BEAM_HEIGHT_SCALE, false);
+        if (!beamDrawn) drawSmallDot(sourcePosition, new Color(1f, 0.35f, 0.2f, 1f));
+
+        float scorchY = screen.cellY(targetPosition.y())
+                + boardTileHeight * FUTURE_GARGANTUAR_BEAM_MUZZLE_Y;
+        screen.drawPam(FUTURE_GARGANTUAR_SCORCH_PAM, FUTURE_GARGANTUAR_SCORCH_STATE, age,
+                targetX, scorchY, FUTURE_GARGANTUAR_SCORCH_SCALE, false);
     }
 
     private void drawZombieProjectileTexture(String path, Position position, float scale, float rotation) {

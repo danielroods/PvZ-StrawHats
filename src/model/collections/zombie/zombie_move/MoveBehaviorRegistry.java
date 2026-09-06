@@ -59,6 +59,16 @@ public final class MoveBehaviorRegistry {
                     BehaviorSpec.getDouble(data, "RowGlideSpeed", 3.0));
             return new PelicanFlyMove(glideSpeed);
         });
+
+        register("JetpackFlyMove", (params, data) -> {
+            double cooldown = BehaviorSpec.getDouble(params, "takeoffCooldown",
+                    BehaviorSpec.getDouble(data, "TakeoffCooldownSeconds", 4.0));
+            double chance = BehaviorSpec.getDouble(params, "takeoffChancePerSecond",
+                    BehaviorSpec.getDouble(data, "TakeoffChancePerSecond", 0.35));
+            double flight = BehaviorSpec.getDouble(params, "flightSeconds",
+                    BehaviorSpec.getDouble(data, "FlightSeconds", 5.0));
+            return new JetpackFlyMove(cooldown, chance, flight);
+        });
     }
 
     private MoveBehaviorRegistry() {}

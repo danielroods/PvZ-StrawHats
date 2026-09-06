@@ -1,5 +1,6 @@
 package model.collections.zombie.zombie_effect;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,16 @@ public class EffectStatusRegistry {
 
     public static ZombieEffectStatus createOrNull(Object spec, Map<String, Object> zombieData) {
         if (spec == null) return null;
+
+        if (spec instanceof List<?> rawList) {
+            List<ZombieEffectStatus> combined = new ArrayList<>();
+            for (Object entry : rawList) {
+                ZombieEffectStatus effect = createOrNull(entry, zombieData);
+                if (effect != null) combined.add(effect);
+            }
+            if (combined.isEmpty()) return null;
+            return combined.size() == 1 ? combined.get(0) : new CompositeEffectStatus(combined);
+        }
 
         String type;
         Map<String, Object> params;
@@ -52,6 +63,16 @@ public class EffectStatusRegistry {
             case "PianistMusicEffect" -> new PianistMusicEffect(getDouble(params, data, "tempoDelay", 5.0));
 
             case "ParrotCompanionEffect" -> new ParrotCompanionEffect(getDouble(params, data, "raidCooldown", 12.0));
+
+            case "ProtectorShieldEffect" -> new ProtectorShieldEffect(
+                    getDouble(params, data, "castCooldown", 6.0),
+                    getInt(params, data, "shieldAmount", 300),
+                    getDouble(params, data, "shieldRadius", 4.0));
+
+            case "FutureGargantuarLaser" -> new FutureGargantuarLaser(
+                    getInt(params, data, "laserDamage", 1800),
+                    getDouble(params, data, "laserCooldown", 9.0),
+                    getInt(params, data, "laserRange", 9));
 
             case "SunThief" -> new SunThief(
                     getBoolean(params, data, "isBankThief", false),

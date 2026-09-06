@@ -6,17 +6,6 @@ class BoardLayout {
 
     static final float FALLING_SUN_CLICK_HEIGHT = 80f;
 
-    /**
-     * Where the lawn sits inside a season's background image. Every match background is one
-     * wide picture whose right edge *is* the right edge of the lawn, so there is no inset on
-     * that side: pinning the picture to the right of the screen puts column 9 hard against
-     * the screen edge, the way PvZ2 frames a lawn.
-     */
-    private static final float BOARD_INSET_LEFT_FRAC = 633f / 1366f;
-    private static final float BOARD_INSET_TOP_FRAC = 192f / 768f;
-    private static final float BOARD_INSET_BOTTOM_FRAC = 82f / 768f;
-
-    /** Lawn width in background-image pixels, used to keep art scales stable. */
     private static final float SOURCE_BOARD_WIDTH = 733f;
 
     /** Horizontal space reserved for the pre-match zombie preview on the right. */
@@ -81,10 +70,11 @@ class BoardLayout {
             bgX = viewW - bgW - rightArea;
             bgY = (viewH - bgH) * 0.5f;
 
-            float boardPixelW = bgW * (1f - BOARD_INSET_LEFT_FRAC);
-            float boardPixelH = bgH * (1f - BOARD_INSET_TOP_FRAC - BOARD_INSET_BOTTOM_FRAC);
-            GameScreen.BOARD_X = bgX + bgW * BOARD_INSET_LEFT_FRAC;
-            GameScreen.BOARD_Y = bgY + bgH * BOARD_INSET_BOTTOM_FRAC;
+            ChapterLawnArt.Insets insets = screen.boardInsets();
+            float boardPixelW = bgW * (1f - insets.left() - insets.right());
+            float boardPixelH = bgH * (1f - insets.top() - insets.bottom());
+            GameScreen.BOARD_X = bgX + bgW * insets.left();
+            GameScreen.BOARD_Y = bgY + bgH * insets.bottom();
 
             int cols = screen.session == null ? 9 : screen.session.getCols();
             int rows = screen.session == null ? 5 : screen.session.getRows();

@@ -39,6 +39,17 @@ public class ZombieAnimationRegistry {
             // clips plus the rope-swing clips: "swing back", "swing success",
             // and "swing failure".
             Map.entry("ZombieSwashbuckler", "ZOMBIE_SWASHBUCKLER"),
+
+            Map.entry("ZombieFutureBasic", "ZOMBIE_FUTURE_BASIC"),
+            Map.entry("ZombieFutureFlag", "ZOMBIE_FUTURE_FLAG"),
+            Map.entry("ZombieFutureProtector", "ZOMBIE_FUTURE_PROTECTOR"),
+            Map.entry("ZombieFutureJetpack", "ZOMBIE_FUTURE_JETPACK"),
+            Map.entry("ZombieFutureJetpackBasic", "ZOMBIE_FUTURE_JETPACK_BASIC"),
+            Map.entry("ZombieFutureJetpackVeteran", "ZOMBIE_FUTURE_JETPACK_VETERAN"),
+            Map.entry("ZombieMechCone", "ZOMBIE_MECH_CONE"),
+            Map.entry("ZombieMechFootball", "ZOMBIE_MECH_FOOTBALL"),
+            Map.entry("ZombieFutureGargantuar", "GARGANTUAR"),
+            Map.entry("ZombieFutureImp", "GARGANTUAR_IMP"),
             Map.entry("ZombiePeashooter", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieGatlingPea", "ZOMBIE_TUTORIAL"),
             Map.entry("ZombieWallnut", "ZOMBIE_TUTORIAL"),
@@ -97,6 +108,7 @@ public class ZombieAnimationRegistry {
             boolean isIce = s.contains("ice") || s.contains("cave") || s.contains("frostbite");
             boolean isDark = s.contains("dark");
             boolean isPirate = s.contains("pirate");
+            boolean isFuture = s.contains("future");
 
             if ("ZombieGargantuar".equalsIgnoreCase(zombieAlias)) {
                 if (isEgypt) return "768/INITIAL/ZOMBIE/EGYPT_GARGANTUAR/EGYPT_GARGANTUAR.PAM";
@@ -104,6 +116,7 @@ public class ZombieAnimationRegistry {
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_GARGANTUAR/ZOMBIE_ICEAGE_GARGANTUAR.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/DARK_GARGANTUAR/DARK_GARGANTUAR.PAM";
                 if (isPirate) return "768/FULL/ZOMBIE/PIRATE_GARGANTUAR/PIRATE_GARGANTUAR.PAM";
+                if (isFuture) return "768/FULL/ZOMBIE/GARGANTUAR/GARGANTUAR.PAM";
             }
 
             if ("ZombieDefault".equalsIgnoreCase(zombieAlias)
@@ -115,6 +128,11 @@ public class ZombieAnimationRegistry {
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_BASIC/ZOMBIE_ICEAGE_BASIC.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_BASIC/ZOMBIE_DARK_BASIC.PAM";
                 if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BASIC/ZOMBIE_PIRATE_BASIC.PAM";
+                if (isFuture) {
+                    return "ZombieArmor4".equalsIgnoreCase(zombieAlias)
+                            ? "768/FULL/ZOMBIE/ZOMBIE_FUTURE_BASIC_BRICK/ZOMBIE_FUTURE_BASIC_BRICK.PAM"
+                            : "768/FULL/ZOMBIE/ZOMBIE_FUTURE_BASIC/ZOMBIE_FUTURE_BASIC.PAM";
+                }
             }
 
             if ("ZombieImp".equalsIgnoreCase(zombieAlias)) {
@@ -123,6 +141,7 @@ public class ZombieAnimationRegistry {
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_IMP_MONK/ZOMBIE_DARK_IMP_MONK.PAM";
                 if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_IMP/ZOMBIE_PIRATE_IMP.PAM";
+                if (isFuture) return "768/FULL/ZOMBIE/GARGANTUAR_IMP/GARGANTUAR_IMP.PAM";
             }
 
             if ("ZombieFlag".equalsIgnoreCase(zombieAlias)) {
@@ -131,10 +150,19 @@ public class ZombieAnimationRegistry {
                 if (isIce)   return "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_FLAG/ZOMBIE_ICEAGE_FLAG.PAM";
                 if (isDark)  return "768/FULL/ZOMBIE/ZOMBIE_DARK_FLAG/ZOMBIE_DARK_FLAG.PAM";
                 if (isPirate) return "768/FULL/ZOMBIE/ZOMBIE_PIRATE_BASIC_FLAG/ZOMBIE_PIRATE_BASIC_FLAG.PAM";
+                if (isFuture) return "768/FULL/ZOMBIE/ZOMBIE_FUTURE_FLAG/ZOMBIE_FUTURE_FLAG.PAM";
             }
         }
 
         return pathFor(zombieAlias);
+    }
+
+    public static String pathForCurrentSeason(String zombieAlias) {
+        model.utils.GameSession session = model.utils.GameSession.peekInstance();
+        String season = session == null || session.getLevel() == null
+                || session.getLevel().getSeason() == null
+                ? null : session.getLevel().getSeason().getName();
+        return pathFor(zombieAlias, season);
     }
 
     public static boolean isVerified(String zombieAlias) {

@@ -1282,45 +1282,55 @@
       "Sunflower",
       "Sun-shroom",
       "Peashooter",
-      "Wall-nut"
+      "Wall-nut",
+      "Cabbage-pult",
+      "Cactus"
     ],
     "forcedPlants": [
       "Sun-shroom"
     ],
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieDarkJuggler",
-      "ZombieWizard",
-      "ZombieDarkImpDragon"
+      "ZombieFutureBasic",
+      "ZombieFutureFlag",
+      "ZombieFutureImp",
+      "ZombieFutureJetpackBasic"
     ],
     "waves": [
       {
         "delay": 10,
         "zombies": [
-          "ZombieDarkImpDragon",
-          "ZombieDefault"
+          "ZombieFutureBasic"
         ]
       },
       {
         "delay": 20,
         "zombies": [
-          "ZombieDarkJuggler"
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureImp"
         ]
       },
       {
         "delay": 24,
         "zombies": [
-          "ZombieDarkJuggler",
-          "ZombieDarkImpDragon",
-          "ZombieDefault"
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureImp"
         ]
       },
       {
         "delay": 28,
         "zombies": [
-          "ZombieWizard",
-          "ZombieDarkJuggler",
-          "ZombieDarkImpDragon"
+          "ZombieFutureFlag",
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureImp",
+          "ZombieFutureImp",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic"
         ]
       }
     ]
@@ -1339,48 +1349,60 @@
       "Sun-shroom",
       "Peashooter",
       "Wall-nut",
-      "Tall-nut"
+      "Tall-nut",
+      "Cabbage-pult",
+      "Cactus"
     ],
     "forcedPlants": [],
     "maxPlantLoss": 5,
     "zombiePool": [
-      "ZombieDefault",
-      "ZombiePiano",
-      "ZombieNewspaper",
-      "ZombieDarkJuggler",
-      "ZombieWizard",
-      "ZombieDarkImpDragon"
+      "ZombieFutureBasic",
+      "ZombieFutureFlag",
+      "ZombieFutureImp",
+      "ZombieFutureJetpackBasic",
+      "ZombieFutureJetpack",
+      "ZombieFutureProtector",
+      "ZombieMechCone"
     ],
     "waves": [
       {
         "delay": 10,
         "zombies": [
-          "ZombieDarkJuggler",
-          "ZombieDefault"
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureImp"
         ]
       },
       {
         "delay": 18,
         "zombies": [
-          "ZombieNewspaper",
-          "ZombieDarkImpDragon"
+          "ZombieMechCone",
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureBasic"
         ]
       },
       {
         "delay": 22,
         "zombies": [
-          "ZombieWizard",
-          "ZombieDarkJuggler"
+          "ZombieFutureProtector",
+          "ZombieFutureJetpack",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic"
         ]
       },
       {
         "delay": 26,
         "zombies": [
-          "ZombieWizard",
-          "ZombiePiano",
-          "ZombieNewspaper",
-          "ZombieDarkJuggler",
-          "ZombieDarkImpDragon"
+          "ZombieFutureFlag",
+          "ZombieFutureProtector",
+          "ZombieMechCone",
+          "ZombieFutureJetpack",
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureJetpackBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic"
         ]
       }
     ]
@@ -1402,7 +1424,9 @@
       "Potato Mine",
       "Cabbage-pult",
       "Melon-pult",
-      "Citron"
+      "Citron",
+      "Cactus",
+      "Electric Blueberry"
     ],
     "forcedPlants": [],
     "seedPositions": {
@@ -1410,48 +1434,53 @@
       "3,2": "Citron"
     },
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieArmor1",
-      "ZombieNewspaper",
-      "ZombieDarkJuggler",
-      "ZombieWizard",
-      "ZombieDarkImpDragon"
+      "ZombieFutureBasic",
+      "ZombieFutureFlag",
+      "ZombieFutureImp",
+      "ZombieFutureJetpack",
+      "ZombieFutureJetpackVeteran",
+      "ZombieFutureProtector",
+      "ZombieMechCone",
+      "ZombieMechFootball"
     ],
     "waves": [
       {
         "delay": 12,
         "zombies": [
-          "ZombieDarkJuggler",
-          "ZombieDarkImpDragon"
+          "ZombieFutureBasic",
+          "ZombieFutureBasic",
+          "ZombieFutureJetpack"
         ]
       },
       {
         "delay": 20,
         "zombies": [
-          "ZombieNewspaper",
-          "ZombieDefault",
-          "ZombieDefault"
+          "ZombieMechCone",
+          "ZombieFutureProtector",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic"
         ]
       },
       {
         "delay": 24,
         "zombies": [
-          "ZombieWizard",
-          "ZombieDarkJuggler",
-          "ZombieArmor1",
-          "ZombieDefault"
+          "ZombieMechFootball",
+          "ZombieFutureJetpackVeteran",
+          "ZombieFutureImp"
         ]
       },
       {
         "delay": 28,
         "zombies": [
-          "ZombieWizard",
-          "ZombieWizard",
-          "ZombieDarkJuggler",
-          "ZombieNewspaper",
-          "ZombieArmor1",
-          "ZombieDarkImpDragon",
-          "ZombieDefault"
+          "ZombieFutureFlag",
+          "ZombieMechFootball",
+          "ZombieFutureProtector",
+          "ZombieFutureJetpackVeteran",
+          "ZombieMechCone",
+          "ZombieMechCone",
+          "ZombieFutureJetpack",
+          "ZombieFutureBasic",
+          "ZombieFutureBasic"
         ]
       }
     ]
@@ -1478,21 +1507,22 @@
       "Torchwood",
       "Snow Pea",
       "Winter Melon",
-      "Melon-pult"
+      "Melon-pult",
+      "Cabbage-pult",
+      "Cactus"
     ],
     "forcedPlants": [],
     "zombiePool": [
-      "ZombieDefault",
-      "ZombieImp",
-      "ZombieArmor1",
-      "ZombieArmor4",
-      "ZombieDarkArmor3",
-      "ZombieGargantuar",
-      "ZombiePiano",
-      "ZombieDarkJuggler",
-      "ZombieWizard",
-      "ZombieDarkKing",
-      "ZombieDarkImpDragon"
+      "ZombieFutureBasic",
+      "ZombieFutureFlag",
+      "ZombieFutureImp",
+      "ZombieFutureJetpack",
+      "ZombieFutureJetpackBasic",
+      "ZombieFutureJetpackVeteran",
+      "ZombieFutureProtector",
+      "ZombieMechCone",
+      "ZombieMechFootball",
+      "ZombieFutureGargantuar"
     ],
     "waves": [],
     "chapter": "future"

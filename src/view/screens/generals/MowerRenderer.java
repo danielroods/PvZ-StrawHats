@@ -46,6 +46,7 @@ class MowerRenderer {
         SEASON_LAWN_MOWER_PAM_PATHS.put("darkage", dark);
         SEASON_LAWN_MOWER_PAM_PATHS.put("dark ages", dark);
         SEASON_LAWN_MOWER_PAM_PATHS.put("dark_ages", dark);
+        SEASON_LAWN_MOWER_PAM_PATHS.put("future", future);
         SEASON_LAWN_MOWER_PAM_PATHS.put("pirates", new String[]{
                 "768/FULL/MOWERS/MOWER_PIRATE/MOWER_PIRATE.PAM"
         });

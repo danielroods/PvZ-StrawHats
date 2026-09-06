@@ -3702,5 +3702,720 @@
       ],
       "move": "SwashbucklerSwingMove"
     }
+  },
+  {
+    "aliases": [
+      "ZombieFutureBasic"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.185,
+      "WavePointCost": 100,
+      "Weight": 1000
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureFlag"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.185,
+      "WavePointCost": 100,
+      "Weight": 1000
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureProtector"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": false,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 900,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.16,
+      "WavePointCost": 400,
+      "Weight": 1000,
+      "Stun": {
+        "HealthPercent": 0.5,
+        "Seconds": 2.5,
+        "Immobilizes": true
+      },
+      "effect": {
+        "type": "ProtectorShieldEffect",
+        "castCooldown": 6.0,
+        "shieldAmount": 300,
+        "shieldRadius": 4.0
+      }
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureJetpackBasic"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.19,
+      "WavePointCost": 150,
+      "Weight": 1000,
+      "EntersOnBoard": true,
+      "DamageWhileSubmerged": {
+        "List": [
+          "cactus",
+          "electricblueberry"
+        ],
+        "ListType": "includelist"
+      },
+      "TakeoffCooldownSeconds": 4.0,
+      "TakeoffChancePerSecond": 0.35,
+      "FlightSeconds": 5.0,
+      "move": "JetpackFlyMove"
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureJetpack"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.19,
+      "WavePointCost": 300,
+      "Weight": 1000,
+      "EntersOnBoard": true,
+      "DamageWhileSubmerged": {
+        "List": [
+          "cactus",
+          "electricblueberry"
+        ],
+        "ListType": "includelist"
+      },
+      "TakeoffCooldownSeconds": 4.0,
+      "TakeoffChancePerSecond": 0.35,
+      "FlightSeconds": 5.0,
+      "move": "JetpackFlyMove",
+      "ZombieArmorProps": [
+        "RTID(ConeDefault@ArmorTypes)"
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureJetpackVeteran"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.19,
+      "WavePointCost": 700,
+      "Weight": 1000,
+      "EntersOnBoard": true,
+      "DamageWhileSubmerged": {
+        "List": [
+          "cactus",
+          "electricblueberry"
+        ],
+        "ListType": "includelist"
+      },
+      "TakeoffCooldownSeconds": 4.0,
+      "TakeoffChancePerSecond": 0.35,
+      "FlightSeconds": 5.0,
+      "move": "JetpackFlyMove",
+      "ZombieArmorProps": [
+        "RTID(BrickDefault@ArmorTypes)"
+      ]
+    }
+  },
+  {
+    "aliases": [
+      "ZombieMechCone"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": false,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 1200,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.17,
+      "WavePointCost": 400,
+      "Weight": 1000,
+      "Stun": {
+        "HealthPercent": 0.5,
+        "Seconds": 3.0,
+        "Immobilizes": false
+      }
+    }
+  },
+  {
+    "aliases": [
+      "ZombieMechFootball"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": false,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 2000,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Speed": 0.21,
+      "WavePointCost": 700,
+      "Weight": 1000,
+      "Stun": {
+        "HealthPercent": 0.5,
+        "Seconds": 3.0,
+        "Immobilizes": false
+      }
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureGargantuar"
+    ],
+    "objclass": "ZombieGargantuarProps",
+    "objdata": {
+      "AlmanacOffset": {
+        "x": -10,
+        "y": 40
+      },
+      "AlmanacScale": 1,
+      "ArmDropFraction": -1,
+      "ArtCenter": {
+        "x": 90,
+        "y": 125
+      },
+      "AttackRect": {
+        "mHeight": 95,
+        "mWidth": 30,
+        "mX": 0,
+        "mY": 10
+      },
+      "CanBeFlickedOff": false,
+      "CanSpawnPlantFood": false,
+      "Cost": 150,
+      "EatDPS": 0,
+      "ExplodesWhenMowed": true,
+      "FlickIsLaneRestricted": true,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 95,
+        "mWidth": 62,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 3600,
+      "ImpApex": 250,
+      "ImpFlightTime": 1.5,
+      "ImpSpawnOffset": {
+        "x": -100,
+        "y": 2,
+        "z": 115
+      },
+      "ImpTargetColumn": 2,
+      "ImpType": "ZombieFutureImp",
+      "IsValidPinchTarget": false,
+      "MinPosXThrowImp": 400,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "SmashDamage"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 1.4
+      },
+      "Size": "large",
+      "SkipHeadDropState": true,
+      "SmashDamage": 1500,
+      "SmashDuration": 2,
+      "Speed": 0.24,
+      "StaticArtImageAsset": "IMAGE_GARGANTUAR",
+      "Stun": {
+        "HealthPercent": 0.5,
+        "Seconds": 2.5,
+        "Immobilizes": false
+      },
+      "ThrowImpDuration": 1,
+      "WavePointCost": 1500,
+      "Weight": 3000,
+      "attack": {
+        "type": "SmashAttack",
+        "windupDuration": 2.0,
+        "actionState": "smash_right",
+        "actionStateDuration": 0.9
+      },
+      "effect": [
+        {
+          "type": "GargantuarImpThrowEffect",
+          "launchThreshold": 0.5
+        },
+        {
+          "type": "FutureGargantuarLaser",
+          "laserDamage": 1800,
+          "laserCooldown": 9.0,
+          "laserRange": 9
+        }
+      ],
+      "move": "NormalWalk"
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureImp"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 102,
+        "y": 124
+      },
+      "AttackRect": {
+        "mHeight": 80,
+        "mWidth": 20,
+        "mX": 15,
+        "mY": 0
+      },
+      "CanSpawnPlantFood": true,
+      "Cost": 150,
+      "EatDPS": 100,
+      "GroundTrackName": "ground_swatch",
+      "HitRect": {
+        "mHeight": 80,
+        "mWidth": 32,
+        "mX": 10,
+        "mY": 10
+      },
+      "Hitpoints": 190,
+      "ScaledProps": [
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "Hitpoints"
+        },
+        {
+          "Arg1": 1.3,
+          "Arg2": 0.05,
+          "Formula": "standard",
+          "Key": "EatDPS"
+        },
+        {
+          "Formula": "constant",
+          "Key": "Speed"
+        },
+        {
+          "Formula": "constant",
+          "Key": "WavePointCost"
+        }
+      ],
+      "ShadowOffset": {
+        "x": 5,
+        "y": 0,
+        "z": 0.8
+      },
+      "Speed": 0.22,
+      "WavePointCost": 100,
+      "Weight": 1000,
+      "Size": "imp",
+      "Stun": {
+        "HealthPercent": 0.5,
+        "Seconds": 2.0,
+        "Immobilizes": false
+      }
+    }
   }
 ]

@@ -62,7 +62,7 @@ class SeasonOverlayRenderer {
                 Cell cell = screen.session.getEnvironment().getCell(r, c);
                 if (cell == null) continue;
                 if (cell.getTile() != null && cell.getTile().type().name().equalsIgnoreCase("WATER")
-                        && !screen.isBeach()) {
+                        && !screen.hasPaintedWater()) {
                     screen.batch.setColor(0.22f, 0.52f, 0.72f, 0.45f);
                     screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth,
                             screen.cellY(r), boardTileWidth, boardTileHeight);

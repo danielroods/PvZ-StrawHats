@@ -114,9 +114,9 @@ public class BeforeMatchScreen extends GameScreen {
         } else if ("Dark Ages".equalsIgnoreCase(season)) {
             seasonFolder = "darkage";
         } else if ("Pirates".equalsIgnoreCase(season)) {
-            // Pirates intentionally uses the same gameplay assets/rules as Ancient Egypt
-            // until dedicated pirate gameplay-board assets are added.
-            seasonFolder = "egypt";
+            seasonFolder = "pirate";
+        } else if ("Future".equalsIgnoreCase(season)) {
+            seasonFolder = "future";
         }
     }
 

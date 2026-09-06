@@ -14,6 +14,8 @@ import model.collections.animations.ZombieShockAnimationRegistry;
 import model.collections.armour.ZombieArmour;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.ZombieState;
+import model.collections.zombie.ZombieStunProfile;
+import model.collections.zombie.zombie_effect.ProtectorShield;
 import model.collections.zombie.zombie_effect.RotationalTurbulenceState;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.collections.zombie.zombie_attack.SmashAttack;
@@ -37,6 +39,17 @@ class ZombieRenderer {
 
     private static final String ZOMBIE_SPAWN_EFFECT_PAM = "768/INITIAL/EFFECTS/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT.PAM";
     private static final float ZOMBIE_SPAWN_EFFECT_DURATION = 1.33f;
+    // Far Future has its own dirt burst for a zombie clawing its way out of a grave.
+    private static final String FUTURE_SPAWN_EFFECT_PAM =
+            "768/FULL/EFFECTS/DIRT_SPAWN_FUTURE/DIRT_SPAWN_FUTURE.PAM";
+    private static final String FUTURE_SPAWN_EFFECT_STATE = "tomb_dirt_anim";
+    // The glowing emitter that sits on the Future Gargantuar's chest while it fires,
+    // authored with the same laser_start/laser_idle/laser_end beats its body plays.
+    private static final String FUTURE_GARGANTUAR_BASE_PAM =
+            "768/FULL/EFFECTS/ZOMBIE_FUTURE_GARGANTUAR_BASE/ZOMBIE_FUTURE_GARGANTUAR_BASE.PAM";
+    private static final float FUTURE_GARGANTUAR_BASE_SCALE = 0.52f;
+    private static final float FUTURE_GARGANTUAR_BASE_OFFSET_X = 4f;
+    private static final float FUTURE_GARGANTUAR_BASE_OFFSET_Y = 0f;
     private static final float DEATH_ANIM_DURATION = 1.0f;
     private static final float HYPNO_OVERLAY_SCALE = 0.55f;
     private static final float ZOMBIE_SCALE = 0.52f;
@@ -93,6 +106,13 @@ class ZombieRenderer {
     // Named element inside every zombie's own PAM for the butter-stun face
     // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
+    // A Protector's projected bubble, drawn over whichever zombie is carrying it.
+    // The art is the Moonflower plant-food shield (see ProtectorShield).
+    private static final float SHIELD_SCALE = 0.52f;
+    private static final float SHIELD_OFFSET_X = 22f;
+    private static final float SHIELD_OFFSET_Y = 4f;
+    /** How long the "bubble just popped into existence" clip plays before it settles. */
+    private static final float SHIELD_ON_DURATION = 0.5f;
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
     private static final String SWASHBUCKLER_WATER_SPLASH_PAM =
@@ -164,6 +184,9 @@ class ZombieRenderer {
         final float ashDuration;
         final boolean barrelBroken;
         final boolean swashbucklerWaterDeath;
+        // Height above the lane the zombie was drawn at when it died (jetpack in flight),
+        // so the death animation plays where the zombie actually was.
+        final float hoverLift;
         // The barrel survives independently of the pusher zombie.  Keep the actual
         // structure reference so it can continue rolling after the zombie's death
         // sequence has finished.
@@ -175,7 +198,7 @@ class ZombieRenderer {
         DyingZombie(String alias, Position position, boolean facingRight,
                     float duration, String shockPath, float shockDuration,
                     String ashPath, float ashDuration, boolean barrelBroken,
-                    boolean swashbucklerWaterDeath,
+                    boolean swashbucklerWaterDeath, float hoverLift,
                     PushableStructure barrelStructure) {
             this.alias = alias;
             this.position = position;
@@ -187,6 +210,7 @@ class ZombieRenderer {
             this.ashDuration = ashDuration;
             this.barrelBroken = barrelBroken;
             this.swashbucklerWaterDeath = swashbucklerWaterDeath;
+            this.hoverLift = hoverLift;
             this.barrelStructure = barrelStructure;
             this.barrelRollTime = 0f;
             this.barrelDeathTime = -1f;
@@ -212,6 +236,7 @@ class ZombieRenderer {
     private final Map<Zombie, Float> arcadeDeathAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> arcadeWaterRipples = new IdentityHashMap<>();
     private final Map<Zombie, Float> barrelDeathAnimTimes = new IdentityHashMap<>();
+    private final Map<Zombie, Float> shieldAnimTimes = new IdentityHashMap<>();
     private final List<DyingZombie> dyingZombies = new ArrayList<>();
 
     ZombieRenderer(GameScreen screen) {
@@ -250,7 +275,8 @@ class ZombieRenderer {
             Position p = zombie.getPosition();
             float x = GameScreen.BOARD_X + (float) p.x() * boardTileWidth;
             float y = screen.cellY(p.y());
-            float zombieOffsetY = y + 40f;
+            float hoverLift = (float) zombie.getHoverHeight() * boardTileHeight;
+            float zombieOffsetY = y + 40f + hoverLift;
 
             boolean waterRippleEligible = screen.isBeach()
                     && !ZOMBIE_BEACH_FISHERMAN_ALIAS.equals(zombie.getAlias());
@@ -290,13 +316,18 @@ class ZombieRenderer {
             }
 
             if (zombieSpawnEffects.containsKey(zombie)) {
+                boolean futureSpawn = isFutureSeason();
+                String spawnPam = futureSpawn ? FUTURE_SPAWN_EFFECT_PAM : ZOMBIE_SPAWN_EFFECT_PAM;
+                String spawnState = futureSpawn ? FUTURE_SPAWN_EFFECT_STATE : "animation";
+                float spawnDuration = AnimationFactory.exactClipDurationForPath(spawnPam, spawnState);
+                if (spawnDuration <= 0f) spawnDuration = ZOMBIE_SPAWN_EFFECT_DURATION;
                 float effectTime = zombieSpawnEffects.get(zombie) + delta;
-                if (effectTime < ZOMBIE_SPAWN_EFFECT_DURATION) {
+                if (effectTime < spawnDuration) {
                     zombieSpawnEffects.put(zombie, effectTime);
                     int spawnRow = (int) Math.round(p.y());
                     screen.queueRowDraw(spawnRow, () -> screen.drawPam(
-                            ZOMBIE_SPAWN_EFFECT_PAM,
-                            "animation",
+                            spawnPam,
+                            spawnState,
                             effectTime,
                             x - 10f,
                             zombieOffsetY,
@@ -339,9 +370,12 @@ class ZombieRenderer {
                 // "cast", "cast_loop", "reel") takes priority over the plain
                 // eat/spin/walk resolution below.
                 preferred = zombie.getActionAnimationState();
-                if ("power_up".equals(preferred)
-                        && !"power_up".equals(zombieActionStateLast.get(zombie))) {
-                    AudioManager.get().playSound(AudioEnum.SFX_LASER_SHOT);
+                if (!preferred.equals(zombieActionStateLast.get(zombie))) {
+                    if ("power_up".equals(preferred) || "laser_start".equals(preferred)) {
+                        AudioManager.get().playSound(AudioEnum.SFX_LASER_SHOT);
+                    } else if (ZombieStunProfile.CLIP_START.equals(preferred)) {
+                        AudioManager.get().playSound(AudioEnum.SFX_ELECTRIC_SHOCK);
+                    }
                 }
                 zombieActionStateLast.put(zombie, preferred);
             } else if (isBarrelPusher) {
@@ -413,7 +447,8 @@ class ZombieRenderer {
             // so both get the blue wash - previously a zombie frozen stiff looked untouched.
             boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE
                     || zombie.getStatus() == Zombie.Status.FROZEN;
-            ZombieVisualArgs visualArgs = new ZombieVisualArgs(t, x, zombieDrawY, zombieOffsetY,
+            ZombieVisualArgs visualArgs = new ZombieVisualArgs(t, x, zombieDrawY,
+                    zombieOffsetY,
                     submerged, hypnotized, chilled, preferred, path, animationTime, elementVisibility,
                     plantHead, clipWaterY, waterRipple, rippleDrawX, rippleDrawY,
                     boardTileWidth, boardTileHeight, delta);
@@ -432,6 +467,7 @@ class ZombieRenderer {
         arcadeDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         arcadeWaterRipples.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
         barrelDeathAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
+        shieldAnimTimes.keySet().removeIf(z -> !screen.session.getZombies().contains(z));
     }
 
     private record ZombieVisualArgs(
@@ -502,6 +538,9 @@ class ZombieRenderer {
             drawWaterRipple(zombie.getAlias(), rippleDrawX, rippleDrawY,
                     zombie.isFacingRight(), waterRipple);
         }
+
+        drawFutureGargantuarLaserBase(zombie, x, zombieDrawY, zombie.isFacingRight());
+        drawZombieShield(zombie, delta, x, zombieDrawY, zombie.isFacingRight());
 
         if (zombie.isSunBeanCarrier()) {
             final String SUN_BEAN_CARRIER_PAM =
@@ -582,7 +621,9 @@ class ZombieRenderer {
             dyingZombies.add(new DyingZombie(
                     zombie.getAlias(), zombie.getPosition(), zombie.isFacingRight(),
                     deathSequenceDuration, shockPath, shockDuration,
-                    ashPath, ashDuration, barrelBroken, swashbucklerWaterDeath, barrelStructure));
+                    ashPath, ashDuration, barrelBroken, swashbucklerWaterDeath,
+                    (float) zombie.getHoverHeight() * screen.getBoardTileHeight(),
+                    barrelStructure));
             zombieAnimTimes.remove(zombie);
             screen.onZombieDied(zombie);
         }
@@ -595,7 +636,7 @@ class ZombieRenderer {
             dz.time += delta;
             float x = GameScreen.BOARD_X + (float) dz.position.x() * boardTileWidth;
             float y = screen.cellY((int) dz.position.y());
-            float zombieOffsetY = y + 40f;
+            float zombieOffsetY = y + 40f + dz.hoverLift;
             int row = (int) dz.position.y();
 
             if (dz.swashbucklerWaterDeath) {
@@ -658,7 +699,7 @@ class ZombieRenderer {
                 float particleDrop = 24f * fallEase;
 
                 ZombotanyArt.Head plantHead = ZombotanyArt.headFor(dz.alias);
-                if (plantHead == null) {
+                if (plantHead == null && AnimationFactory.hasExactClip(path, "particles")) {
                     screen.queueRowDraw(row, () -> screen.drawPam(path, "particles", normalDeathTime,
                             x - 10f, zombieOffsetY - particleDrop, 0.52f, dz.facingRight));
                 }
@@ -1026,6 +1067,59 @@ class ZombieRenderer {
         } finally {
             if (clipActive) popRectClip();
         }
+    }
+
+    private boolean isFutureSeason() {
+        return screen.session != null && screen.session.getLevel() != null
+                && screen.session.getLevel().getSeason() != null
+                && "Future".equalsIgnoreCase(screen.session.getLevel().getSeason().getName());
+    }
+
+    private void drawFutureGargantuarLaserBase(Zombie zombie, float x, float zombieDrawY,
+                                               boolean facingRight) {
+        String state = zombie.getActionAnimationState();
+        if (state == null || !state.startsWith("laser_")) return;
+        if (!AnimationFactory.hasExactClip(FUTURE_GARGANTUAR_BASE_PAM, state)) return;
+
+        float duration = AnimationFactory.exactClipDurationForPath(FUTURE_GARGANTUAR_BASE_PAM, state);
+        float time = (float) zombie.getActionAnimationElapsed();
+        if (duration > 0f) {
+            time = zombie.isActionAnimationLoop() ? time % duration : Math.min(time, duration);
+        }
+        screen.pam().drawPamExact(FUTURE_GARGANTUAR_BASE_PAM, state, time,
+                x + FUTURE_GARGANTUAR_BASE_OFFSET_X, zombieDrawY + FUTURE_GARGANTUAR_BASE_OFFSET_Y,
+                FUTURE_GARGANTUAR_BASE_SCALE, facingRight);
+    }
+
+    private void drawZombieShield(Zombie zombie, float delta, float x, float zombieDrawY,
+                                  boolean facingRight) {
+        if (!zombie.hasShield()) {
+            shieldAnimTimes.remove(zombie);
+            return;
+        }
+
+        float elapsed = shieldAnimTimes.getOrDefault(zombie, 0f) + delta;
+        shieldAnimTimes.put(zombie, elapsed);
+
+        String state;
+        float time;
+        if (elapsed < SHIELD_ON_DURATION) {
+            state = ProtectorShield.CLIP_ON;
+            time = elapsed;
+        } else if (zombie.getShieldHitFlash() > 0) {
+            state = zombie.getShieldFraction() <= ProtectorShield.HEAVY_DAMAGE_FRACTION
+                    ? ProtectorShield.CLIP_DAMAGE_2 : ProtectorShield.CLIP_DAMAGE_1;
+            time = elapsed;
+        } else {
+            state = ProtectorShield.CLIP_IDLE;
+            time = elapsed;
+        }
+
+        float duration = AnimationFactory.exactClipDurationForPath(ProtectorShield.PAM, state);
+        if (duration > 0f) time %= duration;
+
+        screen.pam().drawPamExact(ProtectorShield.PAM, state, time,
+                x + SHIELD_OFFSET_X, zombieDrawY + SHIELD_OFFSET_Y, SHIELD_SCALE, facingRight);
     }
 
     private Map<String, Boolean> mergeHeadlessMask(Map<String, Boolean> existing) {

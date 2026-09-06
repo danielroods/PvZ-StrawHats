@@ -111,6 +111,23 @@ public class ZombieFactory {
         return "SeagullFlyMove".equals(moveType) || "PelicanFlyMove".equals(moveType);
     }
 
+    @SuppressWarnings("unchecked")
+    private static ZombieStunProfile resolveStunProfile(Map<String, Object> data) {
+        Object raw = data.get("Stun");
+        if (!(raw instanceof Map<?, ?>)) return null;
+        Map<String, Object> stun = (Map<String, Object>) raw;
+        return new ZombieStunProfile(
+                BehaviorSpec.getDouble(stun, "HealthPercent", 0.5),
+                BehaviorSpec.getDouble(stun, "Seconds", 3.0),
+                BehaviorSpec.getBoolean(stun, "Immobilizes", false));
+    }
+
+    public static boolean entersOnBoard(String alias) {
+        init();
+        Map<String, Object> data = blueprints.get(alias);
+        return data != null && Boolean.TRUE.equals(data.get("EntersOnBoard"));
+    }
+
     public static boolean isStationaryMover(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);
@@ -174,6 +191,7 @@ public class ZombieFactory {
         zombie.setAttackBehavior(AttackBehaviorRegistry.create(attackSpec, data));
         zombie.setDefenseBehavior(DefenseBehaviorRegistry.create(defenseSpec));
         zombie.setEffectStatus(EffectStatusRegistry.createOrNull(effectSpec, data));
+        zombie.setStunProfile(resolveStunProfile(data));
 
         attachPushedStructureIfNeeded(zombie, data);
 

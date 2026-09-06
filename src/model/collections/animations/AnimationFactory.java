@@ -138,8 +138,16 @@ public class AnimationFactory {
         String clipName = exactClipNameForPath(pamPath, exactState);
         if (clipName == null) return -1f;
         AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
+        if (config == null || config.clips == null) return -1f;
         Double duration = config.clips.get(clipName);
         return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
+    }
+
+    public static boolean hasExactClip(String pamPath, String exactState) {
+        if (pamPath == null || exactState == null || exactState.isBlank()) return false;
+        autoInit();
+        AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
+        return config != null && config.clips != null && config.clips.containsKey(exactState);
     }
 
     private static String firstClipContaining(AnimationJsonParser.AnimationConfig config, String substring) {

@@ -1,6 +1,8 @@
 package view.screens.generals;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
@@ -115,10 +117,49 @@ class GameScreenAssets {
     void initBoardTexture() {
         screen.whitePixel = GameScreenGraphics.makeWhitePixel();
         screen.bubbleTexture = GameScreenGraphics.makeBubbleTexture();
-        String path = resolveExistingAssetPath(screen.getGameplayBackgroundPath());
-        if (Gdx.files.internal(path).exists()) {
-            screen.boardTexture = new Texture(Gdx.files.internal(path));
+        screen.boardTexture = loadBoardTexture(screen.getGameplayBackgroundLayers());
+        if (screen.boardTexture != null) {
             screen.boardTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
+    }
+
+    private Texture loadBoardTexture(String[] layers) {
+        if (layers == null || layers.length == 0) return null;
+
+        FileHandle[] files = new FileHandle[layers.length];
+        for (int i = 0; i < layers.length; i++) {
+            FileHandle file = Gdx.files.internal(resolveExistingAssetPath(layers[i]));
+            if (!file.exists()) return null;
+            files[i] = file;
+        }
+        if (files.length == 1) return new Texture(files[0]);
+
+        Pixmap[] parts = new Pixmap[files.length];
+        Pixmap stitched = null;
+        try {
+            int width = 0;
+            int height = 0;
+            for (int i = 0; i < files.length; i++) {
+                parts[i] = new Pixmap(files[i]);
+                width += parts[i].getWidth();
+                height = Math.max(height, parts[i].getHeight());
+            }
+            stitched = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+            stitched.setBlending(Pixmap.Blending.None);
+            int x = 0;
+            for (Pixmap part : parts) {
+                stitched.drawPixmap(part, x, 0);
+                x += part.getWidth();
+            }
+            return new Texture(stitched);
+        } catch (Throwable t) {
+            Gdx.app.error("GameScreen", "Could not stitch the chapter background", t);
+            return null;
+        } finally {
+            for (Pixmap part : parts) {
+                if (part != null) part.dispose();
+            }
+            if (stitched != null) stitched.dispose();
         }
     }
 

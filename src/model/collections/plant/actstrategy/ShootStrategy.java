@@ -115,6 +115,7 @@ public class ShootStrategy implements ActStrategy {
 
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive()) continue;
+            if (zombie.isAirborne() && !zombie.acceptsAttackFrom(user)) continue;
             Position zp = zombie.getPosition();
             if (zp == null) continue;
 

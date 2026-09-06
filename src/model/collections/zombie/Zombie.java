@@ -62,6 +62,13 @@ public class Zombie extends Item implements Attack {
     private double dragUnderWaterProgress = 0.0;
     private boolean dragUnderWaterDeath = false;
     private boolean swashbucklerWaterDeath = false;
+    private ZombieSequence sequence;
+    private boolean immobilized;
+    private ZombieStunProfile stunProfile;
+    private int shieldHp;
+    private int shieldMaxHp;
+    private double shieldHitFlash;
+    private double hoverHeight;
 
     // Optional visual-only animation override (e.g. "toss", "push", "cast",
     // "cast_loop", "reel") on top of the coarse WALKING/EATING/DEAD state.
@@ -216,27 +223,7 @@ public class Zombie extends Item implements Attack {
             if (!allowDamage) return;
         }
 
-        if (this.vulnerabilityState == VulnerabilityType.SUBMERGED) {
-            boolean allowDamage = false;
-
-            if (damageSource instanceof Plant plant) {
-                String plantName = normalizePlantName(plant.getName());
-
-                if (damageWhileSubmerged != null && damageWhileSubmerged.contains(plantName)) {
-                    allowDamage = true;
-                }
-
-            } else if (damageSource instanceof Projectile p) {
-                if (p.isLobbed()) {
-                    allowDamage = true;
-                } else if (p.getSourcePlant() != null) {
-                    String plantName = normalizePlantName(p.getSourcePlant().getName());
-                    allowDamage = damageWhileSubmerged != null && damageWhileSubmerged.contains(plantName);
-                }
-            }
-
-            if (!allowDamage) return;
-        }
+        if (!acceptsAttackFrom(damageSource)) return;
 
         int actualDamage = damage;
         if (this.defenseBehavior != null) {
@@ -252,6 +239,8 @@ public class Zombie extends Item implements Attack {
         int scaled = damageTakenMultiplier == 1.0
                 ? damage : (int) Math.round(damage * damageTakenMultiplier);
         if (boss) scaled = capBossHit(scaled);
+        scaled = absorbWithShield(scaled);
+        if (scaled <= 0) return;
         int remaining = (armour != null && armour.getHP() > 0) ? armour.absorbDamage(scaled) : scaled;
         if (remaining <= 0) return;
 
@@ -383,9 +372,12 @@ public class Zombie extends Item implements Attack {
         }
 
         updateActionAnimation(deltaTimeSeconds);
+        updateShieldFlash(deltaTimeSeconds);
         updateSunBeanCarrier(deltaTimeSeconds, session);
 
         ZombieFactory.respawnPushedStructureIfNeeded(this);
+
+        if (stunProfile != null) stunProfile.update(this);
 
         if (zombieEffectStatus != null) {
             zombieEffectStatus.applyTickEffect(this, session);
@@ -410,6 +402,16 @@ public class Zombie extends Item implements Attack {
         // whole moveset, so the ordinary target/attack/move pass is skipped for it.
         if (boss) return;
 
+        // A scripted beat (stun, shield cast, laser, imp cannon, imp landing) owns the
+        // zombie while it plays: it holds its ground and does not bite.
+        if (sequence != null) {
+            if (sequence.tick(this, session, deltaTimeSeconds)) {
+                zombieState = ZombieState.WALKING;
+                return;
+            }
+            sequence = null;
+        }
+
         Item target = ignoreTargetAcquisition ? null : acquireTarget(session);
         if (target != null && target.isAlive()) {
             zombieState = ZombieState.EATING;
@@ -431,7 +433,7 @@ public class Zombie extends Item implements Attack {
             // dead-code fallback - moveBehavior is set for effectively every zombie, so
             // NormalWalk/PusherMove/etc. are what actually run, and none of them look at
             // status on their own.
-            if (status != Status.BUTTER && status != Status.FROZEN) {
+            if (status != Status.BUTTER && status != Status.FROZEN && !immobilized) {
                 if (moveBehavior != null) {
                     double scaledDeltaTime = status == Status.FREEZE ? deltaTimeSeconds * 0.5 : deltaTimeSeconds;
                     moveBehavior.move(this, scaledDeltaTime, session);
@@ -474,6 +476,99 @@ public class Zombie extends Item implements Attack {
         }
         actionAnimationDuration = duration;
         actionAnimationLoop = loop;
+    }
+
+    public boolean acceptsAttackFrom(Object damageSource) {
+        if (vulnerabilityState != VulnerabilityType.SUBMERGED
+                && vulnerabilityState != VulnerabilityType.AIRBORNE) {
+            return true;
+        }
+        if (damageSource instanceof Plant plant) {
+            return isListedReacher(plant.getName());
+        }
+        if (damageSource instanceof Projectile projectile) {
+            if (projectile.isLobbed()) return true;
+            Plant source = projectile.getSourcePlant();
+            return source != null && isListedReacher(source.getName());
+        }
+        return false;
+    }
+
+    private boolean isListedReacher(String plantName) {
+        return damageWhileSubmerged != null
+                && damageWhileSubmerged.contains(normalizePlantName(plantName));
+    }
+
+    public boolean isAirborne() {
+        return vulnerabilityState == VulnerabilityType.AIRBORNE;
+    }
+
+    public void playSequence(ZombieSequence next) {
+        this.sequence = next != null && !next.isEmpty() ? next : null;
+        if (this.sequence == null) {
+            clearActionAnimationState();
+            return;
+        }
+        this.sequence.tick(this, GameSession.peekInstance(), 0);
+    }
+
+    public boolean isSequenceActive() {
+        return sequence != null && !sequence.isFinished();
+    }
+
+    public ZombieStunProfile getStunProfile() { return stunProfile; }
+    public void setStunProfile(ZombieStunProfile stunProfile) { this.stunProfile = stunProfile; }
+
+    public boolean isStunTriggered() {
+        return stunProfile != null && stunProfile.isTriggered();
+    }
+
+    public boolean isStunCompleted() {
+        return stunProfile != null && stunProfile.isCompleted();
+    }
+
+    public boolean isImmobilized() { return immobilized; }
+    public void setImmobilized(boolean immobilized) { this.immobilized = immobilized; }
+
+    public void applyShield(int amount) {
+        if (amount <= 0 || !isAlive()) return;
+        shieldHp += amount;
+        shieldMaxHp = Math.max(shieldMaxHp, shieldHp);
+    }
+
+    public boolean hasShield() { return shieldHp > 0 && isAlive(); }
+
+    public int getShieldHp() { return shieldHp; }
+
+    public double getShieldFraction() {
+        return shieldMaxHp <= 0 ? 0.0 : Math.max(0.0, Math.min(1.0, shieldHp / (double) shieldMaxHp));
+    }
+
+    public double getShieldHitFlash() { return shieldHitFlash; }
+
+    private static final double SHIELD_HIT_FLASH_SECONDS = 0.35;
+
+    private int absorbWithShield(int damage) {
+        if (shieldHp <= 0 || damage <= 0) return damage;
+        shieldHitFlash = SHIELD_HIT_FLASH_SECONDS;
+        if (damage < shieldHp) {
+            shieldHp -= damage;
+            return 0;
+        }
+        int leftover = damage - shieldHp;
+        shieldHp = 0;
+        shieldMaxHp = 0;
+        return leftover;
+    }
+
+    private void updateShieldFlash(double deltaTimeSeconds) {
+        if (shieldHitFlash > 0) shieldHitFlash = Math.max(0, shieldHitFlash - deltaTimeSeconds);
+    }
+
+    public double getHoverHeight() { return hoverHeight; }
+
+    public void setHoverHeight(double hoverHeight) {
+        this.hoverHeight = Math.max(0.0, hoverHeight);
     }
 
     public void clearActionAnimationState() {

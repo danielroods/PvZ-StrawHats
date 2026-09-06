@@ -577,7 +577,11 @@ public class Projectile extends Item {
     }
 
     private boolean isValidTarget(Zombie zombie) {
-        return zombie != null && zombie.isAlive() && !zombie.isHypnotized() && zombie.getPosition() != null;
+        if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
+                || zombie.getPosition() == null) {
+            return false;
+        }
+        return !zombie.isAirborne() || zombie.acceptsAttackFrom(this);
     }
 
     private record Blocker(Cell cell, PushableStructure structure, double projection) {

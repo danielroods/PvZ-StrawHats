@@ -254,8 +254,9 @@ class WaveScheduler {
             // spawn path rather than making the whole wave fail to load.
             laneOrder = laneBag.preferenceOrder(spawn.preferredLane());
         }
-        SpawnPlacement.Placement placement = !activeSandStorm
-                && ZombieFactory.isStationaryMover(spawn.alias())
+        boolean placedOnBoard = ZombieFactory.isStationaryMover(spawn.alias())
+                || ZombieFactory.entersOnBoard(spawn.alias());
+        SpawnPlacement.Placement placement = !activeSandStorm && placedOnBoard
                 ? SpawnPlacement.resolveInward(session.getZombies(), spawn.alias(), cols,
                 laneOrder, baseX)
                 : SpawnPlacement.resolve(session.getZombies(), spawn.alias(), cols,
@@ -316,7 +317,9 @@ class WaveScheduler {
 
     private double entryColumnFor(String alias, int cols) {
         if (activeSandStorm) return SandStorm.entryX(cols);
-        if (ZombieFactory.isStationaryMover(alias)) return Math.max(0, cols - 1);
+        if (ZombieFactory.isStationaryMover(alias) || ZombieFactory.entersOnBoard(alias)) {
+            return Math.max(0, cols - 1);
+        }
         return SpawnPlacement.entryX(cols);
     }
 

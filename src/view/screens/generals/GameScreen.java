@@ -202,6 +202,21 @@ public class GameScreen extends UiScreen {
         return getSeasonGameplayFolder() + "grave.png";
     }
 
+    protected String[] getGameplayBackgroundLayers() {
+        if (ChapterLawnArt.isSplitArt(seasonFolder)) {
+            return ChapterLawnArt.backgroundLayers(seasonFolder, getSeasonGameplayFolder());
+        }
+        return new String[] { getGameplayBackgroundPath() };
+    }
+
+    ChapterLawnArt.Insets boardInsets() {
+        return ChapterLawnArt.insetsFor(seasonFolder);
+    }
+
+    protected boolean hasPaintedWater() {
+        return isBeach() || isPirate();
+    }
+
     protected void createHud() {
         hud = new MatchHud(skin);
         hud.setPamPlayer(pamPlayer);
@@ -678,6 +693,12 @@ public class GameScreen extends UiScreen {
         return session != null && session.getLevel() != null
                 && session.getLevel().getSeason() != null
                 && "Big Wave Beach".equalsIgnoreCase(session.getLevel().getSeason().getName());
+    }
+
+    protected boolean isPirate() {
+        return session != null && session.getLevel() != null
+                && session.getLevel().getSeason() != null
+                && "Pirates".equalsIgnoreCase(session.getLevel().getSeason().getName());
     }
 
     protected boolean isIceAge() {
