@@ -11,15 +11,7 @@ import model.utils.LevelProgression;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Derives the trophy shelf shown in {@code TrophiesMenu} from data that already exists
- * elsewhere - there is no new persisted state here. A chapter's trophy is considered
- * "earned" once that chapter's last level (its {@link BossLevel}, i.e. its Zomboss
- * fight) is completed, the same way the real game awards one trophy per world for
- * beating that world's Zombot. The key shown alongside it is purely decorative (mirrors
- * the real Almanac's layout) - the interesting payoff is the flavor title/description
- * attached to each entry, shown when the trophy itself is clicked.
- */
+
 public class TrophyManager {
 
     public record TrophyEntry(String chapterName, String trophyImagePath,
