@@ -41,7 +41,7 @@ public class MainMenu extends Menu{
                 "  Settings\n" +
                 (NewsManager.hasUnreadNews() ? "  News [!] (you have unread news)\n" : "  News\n") +
                 "  Profile\n" +
-                "  Console\n" +
+                "  Network\n" +
                 "Commands:\n" +
                 "  menu enter <menu_name>\n" +
                 "  menu logout\n" +

@@ -135,12 +135,7 @@ public class AdventureScreen extends UiScreen {
 
         Table topLeft = new Table();
         topLeft.add(backBtn).padRight(16);
-        topLeft.add(createIconButtonWithLabel("assets/images/ui/collection.png", 54, 54,
-                "Collection", () -> runCommand("menu enter collection"))).padRight(16);
-        topLeft.add(createIconButtonWithLabel("assets/images/ui/greenhouse.png", 54, 54,
-                "Greenhouse", () -> runCommand("menu greenhouse"))).padRight(16);
-        topLeft.add(createIconButtonWithLabel("assets/images/ui/leaderboard.png", 54, 54,
-                "Leaderboard", () -> runCommand("menu leaderboard")));
+        
 
         User user = User.currentUser;
         int coins = (user != null && user.userState != null) ? user.userState.coins : 0;
