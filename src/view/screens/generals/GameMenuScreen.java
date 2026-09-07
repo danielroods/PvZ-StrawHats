@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -139,9 +140,13 @@ public class GameMenuScreen extends UiScreen {
             camBaseX = menuCamera.position.x;
             camBaseY = menuCamera.position.y;
         }
+        ImageButton backBtn = createIconButton("assets/images/ui/buttons_hud_back_normal.png", 54, 54,
+                () -> runCommand("menu exit"));
+
 
         createTextBackground();
         createMenuButtons();
+        buttonLayer.addActor(backBtn.top().left());
     }
 
     @Override

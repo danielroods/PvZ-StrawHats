@@ -27,7 +27,8 @@ public class ConsoleScreen extends UiScreen {
     private void build() {
         rootTable.clear();
         Table top = new Table();
-        top.add(secondaryButton("Back", () -> runCommand("menu exit"))).left().expandX();
+        top.add(createIconButton("assets/images/ui/buttons_hud_back_normal.png", 54, 54,
+                () -> runCommand("menu exit")).left());
         top.add(new Label("CONSOLE", skin, "title")).center();
         top.add().expandX();
         rootTable.add(top).fillX().row();

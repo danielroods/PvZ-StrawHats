@@ -6,11 +6,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -48,6 +44,7 @@ public class TrophiesScreen extends UiScreen {
     }
 
     private void build() {
+
         rootTable.clear();
         rootTable.setBackground(new TextureRegionDrawable(loadTextureSafe(AssetPaths.TROPHIES_CABINET_BG)));
 
@@ -72,7 +69,9 @@ public class TrophiesScreen extends UiScreen {
     }
 
     private Table buildTopBar() {
-        TextButton backBtn = secondaryButton("Back", () -> runCommand("menu exit"));
+        ImageButton backBtn = createIconButton("assets/images/ui/buttons_hud_back_normal.png", 54, 54,
+                () -> runCommand("menu exit"));
+
 
         Table topLeft = new Table();
         topLeft.left();
