@@ -90,11 +90,22 @@ public class CollectionManager {
         }
         List<Level> sorted = LevelProgression.sorted(levels);
         for (Level level : sorted) {
-            if (!LevelProgression.isCompleted(sorted, state.lastLevel, level) || level.getWaves() == null) continue;
-            for (ZombieWave wave : level.getWaves()) {
-                if (wave.getWaveZombies() == null) continue;
-                for (Zombie zombie : wave.getWaveZombies()) {
-                    seen.add(zombie.getName());
+            if (!LevelProgression.isCompleted(sorted, state.lastLevel, level)) continue;
+            if (level.getWaves() != null) {
+                for (ZombieWave wave : level.getWaves()) {
+                    if (wave.getWaveZombies() == null) continue;
+                    for (Zombie zombie : wave.getWaveZombies()) {
+                        seen.add(zombie.getName());
+                    }
+                }
+            }
+            // Boss levels spawn their minions dynamically from zombiePool (see
+            // ZombossFight) instead of listing them in scripted waves, so without this
+            // those zombies (e.g. Gargantuar) would stay "???" forever even after the
+            // boss fight is completed.
+            if (level.getZombiePool() != null) {
+                for (String alias : level.getZombiePool()) {
+                    if (alias != null && !alias.isBlank()) seen.add(alias);
                 }
             }
         }

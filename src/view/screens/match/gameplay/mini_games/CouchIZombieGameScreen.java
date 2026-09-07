@@ -92,7 +92,7 @@ public class CouchIZombieGameScreen extends GameScreen {
 
     @Override
     protected String getGameplayBackgroundPath() {
-        return getSeasonGameplayFolder() + "texture.png";
+        return getSeasonGameplayFolder() + "map.png";
     }
 
     @Override

@@ -88,7 +88,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     @Override
     protected String getGameplayBackgroundPath() {
-        return getSeasonGameplayFolder() + "texture.png";
+        return getSeasonGameplayFolder() + "map.png";
     }
 
     @Override

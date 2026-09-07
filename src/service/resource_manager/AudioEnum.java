@@ -9,6 +9,7 @@ public enum AudioEnum {
     BEACH_MUSIC("assets/audio/music/Elton John-I m Still Standing -musicdel.ir 128.mp3"),
     DARK_AGES_MUSIC("assets/audio/music/Gloria Gaynor - I will survive (128).mp3"),
 
+
     // ---- Gameplay SFX ----
     SFX_ZOMBIE_EAT("assets/audio/sfx/zombie_eating.mp3"),
     SFX_SHOOT_NORMAL("assets/audio/sfx/normal_shooting.mp3"),

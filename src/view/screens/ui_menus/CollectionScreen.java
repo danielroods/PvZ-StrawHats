@@ -530,18 +530,35 @@ public class CollectionScreen extends UiScreen {
         float cardH = CARD_W * 1.38f;
 
         if (seen) {
+            ZombieIconCard card = null;
             try {
-                ZombieIconCard card = zombieCardFactory.buildCardForAlias(alias);
-                if (card != null) {
-                    cardW = card.getWidth();
-                    cardH = card.getHeight();
-                    cardStack.add(card);
-                }
+                card = zombieCardFactory.buildCardForAlias(alias);
             } catch (Throwable t) {
                 Gdx.app.error("CollectionScreen", "Failed to build zombie icon card for " + alias, t);
             }
 
-            cardStack.setSize(cardW, cardH);
+            boolean hasRealIcon = card != null
+                    && !ZombieIconCardFactory.PLACEHOLDER_ICON_FILE.equals(card.getIconFile());
+            if (hasRealIcon) {
+                cardW = card.getWidth();
+                cardH = card.getHeight();
+                cardStack.setSize(cardW, cardH);
+                cardStack.add(card);
+            } else {
+                // zombies_ui has no flat icon for entire chapters (Far Future, Pirate
+                // Seas, Mech zombies, Swashbuckler) even though those zombies do have
+                // a working idle PAM animation - the same one openZombieInfo already
+                // draws successfully in the info popup. Reuse that animation, scaled
+                // down to card size, on top of the same tombstone-frame background
+                // every real icon card uses, instead of leaving a blank placeholder.
+                cardStack.setSize(cardW, cardH);
+                cardStack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
+                Actor animatedIcon = buildAnimatedZombieIcon(alias, cardW, cardH);
+                if (animatedIcon != null) {
+                    cardStack.add(animatedIcon);
+                }
+            }
+
             cardStack.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -584,6 +601,61 @@ public class CollectionScreen extends UiScreen {
             sb.append(c);
         }
         return sb.length() == 0 ? alias : sb.toString();
+    }
+
+    /**
+     * Builds a scaled-down, clipped copy of the same idle-animation box
+     * {@link #buildZombieInfoPopup} uses (250x250 outer box, 220x220 actor, actor
+     * placed at (0,0) with the same +110/+85 offsets - see {@link PlantIdleAnimationActor}),
+     * for use as a card icon when {@link ZombieIconCardFactory} has no flat icon for
+     * the alias. {@link pvz.libpvz.pam.PamPlayer#draw} always renders at native pixel
+     * size (it takes no scale parameter), so shrinking it requires wrapping it in a
+     * transform-enabled {@link Group} and scaling that instead.
+     */
+    private Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
+        String animationPath = null;
+        try {
+            animationPath = ZombieAnimationRegistry.pathFor(alias);
+        } catch (Throwable t) {
+            Gdx.app.error("CollectionScreen", "Failed to resolve fallback icon animation for " + alias, t);
+        }
+        if (animationPath == null) {
+            return null;
+        }
+
+        final float boxSize = 250f;
+        final float actorSize = 220f;
+
+        Group animBox = new Group();
+        animBox.setTransform(true);
+        animBox.setSize(boxSize, boxSize);
+        animBox.setOrigin(boxSize / 2f, boxSize / 2f);
+
+        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(animationPath, 0, 0);
+        animActor.setPosition((boxSize - actorSize) / 2f, (boxSize - actorSize) / 2f);
+        animBox.addActor(animActor);
+
+        float boxOnCard = Math.min(cardW, cardH) * 0.95f;
+        animBox.setScale(boxOnCard / boxSize);
+        animBox.setPosition(cardW / 2f - boxSize / 2f, cardH / 2f - boxSize / 2f);
+
+        ClippedGroup clip = new ClippedGroup(cardW, cardH);
+        clip.addActor(animBox);
+        return clip;
+    }
+
+    /** A plain {@link Group} that scissor-clips its children to its own bounds. */
+    private static class ClippedGroup extends Group {
+        ClippedGroup(float width, float height) {
+            setSize(width, height);
+        }
+
+        @Override
+        public void draw(Batch batch, float parentAlpha) {
+            boolean clipped = clipBegin(getX(), getY(), getWidth(), getHeight());
+            super.draw(batch, parentAlpha);
+            if (clipped) clipEnd();
+        }
     }
 
     private void openZombieInfo(String alias) {

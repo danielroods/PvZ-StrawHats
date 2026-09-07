@@ -21,6 +21,9 @@ import java.util.regex.Pattern;
  */
 public class ZombieIconCardFactory implements Disposable {
 
+    /** {@link ZombieIconCard#getIconFile()} value used for cards built by {@link #buildPlaceholderCard}. */
+    public static final String PLACEHOLDER_ICON_FILE = "(placeholder)";
+
     private static final String ZOMBIES_UI_DIR = "assets/images/ui/zombies_ui/";
 
     private static final float CARD_WIDTH = 135f;
@@ -88,6 +91,16 @@ public class ZombieIconCardFactory implements Disposable {
     // grid instead of icons floating directly on the board background. Built once and
     // shared - same tone as the "unseen" mystery-card frame in CollectionScreen.
     private Texture cardBackgroundTexture = new Texture("images/ui/zombies_ui/frame.png");
+
+    /**
+     * The shared "ZOMBIES" tombstone-frame panel every card is built on top of
+     * (see {@link #cardBackground()}). Exposed so callers building a card outside
+     * this factory (e.g. a fallback icon for an alias with no flat art) can still
+     * use the exact same frame instead of a bare panel.
+     */
+    public Texture getCardBackground() {
+        return cardBackground();
+    }
 
     private Texture cardBackground() {
         if (cardBackgroundTexture == null) {
@@ -174,7 +187,7 @@ public class ZombieIconCardFactory implements Disposable {
         if (placeholderTexture == null) {
             return null;
         }
-        return new ZombieIconCard(name, "(placeholder)", cardBackground(), placeholderTexture, cardWidth, cardHeight);
+        return new ZombieIconCard(name, PLACEHOLDER_ICON_FILE, cardBackground(), placeholderTexture, cardWidth, cardHeight);
     }
 
     private Texture placeholderIconTexture(String alias) {
