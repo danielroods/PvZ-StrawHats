@@ -1,5 +1,6 @@
 package controller.match.mini_games;
 
+import controller.cheat.CheatAccess;
 import controller.ui_menus.Menu;
 import controller.ui_menus.TravelLogMenu;
 import model.App;
@@ -77,21 +78,8 @@ public class ZombotanyController extends Menu {
                 || Regex.COLLECT_SUN.getMatcherRaw(text).matches()
                 || COIN_COLLECTION.matcher(text).matches()) {
             handleCollect(text);
-        } else if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
-                || SUN_CHEAT.matcher(text).matches()) {
-            handleSunCheat(text);
-        } else if (Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()) {
-            game.addPlantFoodCheat();
-        } else if (Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()) {
-            game.getSession().removeAllCooldowns();
-            GeneralPrinter.print("All seed packets are ready again.");
-        } else if (Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()) {
-            Matcher matcher = Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text);
-            matcher.matches();
-            game.spawnZombie(matcher.group("type"), Integer.parseInt(matcher.group("y")) - 1);
-        } else if (Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches()) {
-            game.getSession().killAllZombies();
-            GeneralPrinter.print("Every zombie on the lawn was wiped out.");
+        } else if (isCheatCommand(text)) {
+            handleCheatCommand(text);
         } else if (Regex.START_ZOMBIE_WAVES.getMatcherRaw(text).matches()) {
             GeneralPrinter.print("Zombotany waves are already rolling.");
         } else if (RESTART.matcher(text).matches()) {
@@ -193,6 +181,36 @@ public class ZombotanyController extends Menu {
                 : "Collected " + collected.size() + " item(s).");
     }
 
+    private boolean isCheatCommand(String text) {
+        return Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
+                || SUN_CHEAT.matcher(text).matches()
+                || Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()
+                || Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()
+                || Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()
+                || Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches();
+    }
+
+    private void handleCheatCommand(String text) {
+        if (!CheatAccess.allow()) return;
+
+        if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
+                || SUN_CHEAT.matcher(text).matches()) {
+            handleSunCheat(text);
+        } else if (Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()) {
+            game.addPlantFoodCheat();
+        } else if (Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()) {
+            game.getSession().removeAllCooldowns();
+            GeneralPrinter.print("All seed packets are ready again.");
+        } else if (Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()) {
+            Matcher matcher = Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text);
+            matcher.matches();
+            game.spawnZombie(matcher.group("type"), Integer.parseInt(matcher.group("y")) - 1);
+        } else if (Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches()) {
+            game.getSession().killAllZombies();
+            GeneralPrinter.print("Every zombie on the lawn was wiped out.");
+        }
+    }
+
     private void handleSunCheat(String text) {
         Matcher matcher = Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
                 ? Regex.CHEAT_ADD_SUNS.getMatcherRaw(text)
@@ -247,6 +265,10 @@ public class ZombotanyController extends Menu {
 
     @Override
     public String showMenu() {
+        String cheatHelp = CheatAccess.isEnabled()
+                ? "  cheat add -n <count> suns | cheat add-plant-food | cheat remove-cooldown\n"
+                + "  cheat spawn-zombie -t <alias> -l (x,y)\n"
+                : "";
         return "[ Zombotany Menu ]\n" + game.getStageDetails()
                 + " | Sun: " + game.getSession().getSunCount()
                 + " | Waves: " + game.getWavesSurvived() + "/" + game.getTotalWaves()
@@ -258,8 +280,7 @@ public class ZombotanyController extends Menu {
                 + "  show zombies | zombies info | show tile status -l (x,y)\n"
                 + "  show sun amount | show plant food amount\n"
                 + "  collect (x,y) | collect sun -l (x,y) | collect coin -l (x,y)\n"
-                + "  cheat add -n <count> suns | cheat add-plant-food | cheat remove-cooldown\n"
-                + "  cheat spawn-zombie -t <alias> -l (x,y)\n"
+                + cheatHelp
                 + "  advance time -t <n> ticks | restart\n"
                 + "  menu exit | menu show current";
     }

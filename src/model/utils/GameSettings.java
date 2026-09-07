@@ -20,7 +20,7 @@ public final class GameSettings {
     private boolean sfxEnabled = true;
 
     private GameSettings() {
-        preferences = Gdx.app.getPreferences(PREF_NAME);
+        preferences = Gdx.app == null ? null : Gdx.app.getPreferences(PREF_NAME);
         load();
     }
 
@@ -32,6 +32,9 @@ public final class GameSettings {
     }
 
     public void load() {
+        if (preferences == null) {
+            return;
+        }
         debugMode = preferences.getBoolean("debugMode", false);
         showGrid = preferences.getBoolean("showGrid", false);
         difficulty = preferences.getInteger("difficulty", 3);
@@ -42,6 +45,9 @@ public final class GameSettings {
     }
 
     public void save() {
+        if (preferences == null) {
+            return;
+        }
         preferences.putBoolean("debugMode", debugMode);
         preferences.putBoolean("showGrid", showGrid);
         preferences.putInteger("difficulty", difficulty);

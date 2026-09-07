@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
+import controller.cheat.CheatAccess;
 import controller.cheat.CurrencyCheatController;
 import model.resoures.CurrencyType;
 
@@ -56,6 +57,7 @@ public class CurrencyCheatModal extends Modal {
 
     /** Opens the popup on top of whatever screen is currently active. */
     public static void open(Runnable onCurrencyChanged) {
+        if (!CheatAccess.isEnabled()) return;
         new CurrencyCheatModal(onCurrencyChanged).show();
     }
 

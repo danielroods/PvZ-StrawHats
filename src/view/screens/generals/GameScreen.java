@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
+import controller.cheat.CheatAccess;
 import controller.match.BeforeMenu;
 import model.App;
 import model.collections.animations.AnimationFactory;
@@ -178,6 +179,7 @@ public class GameScreen extends UiScreen {
 
     /** Wired to the HUD's nuke button. */
     protected void triggerNukeCheat() {
+        if (!CheatAccess.isEnabled()) return;
         nukeEffect.trigger();
     }
 
@@ -656,6 +658,7 @@ public class GameScreen extends UiScreen {
         zomboss.drawBoss();
         zomboss.drawEffects(delta);
         nukeEffect.drawMissile();
+        overlays.drawLawnGrid(bw, bh);
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         zomboss.drawNpc();

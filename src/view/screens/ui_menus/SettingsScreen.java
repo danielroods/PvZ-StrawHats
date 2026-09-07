@@ -233,7 +233,7 @@ public class SettingsScreen extends UiScreen {
     }
 
     private CheckBox debugToggle() {
-        CheckBox debugMode = new CheckBox(" Debug mode (cheat buttons in-game)", skin, "main");
+        CheckBox debugMode = new CheckBox(" Debug mode (enables all cheats)", skin, "main");
         debugMode.setChecked(GameSettings.get().isDebugMode());
         debugMode.addListener(new ClickListener() {
             @Override

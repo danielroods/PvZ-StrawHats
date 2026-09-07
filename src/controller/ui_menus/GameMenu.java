@@ -1,6 +1,9 @@
 package controller.ui_menus;
 
+import controller.cheat.CheatAccess;
+import controller.cheat.CurrencyCheatController;
 import controller.ui_menus.greenhouse.GreenhouseMenu;
+import model.resoures.CurrencyType;
 import model.App;
 import model.Regex;
 import model.user_data.User;
@@ -36,14 +39,7 @@ public class GameMenu extends Menu {
         } else if (Regex.MENU_CHEAT_ADD.getMatcherRaw(text).matches()) {
             var matcher = Regex.MENU_CHEAT_ADD.getMatcherRaw(text);
             matcher.matches();
-            int amount = Integer.parseInt(matcher.group("n"));
-            String type = matcher.group("r");
-
-            if (type.equals("coin")) {
-                User.currentUser.userState.coins += amount;
-            } else if (type.equals("diamond")) {
-                User.currentUser.userState.diamonds += amount;
-            }
+            addCurrencyCheat(matcher.group("n"), matcher.group("r"));
 
         } else if (Regex.MENU_EXIT.getMatcherRaw(text).matches()) {
             exitMenu();
@@ -53,6 +49,30 @@ public class GameMenu extends Menu {
         }
     }
 
+    private void addCurrencyCheat(String rawAmount, String type) {
+        if (!CheatAccess.allow()) return;
+
+        CurrencyType currency = null;
+        if ("coin".equalsIgnoreCase(type)) {
+            currency = CurrencyType.COIN;
+        } else if ("diamond".equalsIgnoreCase(type)) {
+            currency = CurrencyType.DIAMOND;
+        }
+        if (currency == null) {
+            GeneralPrinter.print("[Cheat] Unknown currency: " + type + ".");
+            return;
+        }
+
+        int amount;
+        try {
+            amount = Integer.parseInt(rawAmount.trim());
+        } catch (NumberFormatException e) {
+            GeneralPrinter.print("[Cheat] Amount must be a whole number.");
+            return;
+        }
+        new CurrencyCheatController().grant(currency, amount);
+    }
+
     @Override
     public void exitMenu() {
         App.currentMenu = new MainMenu();
@@ -60,6 +80,8 @@ public class GameMenu extends Menu {
 
     @Override
     public String showMenu() {
+        String cheatHelp = CheatAccess.isEnabled()
+                ? "  menu cheat add <n> <coin/diamond>\n" : "";
         return "[ Game Menu ]\n"
                 + "Commands:\n"
                 + "  menu enter adventure\n"
@@ -69,7 +91,7 @@ public class GameMenu extends Menu {
                 + "  menu enter trophies\n"
                 + "  travel-log menu | menu leaderboard\n"
                 + "  coin-wallet menu | gem-wallet menu\n"
-                + "  menu cheat add <n> <coin/diamond>\n"
+                + cheatHelp
                 + "  menu exit | menu show current";
     }
 }

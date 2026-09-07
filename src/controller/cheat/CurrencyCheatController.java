@@ -19,6 +19,9 @@ public class CurrencyCheatController {
      * @return true if the amount was applied.
      */
     public boolean grant(CurrencyType currency, int amount) {
+        if (!CheatAccess.allow()) {
+            return false;
+        }
         if (currency == null || amount <= 0) {
             GeneralPrinter.print("[Cheat] Enter a positive amount first.");
             return false;

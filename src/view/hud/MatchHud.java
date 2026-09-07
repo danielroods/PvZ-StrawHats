@@ -21,6 +21,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Scaling;
 
+import controller.cheat.CheatAccess;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantJsonParser;
 import model.collections.plant.PlantProgression;
@@ -50,6 +51,12 @@ public final class MatchHud extends Table implements Disposable {
     private static final float WAVE_BAR_HEIGHT = 32f;
 
     private static final float CARD_H = 60;
+
+    private static final float TOOL_BUTTON_SIZE = 64f;
+
+    private static final float DEBUG_BUTTON_WIDTH = 100f;
+
+    private static final float DEBUG_BUTTON_HEIGHT = 36f;
 
     private final Button shovelButton;
     private final Button foodButton;
@@ -106,6 +113,10 @@ public final class MatchHud extends Table implements Disposable {
     private boolean sunCheatVisible = true;
     private boolean plantFoodCheatVisible = true;
     private boolean nukeCheatVisible = true;
+    private Cell<Table> debugRowCell;
+    private Cell<Button> nukeCell;
+    private Boolean lastDebugRowShown;
+    private Boolean lastNukeShown;
 
     private static final class SlotView {
         final String name;
@@ -227,12 +238,17 @@ public final class MatchHud extends Table implements Disposable {
         shovelButton.addListener(click(() -> { if (shovelAction != null) shovelAction.run(); }));
         foodButton.addListener(click(() -> { if (foodAction != null) foodAction.run(); }));
         nukeButton.addListener(click(() -> {
+            if (!CheatAccess.isEnabled()) return;
             darkenNukeButtonBriefly();
             if (nukeAction != null) nukeAction.run();
         }));
         startButton.addListener(click(() -> { if (startWavesAction != null) startWavesAction.run(); }));
-        debugAddSunButton.addListener(click(() -> { if (debugAddSunAction != null) debugAddSunAction.run(); }));
-        debugAddFoodButton.addListener(click(() -> { if (debugAddFoodAction != null) debugAddFoodAction.run(); }));
+        debugAddSunButton.addListener(click(() -> {
+            if (CheatAccess.isEnabled() && debugAddSunAction != null) debugAddSunAction.run();
+        }));
+        debugAddFoodButton.addListener(click(() -> {
+            if (CheatAccess.isEnabled() && debugAddFoodAction != null) debugAddFoodAction.run();
+        }));
 
         Table sunWidget = resource(sunLabel, "images/chapters/egypt/gameplay/sun.png");
 
@@ -265,10 +281,9 @@ public final class MatchHud extends Table implements Disposable {
         sunArea.add(sunWidget).row();
 
         debugRow.left();
-        debugRow.add(debugAddSunButton).size(100, 36).padRight(5);
-        debugRow.add(debugAddFoodButton).size(100, 36);
-        debugRow.setVisible(false);
-        sunArea.add(debugRow).left().padTop(4f);
+        debugRow.add(debugAddSunButton).size(DEBUG_BUTTON_WIDTH, DEBUG_BUTTON_HEIGHT).padRight(5);
+        debugRow.add(debugAddFoodButton).size(DEBUG_BUTTON_WIDTH, DEBUG_BUTTON_HEIGHT);
+        debugRowCell = sunArea.add(debugRow).left();
 
         add(sunArea).top().left();
         add(centerColumn).expandX().fillX().top().padLeft(10).padRight(10);
@@ -306,12 +321,46 @@ public final class MatchHud extends Table implements Disposable {
         rightArea = new Table();
         rightArea.add().expand().fill().row();
         Table toolRow = new Table();
-        toolRow.add(nukeButton).size(64, 64).padRight(10f);
-        toolRow.add(shovelButton).size(64, 64);
+        nukeCell = toolRow.add(nukeButton);
+        toolRow.add(shovelButton).size(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE);
         rightArea.add(toolRow).bottom().right().pad(10f);
 
         add(leftColumn).top().left().expandY().fillY();
         add(rightArea).colspan(2).expand().fill();
+
+        refreshCheatVisibility();
+    }
+
+    private void refreshCheatVisibility() {
+        boolean cheatsAllowed = CheatAccess.isEnabled();
+        boolean sun = cheatsAllowed && sunCheatVisible;
+        boolean plantFood = cheatsAllowed && plantFoodCheatVisible;
+        boolean nuke = cheatsAllowed && nukeCheatVisible;
+        boolean debugRowShown = sun || plantFood;
+
+        debugAddSunButton.setVisible(sun);
+        debugAddFoodButton.setVisible(plantFood);
+        debugRow.setVisible(debugRowShown);
+        debugRow.setTouchable(debugRowShown ? Touchable.childrenOnly : Touchable.disabled);
+        nukeButton.setVisible(nuke);
+        nukeButton.setTouchable(nuke ? Touchable.enabled : Touchable.disabled);
+
+        if (lastDebugRowShown != null && lastDebugRowShown == debugRowShown
+                && lastNukeShown != null && lastNukeShown == nuke) {
+            return;
+        }
+        lastDebugRowShown = debugRowShown;
+        lastNukeShown = nuke;
+
+        if (debugRowCell != null) {
+            debugRowCell.height(debugRowShown ? DEBUG_BUTTON_HEIGHT : 0f)
+                    .padTop(debugRowShown ? 4f : 0f);
+        }
+        if (nukeCell != null) {
+            float size = nuke ? TOOL_BUTTON_SIZE : 0f;
+            nukeCell.size(size, size).padRight(nuke ? 10f : 0f);
+        }
+        invalidateHierarchy();
     }
 
     /** Briefly darkens the nuke button as click feedback, then smoothly restores it. */
@@ -402,11 +451,7 @@ public final class MatchHud extends Table implements Disposable {
         shovelButton.setChecked(shovelActive);
         foodButton.setChecked(foodActive);
         foodButton.setDisabled(session.getPlantFoodCount() <= 0);
-        debugAddSunButton.setVisible(sunCheatVisible);
-        debugAddFoodButton.setVisible(plantFoodCheatVisible);
-        debugRow.setVisible(model.utils.GameSettings.get().isDebugMode()
-                && (sunCheatVisible || plantFoodCheatVisible));
-        nukeButton.setVisible(nukeCheatVisible);
+        refreshCheatVisibility();
         speedButton.setText(model.utils.GameSettings.get().getGameSpeed() + "x");
         updateLoadout(session, selectedPlants);
         updateConveyor(session);
@@ -659,13 +704,7 @@ public final class MatchHud extends Table implements Disposable {
         sunCheatVisible = sun;
         plantFoodCheatVisible = plantFood;
         nukeCheatVisible = nuke;
-        if (debugAddSunButton != null) debugAddSunButton.setVisible(sun);
-        if (debugAddFoodButton != null) debugAddFoodButton.setVisible(plantFood);
-        if (nukeButton != null) nukeButton.setVisible(nuke);
-        if (debugRow != null) {
-            debugRow.setVisible(model.utils.GameSettings.get().isDebugMode()
-                    && (sun || plantFood));
-        }
+        refreshCheatVisibility();
     }
 
     public void setStartButtonAvailable(boolean available) {

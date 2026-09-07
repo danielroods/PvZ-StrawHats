@@ -21,6 +21,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 
 import controller.ScreenManager;
+import controller.cheat.CheatAccess;
 import model.App;
 import model.game_exceptions.GameException;
 import model.resoures.CurrencyType;
@@ -246,6 +247,7 @@ public abstract class UiScreen extends BaseScreen {
         widget.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                if (!CheatAccess.isEnabled()) return;
                 CurrencyCheatModal.open(UiScreen.this::refreshContent);
             }
         });

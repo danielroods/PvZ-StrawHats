@@ -24,6 +24,10 @@ import model.utils.GameSettings;
  */
 class SeasonOverlayRenderer {
 
+    private static final Color GRID_LINE_COLOR = new Color(1f, 0.12f, 0.12f, 0.85f);
+
+    private static final float GRID_LINE_THICKNESS = 2f;
+
     private static final String BEACH_PROTECT_TILE_PATH =
             "assets/images/chapters/beach/gameplay/protect_tile_112x125.png";
 
@@ -75,13 +79,29 @@ class SeasonOverlayRenderer {
         // crossing. Bridge objects still live on each of the four cells for gameplay
         // collision/pathing; the art is drawn only once per row so it is not duplicated.
         drawPirateBridges(boardTileWidth, boardTileHeight);
+    }
 
-        if (GameSettings.get().isShowGrid()) {
-            screen.batch.setColor(1f, 1f, 1f, 0.18f);
-            for (int c = 0; c <= screen.session.getCols(); c++) screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X + c * boardTileWidth, GameScreen.BOARD_Y, 1f, bh);
-            for (int r = 0; r <= screen.session.getRows(); r++) screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X, GameScreen.BOARD_Y + r * boardTileHeight, bw, 1f);
-            screen.batch.setColor(Color.WHITE);
+    void drawLawnGrid(float bw, float bh) {
+        if (!GameSettings.get().isShowGrid() || screen.session == null) return;
+
+        float boardTileWidth = screen.getBoardTileWidth();
+        float boardTileHeight = screen.getBoardTileHeight();
+        int cols = screen.session.getCols();
+        int rows = screen.session.getRows();
+        float thickness = Math.max(1f, GRID_LINE_THICKNESS * screen.boardFitScale());
+
+        screen.batch.setColor(GRID_LINE_COLOR);
+        for (int c = 0; c <= cols; c++) {
+            float x = GameScreen.BOARD_X + c * boardTileWidth;
+            if (c == cols) x -= thickness;
+            screen.batch.draw(screen.whitePixel, x, GameScreen.BOARD_Y, thickness, bh);
         }
+        for (int r = 0; r <= rows; r++) {
+            float y = GameScreen.BOARD_Y + r * boardTileHeight;
+            if (r == rows) y -= thickness;
+            screen.batch.draw(screen.whitePixel, GameScreen.BOARD_X, y, bw, thickness);
+        }
+        screen.batch.setColor(Color.WHITE);
     }
 
     private void drawPirateBridges(float boardTileWidth, float boardTileHeight) {

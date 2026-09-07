@@ -1,5 +1,6 @@
 package controller.match.mini_games;
 
+import controller.cheat.CheatAccess;
 import controller.ui_menus.Menu;
 import controller.ui_menus.TravelLogMenu;
 import model.App;
@@ -184,6 +185,7 @@ public class ImZombieController extends Menu {
     }
 
     private void handleSunCheat(String text) {
+        if (!CheatAccess.allow()) return;
         Matcher matcher = Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
                 ? Regex.CHEAT_ADD_SUNS.getMatcherRaw(text)
                 : SUN_CHEAT.matcher(text);
@@ -217,6 +219,8 @@ public class ImZombieController extends Menu {
 
     @Override
     public String showMenu() {
+        String cheatHelp = CheatAccess.isEnabled()
+                ? "  cheat add -n <count> suns | cheat sun <count>\n" : "";
         return "[ I, Zombie Menu ]\n" + game.getStageDetails()
                 + " | Sun: " + game.getSession().getSunCount()
                 + " | Brains left: " + (game.getBrainCount() - game.getBrainsEaten())
@@ -228,7 +232,7 @@ public class ImZombieController extends Menu {
                 + "  show tile status -l (x,y) | show sun amount | collect (x,y)\n"
                 + "  collect coin -l (x,y)\n"
                 + "  zombies info | restart\n"
-                + "  cheat add -n <count> suns | cheat sun <count>\n"
+                + cheatHelp
                 + "  advance time -t <n> ticks\n"
                 + "  menu exit | menu show current";
     }

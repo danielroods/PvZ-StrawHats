@@ -1,5 +1,6 @@
 package controller.match.mini_games;
 
+import controller.cheat.CheatAccess;
 import controller.ui_menus.Menu;
 import controller.ui_menus.TravelLogMenu;
 import model.App;
@@ -110,6 +111,7 @@ public class BeghouledController extends Menu {
     }
 
     private void handleSunCheat(String text) {
+        if (!CheatAccess.allow()) return;
         Matcher matcher = Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
                 ? Regex.CHEAT_ADD_SUNS.getMatcherRaw(text)
                 : SUN_CHEAT.matcher(text);
@@ -150,10 +152,13 @@ public class BeghouledController extends Menu {
 
     @Override
     public String showMenu() {
+        String cheatHelp = CheatAccess.isEnabled()
+                ? "  cheat add -n <count> suns\n" : "";
         return "[ Beghouled Menu ]\n" + game.getStageDetails()
                 + " | Zombie pool: " + game.getZombiePool() + "\nCommands:\n"
                 + "  swap -l (x,y) -l (x,y)\n"
-                + "  upgrade -t <plant> | cheat add -n <count> suns\n"
+                + "  upgrade -t <plant>\n"
+                + cheatHelp
                 + "  show map | show state | show status | show plants | show sun amount | show zombies\n"
                 + "  show tile status -l (x,y) | collect (x,y) | collect coin -l (x,y)\n"
                 + "  advance time -t <n> ticks\n"

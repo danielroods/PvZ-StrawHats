@@ -1,6 +1,7 @@
 package controller.match;
 
 import controller.CollectionManager;
+import controller.cheat.CheatAccess;
 import controller.ui_menus.GameMenu;
 import controller.ui_menus.Menu;
 import model.App;
@@ -99,26 +100,8 @@ public class GameplayMenu extends Menu {
             Matcher m = Regex.COLLECT_SUN.getMatcherRaw(text);
             m.matches();
             collectAt(Integer.parseInt(m.group("x")), Integer.parseInt(m.group("y")));
-        } else if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()) {
-            Matcher m = Regex.CHEAT_ADD_SUNS.getMatcherRaw(text);
-            m.matches();
-            GameSession.getInstance().addSun(Integer.parseInt(m.group("count")));
-            GeneralPrinter.print("Cheated in " + m.group("count") + " sun. Sun: " + GameSession.getInstance().getSunCount());
-        } else if (Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()) {
-            boolean added = GameSession.getInstance().addPlantFood();
-            GeneralPrinter.print(added
-                    ? "Cheated in 1 plant food. Plant food: " + GameSession.getInstance().getPlantFoodCount()
-                    : "Plant food storage is already full (3).");
-        } else if (Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()) {
-            GameSession.getInstance().removeAllCooldowns();
-            GeneralPrinter.print("All plant cooldowns were removed.");
-        } else if (Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()) {
-            Matcher m = Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text);
-            m.matches();
-            spawnZombie(m.group("type"), Integer.parseInt(m.group("x")), Integer.parseInt(m.group("y")));
-        } else if (Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches()) {
-            GameSession.getInstance().killAllZombies();
-            GeneralPrinter.print("All zombies were removed.");
+        } else if (isCheatCommand(text)) {
+            handleCheatCommand(text);
         } else if (Regex.START_ZOMBIE_WAVES.getMatcherRaw(text).matches()) {
             startZombieWaves();
         } else if (Regex.SHOW_GARDEN.getMatcherRaw(text).matches()
@@ -289,6 +272,40 @@ public class GameplayMenu extends Menu {
         }
     }
 
+    private boolean isCheatCommand(String text) {
+        return Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()
+                || Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()
+                || Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()
+                || Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()
+                || Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches();
+    }
+
+    private void handleCheatCommand(String text) {
+        if (!CheatAccess.allow()) return;
+
+        if (Regex.CHEAT_ADD_SUNS.getMatcherRaw(text).matches()) {
+            Matcher m = Regex.CHEAT_ADD_SUNS.getMatcherRaw(text);
+            m.matches();
+            GameSession.getInstance().addSun(Integer.parseInt(m.group("count")));
+            GeneralPrinter.print("Cheated in " + m.group("count") + " sun. Sun: " + GameSession.getInstance().getSunCount());
+        } else if (Regex.CHEAT_ADD_PLANT_FOOD.getMatcherRaw(text).matches()) {
+            boolean added = GameSession.getInstance().addPlantFood();
+            GeneralPrinter.print(added
+                    ? "Cheated in 1 plant food. Plant food: " + GameSession.getInstance().getPlantFoodCount()
+                    : "Plant food storage is already full (3).");
+        } else if (Regex.CHEAT_REMOVE_COOLDOWN.getMatcherRaw(text).matches()) {
+            GameSession.getInstance().removeAllCooldowns();
+            GeneralPrinter.print("All plant cooldowns were removed.");
+        } else if (Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text).matches()) {
+            Matcher m = Regex.CHEAT_SPAWN_ZOMBIE.getMatcherRaw(text);
+            m.matches();
+            spawnZombie(m.group("type"), Integer.parseInt(m.group("x")), Integer.parseInt(m.group("y")));
+        } else if (Regex.RELEASE_THE_NUKE.getMatcherRaw(text).matches()) {
+            GameSession.getInstance().killAllZombies();
+            GeneralPrinter.print("All zombies were removed.");
+        }
+    }
+
     private boolean isAllowedWhilePaused(String text) {
         return Regex.MENU_SHOW_CURRENT.getMatcherRaw(text).matches()
                 || Regex.SHOW_GARDEN.getMatcherRaw(text).matches()
@@ -434,6 +451,10 @@ public class GameplayMenu extends Menu {
         String startWaves = GameSession.getInstance().getLevel() instanceof PlantWhatYouGetLevel
                 && !GameSession.getInstance().isWavesStarted()
                 ? "\n  start zombie waves" : "";
+        String cheatHelp = CheatAccess.isEnabled()
+                ? "  cheat add -n <count> suns | cheat add-plant-food | cheat remove-cooldown\n"
+                + "  cheat spawn-zombie -t <type> -l (<x>, <y>) | release the nuke\n"
+                : "";
         return (paused ? "[ Match Paused ]" : "[ Match in Progress ]")
                 + stageDetails + conveyorOffer + "\nCommands:\n"
                 + "  plant plant -t <type> -l (<x>, <y>)\n"
@@ -444,8 +465,7 @@ public class GameplayMenu extends Menu {
                 + "  show plant status | show tile status -l (<x>, <y>) | zombies info\n"
                 + "  advance time -t <count> ticks | wait <seconds>"
                 + startWaves + "\n"
-                + "  cheat add -n <count> suns | cheat add-plant-food | cheat remove-cooldown\n"
-                + "  cheat spawn-zombie -t <type> -l (<x>, <y>) | release the nuke\n"
+                + cheatHelp
                 + "  pause | resume | restart | end game -r <win/lose>\n"
                 + "  menu exit | menu show current";
     }

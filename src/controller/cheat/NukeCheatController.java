@@ -25,8 +25,10 @@ public class NukeCheatController {
      * effect) can react to them if it wants to.
      */
     public List<Zombie> detonate() {
-        GameSession session = GameSession.peekInstance();
         List<Zombie> killed = new ArrayList<>();
+        if (!CheatAccess.allow()) return killed;
+
+        GameSession session = GameSession.peekInstance();
         if (session == null) return killed;
 
         // Snapshot first: takeDamage() can mutate the session's zombie list
