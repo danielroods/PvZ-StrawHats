@@ -1,11 +1,12 @@
 package model.collections.plant.actstrategy;
 
 import model.collections.plant.Plant;
-import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.projectile.RollingBounceMove;
 import model.projectile.Projectile;
 import model.projectile.hit.PierceHit;
+import model.projectile.targeting.TargetFinder;
+import model.projectile.targeting.TargetScan;
 import model.utils.GameSession;
 
 public class BowlingBulbStrategy implements ActStrategy {
@@ -13,6 +14,7 @@ public class BowlingBulbStrategy implements ActStrategy {
     private static final double[] AMMO_RELOAD_SECONDS = {2.0, 5.0, 10.0};
     private static final double ROLL_SPEED = 4.8;
     private static final int RICOCHET_HITS = 3;
+    private static final double ROLL_ROW_TOLERANCE = 1.5;
 
     private int ammoIndex = 0;
 
@@ -20,8 +22,8 @@ public class BowlingBulbStrategy implements ActStrategy {
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0) return;
 
-        Zombie target = findNearestInLane(user, session);
-        if (target == null && !user.isPlantFoodActive()) return;
+        TargetScan scan = TargetFinder.inLaneAhead(user, session, ROLL_ROW_TOLERANCE, false);
+        if (!scan.hasTarget() && !user.isPlantFoodActive()) return;
 
         int index = Math.floorMod(ammoIndex, AMMO_DAMAGE_MULTIPLIER.length);
         int damage = (int) Math.round(user.getDamage() * AMMO_DAMAGE_MULTIPLIER[index]);
@@ -30,7 +32,7 @@ public class BowlingBulbStrategy implements ActStrategy {
         Projectile bulb = new Projectile(user,
                 user.getPosition(),
                 new Position(rollSpeed, 0),
-                target,
+                scan.zombie(),
                 damage,
                 new RollingBounceMove(rollSpeed),
                 new PierceHit(RICOCHET_HITS)
@@ -46,22 +48,5 @@ public class BowlingBulbStrategy implements ActStrategy {
         double baseReload = AMMO_RELOAD_SECONDS[index];
         double intervalShift = user.getActionInterval() - AMMO_RELOAD_SECONDS[0];
         return Math.max(0.5, baseReload + intervalShift);
-    }
-
-    private Zombie findNearestInLane(Plant user, GameSession session) {
-        Position userPos = user.getPosition();
-        Zombie nearest = null;
-        double shortest = Double.MAX_VALUE;
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position zombiePos = zombie.getPosition();
-            if (Math.abs(zombiePos.y() - userPos.y()) >= 1.5 || zombiePos.x() <= userPos.x()) continue;
-            double distance = zombiePos.x() - userPos.x();
-            if (distance < shortest) {
-                shortest = distance;
-                nearest = zombie;
-            }
-        }
-        return nearest;
     }
 }

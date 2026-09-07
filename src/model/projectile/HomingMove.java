@@ -2,16 +2,21 @@ package model.projectile;
 
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.projectile.targeting.PlantTarget;
 
 public class HomingMove implements MoveStrategy {
 
     private static final double EPSILON = 1.0e-6;
 
-    private final Zombie target;
+    private final PlantTarget target;
     private final double speed;
     private final double turnRatePerSecond;
 
     public HomingMove(Zombie target, double speed, double turnRatePerSecond) {
+        this(PlantTarget.ofZombie(target), speed, turnRatePerSecond);
+    }
+
+    public HomingMove(PlantTarget target, double speed, double turnRatePerSecond) {
         this.target = target;
         this.speed = speed;
         this.turnRatePerSecond = turnRatePerSecond;
@@ -23,8 +28,9 @@ public class HomingMove implements MoveStrategy {
         Position velocity = projectile.getSpeed();
         if (position == null || velocity == null) return;
 
-        if (target != null && target.isAlive() && target.getPosition() != null) {
-            Position desired = target.getPosition().sub(position);
+        Position targetPosition = target != null && target.isAlive() ? target.getPosition() : null;
+        if (targetPosition != null) {
+            Position desired = targetPosition.sub(position);
             if (desired.length() > EPSILON) {
                 Position heading = velocity.length() > EPSILON
                         ? velocity.normalize() : desired.normalize();

@@ -8,6 +8,8 @@ import model.match_mechanisms.vector.Position;
 import model.projectile.HomingMove;
 import model.projectile.Projectile;
 import model.projectile.hit.NormalHit;
+import model.projectile.targeting.PlantTarget;
+import model.projectile.targeting.TargetFinder;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
@@ -43,14 +45,17 @@ public class ElectricBlueberryPlantFood implements PlantFoodEffect {
             return;
         }
 
-        List<Zombie> targets = new ArrayList<>();
+        List<PlantTarget> targets = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) continue;
-            if (zombie.getPosition() == null) continue;
-            targets.add(zombie);
+            if (!TargetFinder.isTargetable(plant, zombie, false)) continue;
+            targets.add(PlantTarget.ofZombie(zombie));
+        }
+        if (targets.isEmpty()) {
+            PlantTarget object = TargetFinder.anywhere(plant, session, false).nearest();
+            if (object != null && object.getPosition() != null) targets.add(object);
         }
         targets.sort(Comparator.comparingDouble(
-                zombie -> zombie.getPosition().distanceTo(plant.getPosition())));
+                target -> target.getPosition().distanceTo(plant.getPosition())));
 
         int damage = Math.max(1, plant.getDamage());
         for (int i = 0; i < targets.size(); i++) {
@@ -62,7 +67,7 @@ public class ElectricBlueberryPlantFood implements PlantFoodEffect {
         duration = Math.max(clipSeconds, lastZap) + TAIL_SECONDS;
     }
 
-    private Projectile buildZap(Plant plant, GameSession session, Zombie target, int damage,
+    private Projectile buildZap(Plant plant, GameSession session, PlantTarget target, int damage,
                                 double delay) {
         double speed = session.projectileSpeed(CLOUD_SPEED);
         Position toTarget = target.getPosition().sub(plant.getPosition());
@@ -71,7 +76,7 @@ public class ElectricBlueberryPlantFood implements PlantFoodEffect {
         Projectile zap = new Projectile(plant,
                 plant.getPosition(),
                 direction.scale(speed),
-                target,
+                target.getZombie(),
                 damage,
                 new HomingMove(target, speed, TURN_RATE_PER_SECOND),
                 new NormalHit(1)

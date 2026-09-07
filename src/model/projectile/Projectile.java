@@ -6,11 +6,9 @@ import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
-import model.pitches.obstacles.IceBlock;
-import model.pitches.obstacles.OctopusWrap;
 import model.pitches.obstacles.Grave;
-import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.projectile.hit.HitEffectStrategy;
+import model.projectile.targeting.PlantTarget;
 import model.utils.GameSession;
 import service.GameClock;
 
@@ -321,6 +319,8 @@ public class Projectile extends Item {
             return;
         }
 
+        if (damageObstacleUnder(session, center)) return;
+
         // Landed (or flew past the lane) without actually connecting with anyone -
         // e.g. the original target died or stepped out of the splash radius on the
         // way down. Rather than silently despawning and dealing no damage at all,
@@ -332,6 +332,19 @@ public class Projectile extends Item {
 
         recordImpact(session, impactAt);
         setAlive(false);
+    }
+
+    private boolean damageObstacleUnder(GameSession session, Position center) {
+        if (center == null) return false;
+        Blocker blocker = findFirstBlocker(session, getPreviousPosition(), center,
+                (int) Math.round(center.y()));
+        if (blocker == null) return false;
+
+        Position impactAt = blockerImpact(blocker, getPreviousPosition(), center);
+        blocker.damage(this, session);
+        recordImpact(session, impactAt);
+        setAlive(false);
+        return true;
     }
 
     private static final double BOUNCE_PEAK_HEIGHT = 0.6;
@@ -651,14 +664,7 @@ public class Projectile extends Item {
                 structure.takeDamage(amount, projectile.getSourcePlant(), session);
                 return;
             }
-            if (cell == null) return;
-            if (cell.getObstacle() instanceof Grave) {
-                session.damageGrave(cell, amount);
-            } else if (cell.getObstacle() instanceof IceBlock) {
-                FrostbiteFreezing.damageIce(cell, amount, projectile.isFireShot());
-            } else if (cell.getObstacle() instanceof OctopusWrap wrap) {
-                wrap.takeDamage(amount);
-            }
+            PlantTarget.damageObstacle(cell, amount, session, projectile.isFireShot());
         }
     }
 
@@ -684,9 +690,7 @@ public class Projectile extends Item {
                 Cell cell = session.getEnvironment().getCell(row, col);
                 if (cell == null) continue;
 
-                Object obstacle = cell.getObstacle();
-                if (obstacle instanceof Grave || obstacle instanceof IceBlock
-                        || obstacle instanceof OctopusWrap) {
+                if (PlantTarget.isDestructible(cell.getObstacle())) {
                     double projection = tileProjection(col, row, start, end);
                     if (projection >= 0 && (best == null || projection < best.projection())) {
                         best = new Blocker(cell, null, projection);

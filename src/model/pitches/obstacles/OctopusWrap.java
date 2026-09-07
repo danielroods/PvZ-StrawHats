@@ -43,7 +43,7 @@ public class OctopusWrap implements Obstacle {
 
     @Override
     public boolean blocksPlanting() {
-        return true;
+        return hp > 0;
     }
 
     @Override

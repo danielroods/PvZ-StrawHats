@@ -7,6 +7,8 @@ import model.match_mechanisms.vector.Position;
 import model.projectile.HomingMove;
 import model.projectile.Projectile;
 import model.projectile.hit.NormalHit;
+import model.projectile.targeting.PlantTarget;
+import model.projectile.targeting.TargetFinder;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
@@ -68,10 +70,10 @@ public class HomingBarrage implements PlantFoodEffect {
         if (session == null || fired >= spikes || plant.getPosition() == null) return;
         fired++;
 
-        List<Zombie> targets = liveTargets(plant, session);
+        List<PlantTarget> targets = liveTargets(plant, session);
         if (targets.isEmpty()) return;
 
-        Zombie target = targets.get(nextTarget % targets.size());
+        PlantTarget target = targets.get(nextTarget % targets.size());
         nextTarget++;
 
         double speed = session.projectileSpeed(SPIKE_SPEED);
@@ -82,7 +84,7 @@ public class HomingBarrage implements PlantFoodEffect {
         Projectile spike = new Projectile(plant,
                 plant.getPosition(),
                 direction.scale(speed),
-                target,
+                target.getZombie(),
                 damage,
                 new HomingMove(target, speed, TURN_RATE_PER_SECOND),
                 new NormalHit(1)
@@ -93,15 +95,18 @@ public class HomingBarrage implements PlantFoodEffect {
         if (fired >= spikes) plant.setInternalTimer(plant.getActionInterval());
     }
 
-    private List<Zombie> liveTargets(Plant plant, GameSession session) {
-        List<Zombie> targets = new ArrayList<>();
+    private List<PlantTarget> liveTargets(Plant plant, GameSession session) {
+        List<PlantTarget> targets = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) continue;
-            if (zombie.getPosition() == null) continue;
-            targets.add(zombie);
+            if (!TargetFinder.isTargetable(plant, zombie, false)) continue;
+            targets.add(PlantTarget.ofZombie(zombie));
+        }
+        if (targets.isEmpty()) {
+            PlantTarget object = TargetFinder.anywhere(plant, session, false).nearest();
+            if (object != null && object.getPosition() != null) targets.add(object);
         }
         targets.sort(Comparator.comparingDouble(
-                zombie -> zombie.getPosition().distanceTo(plant.getPosition())));
+                target -> target.getPosition().distanceTo(plant.getPosition())));
         return targets;
     }
 

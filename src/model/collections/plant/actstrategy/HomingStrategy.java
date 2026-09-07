@@ -8,6 +8,8 @@ import model.projectile.HomingMove;
 import model.projectile.Projectile;
 import model.projectile.hit.HypnotizeHit;
 import model.projectile.hit.NormalHit;
+import model.projectile.targeting.PlantTarget;
+import model.projectile.targeting.TargetFinder;
 import model.utils.GameSession;
 
 import java.util.List;
@@ -24,25 +26,27 @@ public class HomingStrategy implements ActStrategy {
         if (user.getIntervalTimer() > 0) return;
 
         List<Zombie> zombies = session.getZombies();
-        if (zombies.isEmpty()) return;
-
         boolean isMagic = user.getTags().contains(PlantTag.MAGIC);
         boolean randomTargeting = isMagic || user.getName().equalsIgnoreCase("Electric Blueberry");
-        Zombie target = null;
+
+        Zombie zombie = null;
         if (user.hasSpecialUpgrade(PRIORITIZE_GARGANTUARS_TAG)) {
-            target = randomTargeting ? randomTarget(gargantuars(zombies))
-                    : nearestTarget(user, gargantuars(zombies));
+            zombie = randomTargeting ? randomTarget(user, gargantuars(user, zombies))
+                    : nearestTarget(user, gargantuars(user, zombies));
         }
-        if (target == null) {
-            target = randomTargeting ? randomTarget(zombies) : nearestTarget(user, zombies);
+        if (zombie == null) {
+            zombie = randomTargeting ? randomTarget(user, zombies) : nearestTarget(user, zombies);
         }
-        if (target == null) return;
+
+        PlantTarget target = zombie != null ? PlantTarget.ofZombie(zombie)
+                : TargetFinder.anywhere(user, session, false).nearest();
+        if (target == null || target.getPosition() == null) return;
 
         session.getProjectiles().add(buildProjectile(user, target, isMagic, session));
         user.setInternalTimer(user.getActionInterval());
     }
 
-    private Projectile buildProjectile(Plant user, Zombie target, boolean isMagic,
+    private Projectile buildProjectile(Plant user, PlantTarget target, boolean isMagic,
                                        GameSession session) {
         double speed = session.projectileSpeed(HOMING_SPEED);
         Position toTarget = target.getPosition().sub(user.getPosition());
@@ -52,30 +56,31 @@ public class HomingStrategy implements ActStrategy {
         if (isMagic) {
             int pierceCount = (int) user.getAbilityValue();
             return new Projectile(user,
-                    user.getPosition(), velocity, target,
+                    user.getPosition(), velocity, target.getZombie(),
                     user.getDamage(), new HomingMove(target, speed, TURN_RATE_PER_SECOND),
                     new HypnotizeHit(pierceCount)
             );
         }
 
         return new Projectile(user,
-                user.getPosition(), velocity, target,
+                user.getPosition(), velocity, target.getZombie(),
                 user.getDamage(), new HomingMove(target, speed, TURN_RATE_PER_SECOND),
                 new NormalHit(1)
         );
     }
 
-    private List<Zombie> gargantuars(List<Zombie> zombies) {
+    private List<Zombie> gargantuars(Plant user, List<Zombie> zombies) {
         return zombies.stream()
-                .filter(HomingStrategy::isTargetable)
+                .filter(zombie -> TargetFinder.isTargetable(user, zombie, false))
                 .filter(zombie -> zombie.getRace() == model.collections.zombie.ZombieRace.GARGANTUAR
                         || (zombie.getName() != null
                         && zombie.getName().toLowerCase().contains("gargantuar")))
                 .toList();
     }
 
-    private Zombie randomTarget(List<Zombie> zombies) {
-        List<Zombie> alive = zombies.stream().filter(HomingStrategy::isTargetable).toList();
+    private Zombie randomTarget(Plant user, List<Zombie> zombies) {
+        List<Zombie> alive = zombies.stream()
+                .filter(zombie -> TargetFinder.isTargetable(user, zombie, false)).toList();
         if (alive.isEmpty()) return null;
         return alive.get(ThreadLocalRandom.current().nextInt(alive.size()));
     }
@@ -83,19 +88,14 @@ public class HomingStrategy implements ActStrategy {
     private Zombie nearestTarget(Plant user, List<Zombie> zombies) {
         Zombie nearest = null;
         double shortest = Double.MAX_VALUE;
-        for (Zombie z : zombies) {
-            if (!isTargetable(z)) continue;
-            double dist = z.getPosition().distanceTo(user.getPosition());
+        for (Zombie zombie : zombies) {
+            if (!TargetFinder.isTargetable(user, zombie, false)) continue;
+            double dist = zombie.getPosition().distanceTo(user.getPosition());
             if (dist < shortest) {
                 shortest = dist;
-                nearest = z;
+                nearest = zombie;
             }
         }
         return nearest;
-    }
-
-    private static boolean isTargetable(Zombie zombie) {
-        return zombie != null && zombie.isAlive() && !zombie.isHypnotized()
-                && zombie.getPosition() != null;
     }
 }

@@ -22,6 +22,7 @@ import model.pitches.obstacles.OctopusWrap;
 import model.pitches.obstacles.MoldBlock;
 import model.collections.animations.ZombieAnimationRegistry;
 import model.pitches.TileType;
+import model.projectile.targeting.TargetFinder;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 
@@ -1554,7 +1555,7 @@ class PlantRenderer {
     /**
      * Split Pea shoots both forward (right, toward the zombies) and backward (left) in the
      * same volley, but {@link model.collections.plant.actstrategy.ShootStrategy} only actually
-     * launches a projectile toward a side that has a target (zombie or grave) in range. Its
+     * launches a projectile toward a side that has a valid target in range. Its
      * PAM mirrors that with three clips: "attack" (right side only), "attack3" (left side
      * only), "attack2" (both sides). This picks the matching clip by re-checking, purely for
      * display, which side(s) have a target right now using the same same-row / in-range rule
@@ -1568,34 +1569,11 @@ class PlantRenderer {
         return "attack";
     }
 
-    /** Whether Split Pea has a zombie or grave target on the given side (dxSign > 0 = right, < 0 = left). */
+    /** Whether Split Pea has any valid target on the given side (dxSign > 0 = right, < 0 = left). */
     private boolean splitPeaSideHasTarget(Plant plant, double dxSign) {
         if (plant == null || screen.session == null) return false;
-        Position origin = plant.getPosition();
-        if (origin == null) return false;
-
-        for (Zombie zombie : screen.session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position zp = zombie.getPosition();
-            double relX = zp.x() - origin.x();
-            double relY = zp.y() - origin.y();
-            if (Math.abs(relY) >= 0.75 || Math.signum(relX) != Math.signum(dxSign)) continue;
-            if (plant.isWithinAttackRange(zp)) return true;
-        }
-
-        if (screen.session.getEnvironment() != null) {
-            for (int row = 0; row < screen.session.getEnvironment().getRows(); row++) {
-                for (int col = 0; col < screen.session.getEnvironment().getCols(); col++) {
-                    Cell cell = screen.session.getEnvironment().getCell(row, col);
-                    if (cell == null || !(cell.getObstacle() instanceof model.pitches.obstacles.Grave)) continue;
-                    double relX = col - origin.x();
-                    double relY = row - origin.y();
-                    if (Math.abs(relY) >= 0.75 || Math.signum(relX) != Math.signum(dxSign)) continue;
-                    if (plant.isWithinAttackRange(new Position(col, row))) return true;
-                }
-            }
-        }
-        return false;
+        return TargetFinder.alongVector(plant, new Position(dxSign, 0), screen.session, false)
+                .hasTarget();
     }
 
     void trackExplodedPlants(List<Plant> alivePlantsBeforeTick) {

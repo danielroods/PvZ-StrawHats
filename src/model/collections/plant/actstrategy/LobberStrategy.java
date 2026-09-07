@@ -4,11 +4,11 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
-import model.pitches.Cell;
-import model.pitches.obstacles.Grave;
 import model.projectile.LobArcMove;
 import model.projectile.Projectile;
 import model.projectile.hit.*;
+import model.projectile.targeting.TargetFinder;
+import model.projectile.targeting.TargetScan;
 import model.utils.GameSession;
 
 import java.util.List;
@@ -31,8 +31,8 @@ public class LobberStrategy implements ActStrategy {
 
         if (boosted) {
             List<Zombie> activeZombies = session.getZombies().stream()
-                    .filter(z -> z != null && z.isAlive() && !z.isHypnotized()
-                            && z.getPosition() != null && z.getPosition().x() >= startPos.x())
+                    .filter(z -> TargetFinder.isTargetable(user, z, true)
+                            && z.getPosition().x() >= startPos.x())
                     .toList();
 
             if (!activeZombies.isEmpty()) {
@@ -52,18 +52,12 @@ public class LobberStrategy implements ActStrategy {
             return;
         }
 
-        Zombie target = findNearestInLane(user, session);
-        Cell grave = target == null ? findNearestGraveInLane(user, session) : null;
-        if (target == null && grave == null) return;
+        TargetScan scan = TargetFinder.inLaneAhead(user, session,
+                TargetFinder.LANE_ROW_TOLERANCE, true);
+        Position targetPos = scan.aimPosition();
+        if (targetPos == null) return;
 
-        Position targetPos;
-        if (target != null) {
-            targetPos = target.getPosition();
-        } else {
-            targetPos = new Position(grave.getCol(), grave.getRow());
-        }
-
-        spawnLobbedProjectile(user, startPos, targetPos, target, session, 0.0);
+        spawnLobbedProjectile(user, startPos, targetPos, scan.zombie(), session, 0.0);
         user.setInternalTimer(user.getActionInterval());
     }
 
@@ -126,45 +120,5 @@ public class LobberStrategy implements ActStrategy {
         }
         if (user.getTags().contains(PlantTag.PIERCE)) return new PierceHit(-1);
         return new NormalHit(areaLength, splashBonus);
-    }
-
-    private Cell findNearestGraveInLane(Plant user, GameSession session) {
-        double plantRow = user.getPosition().y();
-        double plantCol = user.getPosition().x();
-        Cell nearest = null;
-        double minX = Double.MAX_VALUE;
-
-        for (int row = 0; row < session.getEnvironment().getRows(); row++) {
-            for (int col = 0; col < session.getEnvironment().getCols(); col++) {
-                Cell cell = session.getEnvironment().getCell(row, col);
-                if (cell == null || !(cell.getObstacle() instanceof Grave)) continue;
-                if (Math.abs(row - plantRow) < 0.5 && col > plantCol && col < minX) {
-                    minX = col;
-                    nearest = cell;
-                }
-            }
-        }
-        return nearest;
-    }
-
-    private Zombie findNearestInLane(Plant user, GameSession session) {
-        double plantRow = user.getPosition().y();
-        double plantCol = user.getPosition().x();
-        Zombie nearest = null;
-        double minX = Double.MAX_VALUE;
-
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) continue;
-            Position zp = zombie.getPosition();
-            if (zp == null) continue;
-
-            if (Math.abs(zp.y() - plantRow) < 0.5 && zp.x() > plantCol) {
-                if (zp.x() < minX) {
-                    minX = zp.x();
-                    nearest = zombie;
-                }
-            }
-        }
-        return nearest;
     }
 }

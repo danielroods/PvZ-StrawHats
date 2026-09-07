@@ -4,7 +4,10 @@ import model.collections.plant.Plant;
 import model.collections.zombie.Zombie;
 import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
+import model.pitches.Cell;
+import model.pitches.Environment;
 import model.projectile.GrapeshotProjectile;
+import model.projectile.targeting.PlantTarget;
 import model.utils.GameSession;
 
 import java.util.ArrayList;
@@ -45,8 +48,24 @@ public class GrapeshotStrategy implements ActStrategy {
             if (inBlast(structure.getPosition(), center)) structure.takeDamage(damage, user, session);
         }
 
+        damageObstaclesInBlast(session, center, damage);
+
         spawnGrapes(user, session, center, damage);
         user.setAlive(false);
+    }
+
+    private void damageObstaclesInBlast(GameSession session, Position center, int damage) {
+        Environment environment = session.getEnvironment();
+        if (environment == null) return;
+
+        for (int row = 0; row < environment.getRows(); row++) {
+            for (int col = 0; col < environment.getCols(); col++) {
+                Cell cell = environment.getCell(row, col);
+                if (cell == null || !PlantTarget.isDestructible(cell.getObstacle())) continue;
+                if (!inBlast(new Position(col, row), center)) continue;
+                PlantTarget.damageObstacle(cell, damage, session, false);
+            }
+        }
     }
 
     private boolean inBlast(Position position, Position center) {
