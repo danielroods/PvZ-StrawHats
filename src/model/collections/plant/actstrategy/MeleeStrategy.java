@@ -4,11 +4,12 @@ import model.collections.plant.Plant;
 import model.collections.plant.PlantTag;
 import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
+import model.projectile.targeting.PlantTarget;
+import model.projectile.targeting.TargetFinder;
 import model.utils.GameSession;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class MeleeStrategy implements ActStrategy {
     public static final String TILE_RANGE_TAG = "TILE_RANGE_EXT";
@@ -18,14 +19,12 @@ public class MeleeStrategy implements ActStrategy {
     private static final double PHAT_BEET_RANGE = 2.0;
     private static final double KIWI_RANGE = 1.0;
     private static final double CHOMPER_RANGE = 1.0;
-    // Headbutter Lettuce (Plants.json entry "Iceberg Lettuce" - see AnimationFactory's
-    // ICEBERG_LETTUCE -> HEADBUTTER_LETTUCE override): a plain 2-tile melee headbutt, both
-    // in front of and behind the plant (sameRowTargets doesn't care about direction, only
-    // distance - see act()/attackStructures() below).
     private static final double HEADBUTTER_LETTUCE_RANGE = 2.0;
-    // Same random chance (plus the same BUTTER_CHANCE_BUFF upgrade) Kernel-pult uses for its
-    // normal (non-Plant-Food) butter shots - see LobberStrategy.BASE_BUTTER_CHANCE - and the
-    // same 5s stun length ButterHit applies.
+    private static final double DEFAULT_MELEE_RANGE = 1.0;
+    private static final double AREA_MODE_REACH = 1.0;
+    private static final double WAVE_MODE_REACH = 5.0;
+    private static final double SAME_ROW_TOLERANCE = 0.5;
+    private static final double SELF_TILE_EPSILON = 0.01;
     private static final double HEADBUTTER_LETTUCE_BASE_BUTTER_CHANCE = 0.25;
     private static final double HEADBUTTER_LETTUCE_BUTTER_SECONDS = 5.0;
 
@@ -33,192 +32,57 @@ public class MeleeStrategy implements ActStrategy {
     public void act(Plant user, GameSession session) {
         if (user.getIntervalTimer() > 0) return;
 
-        String name = user.getName() == null ? "" : user.getName();
+        Position origin = user.getPosition();
+        if (origin == null) return;
 
-        if ("Chomper".equalsIgnoreCase(name)) {
-            actChomper(user, session);
+        List<PlantTarget> targets = TargetFinder.allWithin(user, session, reach(user), false);
+        if (targets.isEmpty()) return;
+
+        PlantTarget closest = nearest(targets, origin);
+        if (closest != null && closest.getPosition() != null) {
+            user.setMeleeFacingLeft(closest.getPosition().x() < origin.x());
+        }
+
+        if ("Chomper".equalsIgnoreCase(user.getName())) {
+            bite(user, session, closest);
             return;
         }
 
-        ArrayList<Zombie> targets;
-        if ("Bonk Choy".equalsIgnoreCase(name) || "Wasabi Whip".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, meleeRange(user,
-                    "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE));
-        } else if ("Phat Beet".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, meleeRange(user, PHAT_BEET_RANGE));
-        } else if ("Kiwibeast".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, meleeRange(user, KIWI_RANGE));
-        } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
-            targets = sameRowTargets(user, session, meleeRange(user, HEADBUTTER_LETTUCE_RANGE));
-        } else {
-            targets = switch ((int) user.getAbilityValue()) {
-                case 1 -> frontBackDetect(user, session);
-                case 2 -> areaDetect(user, session);
-                case 3 -> waveDetect(user, session);
-                case 4 -> swallowDetect(user, session);
-                default -> null;
-            };
-        }
-
-        boolean hitStructure = attackStructures(user, session);
-        if ((targets == null || targets.isEmpty()) && !hitStructure) return;
-
-        if (targets != null && !targets.isEmpty()) {
-            // Direction is determined by the actual hit target. For a target behind
-            // the plant, the renderer mirrors the attack animation.
-            Zombie closest = targets.stream()
-                    .min(Comparator.comparingDouble(z -> z.getPosition().distanceTo(user.getPosition())))
-                    .orElse(null);
-            if (closest != null) {
-                user.setMeleeFacingLeft(closest.getPosition().x() < user.getPosition().x());
-            }
-            userAct(user, targets);
-        }
-
+        strike(user, session, targets);
         user.setInternalTimer(user.getActionInterval());
     }
 
-    private void actChomper(Plant user, GameSession session) {
-        ArrayList<Zombie> targets = sameRowTargets(user, session, CHOMPER_RANGE);
-        if (targets.isEmpty()) return;
-
-        Zombie target = targets.stream()
-                .filter(z -> z.getPosition() != null)
-                .min(Comparator.comparingDouble(z -> z.getPosition().distanceTo(user.getPosition())))
-                .orElse(null);
+    private void bite(Plant user, GameSession session, PlantTarget target) {
         if (target == null) return;
 
-        user.setMeleeFacingLeft(target.getPosition().x() < user.getPosition().x());
-
         boolean killed = false;
-        if (user.getTags().contains(PlantTag.FIRE)) target.applyStatus(Zombie.Status.FIRED, 3.0);
-        if (user.getTags().contains(PlantTag.ICE)) target.applyStatus(Zombie.Status.FREEZE, 5.0);
+        Zombie zombie = target.getZombie();
+        if (zombie != null) {
+            applyElementalStatus(user, zombie);
+            int beforeHp = zombie.getHP();
+            if (user.getDamage() > 0) zombie.takeDamage(user.getDamage(), user);
+            killed = beforeHp > 0 && !zombie.isAlive();
+        } else {
+            target.takeDamage(user.getDamage(), user, session, isFireDamage(user));
+        }
 
-        int beforeHp = target.getHP();
-        if (user.getDamage() > 0) target.takeDamage(user.getDamage(), user);
-        killed = beforeHp > 0 && !target.isAlive();
-
-        // The normal Chomper bite has its own terminal clip. If it killed a zombie,
-        // immediately enter the 10-second chewing/special state.
         user.startChomperBite(killed);
         user.setInternalTimer(user.getActionInterval());
     }
 
-    private boolean attackStructures(Plant user, GameSession session) {
-        Position center = user.getPosition();
-        if (center == null) return false;
-        String name = user.getName() == null ? "" : user.getName();
-
-        double range;
-        if ("Bonk Choy".equalsIgnoreCase(name) || "Wasabi Whip".equalsIgnoreCase(name)) {
-            range = meleeRange(user, "Bonk Choy".equalsIgnoreCase(name) ? BONK_RANGE : WASABI_RANGE);
-        } else if ("Phat Beet".equalsIgnoreCase(name)) {
-            range = meleeRange(user, PHAT_BEET_RANGE);
-        } else if ("Kiwibeast".equalsIgnoreCase(name)) {
-            range = meleeRange(user, KIWI_RANGE);
-        } else if ("Chomper".equalsIgnoreCase(name)) {
-            range = meleeRange(user, CHOMPER_RANGE);
-        } else if ("Iceberg Lettuce".equalsIgnoreCase(name)) {
-            range = meleeRange(user, HEADBUTTER_LETTUCE_RANGE);
-        } else {
-            int mode = (int) user.getAbilityValue();
-            return attackStructuresLegacy(user, session, mode);
-        }
-
-        boolean hit = false;
-        for (model.collections.zombie.zombie_pushing_item.PushableStructure structure : session.getPushableStructures()) {
-            Position position = structure.getPosition();
-            if (position == null) continue;
-            if (Math.abs(position.y() - center.y()) < 0.5
-                    && Math.abs(position.x() - center.x()) <= range) {
-                structure.takeDamage(Math.max(0, user.getDamage()), user, session);
-                hit = true;
-            }
-        }
-        return hit;
-    }
-
-    private boolean attackStructuresLegacy(Plant user, GameSession session, int mode) {
-        Position center = user.getPosition();
-        if (center == null) return false;
-        boolean hit = false;
-        for (model.collections.zombie.zombie_pushing_item.PushableStructure structure : session.getPushableStructures()) {
-            Position position = structure.getPosition();
-            if (position == null) continue;
-            double dx = position.x() - center.x();
-            double dy = position.y() - center.y();
-            boolean inRange = switch (mode) {
-                case 1 -> Math.abs(dy) < 0.5 && Math.abs(dx) < 1;
-                case 2 -> Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
-                case 3 -> position.distanceTo(center) < 5;
-                case 4 -> Math.abs(dy) < 0.5 && dx > 0 && dx < 1;
-                default -> false;
-            };
-            if (inRange) {
-                structure.takeDamage(Math.max(0, user.getDamage()), user, session);
-                hit = true;
-            }
-        }
-        return hit;
-    }
-
-    private static double meleeRange(Plant user, double baseRange) {
-        return baseRange + Math.max(0.0, user.getSpecialUpgrade(TILE_RANGE_TAG, 0.0));
-    }
-
-    private ArrayList<Zombie> sameRowTargets(Plant user, GameSession session, double range) {
-        ArrayList<Zombie> targets = new ArrayList<>();
-        Position origin = user.getPosition();
-        if (origin == null) return targets;
-
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position p = zombie.getPosition();
-            if (Math.abs(p.y() - origin.y()) < 0.5
-                    && Math.abs(p.x() - origin.x()) <= range
-                    && Math.abs(p.x() - origin.x()) > 0.01) {
-                targets.add(zombie);
-            }
-        }
-        return targets;
-    }
-
-    private ArrayList<Zombie> frontBackDetect(Plant user, GameSession session) {
-        return sameRowTargets(user, session, 1.0);
-    }
-
-    private ArrayList<Zombie> areaDetect(Plant user, GameSession session) {
-        ArrayList<Zombie> targets = new ArrayList<>();
-        Position userPos = user.getPosition();
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            Position zomPos = zombie.getPosition();
-            if (Math.abs(zomPos.x() - userPos.x()) <= 1 && Math.abs(zomPos.y() - userPos.y()) <= 1)
-                targets.add(zombie);
-        }
-        return targets;
-    }
-
-    private ArrayList<Zombie> waveDetect(Plant user, GameSession session) {
-        ArrayList<Zombie> targets = new ArrayList<>();
-        Position userPos = user.getPosition();
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            if (zombie.getPosition().distanceTo(userPos) < 5) targets.add(zombie);
-        }
-        return targets;
-    }
-
-    private ArrayList<Zombie> swallowDetect(Plant user, GameSession session) {
-        return sameRowTargets(user, session, 1.0);
-    }
-
-    private void userAct(Plant user, ArrayList<Zombie> targets) {
+    private void strike(Plant user, GameSession session, List<PlantTarget> targets) {
         int userDamage = user.getDamage();
         boolean headbutterLettuce = "Iceberg Lettuce".equalsIgnoreCase(user.getName());
-        for (Zombie zombie : targets) {
-            if (user.getTags().contains(PlantTag.FIRE)) zombie.applyStatus(Zombie.Status.FIRED, 3.0);
-            if (user.getTags().contains(PlantTag.ICE)) zombie.applyStatus(Zombie.Status.FREEZE, 5.0);
+        boolean fire = isFireDamage(user);
+
+        for (PlantTarget target : targets) {
+            Zombie zombie = target.getZombie();
+            if (zombie == null) {
+                target.takeDamage(userDamage, user, session, fire);
+                continue;
+            }
+
+            applyElementalStatus(user, zombie);
             if (user.getTags().contains(PlantTag.POISON)) zombie.takeDamage(userDamage, true);
             else zombie.takeDamage(userDamage, user);
 
@@ -247,5 +111,63 @@ public class MeleeStrategy implements ActStrategy {
                 }
             }
         }
+    }
+
+    private static void applyElementalStatus(Plant user, Zombie zombie) {
+        if (user.getTags().contains(PlantTag.FIRE)) zombie.applyStatus(Zombie.Status.FIRED, 3.0);
+        if (user.getTags().contains(PlantTag.ICE)) zombie.applyStatus(Zombie.Status.FREEZE, 5.0);
+    }
+
+    private static boolean isFireDamage(Plant user) {
+        return user.getTags().contains(PlantTag.FIRE);
+    }
+
+    private static PlantTarget nearest(List<PlantTarget> targets, Position origin) {
+        PlantTarget best = null;
+        double shortest = Double.MAX_VALUE;
+        for (PlantTarget target : targets) {
+            Position at = target.getPosition();
+            if (at == null) continue;
+            double distance = at.distanceTo(origin);
+            if (distance < shortest) {
+                shortest = distance;
+                best = target;
+            }
+        }
+        return best;
+    }
+
+    private static Predicate<Position> reach(Plant user) {
+        Position origin = user.getPosition();
+        if (origin == null) return at -> false;
+
+        Double sameRowRange = sameRowRange(user);
+        if (sameRowRange != null) return sameRow(origin, sameRowRange);
+
+        return switch ((int) user.getAbilityValue()) {
+            case 1, 4 -> sameRow(origin, DEFAULT_MELEE_RANGE);
+            case 2 -> TargetFinder.box(origin, AREA_MODE_REACH, AREA_MODE_REACH);
+            case 3 -> TargetFinder.within(origin, WAVE_MODE_REACH);
+            default -> at -> false;
+        };
+    }
+
+    private static Double sameRowRange(Plant user) {
+        String name = user.getName() == null ? "" : user.getName();
+        if ("Bonk Choy".equalsIgnoreCase(name)) return meleeRange(user, BONK_RANGE);
+        if ("Wasabi Whip".equalsIgnoreCase(name)) return meleeRange(user, WASABI_RANGE);
+        if ("Phat Beet".equalsIgnoreCase(name)) return meleeRange(user, PHAT_BEET_RANGE);
+        if ("Kiwibeast".equalsIgnoreCase(name)) return meleeRange(user, KIWI_RANGE);
+        if ("Chomper".equalsIgnoreCase(name)) return meleeRange(user, CHOMPER_RANGE);
+        if ("Iceberg Lettuce".equalsIgnoreCase(name)) return meleeRange(user, HEADBUTTER_LETTUCE_RANGE);
+        return null;
+    }
+
+    private static Predicate<Position> sameRow(Position origin, double range) {
+        return TargetFinder.sameRowWithin(origin, SAME_ROW_TOLERANCE, range, SELF_TILE_EPSILON);
+    }
+
+    private static double meleeRange(Plant user, double baseRange) {
+        return baseRange + Math.max(0.0, user.getSpecialUpgrade(TILE_RANGE_TAG, 0.0));
     }
 }

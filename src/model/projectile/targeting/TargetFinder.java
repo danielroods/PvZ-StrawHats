@@ -8,6 +8,9 @@ import model.pitches.Cell;
 import model.pitches.Environment;
 import model.utils.GameSession;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class TargetFinder {
@@ -44,6 +47,30 @@ public final class TargetFinder {
         return scan(user, session, lobbed, at -> true);
     }
 
+    public static List<PlantTarget> allWithin(Plant user, GameSession session,
+                                              Predicate<Position> area, boolean lobbed) {
+        List<PlantTarget> targets = new ArrayList<>();
+        if (user == null || area == null || user.getPosition() == null) return targets;
+        forEachTarget(user, session, lobbed, area, targets::add);
+        return targets;
+    }
+
+    public static Predicate<Position> box(Position origin, double reachX, double reachY) {
+        return at -> Math.abs(at.x() - origin.x()) <= reachX
+                && Math.abs(at.y() - origin.y()) <= reachY;
+    }
+
+    public static Predicate<Position> within(Position origin, double radius) {
+        return at -> at.distanceTo(origin) <= radius;
+    }
+
+    public static Predicate<Position> sameRowWithin(Position origin, double rowTolerance,
+                                                    double range, double selfTileEpsilon) {
+        return at -> Math.abs(at.y() - origin.y()) < rowTolerance
+                && Math.abs(at.x() - origin.x()) <= range
+                && Math.abs(at.x() - origin.x()) > selfTileEpsilon;
+    }
+
     public static boolean isTargetable(Plant user, Zombie zombie, boolean lobbed) {
         if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()
                 || zombie.getPosition() == null) {
@@ -54,27 +81,19 @@ public final class TargetFinder {
 
     private static TargetScan scan(Plant user, GameSession session, boolean lobbed,
                                    Predicate<Position> accepts) {
-        if (session == null) return TargetScan.empty();
         Position origin = user.getPosition();
+        NearestCollector collector = new NearestCollector(origin);
+        forEachTarget(user, session, lobbed, accepts, collector);
+        return collector.result();
+    }
 
-        PlantTarget nearest = null;
-        Zombie nearestZombie = null;
-        double bestDistance = Double.MAX_VALUE;
-        double bestZombieDistance = Double.MAX_VALUE;
+    private static void forEachTarget(Plant user, GameSession session, boolean lobbed,
+                                      Predicate<Position> accepts, Consumer<PlantTarget> sink) {
+        if (session == null) return;
 
         for (Zombie zombie : session.getZombies()) {
             if (!isTargetable(user, zombie, lobbed)) continue;
-            Position at = zombie.getPosition();
-            if (!accepts.test(at)) continue;
-            double distance = at.distanceTo(origin);
-            if (distance < bestZombieDistance) {
-                bestZombieDistance = distance;
-                nearestZombie = zombie;
-            }
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                nearest = PlantTarget.ofZombie(zombie);
-            }
+            if (accepts.test(zombie.getPosition())) sink.accept(PlantTarget.ofZombie(zombie));
         }
 
         Environment environment = session.getEnvironment();
@@ -83,13 +102,7 @@ public final class TargetFinder {
                 for (int col = 0; col < environment.getCols(); col++) {
                     Cell cell = environment.getCell(row, col);
                     if (cell == null || !PlantTarget.isDestructible(cell.getObstacle())) continue;
-                    Position at = new Position(col, row);
-                    if (!accepts.test(at)) continue;
-                    double distance = at.distanceTo(origin);
-                    if (distance < bestDistance) {
-                        bestDistance = distance;
-                        nearest = PlantTarget.ofCell(cell);
-                    }
+                    if (accepts.test(new Position(col, row))) sink.accept(PlantTarget.ofCell(cell));
                 }
             }
         }
@@ -97,15 +110,39 @@ public final class TargetFinder {
         for (PushableStructure structure : session.getPushableStructures()) {
             if (structure == null || !structure.isAlive()) continue;
             Position at = structure.getPosition();
-            if (at == null || !accepts.test(at)) continue;
+            if (at != null && accepts.test(at)) sink.accept(PlantTarget.ofStructure(structure));
+        }
+    }
+
+    private static final class NearestCollector implements Consumer<PlantTarget> {
+        private final Position origin;
+        private PlantTarget nearest;
+        private Zombie nearestZombie;
+        private double bestDistance = Double.MAX_VALUE;
+        private double bestZombieDistance = Double.MAX_VALUE;
+
+        private NearestCollector(Position origin) {
+            this.origin = origin;
+        }
+
+        @Override
+        public void accept(PlantTarget target) {
+            Position at = target.getPosition();
+            if (at == null) return;
             double distance = at.distanceTo(origin);
+            if (target.isZombie() && distance < bestZombieDistance) {
+                bestZombieDistance = distance;
+                nearestZombie = target.getZombie();
+            }
             if (distance < bestDistance) {
                 bestDistance = distance;
-                nearest = PlantTarget.ofStructure(structure);
+                nearest = target;
             }
         }
 
-        return new TargetScan(nearest, nearestZombie);
+        private TargetScan result() {
+            return new TargetScan(nearest, nearestZombie);
+        }
     }
 
     public static boolean isInCone(double relX, double relY, double dx, double dy) {

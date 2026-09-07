@@ -12,6 +12,8 @@ public final class PlantStats {
 
     public static final int MIN_LEVEL = 1;
     public static final double POTATO_MINE_BASE_ARM_SECONDS = 14.0;
+    public static final double MELEE_BASE_DAMAGE_MULTIPLIER = 1.5;
+    public static final String GROWTH_STAGE_DAMAGE_KEY = "damage";
 
     private static final Set<String> RANGE_TAGS = Set.of("TILE_RANGE_EXT");
     private static final Set<String> LIFESPAN_TAGS = Set.of("LIFESPAN_EXT");
@@ -70,6 +72,35 @@ public final class PlantStats {
         return 0.0;
     }
 
+    public static double baseDamageMultiplier(PlantJsonParser.PlantConfig config) {
+        return config != null && config.category == PlantType.MELEE
+                ? MELEE_BASE_DAMAGE_MULTIPLIER : 1.0;
+    }
+
+    public static int baseDamage(PlantJsonParser.PlantConfig config) {
+        if (config == null) return 0;
+        return (int) Math.round(config.damage * baseDamageMultiplier(config));
+    }
+
+    public static List<Map<String, Object>> scaledGrowthStages(PlantJsonParser.PlantConfig config) {
+        if (config == null || config.wrampUp == null) return null;
+        double multiplier = baseDamageMultiplier(config);
+        if (multiplier == 1.0) return config.wrampUp;
+
+        List<Map<String, Object>> scaled = new ArrayList<>(config.wrampUp.size());
+        for (Map<String, Object> stage : config.wrampUp) {
+            if (stage == null) continue;
+            Map<String, Object> copy = new LinkedHashMap<>(stage);
+            Object damage = copy.get(GROWTH_STAGE_DAMAGE_KEY);
+            if (damage instanceof Number number) {
+                copy.put(GROWTH_STAGE_DAMAGE_KEY,
+                        (double) Math.round(number.doubleValue() * multiplier));
+            }
+            scaled.add(copy);
+        }
+        return scaled;
+    }
+
     public static int maxLevel(PlantJsonParser.PlantConfig config) {
         if (config == null || config.upgrades == null || config.upgrades.isEmpty()) return MIN_LEVEL;
         int max = MIN_LEVEL;
@@ -91,7 +122,7 @@ public final class PlantStats {
 
         int hp = config.baseHp;
         int cost = config.cost;
-        int damage = config.damage;
+        int damage = baseDamage(config);
         double recharge = config.recharge;
         double actionInterval = config.actionInterval;
         double abilityValue = config.abilityValue;

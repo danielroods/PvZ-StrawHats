@@ -3,11 +3,11 @@ package model.collections.plant.plantfood;
 import model.collections.plant.Plant;
 import model.collections.plant.PlantFoodEffect;
 import model.collections.zombie.Zombie;
-import model.collections.zombie.zombie_pushing_item.PushableStructure;
 import model.match_mechanisms.vector.Position;
+import model.projectile.targeting.PlantTarget;
+import model.projectile.targeting.TargetFinder;
 import model.utils.GameSession;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MeleeAreaPlantFood implements PlantFoodEffect {
@@ -87,7 +87,14 @@ public class MeleeAreaPlantFood implements PlantFoodEffect {
         Position center = plant.getPosition();
         if (center == null || session == null) return;
 
-        for (Zombie zombie : targets(session, center)) {
+        boolean fire = profile.status() == Zombie.Status.FIRED;
+        for (PlantTarget target : targets(plant, session, center)) {
+            Zombie zombie = target.getZombie();
+            if (zombie == null) {
+                target.takeDamage(profile.damagePerHit(), plant, session, fire);
+                continue;
+            }
+
             zombie.takeDamage(profile.damagePerHit(), plant);
             if (!zombie.isAlive()) continue;
             if (profile.status() != null) {
@@ -100,27 +107,11 @@ public class MeleeAreaPlantFood implements PlantFoodEffect {
                 zombie.startKnockback(direction * profile.knockbackTiles(), 0.25);
             }
         }
-
-        for (PushableStructure structure : new ArrayList<>(session.getPushableStructures())) {
-            if (structure == null || !structure.isAlive() || structure.getPosition() == null) continue;
-            if (!inReach(center, structure.getPosition())) continue;
-            structure.takeDamage(profile.damagePerHit(), plant, session);
-        }
     }
 
-    private List<Zombie> targets(GameSession session, Position center) {
-        List<Zombie> hit = new ArrayList<>();
-        for (Zombie zombie : new ArrayList<>(session.getZombies())) {
-            if (zombie == null || !zombie.isAlive() || zombie.isHypnotized()) continue;
-            if (zombie.getPosition() == null || !inReach(center, zombie.getPosition())) continue;
-            hit.add(zombie);
-        }
-        return hit;
-    }
-
-    private boolean inReach(Position center, Position at) {
-        return Math.abs(at.x() - center.x()) <= profile.reachX()
-                && Math.abs(at.y() - center.y()) <= profile.reachY();
+    private List<PlantTarget> targets(Plant plant, GameSession session, Position center) {
+        return TargetFinder.allWithin(plant, session,
+                TargetFinder.box(center, profile.reachX(), profile.reachY()), false);
     }
 
     @Override

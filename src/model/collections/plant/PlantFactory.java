@@ -124,7 +124,8 @@ public class PlantFactory {
             plant.setImitaterTargetName(imitaterTargetName);
         }
         plant.setPlantFoodType(config.plantFoodType);
-        plant.setWrampUp(config.wrampUp, specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0),
+        plant.setWrampUp(PlantStats.scaledGrowthStages(config),
+                specialValues.getOrDefault("GROW_TIME_REDUCTION", 0.0),
                 (int) Math.round(specialValues.getOrDefault(
                         UpgradeEffects.GROWTH_STAGE_MAX_UP_TAG, 0.0)));
         plant.getRawUpgrades().addAll(specialTags);
@@ -352,14 +353,15 @@ public class PlantFactory {
         }
         if ("Fire Peashooter".equalsIgnoreCase(config.name)) {
             return new FirePeashooterPlantFood(profile.shots(), profile.interval(),
-                    finisherDamage, Math.max(1, config.damage));
+                    finisherDamage, Math.max(1, PlantStats.baseDamage(config)));
         }
         if ("Cat-tail".equalsIgnoreCase(config.name)) {
             return new HomingBarrage(profile.shots(), profile.interval(), 3.0);
         }
         if ("Rotobaga".equalsIgnoreCase(config.name)) {
             return new SpreadBarrage(profile.shots(), profile.interval(),
-                    Math.max(config.damage, finisherDamage), SpreadBarrage.eightWay());
+                    Math.max(PlantStats.baseDamage(config), finisherDamage),
+                    SpreadBarrage.eightWay());
         }
         if (config.tags != null && config.tags.contains(PlantTag.PEA)) {
             return new PeaBarrage(profile.shots(), profile.interval(), finisherDamage,
@@ -377,7 +379,7 @@ public class PlantFactory {
 
     private static PlantFoodEffect buildAreaSuperpower(PlantJsonParser.PlantConfig config,
                                                        int value) {
-        int perHit = Math.max(config.damage, value);
+        int perHit = Math.max(PlantStats.baseDamage(config), value);
         if ("Fume-shroom".equalsIgnoreCase(config.name)) {
             return new FumeBlast(perHit);
         }
@@ -408,7 +410,7 @@ public class PlantFactory {
     }
 
     private static int projectileBurstCount(PlantJsonParser.PlantConfig config, double plantFoodValue) {
-        int baseDamage = Math.max(1, config.damage);
+        int baseDamage = Math.max(1, PlantStats.baseDamage(config));
         return Math.max(3, Math.min(12, (int) Math.ceil(plantFoodValue / baseDamage)));
     }
 
