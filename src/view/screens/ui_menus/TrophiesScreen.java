@@ -29,6 +29,7 @@ public class TrophiesScreen extends UiScreen {
     private static final float TROPHY_SIZE_X = 135f;
     private static final float TROPHY_SIZE_Y = 240f;
 
+
     private final TrophyManager manager = new TrophyManager();
 
     @Override

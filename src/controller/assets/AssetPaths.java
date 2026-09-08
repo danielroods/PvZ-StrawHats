@@ -42,7 +42,7 @@ public final class AssetPaths {
     public static final String MUSIC = AUDIO + "music/";
 
     public static final String TROPHIES_IMAGES = UI_IMAGES + "trophies/";
-    public static final String TROPHIES_CABINET_BG = TROPHIES_IMAGES + "cabinet_background.png";
+    public static final String TROPHIES_CABINET_BG = "assets/images/backg/throphies_bg.png";
     public static final String TROPHIES_SHELF_TILE = TROPHIES_IMAGES + "shelf_tile.png";
     public static final String TROPHY_LOCKED_SILHOUETTE = TROPHIES_IMAGES + "trophy_locked.png";
     public static final String TROPHY_EGYPT = TROPHIES_IMAGES + "trophy_egypt.png";
