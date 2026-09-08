@@ -194,7 +194,7 @@ public final class ScreenManager {
             if (seasonName != null && seasonName.equalsIgnoreCase("Frostbite Caves")) {
                 return new FrostbiteCavesGameScreen();
             }
-            if (seasonName != null && seasonName.equalsIgnoreCase("pirate")) {
+            if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
                 return new PirateGameScreen();
             }
             return new GameScreen();

@@ -189,6 +189,17 @@ public class CouchIZombieGameScreen extends GameScreen {
     }
 
     private void handleZombiePlayerKeys(IZombieMatch match) {
+        CouchIZombieController activeController = controller();
+        if (activeController == null) {
+            // TEMP DIAGNOSTIC: if you see this in the log while trying to place a
+            // zombie, App.currentMenu isn't a CouchIZombieController anymore (something
+            // swapped it out), which is why every key here is silently doing nothing -
+            // match()/controller() both return null and the whole method is skipped
+            // before it even reads a keypress.
+            Gdx.app.error("CouchIZombieGameScreen", "handleZombiePlayerKeys: controller() is null, "
+                    + "App.currentMenu is " + (App.currentMenu == null ? "null" : App.currentMenu.getClass()));
+            return;
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
             cursorRow = Math.max(0, cursorRow - 1);
         }
@@ -207,13 +218,22 @@ public class CouchIZombieGameScreen extends GameScreen {
             if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1 + i)) packetIndex = i;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && packetIndex < roster.size()) {
-            String rejection = controller().apply(Role.ZOMBIES, "PLACE_ZOMBIE",
-                    roster.get(packetIndex).getAlias(), cursorRow, cursorCol);
-            if (rejection != null) {
-                Toast.show(stage, "P2: " + rejection);
-            } else {
-                AudioManager.get().playSound(AudioEnum.SFX_CLICK, 0.6f);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            // TEMP DIAGNOSTIC: confirms SPACE is even being seen, and shows exactly what
+            // was about to be sent to apply() - roster size/packetIndex mismatches are
+            // the other likely silent-failure cause (packetIndex pointing past the end
+            // of a roster that shrank, or the roster being empty).
+            Gdx.app.log("CouchIZombieGameScreen", "SPACE pressed: packetIndex=" + packetIndex
+                    + " rosterSize=" + roster.size() + " cursor=(" + cursorRow + "," + cursorCol + ")");
+            if (packetIndex < roster.size()) {
+                String rejection = activeController.apply(Role.ZOMBIES, "PLACE_ZOMBIE",
+                        roster.get(packetIndex).getAlias(), cursorRow, cursorCol);
+                Gdx.app.log("CouchIZombieGameScreen", "apply() returned: " + rejection);
+                if (rejection != null) {
+                    Toast.show(stage, "P2: " + rejection);
+                } else {
+                    AudioManager.get().playSound(AudioEnum.SFX_CLICK, 0.6f);
+                }
             }
         }
     }
