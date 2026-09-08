@@ -2,6 +2,7 @@ package controller.ui_menus;
 
 import controller.ui_menus.authentication.LoginMenu;
 import controller.ui_menus.authentication.SignupMenu;
+import controller.ui_menus.network.NetworkMenu;
 import model.App;
 import model.Regex;
 import model.game_exceptions.GameException;
@@ -37,6 +38,8 @@ public abstract class Menu {
             case "trophy", "trophies" -> App.currentMenu = new TrophiesMenu();
             case "console" -> App.currentMenu = new ConsoleMenu();
             case "adventure" -> App.currentMenu = new AdventureMenu();
+            case "network" -> App.currentMenu = new NetworkMenu();
+            case "zombie packman" -> App.currentMenu = new ZombiePackmanMenu();
             default -> throw new GameException("no such menu.");
         }
         System.out.println("Menu changed to: " + menuKey + " menu");
