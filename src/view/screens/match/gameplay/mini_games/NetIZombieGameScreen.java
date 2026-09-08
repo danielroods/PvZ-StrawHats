@@ -34,6 +34,7 @@ import service.card_factory.ZombieIconCard;
 import service.card_factory.ZombieIconCardFactory;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
+import view.screens.generals.MiniGameLawnArt;
 import view.screens.generals.GameScreen;
 import view.screens.generals.Toast;
 
@@ -106,7 +107,7 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     protected String getGameplayBackgroundPath() {
-        return getSeasonGameplayFolder() + "map.png";
+        return MiniGameLawnArt.backgroundPath(getSeasonGameplayFolder());
     }
 
     @Override

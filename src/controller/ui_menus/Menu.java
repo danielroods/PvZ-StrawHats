@@ -40,6 +40,23 @@ public abstract class Menu {
             case "adventure" -> App.currentMenu = new AdventureMenu();
             case "network" -> App.currentMenu = new NetworkMenu();
             case "zombie packman" -> App.currentMenu = new ZombiePackmanMenu();
+            case "coop", "co-op", "izombiecoop" -> {
+                // Co-op has no level-supplied zombie pool, so it gets a bare NormalLevel
+                // with an empty pool - the zombie player builds their own roster on the
+                // CoopBeforeMatchScreen instead (see CoopBeforeMenu.selectedZombies).
+                model.match.main.levels.normal_levels.NormalLevel coopLevel =
+                        new model.match.main.levels.normal_levels.NormalLevel();
+                coopLevel.setName("Co-op");
+                coopLevel.setZombiePool(new java.util.ArrayList<>());
+
+                model.utils.GameSession coopSession = new model.utils.GameSession();
+                coopSession.setLevel(coopLevel);
+
+                controller.match.BeforeMenu.selectedPlants.clear();
+                controller.match.BeforeMenu.selectedZombies.clear();
+
+                App.currentMenu = new controller.match.CoopBeforeMenu();
+            }
             default -> throw new GameException("no such menu.");
         }
         System.out.println("Menu changed to: " + menuKey + " menu");

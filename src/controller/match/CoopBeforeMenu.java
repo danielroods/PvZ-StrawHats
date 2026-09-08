@@ -5,6 +5,7 @@ import controller.match.mini_games.CouchIZombieController;
 import controller.ui_menus.MainMenu;
 import model.App;
 import model.game_exceptions.GameException;
+import model.match.mini_games.izombie.IZombieMatch;
 import view.GeneralPrinter;
 
 import java.util.regex.Matcher;
@@ -22,8 +23,14 @@ import java.util.regex.Pattern;
  */
 public class CoopBeforeMenu extends BeforeMenu {
 
-    /** Same size as the plant loadout (7 regular slots) for a symmetrical loadout panel. */
-    public static final int ZOMBIE_SLOTS = 7;
+    /**
+     * Exactly what the match can actually field. It used to be 7 (mirroring the plant
+     * loadout), but {@link IZombieMatch} only ever builds {@link IZombieMatch#MAX_ROSTER_SIZE}
+     * packets and the in-match tray only binds hotkeys 1-6, so a 7th pick was accepted in
+     * the loadout and then silently dropped - it never reached the tray and could never
+     * be placed. Deriving it keeps the picker honest.
+     */
+    public static final int ZOMBIE_SLOTS = IZombieMatch.MAX_ROSTER_SIZE;
 
     private static final Pattern ADD_ZOMBIE = Pattern.compile(
             "^\\s*add\\s+zombie\\s+-t\\s+(?<type>\\S+)\\s*$", Pattern.CASE_INSENSITIVE);

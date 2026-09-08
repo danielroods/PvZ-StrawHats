@@ -29,6 +29,7 @@ import service.card_factory.SeedPacketCard;
 import service.card_factory.SeedPacketCardFactory;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
+import view.screens.generals.MiniGameLawnArt;
 import view.screens.generals.GameScreen;
 import view.screens.generals.Toast;
 
@@ -94,7 +95,7 @@ public class WallnutBowlingGameScreen extends GameScreen {
 
     @Override
     protected String getGameplayBackgroundPath() {
-        return getSeasonGameplayFolder() + "map.png";
+        return MiniGameLawnArt.backgroundPath(getSeasonGameplayFolder());
     }
 
     @Override

@@ -3,7 +3,9 @@ package view.screens.match.before;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
@@ -13,11 +15,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 
 import controller.match.BeforeMenu;
 import controller.match.CoopBeforeMenu;
+import model.collections.animations.ZombieAnimationRegistry;
 import model.match.main.levels.Level;
 import model.user_data.User;
 import model.user_data.UserState;
@@ -25,6 +29,7 @@ import model.utils.GameSession;
 import service.card_factory.SeedPacketCard;
 import service.card_factory.ZombieIconCard;
 import service.card_factory.ZombieIconCardFactory;
+import view.screens.generals.MiniGameLawnArt;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,7 +63,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     protected static final float SCREEN_SHIFT_RIGHT = 60f;
 
-    protected static final String COOP_GAMEPLAY_FOLDER = "assets/images/backg/mini_games/izombie/";
+    protected static final String COOP_GAMEPLAY_FOLDER = MiniGameLawnArt.IZOMBIE;
     protected static final String TEXTURE_RIGHT = "assets/images/ui/texture_right.png";
 
     protected final ZombieIconCardFactory zombieCardFactory = new ZombieIconCardFactory();
@@ -88,7 +93,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     @Override
     protected String getGameplayBackgroundPath() {
-        return getSeasonGameplayFolder() + "map.png";
+        return MiniGameLawnArt.backgroundPath(getSeasonGameplayFolder());
     }
 
     @Override
@@ -225,8 +230,20 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
         try {
             ZombieIconCard card = zombieCardFactory.buildCardForAlias(alias, cardW, cardH);
-            if (card != null) {
+            boolean hasRealIcon = card != null
+                    && !ZombieIconCardFactory.PLACEHOLDER_ICON_FILE.equals(card.getIconFile());
+            if (hasRealIcon) {
                 cardStack.add(card);
+            } else {
+                // Same gap as the Collection screen: zombies_ui has no flat icon for whole
+                // chapters (Far Future, Pirate Seas, Mech, Swashbuckler) even though they
+                // have a working idle PAM animation. Reuse that animation on the shared
+                // tombstone-frame background instead of leaving a blank/placeholder card.
+                cardStack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
+                Actor animatedIcon = buildAnimatedZombieIcon(alias, cardW, cardH);
+                if (animatedIcon != null) {
+                    cardStack.add(animatedIcon);
+                }
             }
         } catch (Throwable ignored) {
         }
@@ -296,9 +313,17 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
             Stack stack = new Stack();
             try {
                 ZombieIconCard card = zombieCardFactory.buildCardForAlias(alias, ZOMBIE_LOADOUT_CARD_W, ZOMBIE_LOADOUT_CARD_H);
-                if (card != null) {
+                boolean hasRealIcon = card != null
+                        && !ZombieIconCardFactory.PLACEHOLDER_ICON_FILE.equals(card.getIconFile());
+                if (hasRealIcon) {
                     card.setTouchable(Touchable.disabled);
                     stack.add(card);
+                } else {
+                    stack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
+                    Actor animatedIcon = buildAnimatedZombieIcon(alias, ZOMBIE_LOADOUT_CARD_W, ZOMBIE_LOADOUT_CARD_H);
+                    if (animatedIcon != null) {
+                        stack.add(animatedIcon);
+                    }
                 }
             } catch (Throwable ignored) {
             }
@@ -356,6 +381,58 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
     protected void removeZombie(String alias) {
         runCommand("remove zombie -t " + alias);
         scheduleBuild();
+    }
+
+    /**
+     * Same fallback {@link view.screens.ui_menus.CollectionScreen} uses for zombie aliases
+     * with no flat icon art (Far Future, Pirate Seas, Mech, Swashbuckler): a scaled-down,
+     * clipped copy of the idle-animation box, since {@link pvz.libpvz.pam.PamPlayer#draw}
+     * always renders at native pixel size and needs a transform-enabled {@link Group} to shrink.
+     */
+    protected Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
+        String animationPath = null;
+        try {
+            animationPath = ZombieAnimationRegistry.pathFor(alias);
+        } catch (Throwable t) {
+            Gdx.app.error("CoopBeforeMatchScreen", "Failed to resolve fallback icon animation for " + alias, t);
+        }
+        if (animationPath == null) {
+            return null;
+        }
+
+        final float boxSize = 250f;
+        final float actorSize = 220f;
+
+        Group animBox = new Group();
+        animBox.setTransform(true);
+        animBox.setSize(boxSize, boxSize);
+        animBox.setOrigin(boxSize / 2f, boxSize / 2f);
+
+        PlantIdleAnimationActor animActor = new PlantIdleAnimationActor(animationPath, 0, 0);
+        animActor.setPosition((boxSize - actorSize) / 2f, (boxSize - actorSize) / 2f);
+        animBox.addActor(animActor);
+
+        float boxOnCard = Math.min(cardW, cardH) * 0.95f;
+        animBox.setScale(boxOnCard / boxSize);
+        animBox.setPosition(cardW / 2f - boxSize / 2f, cardH / 2f - boxSize / 2f);
+
+        ClippedGroup clip = new ClippedGroup(cardW, cardH);
+        clip.addActor(animBox);
+        return clip;
+    }
+
+    /** A plain {@link Group} that scissor-clips its children to its own bounds. */
+    private static class ClippedGroup extends Group {
+        ClippedGroup(float width, float height) {
+            setSize(width, height);
+        }
+
+        @Override
+        public void draw(Batch batch, float parentAlpha) {
+            boolean clipped = clipBegin(getX(), getY(), getWidth(), getHeight());
+            super.draw(batch, parentAlpha);
+            if (clipped) clipEnd();
+        }
     }
 
     @Override
