@@ -49,8 +49,8 @@ public class Cave extends Season {
             }
         }
 
-        // A Zomboss level opens on an empty lawn (five silent seconds), so the season's
-        // usual pre-frozen Troglobites are left out of it.
+        
+        
         if (session.getZombossFight() == null) placeFrostedZombies(session);
     }
 
@@ -116,13 +116,7 @@ public class Cave extends Season {
         }
     }
 
-    /**
-     * Melts a zombie free of its ice directly (as opposed to the ice block's HP being
-     * chipped away to zero). Routes through the same IceBlock still sitting on the
-     * zombie's cell so the obstacle is cleared and the "ice falls from the sky as a
-     * pushable block" hand-off in IceBlock.release() still happens - keeping this in
-     * sync with the normal damage-based melt path in FrostbiteFreezing.
-     */
+    
     public static void meltIce(Zombie zombie) {
         if (zombie == null) return;
         if (zombie.getStatus() != Zombie.Status.FREEZE && zombie.getStatus() != Zombie.Status.FROZEN) return;

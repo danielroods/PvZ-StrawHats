@@ -10,7 +10,7 @@ public enum AudioEnum {
     DARK_AGES_MUSIC("assets/audio/music/Gloria Gaynor - I will survive (128).mp3"),
 
 
-    // ---- Gameplay SFX ----
+    
     SFX_ZOMBIE_EAT("assets/audio/sfx/zombie_eating.mp3"),
     SFX_SHOOT_NORMAL("assets/audio/sfx/normal_shooting.mp3"),
     SFX_SHOOT_FIRE("assets/audio/sfx/fire_shooting.mp3"),

@@ -20,9 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Every leaderboard column, checked against the account data it claims to report.
- */
+
 class LeaderboardColumnsTest {
 
     private static List<Level> allLevels;
@@ -234,11 +232,7 @@ class LeaderboardColumnsTest {
         }
     }
 
-    /**
-     * Three accounts whose values disagree on every column, sorted both ways down each
-     * column in turn - including the three Meow columns nobody has played, where every row
-     * is a 0 and only the username tie-break is left to order them.
-     */
+    
     @Test
     void everyColumnSortsBothWaysWithUnplayedChaptersCountingAsZero() {
         java.util.ArrayList<User> previous = User.users;
@@ -286,7 +280,7 @@ class LeaderboardColumnsTest {
             assertSorted("beach", "desc", "charlie", "alpha", "bravo");
             assertSorted("beach", "asc", "alpha", "bravo", "charlie");
 
-            // Nobody has run these two, so every row is 0 and the username tie-break decides.
+            
             assertSorted("frostbite", "desc", "alpha", "bravo", "charlie");
             assertSorted("frostbite", "asc", "alpha", "bravo", "charlie");
             assertSorted("darkages", "desc", "alpha", "bravo", "charlie");
@@ -304,7 +298,7 @@ class LeaderboardColumnsTest {
                 "sorting by " + column + " " + order + "\n" + board);
     }
 
-    /** The usernames of {@code board}, in the order their rows appear. */
+    
     private static List<String> orderIn(String board, String... usernames) {
         List<String> found = new ArrayList<>(List.of(usernames));
         found.sort(java.util.Comparator.comparingInt(name -> lineIndexOf(board, name)));

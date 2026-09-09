@@ -112,8 +112,8 @@ public class EffectStatusRegistry {
         if (raw == null) return "ZombieImp";
         String normalized = raw.toLowerCase().replace("-", "").replace("_", "").replace(" ", "");
 
-        // Chapter-specific imps (e.g. "pirate_imp" -> ZombiePirateImp) get their own
-        // aliased blueprint, so prefer an exact alias match before the generic fallback.
+        
+        
         for (String alias : model.collections.zombie.ZombieFactory.getAllZombieAliases()) {
             String aliasNormalized = alias.toLowerCase().replace("_", "");
             if (aliasNormalized.equals(normalized) || aliasNormalized.equals("zombie" + normalized)) {

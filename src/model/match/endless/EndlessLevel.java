@@ -8,23 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * The Lottery node of a chapter, played as a true endless survival level.
- * <p>
- * It is a real {@link Level} - it carries its own chapter's season, board size, plant
- * list and zombie roster, so it loads the same map, hazards and assets every other stage
- * of that chapter does - but it has no authored wave list and no win condition. Waves
- * come from an {@link EndlessWaveDirector} that is asked for wave N when wave N is due,
- * so the schedule has no end to run out of.
- */
+
 public class EndlessLevel extends Level {
 
-    /**
-     * Sky sun falls a little more often than in a normal match (a shorter interval means
-     * more sun), because an endless run has to keep paying for replacements forever. It
-     * scales the season's own rate rather than replacing it, so a night chapter that
-     * drops no sky sun at all still drops none.
-     */
+    
     public static final double SKY_SUN_INTERVAL_MULTIPLIER = 0.8;
 
     private final EndlessChapter chapter;
@@ -61,7 +48,7 @@ public class EndlessLevel extends Level {
         session.setSkySunIntervalMultiplier(SKY_SUN_INTERVAL_MULTIPLIER);
     }
 
-    /** An endless run is never won - it only ever ends when the lawn is overrun. */
+    
     @Override
     public boolean checkWinCondition(GameSession session) {
         return false;

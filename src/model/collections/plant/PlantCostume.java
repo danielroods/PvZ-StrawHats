@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** One visual plant costume. The PAM element names are the elements that are toggled on. */
+
 public final class PlantCostume {
     public String id;
     public List<String> elements = new ArrayList<>();

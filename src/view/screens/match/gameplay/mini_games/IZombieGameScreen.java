@@ -36,27 +36,14 @@ import view.screens.generals.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * IZombieGameScreen mini-game gameplay entry point. The actual gameplay machinery
- * lives in GameScreen, exactly like the regular chapter stages; this class only
- * points it at the mini-game's own art folder (background and left/right border
- * textures all come from the same folder - see GameScreen.getSeasonGameplayFolder())
- * and wires up I-Zombie-specific interaction: clicking a lane right of the red line
- * places the currently selected roster zombie there, same as
- * "place zombie -t <alias> -l (x,y)" in the terminal engine.
- * The defending plants are real Plant entities the same as any other level, so
- * GameScreen already draws them; what this screen adds on top is the brain in each
- * lane, the red line, the placement highlight, and the zombie-packet tray, since
- * MatchHud's plant tray is loadout-based and has no concept of I Zombie's
- * purchasable zombie roster.
- */
+
 public class IZombieGameScreen extends GameScreen {
 
     private static final float BRAIN_WIDTH_FACTOR = 0.72f;
     private static final float BRAIN_EATEN_BURST_DURATION = 0.9f;
-    // Card + zombie icon shrunk down from the old 88x112, and built directly at this
-    // size (see buildPacketCard) rather than resized afterward - the previous size
-    // made the zombie icon inside each card look oversized next to the tray/HUD.
+    
+    
+    
     private static final float PACKET_CARD_W = 72f;
     private static final float PACKET_CARD_H = 92f;
     private static final float PACKET_TRAY_LEFT = 10f;
@@ -67,8 +54,8 @@ public class IZombieGameScreen extends GameScreen {
     private static final Color HOVER_INVALID_TINT = new Color(1f, 0.35f, 0.30f, 0.25f);
 
     {
-        // Mini-games have no Level/Season, so this doubles as the lawn mower art
-        // key - see GameScreen.getLawnMowerSeasonKey() and SEASON_LAWN_MOWER_PAM_PATHS.
+        
+        
         seasonFolder = "izombie";
     }
 
@@ -196,9 +183,9 @@ public class IZombieGameScreen extends GameScreen {
 
     @Override
     public void onMatchEndSequenceFinished(boolean won) {
-        // The controller already swapped App.currentMenu to the mini-game end menu the
-        // moment the outcome was decided; MatchEndSequence syncs the screen right after
-        // this call, so there is no "end game" command to run here.
+        
+        
+        
     }
 
     @Override
@@ -414,10 +401,10 @@ public class IZombieGameScreen extends GameScreen {
 
         ZombieIconCard card = null;
         try {
-            // Built directly at the smaller tray size (frame + icon together), rather
-            // than building at the default size and resizing afterward - ZombieIconCard
-            // fixes its icon inset at construction time, so a later setSize() would
-            // leave the icon at its original pixel size and get clipped.
+            
+            
+            
+            
             card = cardFactory.buildCardForAlias(packet.getAlias(), PACKET_CARD_W, PACKET_CARD_H);
         } catch (Throwable ignored) {
             card = null;

@@ -30,11 +30,7 @@ import view.screens.generals.BaseScreen;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * A self-contained 200x200 Pac-Man-style maze. The world is intentionally independent of
- * GameScreen because a 200x200 continuous board is a very different simulation from PvZ's
- * five-lane Match/GameSession model.
- */
+
 public class ZombiePackmanGameScreen extends BaseScreen {
     private static final String PLAYER_PAM =
             "768/FULL/ZOMBIE/FOODFIGHT_ZOMBIE/FOODFIGHT_ZOMBIE.PAM";
@@ -139,7 +135,7 @@ public class ZombiePackmanGameScreen extends BaseScreen {
                 POTION_PAM, MAGNIFY_PAM, TRANSFORM_PAM}) {
             try { pamPlayer.loadAsync(normalize(path), null); } catch (Throwable ignored) { }
         }
-        // Plant PAMs used by the maze are resolved from the project's existing animation catalog.
+        
         for (ZombiePackmanGame.PlantState p : game.getPlants()) {
             String path = plantPath(p.type);
             if (path != null) try { pamPlayer.loadAsync(normalize(path), null); } catch (Throwable ignored) { }
@@ -266,8 +262,8 @@ public class ZombiePackmanGameScreen extends BaseScreen {
             String state="idle";
             float t=worldTime;
             if(g.chasing){
-                // Alternate the two chase clips so attack_start -> attack_end -> attack_start
-                // forms a continuous loop while the ghost is pursuing the player.
+                
+                
                 state=((worldTime % 1.0f) < 0.5f) ? "attack_start" : "attack_end";
             }
             drawPam(GHOST_PAM,state,t,g.x*tile-25,g.y*tile-22,GHOST_SCALE,g.direction==Direction.RIGHT,null);
@@ -354,9 +350,9 @@ public class ZombiePackmanGameScreen extends BaseScreen {
             if(clipName==null)clipName=state;
             ClipRef clip=clipCache.get(p+"#"+clipName);
             if(clip==null){clip=pamPlayer.getClip(p,clipName);if(clip!=null)clipCache.put(p+"#"+clipName,clip);}
-            // The supplied brain asset is commonly named "amimation" in extracted data, but
-            // some builds contain the corrected "animation" spelling. Support both without
-            // changing the asset contract.
+            
+            
+            
             if(clip==null && "amimation".equalsIgnoreCase(state)){
                 clip=pamPlayer.getClip(p,"animation");
                 if(clip!=null)clipCache.put(p+"#animation",clip);

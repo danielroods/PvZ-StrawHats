@@ -94,11 +94,7 @@ public class TrophiesScreen extends UiScreen {
         return topBar;
     }
 
-    /**
-     * One chapter's "shelf": a wood-tile backdrop behind the chapter name, with the
-     * trophy on the left and its matching key on the right - same side-by-side
-     * arrangement as the real game's Almanac (see project reference screenshot).
-     */
+    
     private Table buildShelf(TrophyManager.TrophyEntry entry) {
         Table shelf = new Table();
         Drawable shelfBg = loadDrawableSafe(AssetPaths.TROPHIES_SHELF_TILE);
@@ -169,10 +165,7 @@ public class TrophiesScreen extends UiScreen {
         return new TextureRegionDrawable(new TextureRegion(texture));
     }
 
-    /** Pop-up shown when an earned trophy is clicked: the trophy enlarged, with the
-     *  chapter name underneath - the "click on a trophy and it gets a bit bigger"
-     *  behaviour asked for, done as a modal rather than growing the shelf tile itself
-     *  so the layout of the other shelves never shifts. */
+    
     private class TrophyDetailModal extends Modal {
         TrophyDetailModal(TrophyManager.TrophyEntry entry) {
             Image bigTrophy = new Image(loadTextureSafe(entry.trophyImagePath()));

@@ -19,18 +19,7 @@ import model.resoures.CurrencyType;
 import java.util.EnumMap;
 import java.util.Map;
 
-/**
- * Generic "add coins/diamonds" cheat popup.
- * <p>
- * It is a {@link Modal} (so it is never full-screen), but its panel uses the same
- * small wood texture as the collection menu boards, its close button is the same
- * back-button asset used by every other popup, and each currency gets an
- * item-card styled box (same "card-background" drawable used for shop items)
- * with a field to type how much to add.
- * <p>
- * One instance handles every {@link CurrencyType} - adding a new currency later
- * needs no change here.
- */
+
 public class CurrencyCheatModal extends Modal {
 
     private static final String WOOD_BACKGROUND_PATH = "assets/images/backg/wood board.png";
@@ -55,7 +44,7 @@ public class CurrencyCheatModal extends Modal {
         }
     }
 
-    /** Opens the popup on top of whatever screen is currently active. */
+    
     public static void open(Runnable onCurrencyChanged) {
         if (!CheatAccess.isEnabled()) return;
         new CurrencyCheatModal(onCurrencyChanged).show();
@@ -110,7 +99,7 @@ public class CurrencyCheatModal extends Modal {
             }
         });
 
-       // box.add(icon).size(90f, 46f).padRight(10f);
+       
         box.add(info).left().expandX();
         box.add(amountField).width(FIELD_WIDTH).padRight(5f);
         box.add(addButton);

@@ -25,11 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Drives the whole co-op mode the way the main menu does: "menu enter coop" from the
- * main menu, build a loadout, "start game", then have the zombie player actually drop
- * its zombies on the lawn. Couch I, Zombie is the co-op match (see CoopBeforeMenu).
- */
+
 class CoopModeFlowTest {
 
     @BeforeAll
@@ -51,7 +47,7 @@ class CoopModeFlowTest {
 
     @Test
     void theMainMenuCoopBannerReachesTheCoopLoadout() {
-        // The Co-op banner on MainMenuScreen runs exactly this command.
+        
         App.currentMenu.handleCommand("menu enter coop");
 
         assertInstanceOf(CoopBeforeMenu.class, App.currentMenu,
@@ -98,9 +94,9 @@ class CoopModeFlowTest {
 
     @Test
     void theZombiePlayerCanDropEveryZombieTheCollectionOffers() {
-        // What SPACE does on the co-op screen, for each alias the picker shows. Each alias
-        // gets its own match so the shared 6 minute clock and the recharges cannot mask a
-        // zombie that simply refuses to be placed.
+        
+        
+        
         for (String alias : new CollectionManager().getAllZombieAliases()) {
             IZombieMatch match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS,
                     List.of("Peashooter"), List.of(alias));

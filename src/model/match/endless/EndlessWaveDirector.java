@@ -12,19 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Generates the endless Lottery schedule one wave at a time. Nothing here is bounded by a
- * wave count: every quantity that grows with the wave number is either clamped to a
- * ceiling or grows in a way that stays inside its type, so wave 10 and wave 10,000 are
- * both well defined.
- * <p>
- * Three ramps run at once, which is what makes a run get harder the longer it survives:
- * the point budget of a wave (more zombies), the slice of the chapter roster that is
- * allowed to show up and how hard it is weighted towards the expensive end (nastier
- * zombies), and the lull between waves (harder pacing). Past the point where the budget
- * ceiling and the per-wave zombie cap both bite, {@link #empower} keeps the pressure
- * climbing by scaling the zombies themselves instead of adding more of them.
- */
+
 public final class EndlessWaveDirector implements WaveDirector {
 
     private static final int BASE_WAVE_BUDGET = 260;

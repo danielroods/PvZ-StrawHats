@@ -12,11 +12,7 @@ import pvz.libpvz.textures.TextureBank;
 
 import java.util.Map;
 
-/**
- * Thin wrapper over the PAM animation player: sets it up, draws one clip at a board
- * position (optionally masking individual named elements), and answers how long a given
- * plant/zombie clip actually runs for.
- */
+
 class PamRenderer {
 
     private final GameScreen screen;
@@ -50,12 +46,12 @@ class PamRenderer {
             if (pamPath.startsWith("assets/pvz-assets/")) {
                 pamPath = pamPath.substring("assets/pvz-assets/".length());
             }
-            // Some standalone effect/zombie PAMs (notably the Pirate Captain's
-            // parrot) are valid assets but are intentionally not present in
-            // animations.json.  The old implementation rejected those clips before
-            // PamPlayer even got a chance to load them.  Try the exact state directly
-            // first; the animation catalog is only a duration/lookup aid, not the
-            // source of truth for whether a PAM clip exists.
+            
+            
+            
+            
+            
+            
             String clipName = exactState;
             ClipRef clip = pamPlayer.getClip(pamPath, clipName);
             if (clip == null) {
@@ -138,12 +134,7 @@ class PamRenderer {
         }
     }
 
-    /**
-     * Same as {@link #drawPam}, but with independent X/Y scale factors so a clip can be
-     * stretched non-uniformly - used to scratch the Crystal Skull's laser beam art across
-     * the exact distance between the zombie and the plant it's hitting instead of always
-     * drawing it at a fixed length.
-     */
+    
     boolean drawPamStretched(String path, String preferred, float time, float x, float y,
                              float scaleX, float scaleY, boolean flip) {
         PamPlayer pamPlayer = screen.pamPlayer;
@@ -212,13 +203,7 @@ class PamRenderer {
         }
     }
 
-    /**
-     * Same as {@link #drawPam}, but rotates the clip around its origin to point along an
-     * arbitrary travel direction instead of only mirroring left/right - used for shots
-     * that fly diagonally (e.g. Rotobaga's four diagonal directions) whose art is drawn
-     * facing "right" (0 degrees) and needs to visually track the actual launch angle,
-     * not just flip horizontally when travelling leftward.
-     */
+    
     boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
                            float rotationDegrees) {
         PamPlayer pamPlayer = screen.pamPlayer;
@@ -262,7 +247,7 @@ class PamRenderer {
         return state == null ? "attack" : state;
     }
 
-    /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
+    
     float resolveClipDuration(String alias, String preferredState) {
         AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(alias);
         if (config == null || config.clips == null) return -1f;
@@ -272,7 +257,7 @@ class PamRenderer {
         return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
     }
 
-    /** Same as {@link #resolveClipDuration} but for a plant display name, e.g. "Peashooter". Returns -1 if unknown. */
+    
     float resolvePlantClipDuration(String displayName, String preferredState) {
         AnimationJsonParser.AnimationConfig config = AnimationFactory.resolveByDisplayName(displayName);
         if (config == null || config.clips == null) return -1f;

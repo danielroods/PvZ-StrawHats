@@ -29,7 +29,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void setupCustomCursor() {
-        String cursorPath = "images/ui/Gemini_Generated_Image_oy54csoy54csoy54-removebg-preview.png"; // مسیر است کرسر را اینجا قرار دهید
+        String cursorPath = "images/ui/Gemini_Generated_Image_oy54csoy54csoy54-removebg-preview.png"; 
 
         int desiredWidth = 64;
         int desiredHeight = 50;
@@ -113,8 +113,8 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
         try {
-            // Flush any pending online progress (and close the connection cleanly)
-            // before the game shuts down, so closing the window can't drop it.
+            
+            
             net.client.NetworkClient.get().disconnect();
             ScreenManager.dispose();
             GameAssetManager.get().dispose();

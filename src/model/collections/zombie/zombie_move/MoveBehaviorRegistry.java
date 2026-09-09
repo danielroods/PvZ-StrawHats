@@ -50,7 +50,7 @@ public final class MoveBehaviorRegistry {
         register("SnorkelMove", (params, data) -> new SnorkelMove());
         register("StationaryMove", (params, data) -> new StationaryMove());
 
-        // Pirate Seas chapter movement types.
+        
         register("PirateGroundWalk", (params, data) -> new PirateGroundWalk());
         register("SwashbucklerSwingMove", (params, data) -> new SwashbucklerSwingMove());
         register("SeagullFlyMove", (params, data) -> new SeagullFlyMove());

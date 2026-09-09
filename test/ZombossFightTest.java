@@ -76,7 +76,7 @@ class ZombossFightTest {
         tickUntilPhase(session, fight, ZombossPhase.NPC_ENTER, 20.0);
         tickUntilPhase(session, fight, ZombossPhase.NPC_TALK, 10.0);
 
-        // The talk phase waits on the player, not on a timer.
+        
         tickSeconds(session, 5.0);
         assertEquals(ZombossPhase.NPC_TALK, fight.getPhase(), "dialogue advanced by itself");
         assertNotNull(fight.getDialogueLine());

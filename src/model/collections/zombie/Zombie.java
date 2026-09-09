@@ -41,8 +41,8 @@ public class Zombie extends Item implements Attack {
 
     private MoveBehavior moveBehavior;
 
-    // Temporary smooth knockback used by melee plants. The knockback is applied
-    // over time in tick(), so the zombie does not teleport to the final tile.
+    
+    
     private double knockbackVelocityX = 0.0;
     private double knockbackRemaining = 0.0;
     private AttackBehavior attackBehavior;
@@ -55,10 +55,10 @@ public class Zombie extends Item implements Attack {
     private List<String> damageWhileSubmerged;
     private List<String> damageWhileSubmergedPlantfoodOnly;
 
-    // Tangle Kelp drag-under-water visual state (cosmetic only - the water ripple itself
-    // never moves; the zombie's draw position is pushed further down under the fixed
-    // clip line as this climbs from 0 to 1). Driven by TangleKelpStrategy/TangleKelpPlantFood
-    // over the grab's duration, then the zombie is killed once fully submerged.
+    
+    
+    
+    
     private double dragUnderWaterProgress = 0.0;
     private boolean dragUnderWaterDeath = false;
     private boolean swashbucklerWaterDeath = false;
@@ -70,9 +70,9 @@ public class Zombie extends Item implements Attack {
     private double shieldHitFlash;
     private double hoverHeight;
 
-    // Optional visual-only animation override (e.g. "toss", "push", "cast",
-    // "cast_loop", "reel") on top of the coarse WALKING/EATING/DEAD state.
-    // Does not affect gameplay logic, only what the renderer prefers to show.
+    
+    
+    
     private String actionAnimationState;
     private double actionAnimationElapsed;
     private double actionAnimationDuration;
@@ -90,9 +90,9 @@ public class Zombie extends Item implements Attack {
     private Faction faction = Faction.ZOMBIES;
     private boolean fromNecromancy;
 
-    // While true (e.g. Prospector Zombie sailing through the air after its
-    // dynamite blast), the zombie sails over plants instead of stopping to eat
-    // them the moment one shows up in its path.
+    
+    
+    
     private boolean ignoreTargetAcquisition = false;
     private int sunBeanCarrierValue = 0;
     private double sunBeanTimer = 0.0;
@@ -193,10 +193,10 @@ public class Zombie extends Item implements Attack {
             return;
         }
 
-        // The Pirate Barrel Pusher is protected by its barrel while the barrel
-        // is still intact. Lobbed projectiles can hit the zombie from above, and
-        // direct projectiles are allowed only when they reach it from behind.
-        // Once the barrel is destroyed, the zombie uses its normal vulnerability.
+        
+        
+        
+        
         if ("ZombieBarrelRoller".equals(name)
                 && pushedStructure != null
                 && pushedStructure.isAlive()
@@ -211,8 +211,8 @@ public class Zombie extends Item implements Attack {
                     Position zombiePosition = getPosition();
                     if (previous != null && current != null && zombiePosition != null) {
                         double approachX = current.x() - previous.x();
-                        // Zombies normally face left. Their back is therefore to
-                        // the right; hypnotized/reversed zombies have the opposite back.
+                        
+                        
                         allowDamage = isFacingRight ? approachX > 0
                                 && previous.x() < zombiePosition.x()
                                 : approachX < 0
@@ -295,12 +295,7 @@ public class Zombie extends Item implements Attack {
         if (session != null) session.notifyZombieDied(this, killerName);
     }
 
-    /**
-     * Whether the given damage source was fire-based (e.g. a Fire Peashooter
-     * pea), used to decide if a zombie's death should play the ash-death
-     * animation instead of its normal die animation. Mirrors the same
-     * fire-source check used elsewhere for ice/obstacle fire damage.
-     */
+    
     private boolean isFireDamageSource(Object damageSource) {
         if (FrostbiteFreezing.isFireDamageSource(damageSource)) return true;
         if (damageSource instanceof Projectile projectile) {
@@ -310,11 +305,7 @@ public class Zombie extends Item implements Attack {
         return false;
     }
 
-    /**
-     * Whether the killing hit came from Electric Blueberry's electric projectile.
-     * The renderer uses this flag to play the zombie-specific shock death before
-     * falling back to the normal/ash death sequence.
-     */
+    
     private boolean isShockDamageSource(Object damageSource) {
         if (!(damageSource instanceof Projectile projectile)) return false;
         Plant sourcePlant = projectile.getSourcePlant();
@@ -398,12 +389,12 @@ public class Zombie extends Item implements Attack {
             return;
         }
 
-        // A boss never eats or walks on its own: ZombossFight owns its position and its
-        // whole moveset, so the ordinary target/attack/move pass is skipped for it.
+        
+        
         if (boss) return;
 
-        // A scripted beat (stun, shield cast, laser, imp cannon, imp landing) owns the
-        // zombie while it plays: it holds its ground and does not bite.
+        
+        
         if (sequence != null) {
             if (sequence.tick(this, session, deltaTimeSeconds)) {
                 zombieState = ZombieState.WALKING;
@@ -428,11 +419,11 @@ public class Zombie extends Item implements Attack {
             }
         } else {
             zombieState = ZombieState.WALKING;
-            // FROZEN (and BUTTER) halt movement entirely; FREEZE only slows it. This has to
-            // be handled here rather than inside move(double) below, since that method is a
-            // dead-code fallback - moveBehavior is set for effectively every zombie, so
-            // NormalWalk/PusherMove/etc. are what actually run, and none of them look at
-            // status on their own.
+            
+            
+            
+            
+            
             if (status != Status.BUTTER && status != Status.FROZEN && !immobilized) {
                 if (moveBehavior != null) {
                     double scaledDeltaTime = status == Status.FREEZE ? deltaTimeSeconds * 0.5 : deltaTimeSeconds;
@@ -452,19 +443,7 @@ public class Zombie extends Item implements Attack {
         }
     }
 
-    /**
-     * Plays a one-off or looping visual-only animation state (e.g. "toss",
-     * "push", "cast", "cast_loop", "reel") on top of walk/eat/die.
-     *
-     * @param state    the animation clip name to prefer, or null to clear it.
-     * @param duration how long (seconds) to keep showing it before automatically
-     *                 reverting to the default walk/eat resolution; pass 0 (or
-     *                 less) for a state that should persist until explicitly
-     *                 cleared with {@link #clearActionAnimationState()}.
-     * @param loop     whether the clip should loop (e.g. a continuous "push"
-     *                 while shoving a structure) or play once and hold its
-     *                 last frame (e.g. a single "toss"/"cast"/"reel" beat).
-     */
+    
     public void setActionAnimationState(String state, double duration, boolean loop) {
         if (state == null) {
             clearActionAnimationState();
@@ -592,27 +571,23 @@ public class Zombie extends Item implements Attack {
         return knockbackRemaining > 0.0;
     }
 
-    /** 0 = not being dragged under, 1 = fully sunk beneath the water ripple. */
+    
     public double getDragUnderWaterProgress() { return dragUnderWaterProgress; }
 
-    /** Cosmetic only: pushes the renderer's draw position further under the fixed water
-     * clip line without moving the zombie's actual grid position (or the ripple, which is
-     * drawn off that grid position and so stays put). */
+    
     public void setDragUnderWaterProgress(double progress) {
         this.dragUnderWaterProgress = Math.max(0.0, Math.min(1.0, progress));
     }
 
-    /** Marks that this zombie's upcoming death was a Tangle Kelp drag-under-water kill, so
-     * the renderer skips the normal splash/particle "die" playback - the zombie has already
-     * visually vanished beneath the ripple by the time it actually dies. */
+    
     public void markDragUnderWaterDeath() { this.dragUnderWaterDeath = true; }
 
     public boolean diedFromDragUnderWater() { return dragUnderWaterDeath; }
 
-    /** Marks a Swashbuckler that failed its rope swing and fell into open water. */
+    
     public void markSwashbucklerWaterDeath() { this.swashbucklerWaterDeath = true; }
 
-    /** True when this zombie's death should use the Swashbuckler water-fall sequence. */
+    
     public boolean diedFromSwashbucklerWater() { return swashbucklerWaterDeath; }
 
 
@@ -654,8 +629,8 @@ public class Zombie extends Item implements Attack {
         if (speed != null) {
             setSpeed(new Position(-speed.x(), -speed.y()));
         }
-        // Hypnotized zombies turn around and walk back the other way, so their
-        // sprite needs to face the opposite direction too.
+        
+        
         this.isFacingRight = !this.isFacingRight;
 
         if (this.moveBehavior != null) {
@@ -730,7 +705,7 @@ public class Zombie extends Item implements Attack {
     public ZombieState getZombieState() { return zombieState; }
     public void setZombieState(ZombieState zombieState) { this.zombieState = zombieState; }
     public void setStatusWithoutEffects(Status status) { this.status = status; }
-    /** True when this zombie's death was caused by fire (fire pea hit, or dying while ablaze). */
+    
     public boolean diedFromFire() { return firedDeath; }
     public boolean diedFromAsh() { return ashDeath; }
     public boolean diedFromShock() { return shockDeath; }

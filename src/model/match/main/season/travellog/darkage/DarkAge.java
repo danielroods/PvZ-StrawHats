@@ -19,8 +19,8 @@ public class DarkAge extends Season {
     private static final int GRAVES_ADDED_PER_WAVE = 2;
     private static final int MAX_GRAVES = 14;
     private static final double NECROMANCY_CHANCE = 0.50;
-    private static final double FRONT_GRAVE_WEIGHT = 0.20;  // columns 1-4
-    private static final double BACK_GRAVE_WEIGHT = 1.00;   // columns 5-9
+    private static final double FRONT_GRAVE_WEIGHT = 0.20;  
+    private static final double BACK_GRAVE_WEIGHT = 1.00;   
     private static final Random RANDOM = new Random();
 
     public DarkAge() {
@@ -101,10 +101,7 @@ public class DarkAge extends Season {
         return count;
     }
 
-    /**
-     * A grave only opens where nothing is standing yet, so a risen zombie never appears on top
-     * of one that is already walking through that spot.
-     */
+    
     private static boolean isSpotClear(GameSession session, int row, int col) {
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;

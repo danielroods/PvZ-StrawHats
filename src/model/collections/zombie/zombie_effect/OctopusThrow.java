@@ -9,8 +9,8 @@ import model.utils.GameSession;
 import service.GameClock;
 
 public class OctopusThrow implements ZombieEffectStatus {
-    // How long the octopus zombie holds its "toss" beat before reverting to
-    // its normal walk/eat animation.
+    
+    
     private static final double TOSS_ANIMATION_DURATION = 0.8;
 
     private final double snareCooldown;

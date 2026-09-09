@@ -21,14 +21,14 @@ public abstract class Season {
     public boolean isNight() { return false; }
 
     public void applyPerTickEffect(model.utils.GameSession session, double deltaSeconds) {
-        // default no-op
+        
     }
 
     public void onWaveStart(model.utils.GameSession session, int waveIndex) {
-        // default no-op
+        
     }
 
     public void placeSeasonObstacles(model.utils.GameSession session) {
-        // default no-op
+        
     }
 }

@@ -16,7 +16,7 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Local fictional TA coin portal. It does not depend on GameServer. */
+
 public final class TaPortalServer {
     private static final Gson GSON = new Gson();
     private final File dataDirectory;
@@ -54,12 +54,9 @@ public final class TaPortalServer {
 
     public boolean isRunning() { return http != null; }
     public int getPort() { return http == null ? requestedPort : http.getAddress().getPort(); }
-    public String getUrl() { return "http://127.0.0.1:" + getPort() + "/"; }
+    public String getUrl() { return "http:
 
-    /** Where the TA portal's static files (index.html, style.css, images) live in the repo.
-     *  Checked from several possible anchors and layouts so it resolves the same way for
-     *  every teammate, regardless of which directory the game is launched from or which of
-     *  these two conventional layouts their checkout uses. */
+    
     private static final String[] HTML_CANDIDATE_PATHS = {
             "src/web/ta/index.html"
     };
@@ -101,12 +98,7 @@ public final class TaPortalServer {
         send(ex, 200, Files.readAllBytes(requested.toPath()), contentTypeFor(requested.getName()));
     }
 
-    /**
-     * Finds the folder that holds index.html (and, alongside it, style.css and the portal's
-     * images), relative to the working directory first, then by walking up from wherever the
-     * running game's own classes/jar live on disk - so every clone of the git repo finds it
-     * the same way regardless of how the game was launched.
-     */
+    
     private static File resolveWebRoot() {
         File direct = firstExistingCandidate(new File(""));
         if (direct != null) return direct.getParentFile();
@@ -170,8 +162,7 @@ public final class TaPortalServer {
         sendJson(ex, 200, Map.of("ok", true));
     }
 
-    /** Tells the page which game account is currently signed in, so the reward always
-     *  lands on the account actually open in the game - no typing a username by hand. */
+    
     private void handleWhoAmI(HttpExchange ex) throws IOException {
         if (session(ex) == null) { sendJson(ex, 401, error("Sign in as a TA first.")); return; }
         User current = User.currentUser;
@@ -201,8 +192,8 @@ public final class TaPortalServer {
         try { added = Double.parseDouble(form.getOrDefault("addedScore", "0")); }
         catch (NumberFormatException e) { sendJson(ex, 400, error("Added score must be a number.")); return; }
 
-        // Always reward the account currently signed in on this machine's game, instead of a
-        // hand-typed username - that's the account this offer is actually running for.
+        
+        
         User current = User.currentUser;
         if (current == null || current.username == null || current.username.isBlank()) {
             sendJson(ex, 400, error("No game account is signed in right now. Log into your account in the game, then reopen this offer.")); return;
@@ -214,9 +205,9 @@ public final class TaPortalServer {
         int coins = result.rewardCoins();
         if (coins <= 0) { sendJson(ex, 400, error("No 0.25 score unit was completed.")); return; }
 
-        // Credit the coins straight onto the live, currently-signed-in account (through the
-        // same save path the rest of the game uses - local file or online push, whichever
-        // applies) so the balance updates immediately instead of only on the next restart.
+        
+        
+        
         if (current.userState == null) {
             current.userState = new model.user_data.UserState(new ArrayList<>(), 0, 0, 0);
         }
@@ -224,9 +215,9 @@ public final class TaPortalServer {
         User.save();
         int totalCoins = current.userState.coins;
 
-        // Wake up the running game's UI right now instead of making the player leave and
-        // reopen the screen to see the new balance. postRunnable() hands this back to the
-        // game's own render thread, since this handler runs on a background HTTP thread.
+        
+        
+        
         if (com.badlogic.gdx.Gdx.app != null) {
             com.badlogic.gdx.Gdx.app.postRunnable(controller.ScreenManager::refreshCurrentScreen);
         }
@@ -247,7 +238,7 @@ public final class TaPortalServer {
                 Map<String, String> vars = Map.of(
                         "taName", ta.name(),
                         "studentId", username,
-                        "teamPhotoUrl", "https://i.ibb.co/YBtnYSMS/photo-2026-09-01-10-42-06.jpg"
+                        "teamPhotoUrl", "https:
                 );
                 emailSent = emailSender.send(targetEmail, subject, template, vars);
                 emailError = emailSent ? null : "Could not send the email. Check the sender logs.";

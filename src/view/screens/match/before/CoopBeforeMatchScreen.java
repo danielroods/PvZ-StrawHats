@@ -36,21 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Co-op variant of {@link BeforeMatchScreen}. Co-op has no level-supplied zombie
- * pool - instead the human zombie player builds their own roster here, on a
- * screen shifted a bit to the right so there is room for two loadout columns:
- * the normal plant loadout on the left (unchanged from BeforeMatchScreen) and a
- * new, I-Zombie-card-scaled zombie loadout on the right. Between them sit two
- * stacked selection grids - the plant collection on top (identical to
- * BeforeMatchScreen's grid) and an equivalent zombie collection below it, built
- * the same way CollectionScreen builds its zombie tab (via ZombieIconCardFactory).
- * <p>
- * The actual add/remove-plant and add/remove-zombie mechanism is untouched: this
- * class only builds the screen and still drives everything through
- * {@code runCommand(...)} / {@link BeforeMenu#selectedZombies}, exactly like the
- * normal screen does for plants.
- */
+
 public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     protected static final int PLANT_SLOTS = 8;
@@ -81,8 +67,8 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     @Override
     protected void configureSeasonFolder() {
-        // Co-op is not tied to any level's season - it always plays on its own map,
-        // the same one the actual co-op match (CouchIZombieGameScreen) uses.
+        
+        
         seasonFolder = "izombie";
     }
 
@@ -147,7 +133,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         addBeforeModal(startOverlay);
     }
 
-    /** Plant loadout (left) | plant grid + zombie grid stacked (middle) | zombie loadout (right). */
+    
     protected Table buildCoopMiddleSection(Level level) {
         Table board = new Table();
         board.top().left();
@@ -159,7 +145,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return board;
     }
 
-    /** First the plant selection (same as the normal screen), then the zombie selection below it. */
+    
     protected Table buildCoopSelectionColumn(Level level) {
         Table column = new Table();
         column.top().left();
@@ -174,7 +160,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         Label zombiesHeader = new Label("ZOMBIES", skin, "title");
         zombiesHeader.setFontScale(0.7f);
         column.add(zombiesHeader).left().padBottom(2f).row();
-        column.add(buildZombieGrid()).expandX().fillX().expandY().fillY().top().left(); // اضافه شدن expandX و fillX
+        column.add(buildZombieGrid()).expandX().fillX().expandY().fillY().top().left(); 
 
         return column;
     }
@@ -235,10 +221,10 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
             if (hasRealIcon) {
                 cardStack.add(card);
             } else {
-                // Same gap as the Collection screen: zombies_ui has no flat icon for whole
-                // chapters (Far Future, Pirate Seas, Mech, Swashbuckler) even though they
-                // have a working idle PAM animation. Reuse that animation on the shared
-                // tombstone-frame background instead of leaving a blank/placeholder card.
+                
+                
+                
+                
                 cardStack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
                 Actor animatedIcon = buildAnimatedZombieIcon(alias, cardW, cardH);
                 if (animatedIcon != null) {
@@ -383,12 +369,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         scheduleBuild();
     }
 
-    /**
-     * Same fallback {@link view.screens.ui_menus.CollectionScreen} uses for zombie aliases
-     * with no flat icon art (Far Future, Pirate Seas, Mech, Swashbuckler): a scaled-down,
-     * clipped copy of the idle-animation box, since {@link pvz.libpvz.pam.PamPlayer#draw}
-     * always renders at native pixel size and needs a transform-enabled {@link Group} to shrink.
-     */
+    
     protected Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
         String animationPath = null;
         try {
@@ -421,7 +402,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         return clip;
     }
 
-    /** A plain {@link Group} that scissor-clips its children to its own bounds. */
+    
     private static class ClippedGroup extends Group {
         ClippedGroup(float width, float height) {
             setSize(width, height);

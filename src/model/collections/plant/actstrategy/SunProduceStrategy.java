@@ -14,10 +14,10 @@ public class SunProduceStrategy implements ActStrategy {
     private static final double DOUBLE_SUN_PROBABILITY = 0.5;
     private static final double BOSS_LEVEL_INTERVAL_SCALE = 0.5;
 
-    // Suns produced together by the same plant are nudged away from the plant's tile
-    // center (and from each other) so they never render stacked exactly on top of one
-    // another. Each entry is a base offset in tile units; a small random jitter is added
-    // on top of it per-drop so repeated productions don't look mechanically identical.
+    
+    
+    
+    
     private static final Position[] SUN_DROP_OFFSETS = {
             new Position(0.0, 0.0),
             new Position(0.22, 0.0),
@@ -25,8 +25,8 @@ public class SunProduceStrategy implements ActStrategy {
             new Position(0.18, 0.0)
     };
     private static final double DROP_JITTER = 0.06;
-    // How close an existing, uncollected sun has to be to the plant to be treated as
-    // "still sitting there" and block a new production this tick.
+    
+    
     private static final double NEARBY_SUN_RADIUS = 0.35;
 
     private static final Random RANDOM = new Random();
@@ -72,17 +72,13 @@ public class SunProduceStrategy implements ActStrategy {
                 * (session.isDoubleSunRate() ? BOSS_LEVEL_INTERVAL_SCALE : 1.0));
     }
 
-    /**
-     * How many separate sun drops a single production cycle spawns, based on the plant's
-     * type. Twin Sunflower represents two flowers at once, so it drops two suns per cycle;
-     * every other sun producer (Sunflower, Primal Sunflower, Sun-shroom) drops one.
-     */
+    
     private int sunCountFor(Plant plant) {
         if ("Twin Sunflower".equalsIgnoreCase(plant.getName())) return 2;
         return 1;
     }
 
-    /** Splits the total sun value as evenly as possible across {@code count} drops. */
+    
     private int[] splitSunValue(int totalValue, int count) {
         int[] shares = new int[count];
         int base = totalValue / count;
@@ -96,13 +92,13 @@ public class SunProduceStrategy implements ActStrategy {
     private Position dropOffsetPosition(Position location, int index) {
         Position offset = SUN_DROP_OFFSETS[index % SUN_DROP_OFFSETS.length];
         double jitterX = (RANDOM.nextDouble() * 2 - 1) * DROP_JITTER;
-        // Jitter is horizontal only: any vertical nudge risks crossing into the row
-        // above or below once rendering truncates the fractional position back to a
-        // tile index, which visually drops the sun on the wrong tile. Suns from a
-        // producer always stay on the producer's own row.
+        
+        
+        
+        
         double x = location.x() + offset.x() + jitterX;
-        // Clamp so the offset (plus jitter) can never push the sun far enough
-        // sideways to visually cross into the neighboring column either.
+        
+        
         double maxSpread = 0.45;
         x = Math.max(location.x() - maxSpread, Math.min(location.x() + maxSpread, x));
         return new Position(x, location.y());

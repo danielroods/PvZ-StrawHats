@@ -64,13 +64,12 @@ public class IZombieMatch {
             "ZombieRa", new ZombiePacketTemplate("Ra Zombie", 100, 12.0),
             "ZombieArmor2", new ZombiePacketTemplate("Buckethead", 125, 15.0));
 
-    /** Default roster used whenever no co-op zombie loadout was selected. */
+    
     private static final List<String> DEFAULT_ROSTER = List.of(
             "ZombieImp", "ZombieDefault", "ZombieArmor1", "ZombieNewspaper", "ZombieRa", "ZombieArmor2");
 
-    /** At most this many roster entries are usable (keyboard slots are 1-6 in the couch UI). */
-    /** How many zombie packets a match can hold - also the number of loadout slots the
-     *  before-match screens offer, and the number of 1-6 hotkeys the in-match tray binds. */
+    
+    
     public static final int MAX_ROSTER_SIZE = 6;
 
     private record ZombiePacketTemplate(String displayName, int cost, double recharge) {}
@@ -99,12 +98,7 @@ public class IZombieMatch {
         this(matchSeconds, null, null);
     }
 
-    /**
-     * @param plantLoadout  plant names to build the seed tray from (see BeforeMenu.selectedPlants);
-     *                      falls back to the built-in {@link #SEED_BANK} when null/empty.
-     * @param zombieLoadout zombie aliases to build the roster from (see BeforeMenu.selectedZombies);
-     *                      falls back to {@link #DEFAULT_ROSTER} when null/empty.
-     */
+    
     public IZombieMatch(double matchSeconds, List<String> plantLoadout, List<String> zombieLoadout) {
         this.matchSeconds = matchSeconds;
         this.session = new GameSession(ROWS, COLS);
@@ -137,8 +131,8 @@ public class IZombieMatch {
             return new ZombiePacket(alias, known.displayName(), known.cost(), known.recharge());
         }
 
-        // No hand-tuned entry for this alias (e.g. a co-op pick outside the default six) -
-        // derive a rough cost/recharge from the zombie's own HP instead of leaving it unusable.
+        
+        
         String displayName = friendlyZombieName(alias);
         int cost = 100;
         double recharge = 10.0;

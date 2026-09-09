@@ -199,7 +199,7 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     protected void tickSession() {
-        // The server owns the simulation; this client only renders what it is told.
+        
     }
 
     @Override
@@ -213,8 +213,8 @@ public class NetIZombieGameScreen extends GameScreen {
             if (!removed.isEmpty()) trackZombieDeaths(removed);
             List<model.collections.plant.Plant> uprooted = state.drainRemovedPlants();
             if (!uprooted.isEmpty()) trackPlantDeaths(uprooted);
-            // Freeze the board's own visible progress while the VS splash plays;
-            // the server-side match keeps running underneath regardless.
+            
+            
             if (!starting) state.advance(delta);
 
             String rejection = state.pollRejection();
@@ -237,9 +237,9 @@ public class NetIZombieGameScreen extends GameScreen {
         if (matchFinished || !isMatchEndSequenceIdle() || endHandled) return;
         if (state == null || !state.isEnded()) return;
 
-        // Set the end-of-game menu and kick off the win/lose sequence in the same call so
-        // ScreenManager never observes App.currentMenu having changed while the sequence is
-        // still idle - see GameScreen#isMatchEndSequenceActive for why that ordering matters.
+        
+        
+        
         boolean won = state.isWon();
         String reason = state.getEndReason();
         NetworkClient.get().clearMatchState();
@@ -390,11 +390,7 @@ public class NetIZombieGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    /**
-     * Highlights the drop zone while a card is held. Only the zombie player needs it -
-     * the plant player's own columns are already tinted for the whole match below, and
-     * painting them twice just doubled the tint.
-     */
+    
     private void drawPlacementZone(float bh) {
         if (selectedKey == null || isPlantSide()) return;
         for (int col = IZombieMatch.REDLINE_COLUMN + 1; col < session.getCols(); col++) {
@@ -534,7 +530,7 @@ public class NetIZombieGameScreen extends GameScreen {
                 stack.addActor(card);
             }
         } catch (Throwable ignored) {
-            // Falls through to the text placeholder below.
+            
         }
         if (stack.getChildren().isEmpty()) {
             Actor fallback = placeholderCard(packet.label, ZOMBIE_CARD_W);
@@ -724,6 +720,6 @@ public class NetIZombieGameScreen extends GameScreen {
 
     @Override
     public void onMatchEndSequenceFinished(boolean won) {
-        // MATCH_END from the server is the only thing that ends a networked match.
+        
     }
 }

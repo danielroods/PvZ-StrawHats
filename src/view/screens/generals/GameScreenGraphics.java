@@ -40,11 +40,7 @@ final class GameScreenGraphics {
         return new TextureRegion(t);
     }
 
-    /**
-     * A small soft-edged circle (white, alpha-blended) used as a generic round particle -
-     * currently the rising bubbles drawn over a hypnotized zombie. Tinted via
-     * {@code batch.setColor(...)} at draw time, same idiom as {@link #makeWhitePixel()}.
-     */
+    
     static TextureRegion makeBubbleTexture() {
         int size = 32;
         Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
@@ -57,9 +53,9 @@ final class GameScreenGraphics {
                 float dy = y + 0.5f - cy;
                 float dist = (float) Math.sqrt(dx * dx + dy * dy);
                 if (dist > outerR) continue;
-                // Fade out towards the rim so the bubble blends smoothly instead of
-                // ending in a hard-edged disc, and brighten the upper-left quadrant a
-                // touch to fake a glossy highlight.
+                
+                
+                
                 float edgeFade = Math.max(0f, 1f - dist / outerR);
                 float alpha = 0.35f + 0.5f * edgeFade;
                 boolean highlight = dx < -outerR * 0.15f && dy < -outerR * 0.15f
@@ -75,7 +71,7 @@ final class GameScreenGraphics {
         return new TextureRegion(t);
     }
 
-    /** Tiny font helper keeps fallback rendering out of the gameplay logic. */
+    
     static final class BitmapFontAccess {
         static void draw(Batch batch, Skin skin, String text, float x, float y) {
             if (skin != null && skin.has("default-font", com.badlogic.gdx.graphics.g2d.BitmapFont.class)) {

@@ -22,10 +22,10 @@ public class UserState {
     public Map<Integer, Integer> seedPacketInventory = new HashMap<>();
     public Map<Integer, Boolean> plantBoosts = new HashMap<>();
 
-    /** Permanently purchased plant costumes, kept per plant and per account. */
+    
     public Map<Integer, Set<String>> ownedPlantCostumes = new HashMap<>();
 
-    /** Selected costume per plant. Missing/null means the original/default art. */
+    
     public Map<Integer, String> selectedPlantCostumes = new HashMap<>();
     public List<List<PotData>> greenhousePots;
     public int plantFoodCount = 0;
@@ -34,7 +34,7 @@ public class UserState {
 
     public Map<String, Integer> miniGameHighestLevelWon = new HashMap<>();
 
-    /** Best endless (Lottery) score per chapter, keyed by {@code EndlessChapter.key()}. */
+    
     public Map<String, Long> lotteryHighScores = new HashMap<>();
 
     public long stateRevision;
@@ -140,23 +140,13 @@ public class UserState {
         if (item != null) news.add(item);
     }
 
-    /**
-     * Adventure progress only ever moves forward along the authored ladder. Ids at or
-     * below zero are synthetic levels (the Lottery nodes), which are deliberately not part
-     * of that ladder - letting one in would set lastLevel to a level that
-     * LevelProgression cannot find and lock every stage behind it.
-     */
+    
     public void recordGameResult(int levelReached) {
         gamesPlayed++;
         if (levelReached > 0 && levelReached > lastLevel) lastLevel = levelReached;
     }
 
-    /**
-     * Brings a state loaded from disk (or from an older build) back to something every
-     * reader can trust: Gson skips field initialisers, so the collections can come back
-     * null, and a save written before recordGameResult() rejected synthetic level ids can
-     * carry a negative lastLevel that reads as "no chapter progress at all".
-     */
+    
     public void repair() {
         if (news == null) news = new ArrayList<>();
         if (unlockedPlantIds == null) unlockedPlantIds = new HashSet<>();
@@ -191,10 +181,7 @@ public class UserState {
         return lotteryHighScores.containsKey(normaliseChapterKey(chapterKey));
     }
 
-    /**
-     * Keeps the better of the stored and given score for one chapter. My Point stays the
-     * best endless run across every chapter, which is the only thing that ever wrote it.
-     */
+    
     public boolean recordLotteryScore(String chapterKey, long score) {
         if (lotteryHighScores == null) lotteryHighScores = new HashMap<>();
         String key = normaliseChapterKey(chapterKey);
@@ -235,8 +222,7 @@ public class UserState {
         return false;
     }
 
-    /** Highest difficulty (1-3) the player has beaten for the given mini-game key
-     *  (e.g. "beghouled", "zombotany"), or 0 if none has been won yet. */
+    
     public int getMiniGameHighestLevelWon(String miniGameKey) {
         if (miniGameHighestLevelWon == null) miniGameHighestLevelWon = new HashMap<>();
         return miniGameHighestLevelWon.getOrDefault(normaliseMiniGameKey(miniGameKey), 0);
@@ -249,8 +235,7 @@ public class UserState {
         if (level > current) miniGameHighestLevelWon.put(key, level);
     }
 
-    /** Level 1 is always playable; any later level requires the previous one to
-     *  have been won at least once. */
+    
     public boolean isMiniGameLevelUnlocked(String miniGameKey, int level) {
         if (level <= 1) return true;
         return getMiniGameHighestLevelWon(miniGameKey) >= level - 1;

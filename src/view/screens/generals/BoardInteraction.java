@@ -239,11 +239,11 @@ class BoardInteraction {
                     || item.getPosition() == null) continue;
 
             Position p = item.getPosition();
-            // Use the item's own (possibly off-tile-center) position for both the hit
-            // test and the collect target, so a sun that renders nudged away from its
-            // producer's tile - e.g. a sunflower's second sun, or a sun-shroom's drop -
-            // is only picked up by clicking where it's actually drawn, matching the
-            // original game instead of the plant's tile underneath it.
+            
+            
+            
+            
+            
             float itemX = GameScreen.BOARD_X + (float) p.x() * boardTileWidth + boardTileWidth * 0.28f;
             float itemY = screen.cellY((int) Math.round(p.y())) + boardTileHeight * 0.25f;
 
@@ -256,10 +256,10 @@ class BoardInteraction {
                 itemY += (float) Math.sin(age * 3.0f) * 3f;
             }
 
-            // Hitbox is centered on the sprite but deliberately more generous than the
-            // sprite itself (fixed size, not tied to the pulse animation) so collecting
-            // doesn't require pixel-precise clicks - matching how forgiving the original
-            // game's sun/coin/food clicking feels.
+            
+            
+            
+            
             float spriteSize = boardTileWidth * 0.45f;
             float centerX = itemX + spriteSize * 0.5f;
             float centerY = itemY + boardTileHeight * 0.45f * 0.5f;

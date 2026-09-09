@@ -33,22 +33,22 @@ public class Modal extends Table {
         setFillParent(true);
         setTouchable(Touchable.enabled);
 
-        // Full‑screen scrim (the semi‑transparent overlay)
+        
         Image scrim = new Image(scrimDrawable());
         scrim.setFillParent(true);
         scrim.setTouchable(Touchable.childrenOnly);
 
-        // Dialog panel – add your widgets to this table.
+        
         content = new Table();
         content.setBackground(skin.getDrawable("modal-background"));
         content.pad(28).defaults().pad(6);
         content.setTouchable(Touchable.enabled);
 
-        // Wrapper centres the content panel.
+        
         Table wrapper = new Table();
         wrapper.setFillParent(true);
         wrapper.setTouchable(Touchable.enabled);
-        // Do NOT use expand().fill() – that would stretch the panel.
+        
         wrapper.add(content).center()
                 .minWidth(MIN_WIDTH).maxWidth(MAX_WIDTH)
                 .maxHeight(MAX_HEIGHT);
@@ -60,7 +60,7 @@ public class Modal extends Table {
 
         add(stack).grow();
 
-        // Click on the scrim (outside the dialog) closes the modal.
+        
         scrim.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

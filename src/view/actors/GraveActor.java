@@ -8,7 +8,7 @@ import model.pitches.obstacles.Grave;
 
 public class GraveActor extends Actor {
 
-    /** Which chapter's grave art set to use. */
+    
     public enum Chapter { EGYPT, DARK_AGE }
 
     private final Grave grave;

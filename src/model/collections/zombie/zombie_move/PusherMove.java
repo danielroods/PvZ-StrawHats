@@ -22,9 +22,9 @@ public class PusherMove implements MoveBehavior {
         double deltaX = zombie.getSpeed().x() * deltaTime;
         double targetZombieX = pos.x() + deltaX;
 
-        // Pirate Seas: a barrel roller can't shove its barrel across open
-        // water any more than any other ground zombie can walk across it -
-        // hold both the zombie and its barrel at the water's edge.
+        
+        
+        
         int row = (int) Math.round(pos.y());
         int oldColClamp = (int) pos.x();
         int newColClamp = (int) targetZombieX;
@@ -36,15 +36,15 @@ public class PusherMove implements MoveBehavior {
         PushableStructure structure = zombie.getPushedStructure();
 
         if (structure != null && structure.isFalling()) {
-            // Still dropping in from the sky (see ZombieFactory.spawnFallingIceBlockOnRelease) -
-            // let it land in place before the zombie starts shoving it forward.
+            
+            
             structure.updateFall(deltaTime);
         }
 
         if (structure != null && structure.isAlive() && !structure.isFalling()) {
-            // Continuous "push" beat for as long as the zombie is actively
-            // shoving a structure (arcade cabinet / barrel); duration 0 means
-            // it persists until cleared below rather than auto-expiring.
+            
+            
+            
             zombie.setActionAnimationState("push", 0, true);
 
             Position oldPosition = structure.getPosition();
@@ -76,8 +76,8 @@ public class PusherMove implements MoveBehavior {
             }
             session.registerStructure(structure);
         } else if ("push".equals(zombie.getActionAnimationState())) {
-            // No structure left to push (destroyed or never assigned this tick);
-            // fall back to the zombie's normal walk/eat animation.
+            
+            
             zombie.clearActionAnimationState();
         }
 

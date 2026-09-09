@@ -33,10 +33,10 @@ public class IZombie extends MiniGameMode {
     private static final int DEFENDER_FIRST_COLUMN = 1;
     private static final double ESCAPE_COLUMN = -1.2;
 
-    /// The player owns the zombies here, so the profile-wide difficulty setting would
-    /// scale the player's own units instead of the opposition. Every I, Zombie board is
-    /// balanced against this one fixed zombie stat tier; the level number is the
-    /// difficulty knob.
+    
+    
+    
+    
     private static final int ZOMBIE_STAT_TIER = 3;
 
     private static final Map<Integer, Integer> SUN_BUDGET = Map.of(1, 3000, 2, 4000, 3, 4500);
@@ -66,8 +66,8 @@ public class IZombie extends MiniGameMode {
         session.setDifficultyLevel(ZOMBIE_STAT_TIER);
         session.setSkySunEnabled(false);
         session.setZombieBreachesEnabled(false);
-        // The player controls the zombies here, so Ra Zombie's usual sun-stealing
-        // effect is flipped: it produces sun for the player instead of raiding it.
+        
+        
         session.setZombieSunProductionMode(true);
         this.startingSun = SUN_BUDGET.getOrDefault(getDifficulty(), 1500);
         session.addSun(startingSun);

@@ -15,23 +15,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Tangle Kelp's Plant Food.
- *
- * Grabs whichever zombie is standing on the plant's own tile (if any) plus up to
- * {@code maxRemoteTargets} more zombies anywhere else in the water (nearest first),
- * dragging every one of them smoothly under the (stationary) water ripple before killing
- * them. Gargantuars are immune, same as the normal attack in
- * {@link model.collections.plant.actstrategy.TangleKelpStrategy}.
- *
- * Visual timeline: "plantfood_on" (short wind-up) -> "plantfood" (the long drag-under,
- * where {@link Zombie#setDragUnderWaterProgress(double)} climbs from 0 to 1 for every
- * grabbed zombie) -> "plantfood_off" (short settle). That three-stage clip plays on the
- * plant's own tile. Every *other* tile holding a grabbed zombie has no real plant on it,
- * so it instead shows a borrowed Tangle Kelp "attack" clip for the same window - see
- * {@link #remoteAttackTiles()} and {@link #remoteAttackElapsed()}, read back by
- * PlantRenderer.
- */
+
 public class TangleKelpPlantFood implements PlantFoodEffect {
     private static final double ON_DURATION_FALLBACK = 0.35;
     private static final double MAIN_DURATION_FALLBACK = 1.5;
@@ -59,8 +43,8 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
 
     @Override
     public boolean drivesActStrategy() {
-        // While boosted, the grab/drag/kill sequence is driven entirely by
-        // tickDurationEffect below - the normal single-target TangleKelpStrategy sits out.
+        
+        
         return true;
     }
 
@@ -91,7 +75,7 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
 
         int maxGrabs = 1 + maxRemoteTargets;
 
-        // The plant's own tile grabs first, if a zombie happens to be standing right on it.
+        
         for (Zombie zombie : session.getZombies()) {
             if (grabbed.size() >= maxGrabs) break;
             if (!isGrabbable(zombie, session)) continue;
@@ -100,7 +84,7 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
             }
         }
 
-        // Up to maxRemoteTargets more, anywhere else in the water, nearest first.
+        
         List<Zombie> candidates = new ArrayList<>();
         for (Zombie zombie : session.getZombies()) {
             if (grabbed.contains(zombie) || !isGrabbable(zombie, session)) continue;
@@ -170,17 +154,13 @@ public class TangleKelpPlantFood implements PlantFoodEffect {
     public void applyStatusModifiers(Plant plant) {
     }
 
-    /**
-     * Tile positions (excluding the plant's own tile) that should currently show a borrowed
-     * Tangle Kelp "attack" clip because a remote zombie is being dragged under there. Empty
-     * once the grab/drag window (plantfood_on + plantfood) has passed.
-     */
+    
     public List<Position> remoteAttackTiles() {
         if (elapsed >= onDuration + mainDuration) return List.of();
         return new ArrayList<>(remoteTiles.values());
     }
 
-    /** Animation clock for the borrowed "attack" clip drawn at {@link #remoteAttackTiles()}. */
+    
     public double remoteAttackElapsed() {
         return elapsed;
     }

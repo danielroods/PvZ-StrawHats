@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class SaveOurSeedsLevel extends Level {
-    private Map<Position, String> seedPositions; // (row, col) : plant type
+    private Map<Position, String> seedPositions; 
     private final Set<Position> confirmedPlanted = new HashSet<>();
 
     @Override

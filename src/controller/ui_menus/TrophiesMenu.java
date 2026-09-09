@@ -2,12 +2,7 @@ package controller.ui_menus;
 
 import view.GeneralPrinter;
 
-/**
- * Purely a navigation placeholder - TrophiesScreen reads everything it shows from
- * {@link controller.TrophyManager}, which is stateless and derives trophy/key status
- * straight from the user's existing level progression, so there is nothing for this
- * menu to track or mutate.
- */
+
 public class TrophiesMenu extends Menu {
 
     @Override

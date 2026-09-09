@@ -1,6 +1,6 @@
 package model.pitches.obstacles;
 
-/// crater blocks planting
+
 public class Crater implements Obstacle {
     @Override
     public boolean blocksPlanting() {

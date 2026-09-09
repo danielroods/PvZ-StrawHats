@@ -5,12 +5,7 @@ import model.collections.zombie.ZombieRace;
 
 import java.util.Set;
 
-/**
- * Resolves the shock-death effect caused by Electric Blueberry.
- *
- * Only zombies with a dedicated shock PAM get the shock animation. Zombies
- * without a matching entry return null and keep their normal death behavior.
- */
+
 public final class ZombieShockAnimationRegistry {
 
     private static final String IMP_SHOCK =
@@ -45,8 +40,8 @@ public final class ZombieShockAnimationRegistry {
 
         if (alias != null && BIG_SHOCK_ALIASES.contains(alias)) return BIG_SHOCK;
 
-        // The generic shock asset is used for ordinary zombies. The explicit
-        // special cases above prevent larger/special zombie bodies from using it.
+        
+        
         return DEFAULT_SHOCK;
     }
 }

@@ -24,7 +24,7 @@ public final class ProjectileEffectAssets {
         PLANT_FOOD
     }
 
-    /** Where an EFFECT entry belongs: on the plant's own tile, or repeated along its whole row. */
+    
     public enum Scope {
         SELF,
         ROW
@@ -439,12 +439,12 @@ public final class ProjectileEffectAssets {
                                 + "T_KERNALPULT_PROJECTILE.PAM",
                         "animation", PlayMode.LOOP, Kind.PROJECTILE, Variant.NORMAL,
                         "lobbed kernel"),
-                // NOTE: this is a plain PNG living at assets/projectiles/..., NOT
-                // under the 768/.../*.PAM tree the other entries use. AssetEntry
-                // .isStaticImage()/.fullPath() already handle that (the path
-                // already starts with AssetPaths.ROOT, so it's used as-is rather
-                // than getting the pvz-assets PAM root prepended) - don't try to
-                // "fix" this into a PAM-style path.
+                
+                
+                
+                
+                
+                
                 entry("assets/projectiles/kernelpult_projectile_butter.png",
                         "static", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
                         "butter projectile - static image, not a PAM animation; also used for PF"),
@@ -459,10 +459,10 @@ public final class ProjectileEffectAssets {
                                 + "SPLAT_KERNALPULT_BUTTER.PAM",
                         "animation", PlayMode.ONCE, Kind.HIT, Variant.NORMAL,
                         "butter impact (shared by normal and PF butter shots)")
-                // The on-face butter-stun overlay is not a separate asset: it's a
-                // "butter" element baked into each zombie's own PAM (same idea as
-                // the armor pieces), toggled on/off via the per-zombie element
-                // visibility mask - see ZombieArmorMask/ZombieRenderer.
+                
+                
+                
+                
         );
     }
 
@@ -684,18 +684,18 @@ public final class ProjectileEffectAssets {
 
     private static void registerIceShroom() {
         register("Ice-shroom",
-                // Melee ice-swing effect, played on Ice-shroom's own tile each time its
-                // periodic 3x3 attack fires - see EffectRenderer.triggerIceShroomAttacks.
+                
+                
                 entry("768/FULL/EFFECTS/ICESHROOM_MELEE_ATTACK/ICESHROOM_MELEE_ATTACK.PAM",
                         "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
                         "melee ice-swing attack effect"),
-                // Freeze fx played once on every zombie caught in the 3x3 attack zone -
-                // see EffectRenderer.triggerIceShroomAttacks.
+                
+                
                 entry("768/FULL/EFFECTS/ICESHROOM_FX/ICESHROOM_FX.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
                         "freeze fx played on each targeted zombie's tile"),
-                // The 9-tile (3x3) frost ground patch, alive for as long as the plant is -
-                // see EffectRenderer.updateIceShroomZones.
+                
+                
                 entry("768/FULL/EFFECTS/ICESHROOM_TILE_FX/ICESHROOM_TILE_FX.PAM",
                         "spawn", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
                         "frost tile patch, spawn"),
@@ -705,8 +705,8 @@ public final class ProjectileEffectAssets {
                 entry("768/FULL/EFFECTS/ICESHROOM_TILE_FX/ICESHROOM_TILE_FX.PAM",
                         "end", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
                         "frost tile patch, end (once the plant is gone)"),
-                // Plant Food: icicles dropping vertically onto every zombie in the 3x3 zone -
-                // see EffectRenderer.triggerIceShroomPlantFood.
+                
+                
                 entry("768/FULL/EFFECTS/ICESHROOM_PROJECTILE/ICESHROOM_PROJECTILE.PAM",
                         "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.PLANT_FOOD,
                         "Plant Food: icicle dropping vertically onto a targeted zombie")
@@ -715,11 +715,11 @@ public final class ProjectileEffectAssets {
 
     private static void registerHotPotato() {
         register("Hot Potato",
-                // Melting ice puddle synergy fx, played on the ice block/frozen plant's own
-                // tile - see EffectRenderer.addHotPotatoMeltEffect/drawHotPotatoMeltEffects.
-                // Three-phase clip: "animation" intro (ice cracking/starting to melt),
-                // "animation2" the puddle sitting there for a few seconds, "animation3" the
-                // outro as the puddle fades/dries up.
+                
+                
+                
+                
+                
                 entry("768/FULL/EFFECTS/HOTPOTATO_ICEBLOCK_PUDDLE/"
                                 + "HOTPOTATO_ICEBLOCK_PUDDLE.PAM",
                         "animation", PlayMode.ONCE, Kind.EFFECT, Variant.NORMAL,
@@ -776,10 +776,10 @@ public final class ProjectileEffectAssets {
 
     private static void registerHeadbutterLettuce() {
         register("Iceberg Lettuce",
-                // Headbutt impact effect, played on the plant's own tile each time its melee
-                // attack lands - see EffectRenderer.drawMeleePlantProjectiles. "animation" is
-                // the front-facing (right) swing, "animation2" the back-facing (left) swing -
-                // picked per-hit from MeleeStrategy's isMeleeFacingLeft() flag.
+                
+                
+                
+                
                 entry("768/INITIAL/EFFECTS/HEADBUTTERLETTUCE_HITFX/HEADBUTTERLETTUCE_HITFX.PAM",
                         "animation", PlayMode.ONCE, Kind.PROJECTILE, Variant.NORMAL,
                         "headbutt impact effect, attack to the right (front)"),

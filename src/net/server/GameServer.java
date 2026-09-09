@@ -156,7 +156,7 @@ public class GameServer {
         try {
             if (serverSocket != null) serverSocket.close();
         } catch (IOException ignored) {
-            // Closing a already-closed socket during shutdown is harmless.
+            
         }
         Log.info("Server", "Stopped.");
     }

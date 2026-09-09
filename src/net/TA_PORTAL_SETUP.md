@@ -8,7 +8,7 @@ Start the existing server normally. `ServerLauncher` now starts the web portal o
 
 Open:
 
-    http://127.0.0.1:8080/ta
+    http:
 
 The first server start creates `server-data/TAData.json` and inserts this demo TA code:
 

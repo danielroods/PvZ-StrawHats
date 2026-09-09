@@ -168,7 +168,7 @@ public class LevelLoader {
                 JsonObject seedObj = raw.get("seedPositions").getAsJsonObject();
                 Map<Position, String> seedMap = new HashMap<>();
                 for (var entry : seedObj.entrySet()) {
-                    String key = entry.getKey(); // "row,col"
+                    String key = entry.getKey(); 
                     String plantType = entry.getValue().getAsString();
                     String[] parts = key.split(",");
                     int row = Integer.parseInt(parts[0]);
@@ -186,9 +186,9 @@ public class LevelLoader {
         } else if (level instanceof TimedWarLevel) {
             double timeSec = raw.get("timeLimitSeconds").getAsDouble();
             ((TimedWarLevel) level).setTimeLimit(new Time(timeSec));
-            // zombiesToKill is no longer part of the win/loss logic (this is a pure survival
-            // level now), but the field may still linger in older level JSON - ignore it if
-            // present instead of requiring it.
+            
+            
+            
         } else if (level instanceof DeadLineLevel) {
             int col = raw.get("deadLineColumn").getAsInt();
             ((DeadLineLevel) level).setDeadLine(new Position(col, 0));

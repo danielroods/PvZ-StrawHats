@@ -37,8 +37,8 @@ public class TangleKelpStrategy implements ActStrategy {
             case SUBMERGING -> {
                 phaseTimer += delta;
                 if (grabbedZombie == null || !grabbedZombie.isAlive()) {
-                    // The target died or was otherwise removed before the grab landed;
-                    // go back to lurking instead of grabbing an empty tile.
+                    
+                    
                     resetToWaiting(user);
                     return;
                 }

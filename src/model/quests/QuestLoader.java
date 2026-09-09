@@ -46,7 +46,7 @@ public class QuestLoader {
             try {
                 return new FileReader(candidate, StandardCharsets.UTF_8);
             } catch (FileNotFoundException ignored) {
-                // try next candidate
+                
             }
         }
 

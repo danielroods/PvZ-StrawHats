@@ -33,10 +33,7 @@ public class Grave implements Obstacle {
     public int getHp() { return hp; }
     public Reward getReward() { return reward; }
 
-    /**
-     * Returns the current visual stage of the grave, from 1 (undamaged) to
-     * {@link #STAGE_COUNT} (about to be destroyed), based on remaining hp.
-     */
+    
     public int getStage() {
         double damageRatio = 1.0 - ((double) hp / (double) MAX_HP);
         int stage = (int) Math.ceil(damageRatio * STAGE_COUNT);

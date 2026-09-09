@@ -46,12 +46,7 @@ public class CollectionManager {
         return ZombieFactory.getAllZombieAliases();
     }
 
-    /**
-     * All zombie aliases that actually appear somewhere in the adventure levels
-     * (seen or not). Excludes minigame-only zombies (e.g. Zombotany's plant-zombies,
-     * I-Zombie test entries) since those never show up in a Level's waves - they
-     * belong only in their own minigame, not the Collection roster.
-     */
+    
     public Set<String> getAdventureZombieAliases() {
         Set<String> aliases = new HashSet<>();
         List<Level> levels;
@@ -61,9 +56,9 @@ public class CollectionManager {
             return aliases;
         }
         for (Level level : levels) {
-            // zombiePool covers dynamically/randomly spawned zombies (e.g. Gargantuar,
-            // Barrel Roller) that a level may never list in a scripted wave - same field
-            // BeforeMatchScreen's preview already relies on as the level's real roster.
+            
+            
+            
             if (level.getZombiePool() != null) {
                 for (String alias : level.getZombiePool()) {
                     if (alias != null && !alias.isBlank()) aliases.add(alias);
@@ -99,10 +94,10 @@ public class CollectionManager {
                     }
                 }
             }
-            // Boss levels spawn their minions dynamically from zombiePool (see
-            // ZombossFight) instead of listing them in scripted waves, so without this
-            // those zombies (e.g. Gargantuar) would stay "???" forever even after the
-            // boss fight is completed.
+            
+            
+            
+            
             if (level.getZombiePool() != null) {
                 for (String alias : level.getZombiePool()) {
                     if (alias != null && !alias.isBlank()) seen.add(alias);
@@ -162,8 +157,8 @@ public class CollectionManager {
         NewsManager.generateNews("PLANT", config.name,
                 formatPlant(config, true, PlantProgression.levelOf(state, config)));
 
-        // Persist the modified UserState immediately so coins/unlocks survive
-        // leaving the collection screen or restarting the application.
+        
+        
         User.save();
         return true;
     }
@@ -181,8 +176,8 @@ public class CollectionManager {
         state.seedPacketInventory.merge(config.id, -packetsNeeded, Integer::sum);
         state.setPlantLevel(config.id, currentLevel + 1);
 
-        // Persist the modified UserState immediately. Without this, the in-memory
-        // upgrade disappears when the application is restarted.
+        
+        
         User.save();
         return true;
     }

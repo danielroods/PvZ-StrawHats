@@ -94,10 +94,10 @@ public class NetworkScreen extends UiScreen {
                 + (client.isQueued() ? "  -  waiting for an opponent..." : "");
     }
 
-    // ---------------------------------------------------------------------
-    // Hub (not connected yet): a wood board with a leaderboard icon and the
-    // island icon. Tapping the island opens the connect-to-server popup.
-    // ---------------------------------------------------------------------
+    
+    
+    
+    
     private Table buildHubSection(NetworkClient client) {
         Table board = new Table();
         board.setBackground(woodDrawable());
@@ -260,7 +260,7 @@ public class NetworkScreen extends UiScreen {
         }
     }
 
-    /** A leaderboard-styled row: rounded avatar frame, nickname, and a challenge action. */
+    
     private Table buildPlayerRow(NetworkClient.OnlinePlayer player) {
         Table row = new Table();
         row.setBackground(skin.getDrawable("card-background"));

@@ -35,8 +35,8 @@ class ZombieArmorMask {
                 "zombie_shoulder_armor_damage_02",
         });
 
-        // Some chapters wrap the armour states in a container element that is itself
-        // hidden by default; its children are unreachable unless the container is shown too.
+        
+        
         ARMOUR_CONTAINERS.put(ArmourType.CONE, new String[] { "_zombie_egypt_armor1_states" });
         ARMOUR_CONTAINERS.put(ArmourType.BUCKET, new String[] { "_zombie_egypt_armor2_states" });
         ARMOUR_CONTAINERS.put(ArmourType.CROWN, new String[] {
@@ -48,11 +48,11 @@ class ZombieArmorMask {
         if (zombie == null) return null;
         Armour armour = zombie.getArmour();
         if (!(armour instanceof ZombieArmour zombieArmour)) {
-            // No live Armour object - either this zombie never had any, or something
-            // (Magnet-shroom's pull, its Plant Food throw, armor being fully broken,
-            // etc.) just took it away. Either way it must now read as a bare basic
-            // zombie, so every known armor/container element is explicitly hidden
-            // instead of leaving it to whatever the clip happens to default to.
+            
+            
+            
+            
+            
             return hideAllArmorElements();
         }
 

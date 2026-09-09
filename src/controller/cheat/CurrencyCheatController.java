@@ -5,19 +5,10 @@ import model.user_data.User;
 import model.user_data.UserState;
 import view.GeneralPrinter;
 
-/**
- * Applies the "add currency" cheat to the currently logged in user and persists it.
- * Kept separate from the view so any screen (or a future debug console/command)
- * can reuse the same logic instead of poking {@link UserState} directly.
- */
+
 public class CurrencyCheatController {
 
-    /**
-     * Grants {@code amount} of {@code currency} to the current user, saves the
-     * profile and reports the result through {@link GeneralPrinter}.
-     *
-     * @return true if the amount was applied.
-     */
+    
     public boolean grant(CurrencyType currency, int amount) {
         if (!CheatAccess.allow()) {
             return false;

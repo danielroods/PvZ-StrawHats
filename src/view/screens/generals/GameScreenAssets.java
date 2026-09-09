@@ -47,12 +47,7 @@ class GameScreenAssets {
         this.screen = screen;
     }
 
-    /**
-     * Lazily loads and caches a grave texture for the given asset path (one
-     * of the per-stage/per-type grave images), returning a fresh
-     * {@link TextureRegion} wrapping the shared, cached {@link Texture}.
-     * Returns null if the asset doesn't exist.
-     */
+    
     TextureRegion graveRegionForPath(String path) {
         if (path == null || path.isBlank()) return null;
         Texture texture = graveTextureCache.get(path);
@@ -238,9 +233,7 @@ class GameScreenAssets {
         return drawStaticEffect(path, x, y, scale, false);
     }
 
-    /** Same as {@link #drawStaticEffect(String, float, float, float)} but can mirror the
-     *  texture horizontally, e.g. for a static projectile sprite whose travel direction
-     *  has reversed (Jester Zombie deflection). */
+    
     boolean drawStaticEffect(String path, float x, float y, float scale, boolean flip) {
         Texture texture = staticEffectTexture(path);
         if (texture == null) return false;
@@ -252,11 +245,7 @@ class GameScreenAssets {
         return true;
     }
 
-    /**
-     * Draws a cached static texture stretched to an explicit width/height
-     * (top-left anchored at x,y), rather than centered and native-scaled.
-     * Useful for tile-fitting overlays like the beach protect-tile frame.
-     */
+    
     boolean drawStaticEffectStretched(String path, float x, float y, float width, float height) {
         Texture texture = staticEffectTexture(path);
         if (texture == null) return false;

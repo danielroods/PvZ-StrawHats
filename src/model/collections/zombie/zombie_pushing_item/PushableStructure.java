@@ -8,8 +8,8 @@ import model.pitches.obstacles.PushableType;
 import model.utils.GameSession;
 
 public class PushableStructure {
-    // How long an ice block spends dropping in from the sky before it settles onto the
-    // lawn and can start being pushed / take damage - see startFalling()/updateFall().
+    
+    
     private static final double FALL_DURATION_SECONDS = 0.6;
 
     private final PushableType type;
@@ -30,7 +30,7 @@ public class PushableStructure {
         };
     }
 
-    /** Begins the "falls smoothly from the sky" drop-in animation for a freshly spawned block. */
+    
     public void startFalling() {
         this.falling = true;
         this.fallElapsed = 0;
@@ -47,7 +47,7 @@ public class PushableStructure {
         }
     }
 
-    /** 0 = still high in the sky, 1 = landed on the lawn. */
+    
     public double getFallProgress() {
         if (!falling) return 1.0;
         return Math.max(0, Math.min(1, fallElapsed / FALL_DURATION_SECONDS));
@@ -80,8 +80,8 @@ public class PushableStructure {
             Zombie imp = ZombieFactory.create("ZombieImp", row, col);
             session.spawnZombie(imp);
         } else if (type == PushableType.ICE_BLOCK) {
-            // The imp frozen inside the ice block is only revealed once the block
-            // itself is pushed into something and shatters.
+            
+            
             Zombie imp = ZombieFactory.create("ZombieImp", row, col);
             session.spawnZombie(imp);
         }
