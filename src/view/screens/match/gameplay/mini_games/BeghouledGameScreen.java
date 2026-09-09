@@ -95,11 +95,11 @@ public class BeghouledGameScreen extends GameScreen {
     private final Map<Plant, Position> lastKnownGridPos = new IdentityHashMap<>();
     private final Map<Plant, VisualAnim> activeAnims = new IdentityHashMap<>();
 
-    // --- "Plants matched" effect --------------------------------------------------
-    // MOONFLOWER_EFFECT plays "spawn" then "end" on every tile that's currently
-    // highlighted as part of a resolved match (same positions drawMatchHighlight
-    // already pulses), so the match reads as a little burst of light before those
-    // plants clear off the board.
+    
+    
+    
+    
+    
     private static final String MATCH_EFFECT_PAM = "768/INITIAL/EFFECTS/MOONFLOWER_EFFECT/MOONFLOWER_EFFECT.PAM";
     private static final String MATCH_EFFECT_SPAWN_STATE = "spawn";
     private static final String MATCH_EFFECT_END_STATE = "end";
@@ -297,8 +297,8 @@ public class BeghouledGameScreen extends GameScreen {
             drawPam(MATCH_EFFECT_PAM, clipState, state.phaseElapsed, x, y, scale, false);
         }
 
-        // Match resolved and those tiles cleared off the board (no longer highlighted)
-        // -> drop their effect state so a future match at the same tile starts fresh.
+        
+        
         matchEffects.keySet().removeIf(key -> !currentKeys.contains(key));
     }
 

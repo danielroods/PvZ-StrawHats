@@ -12,7 +12,7 @@ import model.utils.GameSession;
 public final class WaterCrossing {
     private WaterCrossing() {}
 
-    /** True if (row, col) is a {@link TileType#Water} tile with no {@link Bridge} on it. */
+    
     public static boolean isOpenWater(GameSession session, int row, int col) {
         if (session == null) return false;
         Environment lawn = session.getLawn();

@@ -104,7 +104,7 @@ class NetworkIntegrationTest {
             try {
                 server.start();
             } catch (Exception ignored) {
-                // The socket closes when the test tears the server down.
+                
             }
         }, "test-server");
         thread.setDaemon(true);

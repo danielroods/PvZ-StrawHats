@@ -63,8 +63,8 @@ public class Projectile extends Item {
     public void deflectTowardsPlant(Zombie deflector) {
         if (deflector != null) hitZombies.add(deflector);
         remainingHits = 2;
-        // A deflected shot flies back the way it came, so drop whatever steering or
-        // lane-following it had and let it travel straight on its reversed velocity.
+        
+        
         moveStrategy = new StraightMove();
         setAlive(true);
     }
@@ -303,9 +303,9 @@ public class Projectile extends Item {
             applyDamageAndEffect(primary);
             hitZombies.add(primary);
             if (deflectedThisTick) {
-                // A defense like the parasol zombie's absorbed the hit (0 damage)
-                // and already redirected this projectile onward via
-                // bounceOverZombie - leave it alive and flying, don't kill it here.
+                
+                
+                
                 recordImpact(session, impactAt);
                 return;
             }
@@ -321,12 +321,12 @@ public class Projectile extends Item {
 
         if (damageObstacleUnder(session, center)) return;
 
-        // Landed (or flew past the lane) without actually connecting with anyone -
-        // e.g. the original target died or stepped out of the splash radius on the
-        // way down. Rather than silently despawning and dealing no damage at all,
-        // bounce the shot on: onto the next un-hit zombie still standing in this
-        // lane if there is one, otherwise a short hop further along the ground so
-        // the shot visibly lands instead of just vanishing.
+        
+        
+        
+        
+        
+        
         if (bounceToNextZombie(session, center)) return;
         if (bounceAlongGround(session, center)) return;
 

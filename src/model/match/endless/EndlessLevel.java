@@ -61,7 +61,7 @@ public class EndlessLevel extends Level {
         session.setSkySunIntervalMultiplier(SKY_SUN_INTERVAL_MULTIPLIER);
     }
 
-    /** An endless run is never won - it only ever ends when the lawn is overrun. */
+    
     @Override
     public boolean checkWinCondition(GameSession session) {
         return false;

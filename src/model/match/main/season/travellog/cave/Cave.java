@@ -49,8 +49,8 @@ public class Cave extends Season {
             }
         }
 
-        // A Zomboss level opens on an empty lawn (five silent seconds), so the season's
-        // usual pre-frozen Troglobites are left out of it.
+        
+        
         if (session.getZombossFight() == null) placeFrostedZombies(session);
     }
 

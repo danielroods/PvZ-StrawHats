@@ -22,7 +22,7 @@ public class CrystalSkullBeamEffect implements ZombieEffectStatus {
     private static final double POWER_UP_DURATION = 0.5;
     private static final double POWER_DOWN_DURATION = 0.5;
     private static final double ATTACK_DURATION = 0.5;
-    // How long the beam projectile stays on screen once fired.
+    
     private static final double BEAM_VISUAL_DURATION = 0.35;
     private static final int MAX_RANGE_COLS = 9;
 
@@ -125,7 +125,7 @@ public class CrystalSkullBeamEffect implements ZombieEffectStatus {
                 new CrystalSkullBeamProjectile(muzzle, beamTarget, BEAM_VISUAL_DURATION, session));
     }
 
-    /** Nearest plant in the zombie's own row, ahead of it (toward the house), within range. */
+    
     private Plant findTargetAhead(Zombie zombie, GameSession session) {
         if (session.getEnvironment() == null || zombie.getPosition() == null) return null;
 

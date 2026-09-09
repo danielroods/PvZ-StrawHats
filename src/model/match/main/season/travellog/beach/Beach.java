@@ -5,7 +5,7 @@ import model.match.main.season.Season;
 import model.match_mechanisms.ZombieWave;
 import model.utils.GameSession;
 
-/** Big Wave Beach season rules: changing tides plus the periodic final-wave rush. */
+
 public class Beach extends Season {
     public static final int DEFAULT_MAX_TIDE_COLUMNS = 4;
 

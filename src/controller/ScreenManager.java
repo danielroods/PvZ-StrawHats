@@ -59,13 +59,13 @@ public final class ScreenManager {
     }
 
     public static void syncWithCurrentMenu() {
-        // Don't swap screens out from under an in-flight win/lose sequence: some menus (mini
-        // games in particular) flip App.currentMenu to their end-of-game menu as soon as the
-        // outcome is known, well before the board-hold/fade/title animation on the current
-        // GameScreen finishes playing. This is polled every frame (see Main#render), so
-        // without this guard the very next frame would tear the animation down after a
-        // single frame. Once the sequence itself finishes it triggers a sync, so this never
-        // gets permanently stuck.
+        
+        
+        
+        
+        
+        
+        
         if (currentScreen instanceof GameScreen gameScreen && gameScreen.isMatchEndSequenceActive()) {
             return;
         }

@@ -86,9 +86,9 @@ public class ParrotCompanionEffect implements ZombieEffectStatus {
         stage = next;
         double duration = model.collections.animations.AnimationFactory
                 .exactClipDurationForPath(CaptainParrot.PAM, clip);
-        // Stretch the action duration without changing the captain's normal movement.
-        // This makes the parrot's flight visibly slower while preserving the original
-        // clip timing when the animation itself is sampled by the renderer.
+        
+        
+        
         double baseDuration = duration > 0 ? duration : fallbackDuration;
         stageTimer = baseDuration * PARROT_ACTION_SPEED_FACTOR;
         captain.setActionAnimationState(clip, stageTimer, loop);

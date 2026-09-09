@@ -85,7 +85,7 @@ public class AudioManager implements Disposable {
         }
 
         String path = audio.getFilePath();
-        if (path == null || path.isEmpty()) return null; // e.g. SFX_CLICK("") before a real clip is wired up
+        if (path == null || path.isEmpty()) return null; 
 
         if (!gameAssetManager.isLoaded(path)) {
             gameAssetManager.loadSound(path);

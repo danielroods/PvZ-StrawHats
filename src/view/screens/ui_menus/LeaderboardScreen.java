@@ -48,7 +48,7 @@ public class LeaderboardScreen extends UiScreen {
     private static final float COL_SCORE = 92f;
     private static final float COL_MEOW = 130f;
 
-    /** One row of nine tabs plus the order toggle, inside the same 1230. */
+    
     private static final float CHIP_WIDTH = 112f;
     private static final float CHIP_HEIGHT = 38f;
     private static final float CHIP_FONT_SCALE = 0.68f;

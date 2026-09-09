@@ -63,13 +63,13 @@ public class BigWaveBeachGameScreen extends GameScreen {
         waterAnimationTime = 0f;
         bigWaveAnimationTime = 0f;
 
-        // بارگذاری ایمن تصویر صخره‌ها
+        
         if (Gdx.files.internal(ROCKS_PATH).exists()) {
             rocksTexture = new Texture(Gdx.files.internal(ROCKS_PATH));
             rocksTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         }
 
-        // بارگذاری ایمن تصویر پل چوبی
+        
         if (Gdx.files.internal(BOARDWALK_PATH).exists()) {
             boardwalkTexture = new Texture(Gdx.files.internal(BOARDWALK_PATH));
             boardwalkTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -85,7 +85,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         waterAnimationTime += Math.max(0f, delta);
         updateVisualTide(delta, level.getCurrentTideColumn());
 
-        // ترتیب رندر لایه‌های پس‌زمینه/میان‌زمینه: water < beach rocks < wave
+        
         drawWaterUpperLayer();
         drawBeachRocks();
         drawBigWave(delta);
@@ -129,7 +129,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         float bob = (float) Math.sin(waterAnimationTime * 2.4f) * 3f;
 
         batch.setColor(Color.WHITE);
-// hehe
+
         for (int i = 0; i < 3; i++) {
             drawPam(WATER_UPPER_PAM, "water", waterAnimationTime,
                     waterEdgeX, centerY + bob, WATER_SCALE, true);
@@ -138,7 +138,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    /** Render the beach rocks overlay. */
+    
     private void drawBeachRocks() {
         if (rocksTexture == null) return;
 
@@ -151,7 +151,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         batch.draw(rocksTexture, x - width / 2f, y - height / 2f, width, height);
     }
 
-    /** Render the large entrance wave; its clip switches from wave to wave_crash at landfall. */
+    
     private void drawBigWave(float delta) {
         if (pamPlayer == null || !session.isBeachBigWaveActive()) return;
 
@@ -181,7 +181,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    /** Render the boardwalk overlay. */
+    
     private void drawBoardwalk() {
         if (boardwalkTexture == null) return;
 

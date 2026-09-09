@@ -75,8 +75,8 @@ class SessionDrops {
             if (item instanceof GroundItem groundItem
                     && groundItem.isAlive()
                     && !groundItem.isCollected()
-                    // All ground items, including every type of sky sun,
-                    // are collectible by an explicit player click.
+                    
+                    
                     && groundItem.isNear(target)) {
                 groundItem.collect(session, state);
                 collectedItems.add(groundItem);

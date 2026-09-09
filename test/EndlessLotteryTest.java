@@ -182,7 +182,7 @@ class EndlessLotteryTest {
         int spawnedSoFar = 0;
         for (int tick = 0; tick < 20_000; tick++) {
             session.tick();
-            // Keep the lawn clear so the schedule, not the player, is what is under test.
+            
             for (Zombie zombie : new ArrayList<>(session.getZombies())) zombie.setHp(0);
             session.getZombies().clear();
             spawnedSoFar = Math.max(spawnedSoFar, session.getWavesSpawnedCount());

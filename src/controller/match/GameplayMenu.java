@@ -369,12 +369,12 @@ public class GameplayMenu extends Menu {
         }
         try {
             EndlessScoreboard.recordRun(session);
-            // Danger/lottery nodes are synthetic levels built on the fly by
-            // StagesScreen.buildDangerLevel() (negative id, never saved to disk),
-            // so they can't be reloaded through LevelLoader.loadLevelById() the way
-            // a normal level can - reuse the level instance already on the session.
-            // Everything else reloads fresh from disk, same as a normal match start,
-            // so e.g. per-run level state doesn't carry over between attempts.
+            
+            
+            
+            
+            
+            
             Level freshLevel = currentLevel.getId() < 0
                     ? currentLevel
                     : LevelLoader.loadLevelById(currentLevel.getId());
@@ -387,13 +387,13 @@ public class GameplayMenu extends Menu {
             fresh.setLevel(freshLevel);
 
             if (freshLevel instanceof ConveyorBeltLevel) {
-                // Conveyor stages have no loadout step (see MatchMenu.START_GAME) -
-                // go straight back into gameplay, same as starting one fresh.
+                
+                
                 fresh.startWaves();
                 App.currentMenu = new GameplayMenu();
             } else {
-                // Every other level (including lottery/danger nodes) picks its
-                // loadout again before play resumes, same as a normal match start.
+                
+                
                 App.currentMenu = new BeforeMenu();
             }
             GeneralPrinter.print("Match restarted.");

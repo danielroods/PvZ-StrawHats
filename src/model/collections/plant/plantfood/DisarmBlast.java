@@ -89,8 +89,8 @@ public class DisarmBlast implements PlantFoodEffect {
 
     @Override
     public double getDurationSeconds() {
-        // Long enough for the "plantfood" clip to hold through the throw delay above,
-        // plus a little tail so the throw itself is still visible before it ends.
+        
+        
         return THROW_DELAY_SECONDS + 1.5;
     }
 

@@ -45,15 +45,15 @@ public class LoadingScreen extends BaseScreen {
     private static final String LOAD_ICON_FRONT_PATH = "768/INITIAL/EFFECTS/LOAD_ICON_FRONT/LOAD_ICON_FRONT.PAM";
     private static final String PAM_STATE = "animation";
 
-    // --- Geometry of the empty box baked into the loadscreen backgrounds -------------
-    // These four numbers are the only thing you should need to touch to line the bar up
-    // pixel-perfectly with the box drawn into your PNGs (screen is SCREEN_WIDTH x
-    // SCREEN_HEIGHT = 1280x720). As given they roughly match the box shown in the
-    // reference mock-up (centered, in the lower third of the screen).
-    // Made noticeably smaller / more inset than before so the green fill stays safely
-    // inside the drawn box on every one of the 4 backgrounds. Shrink BAR_BOX_WIDTH /
-    // BAR_BOX_HEIGHT further (or raise BAR_PADDING) if it still pokes out on a given
-    // image, and nudge BAR_BOX_X / BAR_BOX_Y to re-center it on that image's box.
+    
+    
+    
+    
+    
+    
+    
+    
+    
     private static final float BAR_BOX_WIDTH = 420f;
     private static final float BAR_BOX_HEIGHT = 30f;
     private static final float BAR_BOX_X = (BaseScreen.SCREEN_WIDTH - BAR_BOX_WIDTH) / 2f;
@@ -93,9 +93,9 @@ public class LoadingScreen extends BaseScreen {
 
     @Override
     public void render(float delta) {
-        // TextureBank streams its atlas pages in lazily; without calling update() every
-        // frame the PAM textures never finish loading and the clips silently draw
-        // nothing. (Same call GreenhouseScreen / GameScreen make each frame.)
+        
+        
+        
         if (textureBank != null) {
             try {
                 textureBank.update();
@@ -110,8 +110,8 @@ public class LoadingScreen extends BaseScreen {
 
     @Override
     public void initParticles() {
-        // Intentionally empty: this screen builds its own lightweight bubble effect
-        // instead of using the shared ParticleCreator image-particle system.
+        
+        
     }
 
     @Override
@@ -134,10 +134,10 @@ public class LoadingScreen extends BaseScreen {
             textureBank = new TextureBank("atlases", root);
             pamPlayer = new PamPlayer(textureBank, root);
 
-            // getClip() only returns clip *metadata* - the actual textures for a PAM
-            // aren't queued in until loadAsync() is called, and textureBank.update()
-            // (called every frame in render()) is what actually streams them in after
-            // that. Without this call the clip exists but has nothing to draw.
+            
+            
+            
+            
             pamPlayer.loadAsync(LOAD_ICON_BACK_PATH, null);
             pamPlayer.loadAsync(LOAD_ICON_FRONT_PATH, null);
         } catch (Throwable t) {
@@ -234,17 +234,17 @@ public class LoadingScreen extends BaseScreen {
     }
 
     private void drawBoxFrame(Batch batch) {
-        // Recessed slot behind the green fill.
+        
         batch.setColor(0f, 0f, 0f, 0.45f);
         batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y, BAR_BOX_WIDTH, BAR_BOX_HEIGHT);
 
-        // Thin frame around the slot.
+        
         batch.setColor(0.05f, 0.05f, 0.05f, 0.85f);
         float t = 2f;
-        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y, BAR_BOX_WIDTH, t); // bottom
-        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y + BAR_BOX_HEIGHT - t, BAR_BOX_WIDTH, t); // top
-        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y, t, BAR_BOX_HEIGHT); // left
-        batch.draw(whitePixel, BAR_BOX_X + BAR_BOX_WIDTH - t, BAR_BOX_Y, t, BAR_BOX_HEIGHT); // right
+        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y, BAR_BOX_WIDTH, t); 
+        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y + BAR_BOX_HEIGHT - t, BAR_BOX_WIDTH, t); 
+        batch.draw(whitePixel, BAR_BOX_X, BAR_BOX_Y, t, BAR_BOX_HEIGHT); 
+        batch.draw(whitePixel, BAR_BOX_X + BAR_BOX_WIDTH - t, BAR_BOX_Y, t, BAR_BOX_HEIGHT); 
 
         batch.setColor(1f, 1f, 1f, 1f);
     }
@@ -260,11 +260,11 @@ public class LoadingScreen extends BaseScreen {
         float y = BAR_BOX_Y + BAR_PADDING;
         float h = BAR_BOX_HEIGHT - 2 * BAR_PADDING;
 
-        // Base green fill (PvZ-ish grass green).
+        
         batch.setColor(0.20f, 0.62f, 0.15f, 1f);
         batch.draw(whitePixel, x, y, fillW, h);
 
-        // Lighter glossy strip along the top for a bit of depth.
+        
         batch.setColor(0.47f, 0.86f, 0.30f, 0.55f);
         batch.draw(whitePixel, x, y + h * 0.55f, fillW, h * 0.35f);
 

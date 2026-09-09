@@ -40,16 +40,16 @@ class MiniGameLawnArtTest {
     void everyMiniGameLawnUsesTheSame1366x768TemplateTheInsetsAssume(String folder) throws Exception {
         BufferedImage art = ImageIO.read(new File(MiniGameLawnArt.backgroundPath(folder)));
         assertNotNull(art, folder + " board art could not be decoded");
-        // ChapterLawnArt.DEFAULT is measured against this template; a differently sized
-        // background would put the playable tiles somewhere else entirely.
+        
+        
         assertEquals(1366, art.getWidth(), folder + " board art is off-template");
         assertEquals(768, art.getHeight(), folder + " board art is off-template");
     }
 
     @Test
     void theCoopLawnIsTheIZombieLawn() {
-        // Couch I, Zombie is the co-op match, and its before-match screen has to preview
-        // the very same lawn the match is played on.
+        
+        
         assertTrue(new File(MiniGameLawnArt.backgroundPath(MiniGameLawnArt.IZOMBIE)).isFile());
     }
 

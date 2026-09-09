@@ -25,8 +25,8 @@ public class SpawnSun implements PlantFoodEffect {
 
     @Override
     public void triggerSuperpower(Plant plant, GameSession session) {
-        // Do not add the Plant Food sun immediately. The sun producer's Plant Food
-        // animation has to finish once, and only then do the individual suns appear.
+        
+        
         pendingDrop = true;
         elapsed = 0.0;
 

@@ -45,8 +45,8 @@ public final class ZombieShockAnimationRegistry {
 
         if (alias != null && BIG_SHOCK_ALIASES.contains(alias)) return BIG_SHOCK;
 
-        // The generic shock asset is used for ordinary zombies. The explicit
-        // special cases above prevent larger/special zombie bodies from using it.
+        
+        
         return DEFAULT_SHOCK;
     }
 }

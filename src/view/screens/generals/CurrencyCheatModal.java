@@ -55,7 +55,7 @@ public class CurrencyCheatModal extends Modal {
         }
     }
 
-    /** Opens the popup on top of whatever screen is currently active. */
+    
     public static void open(Runnable onCurrencyChanged) {
         if (!CheatAccess.isEnabled()) return;
         new CurrencyCheatModal(onCurrencyChanged).show();
@@ -110,7 +110,7 @@ public class CurrencyCheatModal extends Modal {
             }
         });
 
-       // box.add(icon).size(90f, 46f).padRight(10f);
+       
         box.add(info).left().expandX();
         box.add(amountField).width(FIELD_WIDTH).padRight(5f);
         box.add(addButton);

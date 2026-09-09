@@ -7,7 +7,7 @@ package model.pitches.obstacles;
  * zombies can walk across it instead of being stopped by the water.
  */
 public class Bridge implements Obstacle {
-    /** The only art asset currently available for this chapter's bridges. */
+    
     public static final String PLANK_TEXTURE =
             "assets/images/chapters/pirate/gameplay/plank_02.png";
 

@@ -79,7 +79,7 @@ public class Vasebreaker extends MiniGameMode {
     }
 
     private int filledColumnCountFor(int cols) {
-        int vaseColumns = cols - 1; // every column except the planting one
+        int vaseColumns = cols - 1; 
         return switch (getDifficulty()) {
             case 1 -> Math.min(vaseColumns, 4);
             case 2 -> Math.min(vaseColumns, 6);

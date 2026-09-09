@@ -28,7 +28,7 @@ public class TimedWarLevel extends Level {
         }
     }
 
-    /** Kept for the HUD / end-of-match stats only - kills no longer gate win or loss. */
+    
     public void recordZombieKill() {
         zombiesKilledSoFar++;
     }
@@ -44,7 +44,7 @@ public class TimedWarLevel extends Level {
         return false;
     }
 
-    /** Survived the full duration: the timer has run out and the player is still standing. */
+    
     @Override
     public boolean checkWinCondition(GameSession session) {
         return timeLimit != null && timeLimit.isZero();
@@ -58,7 +58,7 @@ public class TimedWarLevel extends Level {
         this.configuredTimeLimitSeconds = timeLimit == null ? 0 : timeLimit.getSecondsRemaining();
     }
 
-    /** Seconds left on the survival clock, for the HUD countdown. 0 if there is no timer. */
+    
     public double getSecondsRemaining() {
         return timeLimit == null ? 0 : Math.max(0, timeLimit.getSecondsRemaining());
     }

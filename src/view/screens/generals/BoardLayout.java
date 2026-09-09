@@ -8,7 +8,7 @@ class BoardLayout {
 
     private static final float SOURCE_BOARD_WIDTH = 733f;
 
-    /** Horizontal space reserved for the pre-match zombie preview on the right. */
+    
     private static final float PRE_MATCH_RIGHT_AREA_WIDTH = 240f;
 
     private final GameScreen screen;
@@ -60,8 +60,8 @@ class BoardLayout {
             float texW = boardTexture.getWidth();
             float texH = boardTexture.getHeight();
 
-            // Fill the screen height, and never leave a gap on the left: the background is
-            // authored just wide enough for 16:9, so this normally resolves to the height fit.
+            
+            
             float fitScale = Math.max(viewH / texH, viewW / texW);
             bgW = texW * fitScale;
             bgH = texH * fitScale;

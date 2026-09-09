@@ -193,11 +193,11 @@ public class DarkAgesStagesScreen extends StagesScreen {
         scrollPane.layout();
         scrollPane.setScrollY(0);
 
-        // padTop was -100, which pulled the scrollable stage path up into the top bar's
-        // row (overlapping the currency/cheat widgets and the back/collection buttons),
-        // stealing their clicks. Every other chapter's path container stays clear of the
-        // top bar; Dark Ages already gets extra top clearance from its own "Dark Ages"
-        // title row (see build()), so it doesn't need a large negative pad here either.
+        
+        
+        
+        
+        
         wrap.add(scrollPane).expand().fill().padLeft(-50).padRight(-50).padTop(0).padBottom(0);
         return wrap;
     }

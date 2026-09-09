@@ -52,7 +52,7 @@ public abstract class Level {
         this.zombiePool = zombiePool == null ? new ArrayList<>() : new ArrayList<>(new LinkedHashSet<>(zombiePool));
     }
 
-    // ---- Tide ----
+    
     public int getCurrentTideColumn() { return currentTideColumn; }
     public void setCurrentTideColumn(int currentTideColumn) { this.currentTideColumn = currentTideColumn; }
     public int getMaxTideColumn() { return maxTideColumn; }
@@ -60,11 +60,11 @@ public abstract class Level {
 
 
     public void updateTide(double deltaSeconds, GameSession session) {
-        // Default: no tide
+        
     }
 
     public void initSpecial(GameSession session) {
-        // default no‑op
+        
     }
 
     public WaveDirector getWaveDirector() {

@@ -69,13 +69,13 @@ public class MiniGameEndScreen extends UiScreen {
 
     private static final String BACKGROUND = "assets/images/backg/mainmenu_background.png";
 
-    // One pinata skin per mini game.
+    
     private static final String PINATA_VASEBREAKER = "768/FULL/EFFECTS/PRIZE_PINATA_GREENS/PRIZE_PINATA_GREENS.PAM";
     private static final String PINATA_WALLNUT_BOWLING = "768/FULL/EFFECTS/PRIZE_PINATA_COWBOY/PRIZE_PINATA_COWBOY.PAM";
     private static final String PINATA_IZOMBIE = "768/FULL/EFFECTS/PRIZE_PINATA_ICE/PRIZE_PINATA_ICE.PAM";
     private static final String PINATA_BEGHOULED = "768/FULL/EFFECTS/PRIZE_PINATA_FRUIT/PRIZE_PINATA_FRUIT.PAM";
     private static final String PINATA_ZOMBOTANY = "768/FULL/EFFECTS/PRIZE_PINATA_MUSHROOMS/PRIZE_PINATA_MUSHROOMS.PAM";
-    // Fallback for any mini game name we don't explicitly recognise below.
+    
     private static final String PINATA_DEFAULT = PINATA_ZOMBOTANY;
 
     private static final String COIN_DIAMOND_PAM = "768/INITIAL/EFFECTS/COIN_DIAMOND/COIN_DIAMOND.PAM";
@@ -87,11 +87,11 @@ public class MiniGameEndScreen extends UiScreen {
 
     private static final float PINATA_INTRO_DURATION = 0.45f;
     private static final float PINATA_EXIT_DURATION = 0.35f;
-    // How far up the actor's box (0 = bottom edge, 1 = top edge) the pinata/pile is anchored.
+    
     private static final float PINATA_ANCHOR_HEIGHT_RATIO = 0.35f;
-    // Fallback durations used only when animations.json has no explode/tap_pile entry for
-    // the pinata path (resolved automatically via AnimationFactory.clipDurationForPath
-    // whenever it does).
+    
+    
+    
     private static final float DEFAULT_EXPLODE_DURATION = 1.0f;
     private static final float DEFAULT_TAP_DURATION = 0.55f;
 
@@ -148,9 +148,9 @@ public class MiniGameEndScreen extends UiScreen {
         AudioManager.get().playSound(wonMatch ? AudioEnum.SFX_MATCH_WIN : AudioEnum.SFX_MATCH_LOSE);
 
         if (wonMatch && !pinataSequenceStarted) {
-            // Only ever start the pinata sequence once per screen instance - build() itself
-            // only runs once (from show()), but this guard keeps the win path safe even if
-            // that ever changes.
+            
+            
+            
             pinataSequenceStarted = true;
             buildPinataStage();
         } else {
@@ -158,9 +158,9 @@ public class MiniGameEndScreen extends UiScreen {
         }
     }
 
-    // ==================================================================
-    // Pinata sequence (win only) - identical mechanism to the normal end-of-match screen.
-    // ==================================================================
+    
+    
+    
 
     private void buildPinataStage() {
         rootTable.clear();
@@ -173,10 +173,10 @@ public class MiniGameEndScreen extends UiScreen {
 
         pinataActor = new PinataActor(resolvePinataPamPath());
         Table pinataCell = new Table();
-        // Deliberately generous: PamPlayer.draw() has no way to query a clip's native pixel
-        // size from here, so this box is sized well beyond the pinata's expected footprint
-        // rather than tightly fitted - a slightly oversized tap target is harmless, while an
-        // undersized one is exactly what caused taps to miss the sprite before.
+        
+        
+        
+        
         pinataCell.add(pinataActor).size(360f * 0.7f, 420f * 0.7f);
         layer.add(pinataCell).padBottom(SPACE_SM + 85f).row();
 
@@ -187,7 +187,7 @@ public class MiniGameEndScreen extends UiScreen {
         rootTable.add(layer).expand().center();
     }
 
-    /** Two random seed packets (different plants where possible), one coin stack, one diamond. */
+    
     private List<PinataReward> generatePinataRewards() {
         List<PinataReward> rewards = new ArrayList<>();
 
@@ -199,8 +199,8 @@ public class MiniGameEndScreen extends UiScreen {
             PinataReward reward = new PinataReward();
             reward.kind = RewardKind.SEED_PACKET;
             if (!pool.isEmpty()) {
-                // Distinct plants as long as at least 2 are unlocked (i=0 -> index 0, i=1 ->
-                // index 1 or wraps back to 0 only if there's genuinely just one unlocked plant).
+                
+                
                 PlantJsonParser.PlantConfig config = pool.get(i % pool.size());
                 reward.plantId = config.id;
                 reward.plantName = config.name;
@@ -208,7 +208,7 @@ public class MiniGameEndScreen extends UiScreen {
                 reward.plantId = -1;
                 reward.plantName = "Peashooter";
             }
-            reward.amount = 1 + random.nextInt(5); // 1..5 seeds
+            reward.amount = 1 + random.nextInt(5); 
             rewards.add(reward);
         }
 
@@ -232,7 +232,7 @@ public class MiniGameEndScreen extends UiScreen {
         }
     }
 
-    /** Called once per completed "tap_pile" animation cycle - i.e. once per tap that counts. */
+    
     private void onPinataTapResolved() {
         if (pinataRewardQueue.isEmpty()) return;
 
@@ -256,7 +256,7 @@ public class MiniGameEndScreen extends UiScreen {
         }
     }
 
-    /** Called once the pinata has fully faded out after the last reward. */
+    
     private void onPinataFullyGone() {
         showOutcomeScroll();
     }
@@ -276,7 +276,7 @@ public class MiniGameEndScreen extends UiScreen {
         }
     }
 
-    /** Small reward icon that pops up above the pinata, floats, then fades away. */
+    
     private void showRewardPopup(PinataReward reward) {
         if (pinataActor == null) return;
 
@@ -292,8 +292,8 @@ public class MiniGameEndScreen extends UiScreen {
         popup.setPosition(center.x - popup.getWidth() / 2f, center.y - 200f);
         popup.getColor().a = 0f;
 
-        // Added straight to the stage (not rootStack/modalStack) so its manual position isn't
-        // overwritten by a Stack forcing it to fill its parent on the next layout pass.
+        
+        
         stage.addActor(popup);
         popup.addAction(Actions.sequence(
                 Actions.parallel(Actions.fadeIn(0.2f), Actions.moveBy(0f, 30f, 0.9f)),
@@ -399,16 +399,16 @@ public class MiniGameEndScreen extends UiScreen {
         if (normalized.contains("wall-nut bowling") || normalized.contains("wallnut bowling")) {
             return PINATA_WALLNUT_BOWLING;
         }
-        if (normalized.contains("zombie")) return PINATA_IZOMBIE; // Couch I,Zombie / I, Zombie
+        if (normalized.contains("zombie")) return PINATA_IZOMBIE; 
         if (normalized.contains("beghouled")) return PINATA_BEGHOULED;
         if (normalized.contains("zombotany")) return PINATA_ZOMBOTANY;
         return PINATA_DEFAULT;
     }
 
-    // ==================================================================
-    // Original end-of-mini-game panel - identical to before this feature existed.
-    // On a loss this is the only thing build() ever shows.
-    // ==================================================================
+    
+    
+    
+    
 
     private void buildResultPanel() {
         rootTable.clear();
@@ -459,7 +459,7 @@ public class MiniGameEndScreen extends UiScreen {
 
         panel.add(buttons);
 
-        // Small pop-in, matching the normal end-of-match panel.
+        
         panel.setTransform(true);
         panel.setOrigin(Align.center);
         panel.getColor().a = 0f;
@@ -486,9 +486,9 @@ public class MiniGameEndScreen extends UiScreen {
         super.dispose();
     }
 
-    // ==================================================================
-    // Reward data
-    // ==================================================================
+    
+    
+    
 
     private enum RewardKind { SEED_PACKET, COIN, DIAMOND }
 
@@ -499,10 +499,10 @@ public class MiniGameEndScreen extends UiScreen {
         int amount;
     }
 
-    // ==================================================================
-    // Pinata animation actor - state machine over the "idle" / "explode" / "idle_pile" /
-    // "tap_pile" clips exactly as named in the source PAM files.
-    // ==================================================================
+    
+    
+    
+    
 
     private enum PinataAnim { IDLE, EXPLODE, IDLE_PILE, TAP_PILE }
 
@@ -526,7 +526,7 @@ public class MiniGameEndScreen extends UiScreen {
         }
 
         private void handleClick() {
-            if (exitTime >= 0f) return; // already breaking down, ignore further input
+            if (exitTime >= 0f) return; 
 
             if (state == PinataAnim.IDLE) {
                 state = PinataAnim.EXPLODE;
@@ -538,8 +538,8 @@ public class MiniGameEndScreen extends UiScreen {
                 stateTime = 0f;
                 AudioManager.get().playSound(AudioEnum.SFX_CLICK);
             }
-            // Clicks during EXPLODE / TAP_PILE (animation mid-flight) are ignored so a
-            // double-click can't skip straight to the next reward.
+            
+            
         }
 
         void beginExit() {
@@ -606,18 +606,18 @@ public class MiniGameEndScreen extends UiScreen {
                 float exitProgress = exitTime < 0f ? 0f : Math.min(1f, exitTime / PINATA_EXIT_DURATION);
                 float alpha = (0.4f + 0.6f * introProgress) * (1f - exitProgress) * parentAlpha;
                 if (alpha <= 0f) return;
-                // Grows in from 60% to 100% scale on intro, shrinks slightly again on exit.
+                
                 float visualScale = (0.6f + 0.4f * introProgress) * (1f - 0.25f * exitProgress) * 0.8f;
 
-                // ClickListener hit-tests this actor's own fixed getX()/getY()/getWidth()/
-                // getHeight() rectangle (set once by the Table cell in buildPinataStage()) -
-                // it has no visibility into the batch.setTransformMatrix() trick below, which
-                // only affects what gets *drawn*, not the actor's scene2d bounds. Anchoring at
-                // a fixed point inside that rectangle - one that never moves regardless of
-                // visualScale - keeps the sprite pinned inside the clickable area at every
-                // point in the animation. The anchor sits above the box's bottom edge (not
-                // exactly on it) so the pinata/pile reads higher on screen instead of hugging
-                // the very bottom of its cell.
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 float anchorX = getX() + getWidth() / 2f;
                 float anchorY = getY() + getHeight() * PINATA_ANCHOR_HEIGHT_RATIO;
 
@@ -640,7 +640,7 @@ public class MiniGameEndScreen extends UiScreen {
         }
     }
 
-    /** Small looping-idle PAM icon, used for the coin/diamond reward pop-ups and scroll rows. */
+    
     private class PamIconActor extends Actor {
         private final String pamPath;
         private final String clipName;

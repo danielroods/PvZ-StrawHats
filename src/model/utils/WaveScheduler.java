@@ -200,7 +200,7 @@ class WaveScheduler {
             flag.setPosition(new Position(SpawnPlacement.entryX(cols), lane));
             session.spawnZombie(flag);
         } catch (Exception e) {
-            // Never let the cosmetic flag zombie break wave spawning / level loading.
+            
             service.Log.error("GameSession", "Failed to spawn cosmetic flag zombie", e);
         }
     }
@@ -250,8 +250,8 @@ class WaveScheduler {
         List<Integer> laneOrder = laneBag.preferenceOrder(spawn.preferredLane());
         laneOrder = pirateGroundSpawnLanes(spawn.alias(), laneOrder);
         if (laneOrder.isEmpty()) {
-            // Should only be possible on a malformed/empty board. Keep the normal
-            // spawn path rather than making the whole wave fail to load.
+            
+            
             laneOrder = laneBag.preferenceOrder(spawn.preferredLane());
         }
         boolean placedOnBoard = ZombieFactory.isStationaryMover(spawn.alias())
@@ -305,9 +305,9 @@ class WaveScheduler {
         List<Integer> selected = new ArrayList<>();
         boolean swashbuckler = "ZombieSwashbuckler".equals(alias);
         for (int lane : laneOrder) {
-            // Swashbuckler is the exception to the normal Pirate Seas ground-spawn
-            // rule: it deliberately enters through an unbridged row and performs
-            // its rope swing across the open water.
+            
+            
+            
             if (swashbuckler ? !pirate.rowHasBridge(lane) : pirate.rowHasBridge(lane)) {
                 selected.add(lane);
             }

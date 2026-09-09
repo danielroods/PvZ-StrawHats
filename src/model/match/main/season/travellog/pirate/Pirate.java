@@ -47,7 +47,7 @@ public class Pirate extends Season {
         placeGraves(env);
     }
 
-    /** Marks the rightmost {@link #WATER_COLUMN_COUNT} columns as water, then bridges some rows. */
+    
     private void setupSeaAndBridges(Environment env) {
         int waterStart = Math.max(0, env.getCols() - WATER_COLUMN_COUNT);
         bridgeRows = new HashSet<>();
@@ -67,7 +67,7 @@ public class Pirate extends Season {
         }
     }
 
-    /** Graves only make sense on dry land, so keep them off the water columns. */
+    
     private void placeGraves(Environment env) {
         int waterStart = Math.max(0, env.getCols() - WATER_COLUMN_COUNT);
 
@@ -85,7 +85,7 @@ public class Pirate extends Season {
         }
     }
 
-    /** Whether (row) has a bridge crossing its water columns - used by wave/spawn logic. */
+    
     public boolean rowHasBridge(int row) {
         return bridgeRows != null && bridgeRows.contains(row);
     }

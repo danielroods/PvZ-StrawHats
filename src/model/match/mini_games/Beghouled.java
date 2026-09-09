@@ -29,7 +29,7 @@ public class Beghouled extends MiniGameMode {
     private static final int CASCADE_SAFETY_LIMIT = 50;
 
     private final GameSession session;
-    private final int[] boardPlantIds; // the five plant types seeded on this level's board
+    private final int[] boardPlantIds; 
     private final Map<String, UpgradePath> upgradePaths;
     private final int matchesNeeded;
     private final double respawnWaveInterval;
@@ -69,17 +69,17 @@ public class Beghouled extends MiniGameMode {
         };
         this.zombiePool = zombiePoolFor(getDifficulty());
         seedBoard();
-        // Skip the long quiet opening: the first wave hits right away instead of
-        // waiting a full respawnWaveInterval before any zombies show up.
+        
+        
         this.timeSinceLastWave = respawnWaveInterval;
         log("Beghouled level " + getDifficulty() + " started with a playable board.");
     }
 
     private int[] plantPoolFor(int difficulty) {
         return switch (difficulty) {
-            case 2 -> new int[] { 1, 6, 44, 25, 27 };  // Sunflower, Peashooter, Wall-nut, Cabbage-pult, Melon-pult
-            case 3 -> new int[] { 1, 6, 44, 23, 25 };  // Sunflower, Peashooter, Wall-nut, Puff-shroom, Cabbage-pult
-            default -> new int[] { 1, 6, 44, 23, 25 }; // Sunflower, Peashooter, Wall-nut, Puff-shroom, Cabbage-pult
+            case 2 -> new int[] { 1, 6, 44, 25, 27 };  
+            case 3 -> new int[] { 1, 6, 44, 23, 25 };  
+            default -> new int[] { 1, 6, 44, 23, 25 }; 
         };
     }
 
@@ -504,8 +504,8 @@ public class Beghouled extends MiniGameMode {
         int cols = session.getEnvironment().getCols();
         double baseX = SpawnPlacement.entryX(cols);
 
-        // Huge wave: spawn a whole batch of zombies at once, each still entering from
-        // off-screen to the right and spaced apart like a normal match's wave spawner.
+        
+        
         for (int i = 0; i < zombiesPerSpawn; i++) {
             List<Integer> laneOrder = new ArrayList<>();
             for (int row = 0; row < rows; row++) laneOrder.add(row);
@@ -557,7 +557,7 @@ public class Beghouled extends MiniGameMode {
         return names;
     }
 
-    /** Sun cost of the given plant's upgrade, or -1 if it has none. */
+    
     public int getUpgradeCost(String plantName) {
         UpgradePath path = upgradePaths.get(plantName);
         return path == null ? -1 : path.cost;

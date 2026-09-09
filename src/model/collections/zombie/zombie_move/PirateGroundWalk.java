@@ -36,7 +36,7 @@ public class PirateGroundWalk implements MoveBehavior {
 
         if (newCol != oldCol) {
             if (WaterCrossing.isOpenWater(session, (int) Math.round(nextPos.y()), newCol)) {
-                // Held at the edge - keep the old column, drop only the row/vertical drift.
+                
                 nextPos = new Position(pos.x(), nextPos.y());
             } else if (session != null) {
                 nextPos = applySliderRedirect(zombie, pos, nextPos, session);

@@ -12,7 +12,7 @@ import java.util.List;
 
 public class MeleeAreaPlantFood implements PlantFoodEffect {
 
-    /** Per-plant tuning for one melee superpower. */
+    
     public record Profile(double reachX, double reachY, int hits, double activeSeconds,
                           int damagePerHit, Zombie.Status status, double statusSeconds,
                           double knockbackTiles, String onState, String loopState,

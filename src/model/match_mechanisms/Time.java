@@ -3,7 +3,7 @@ package model.match_mechanisms;
 import service.GameClock;
 
 public class Time {
-    // ---- Global game tick (static) ----
+    
     private static int tick;
 
 
@@ -15,7 +15,7 @@ public class Time {
         Time.tick = tick;
     }
 
-    // ---- Instance timer (for level timers, e.g., TimedWar) ----
+    
     private double secondsRemaining;
     private boolean running = false;
 
@@ -24,7 +24,7 @@ public class Time {
         this.running = true;
     }
 
-    /// Decrease the timer by delta seconds.
+    
     public void tick(double delta) {
         if (running && !GameClock.isZero(secondsRemaining))
             secondsRemaining = GameClock.countDown(secondsRemaining, delta);

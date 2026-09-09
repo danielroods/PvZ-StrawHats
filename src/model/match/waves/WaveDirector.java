@@ -14,7 +14,7 @@ public interface WaveDirector {
 
     WaveType typeOf(int waveIndex);
 
-    /** Seconds of lull the scheduler should aim for before wave {@code waveIndex} starts. */
+    
     double delaySeconds(int waveIndex);
 
     /**
@@ -23,6 +23,6 @@ public interface WaveDirector {
      */
     double rampProgress(int waveIndex);
 
-    /** Last chance to scale a freshly created zombie before it lands on the lawn. */
+    
     void empower(Zombie zombie, int waveIndex);
 }

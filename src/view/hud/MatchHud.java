@@ -44,7 +44,7 @@ import java.util.function.Consumer;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
-/** Single in-match HUD layer. Gameplay mutation stays in GameScreen. */
+
 public final class MatchHud extends Table implements Disposable {
     private static final float CARD_W = 95f;
 
@@ -78,8 +78,8 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
     private final WaveProgressMeter waveMeter;
-    // Edge-detection for SFX_WAVE_START (same idiom used throughout the renderers):
-    // fires once each time getWavesSpawnedCount() ticks up.
+    
+    
     private int lastWavesSpawnedCount = -1;
     private GameSession lastSession;
 
@@ -363,7 +363,7 @@ public final class MatchHud extends Table implements Disposable {
         invalidateHierarchy();
     }
 
-    /** Briefly darkens the nuke button as click feedback, then smoothly restores it. */
+    
     private void darkenNukeButtonBriefly() {
         nukeButton.clearActions();
         nukeButton.setColor(Color.WHITE);
@@ -509,7 +509,7 @@ public final class MatchHud extends Table implements Disposable {
             return;
         }
 
-        // Vasebreaker and Beghouled have no wave schedule at all, so there is nothing to meter.
+        
         if (total <= 0) {
             waveLabel.setText("");
             waveLabel.setVisible(false);
@@ -633,7 +633,7 @@ public final class MatchHud extends Table implements Disposable {
 
             @Override
             public void touchDragged(InputEvent event, float x, float y, int pointer) {
-                // Selection stays armed while the pointer travels from the card to the lawn.
+                
             }
 
             @Override

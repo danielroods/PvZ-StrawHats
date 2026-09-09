@@ -88,7 +88,7 @@ public class ChomperPlantFood implements PlantFoodEffect {
                 double dy = center.y() - pos.y();
                 double distance = Math.sqrt(dx * dx + dy * dy);
 
-                // Freeze the normal zombie movement for this tick and perform the pull ourselves.
+                
                 zombie.applyStatus(Zombie.Status.BUTTER, Math.max(0.1, deltaTimeSeconds * 2.0));
 
                 if (distance > HIT_RADIUS && distance > 0.0001) {
@@ -111,7 +111,7 @@ public class ChomperPlantFood implements PlantFoodEffect {
             burpStarted = true;
             plant.setVisualAnimationState("plantfood_burp", 0.65);
 
-            // Everything not eaten is pushed back to the exact position it had before the pull.
+            
             for (Map.Entry<Zombie, Position> entry : originalPositions.entrySet()) {
                 Zombie zombie = entry.getKey();
                 Position original = entry.getValue();
@@ -126,8 +126,8 @@ public class ChomperPlantFood implements PlantFoodEffect {
             return;
         }
 
-        // Keep the burp clip playing without restarting it every tick.
-        // The final clip is entered once only.
+        
+        
         if (!burpEndStarted && elapsed >= TOTAL_DURATION - 0.35) {
             burpEndStarted = true;
             plant.setVisualAnimationState("plantfood_burp_end", 0.35);

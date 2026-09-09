@@ -74,23 +74,23 @@ public class GameScreen extends UiScreen {
     private final NukeEffect nukeEffect = new NukeEffect(this);
     private Image nukeFlashOverlay;
 
-    // Lightweight gameplay camera shake. The base camera position is never changed;
-    // a temporary offset is applied for the duration of the effect and restored after draw.
+    
+    
     private float screenShakeTime = 0f;
     private float screenShakeDuration = 0f;
     private float screenShakeStrength = 0f;
 
-    // Wave-start banner state. The scheduler already exposes the authoritative spawned-wave count.
+    
     private int lastDisplayedWaveCount = 0;
     private float waveBannerTime = 0f;
     private String waveBannerText = null;
     private final GlyphLayout waveBannerLayout = new GlyphLayout();
 
     private view.hud.ZombossDialogueBox zombossDialogue;
-    // Play the Zomboss NPC voice only once for the whole NPC dialogue sequence.
+    
     private boolean zombossNpcVoicePlayed = false;
-    // Edge-detection so SFX_SANDSTORM plays once per storm, not every frame
-    // refreshSandStormAudio() runs - see that method.
+    
+    
     private boolean lastSandStormActive = false;
 
     double tickAccumulator;
@@ -126,7 +126,7 @@ public class GameScreen extends UiScreen {
 
     private void flushRowDrawQueue() {
         if (rowDrawQueue.isEmpty()) return;
-        // A stable sort, so within one row+layer everything keeps its submission order.
+        
         rowDrawQueue.sort(Comparator.<QueuedRowDraw>comparingInt(q -> q.row)
                 .thenComparingInt(q -> q.layer));
         for (QueuedRowDraw queued : rowDrawQueue) {
@@ -137,7 +137,7 @@ public class GameScreen extends UiScreen {
 
     @Override
     public void initParticles() {
-        // Gameplay effects are rendered by the board layers below.
+        
     }
 
     @Override
@@ -177,7 +177,7 @@ public class GameScreen extends UiScreen {
         stage.addActor(nukeFlashOverlay);
     }
 
-    /** Wired to the HUD's nuke button. */
+    
     protected void triggerNukeCheat() {
         if (!CheatAccess.isEnabled()) return;
         nukeEffect.trigger();
@@ -368,7 +368,7 @@ public class GameScreen extends UiScreen {
         return new ArrayList<>(BeforeMenu.selectedPlants);
     }
 
-    /** True only for the loadout screen that renders the match board before waves begin. */
+    
     protected boolean isBeforeMatchPreview() {
         return false;
     }
@@ -405,10 +405,10 @@ public class GameScreen extends UiScreen {
                 fight.getDialogueCount());
     }
 
-    // Edge-detection for SFX_SANDSTORM (Egypt's entry hazard) - same idiom as
-    // refreshZombossDialogue/lastTideColumn above, kept here (rather than per-screen)
-    // since isSandStormActive() is session-level and every GameScreen subclass already
-    // reaches render() -> refreshHud() each frame.
+    
+    
+    
+    
     private void refreshSandStormAudio() {
         if (session == null) return;
         boolean active = session.isSandStormActive();
@@ -418,7 +418,7 @@ public class GameScreen extends UiScreen {
         lastSandStormActive = active;
     }
 
-    /** Called by ZombieRenderer when a heavy zombie enters the board. */
+    
     void triggerScreenShake(float strength, float duration) {
         if (strength <= 0f || duration <= 0f) return;
         screenShakeStrength = Math.max(screenShakeStrength, strength);
@@ -476,8 +476,8 @@ public class GameScreen extends UiScreen {
         float x = cx - waveBannerLayout.width * 0.5f;
         float y = cy + waveBannerLayout.height * 0.5f;
 
-        // Black broken/dashed-looking letter border: several separated offset passes
-        // rather than a solid rectangular box. The red glyphs remain the focal layer.
+        
+        
         font.getColor().set(0f, 0f, 0f, alpha);
         float d = 2.5f;
         font.draw(batch, waveBannerText, x - d, y);
@@ -681,7 +681,7 @@ public class GameScreen extends UiScreen {
     }
 
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
-        // Default seasons have no extra gameplay overlay.
+        
     }
 
     protected boolean areLawnMowersVisible() {
@@ -800,10 +800,10 @@ public class GameScreen extends UiScreen {
             String name = session.getLevel().getSeason().getName();
             if (name != null && !name.isBlank()) return name.trim().toLowerCase().replace('-', ' ');
         }
-        // Mini-games have no Level/Season on their session, so fall back to seasonFolder,
-        // which mini-game screens set to their own SEASON_LAWN_MOWER_PAM_PATHS key
-        // (see BeghouledGameScreen, VasebreakerGameScreen, WallnutBowlingGameScreen,
-        // IZombieGameScreen, ZombotanyGameScreen).
+        
+        
+        
+        
         return seasonFolder == null ? "" : seasonFolder.trim().toLowerCase().replace('-', ' ');
     }
 

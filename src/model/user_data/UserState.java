@@ -22,10 +22,10 @@ public class UserState {
     public Map<Integer, Integer> seedPacketInventory = new HashMap<>();
     public Map<Integer, Boolean> plantBoosts = new HashMap<>();
 
-    /** Permanently purchased plant costumes, kept per plant and per account. */
+    
     public Map<Integer, Set<String>> ownedPlantCostumes = new HashMap<>();
 
-    /** Selected costume per plant. Missing/null means the original/default art. */
+    
     public Map<Integer, String> selectedPlantCostumes = new HashMap<>();
     public List<List<PotData>> greenhousePots;
     public int plantFoodCount = 0;
@@ -34,7 +34,7 @@ public class UserState {
 
     public Map<String, Integer> miniGameHighestLevelWon = new HashMap<>();
 
-    /** Best endless (Lottery) score per chapter, keyed by {@code EndlessChapter.key()}. */
+    
     public Map<String, Long> lotteryHighScores = new HashMap<>();
 
     public long stateRevision;

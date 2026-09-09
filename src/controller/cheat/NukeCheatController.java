@@ -31,8 +31,8 @@ public class NukeCheatController {
         GameSession session = GameSession.peekInstance();
         if (session == null) return killed;
 
-        // Snapshot first: takeDamage() can mutate the session's zombie list
-        // (drops, death callbacks), so iterate over a copy.
+        
+        
         List<Zombie> targets = new ArrayList<>(session.getZombies());
         for (Zombie zombie : targets) {
             if (zombie == null || !zombie.isAlive() || zombie.isBoss()) continue;

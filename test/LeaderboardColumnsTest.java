@@ -286,7 +286,7 @@ class LeaderboardColumnsTest {
             assertSorted("beach", "desc", "charlie", "alpha", "bravo");
             assertSorted("beach", "asc", "alpha", "bravo", "charlie");
 
-            // Nobody has run these two, so every row is 0 and the username tie-break decides.
+            
             assertSorted("frostbite", "desc", "alpha", "bravo", "charlie");
             assertSorted("frostbite", "asc", "alpha", "bravo", "charlie");
             assertSorted("darkages", "desc", "alpha", "bravo", "charlie");
@@ -304,7 +304,7 @@ class LeaderboardColumnsTest {
                 "sorting by " + column + " " + order + "\n" + board);
     }
 
-    /** The usernames of {@code board}, in the order their rows appear. */
+    
     private static List<String> orderIn(String board, String... usernames) {
         List<String> found = new ArrayList<>(List.of(usernames));
         found.sort(java.util.Comparator.comparingInt(name -> lineIndexOf(board, name)));

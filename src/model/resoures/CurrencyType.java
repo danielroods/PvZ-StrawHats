@@ -50,9 +50,9 @@ public enum CurrencyType {
         return displayName;
     }
 
-    /** Current amount of this currency the given user state holds. */
+    
     public abstract int getAmount(UserState state);
 
-    /** Adds (never subtracts) amount to this currency on the given user state. */
+    
     public abstract void addAmount(UserState state, int amount);
 }

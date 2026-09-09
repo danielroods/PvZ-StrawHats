@@ -35,7 +35,7 @@ public class Zombotany extends MiniGameMode {
     private static final int COLS = 9;
     private static final int MAX_EVENT_LOG = 14;
 
-    /** Human-readable names for the plant-headed zombies, for logs and the almanac strip. */
+    
     private static final Map<String, String> DISPLAY_NAMES = buildDisplayNames();
 
     private final GameSession session;

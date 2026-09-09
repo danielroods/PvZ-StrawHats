@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class LotteryFlowTest {
 
-    /** Keeps {@link User#save()} out of the project's real client-data/Data.json. */
+    
     private static final class MemoryStore implements UserStore {
         private int saves;
 
@@ -135,7 +135,7 @@ class LotteryFlowTest {
         return session;
     }
 
-    /** Free peashooters, so the run actually kills things and scores. */
+    
     private void defendTheLawn(GameSession session) {
         for (int column = 1; column <= 2; column++) {
             for (int row = 0; row < session.getRows(); row++) {

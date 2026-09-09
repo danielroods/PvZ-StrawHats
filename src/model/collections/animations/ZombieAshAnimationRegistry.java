@@ -34,7 +34,7 @@ public final class ZombieAshAnimationRegistry {
     private static final String DEFAULT_ASH =
             "768/INITIAL/EFFECTS/ZOMBIE_ASH/ZOMBIE_ASH.PAM";
 
-    /** The animation clip/state name every ash PAM uses. */
+    
     public static final String ASH_STATE = "animation";
 
     private static final Set<String> NO_ASH_DEATH_ALIASES = Set.of("ZombieDarkKing", "ZombiePiano", "ZombieIceAgeDodo");

@@ -7,7 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import view.screens.generals.GameScreen;
 import view.screens.generals.Modal;
 
-/** Win/lose dialog offering a retry (on a loss) or a way back out of the match. */
+
 class EndMatchModal extends Modal {
 
     EndMatchModal(GameScreen screen, boolean won) {

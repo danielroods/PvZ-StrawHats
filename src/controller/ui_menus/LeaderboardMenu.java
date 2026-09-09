@@ -138,7 +138,7 @@ public class LeaderboardMenu extends Menu {
         return row.chapter + " " + row.chapterStagesCleared + "/" + row.chapterStageCount;
     }
 
-    /** A chapter that has never been played reads as a plain 0, the same as the screen. */
+    
     private static String meowText(LeaderboardRowDto row, EndlessChapter chapter) {
         return String.valueOf(row.lotteryScoreOrZero(chapter.key()));
     }

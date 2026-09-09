@@ -118,7 +118,7 @@ class SessionBoard {
                     for (Plant p : stack) {
                         if (p.isGraveBuster()) continue;
                         if (p.isAlive() && !p.getTags().contains(PlantTag.WATER)) {
-                            // Drown outright - bypasses armor on purpose, this isn't a normal hit.
+                            
                             p.setAlive(false);
                         }
                     }
@@ -316,7 +316,7 @@ class SessionBoard {
 
         if (hotPotatoMeltsFrozenPlant) {
 
-            // Remove the ice immediately.
+            
             FrostbiteFreezing.damageFrozenPlantIfInIce(
                     session,
                     existing,

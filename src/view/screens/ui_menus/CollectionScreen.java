@@ -71,7 +71,7 @@ public class CollectionScreen extends UiScreen {
 
     private static final String TAG_ICON_DIR = "assets/images/ui/collection/tags/";
 
-    /** Blank circular plaque in the mintfam set - no dedicated family art, so it doubles as the generic fallback. */
+    
     private static final String DEFAULT_TAG_ICON = TAG_ICON_DIR + "mintfam_banner.png";
 
     /**
@@ -545,12 +545,12 @@ public class CollectionScreen extends UiScreen {
                 cardStack.setSize(cardW, cardH);
                 cardStack.add(card);
             } else {
-                // zombies_ui has no flat icon for entire chapters (Far Future, Pirate
-                // Seas, Mech zombies, Swashbuckler) even though those zombies do have
-                // a working idle PAM animation - the same one openZombieInfo already
-                // draws successfully in the info popup. Reuse that animation, scaled
-                // down to card size, on top of the same tombstone-frame background
-                // every real icon card uses, instead of leaving a blank placeholder.
+                
+                
+                
+                
+                
+                
                 cardStack.setSize(cardW, cardH);
                 cardStack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
                 Actor animatedIcon = buildAnimatedZombieIcon(alias, cardW, cardH);
@@ -644,7 +644,7 @@ public class CollectionScreen extends UiScreen {
         return clip;
     }
 
-    /** A plain {@link Group} that scissor-clips its children to its own bounds. */
+    
     private static class ClippedGroup extends Group {
         ClippedGroup(float width, float height) {
             setSize(width, height);
@@ -1054,7 +1054,7 @@ public class CollectionScreen extends UiScreen {
 
         void movePreview(int delta) {
             List<PlantCostume> costumes = PlantCostumeManager.costumesForPlant(plantName);
-            int total = costumes.size() + 1; // index 0 is the original/default art.
+            int total = costumes.size() + 1; 
             previewIndex = (previewIndex + delta) % total;
             if (previewIndex < 0) previewIndex += total;
             previewCostumeId = previewIndex == 0 ? null : costumes.get(previewIndex - 1).id;

@@ -22,14 +22,14 @@ public final class MiniGameLawnArt {
     public static final String WALLNUT_BOWLING = ROOT + "wallnut/";
     public static final String ZOMBOTANY = ROOT + "zombotany/";
 
-    /** Every folder above is authored on the same 1366x768 template the chapters use. */
+    
     public static final Set<String> FOLDERS =
             Set.of(IZOMBIE, BEGHOULED, WALLNUT_BOWLING, ZOMBOTANY);
 
     private MiniGameLawnArt() {
     }
 
-    /** The board art for a mini-game whose gameplay assets live in {@code gameplayFolder}. */
+    
     public static String backgroundPath(String gameplayFolder) {
         return gameplayFolder + "texture.png";
     }

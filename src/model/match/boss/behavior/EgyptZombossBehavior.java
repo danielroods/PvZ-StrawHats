@@ -58,8 +58,8 @@ public class EgyptZombossBehavior extends ZombossBehavior {
     }
 
     private void chooseAbility() {
-        // Stomping a neighbour takes priority, but not every time - otherwise a plant parked
-        // next to the boss would lock it out of the rest of its moveset.
+        
+        
         Plant reachable = ZombossLawn.plantWithinReach(session(), fight.getBossPosition(),
                 STOMP_REACH);
         if (reachable != null && random().nextDouble() < STOMP_CHANCE) {
@@ -82,7 +82,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
-    // ---- stomp -------------------------------------------------------
+    
 
     private void startStomp() {
         stompApplied = false;
@@ -99,7 +99,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         if (victim != null) ZombossLawn.destroyPlant(session(), victim);
     }
 
-    // ---- jump --------------------------------------------------------
+    
 
     private boolean startJump() {
         Plant victim = ZombossLawn.pickBombardTarget(session(), random());
@@ -116,7 +116,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         return true;
     }
 
-    // ---- portal ------------------------------------------------------
+    
 
     private void startPortal() {
         portalSpawned = 0;
@@ -128,7 +128,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         beginCooldown();
     }
 
-    // ---- missile -----------------------------------------------------
+    
 
     private void startMissile() {
         fight.startAction(fight.newAction("missile")
@@ -144,7 +144,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
                 (int) Math.round(target.getPosition().x())));
     }
 
-    // ---- walking -----------------------------------------------------
+    
 
     private void startWalk() {
         Position from = fight.getBossPosition();
@@ -174,7 +174,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         }
         if (targetCol < MIN_COLUMN || targetCol > MAX_COLUMN
                 || targetRow < 0 || targetRow > rows - 1) {
-            // Would leave its patch of lawn; just idle this beat out instead.
+            
             fight.setActionCooldown(1.5);
             return;
         }
@@ -184,12 +184,12 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         beginCooldown();
     }
 
-    // ---- per-frame driving -------------------------------------------
+    
 
     @Override
     public void onStunStart() {
-        // The stun cuts whatever run was playing; if that was a jump, put the boss back down
-        // on the tile it left instead of leaving it stranded between two of them.
+        
+        
         if (jumpHome != null) fight.moveBossTo(jumpHome.x(), jumpHome.y());
         jumpVictim = null;
         moveFrom = null;
@@ -198,8 +198,8 @@ public class EgyptZombossBehavior extends ZombossBehavior {
 
     @Override
     public void onActionFinished(ZombossActionSequence sequence) {
-        // The last lerp of a run never lands on exactly 1.0, so the boss is snapped onto its
-        // destination tile rather than being left a fraction of a column off it.
+        
+        
         switch (sequence.getName()) {
             case "walk" -> {
                 if (moveTo != null) fight.moveBossTo(moveTo.x(), moveTo.y());
@@ -234,7 +234,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         switch (step) {
             case 1 -> {
                 moveFrom = fight.getBossPosition();
-                // moveTo already points at the victim's tile.
+                
             }
             case 2 -> {
                 fight.moveBossTo(moveTo.x(), moveTo.y());

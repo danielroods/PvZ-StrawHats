@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public class ZombieIconCardFactory implements Disposable {
 
-    /** {@link ZombieIconCard#getIconFile()} value used for cards built by {@link #buildPlaceholderCard}. */
+    
     public static final String PLACEHOLDER_ICON_FILE = "(placeholder)";
 
     private static final String ZOMBIES_UI_DIR = "assets/images/ui/zombies_ui/";
@@ -29,7 +29,7 @@ public class ZombieIconCardFactory implements Disposable {
     private static final float CARD_WIDTH = 135f;
     private static final float CARD_HEIGHT = 190f;
 
-    // Every icon file present in assets/images/ui/zombies_ui.
+    
     private static final String[] ZOMBIE_ICON_FILES = {
             "ra.png", "dark.png", "mummy.png", "piano.png", "iceage.png", "dark_imp.png", "dino_imp.png",
             "explorer.png", "beach_fem.png", "beach_imp.png", "dark_king.png", "dino_flag.png", "egypt_imp.png",
@@ -45,22 +45,22 @@ public class ZombieIconCardFactory implements Disposable {
             "tutorial_imp.png", "tutorial_gargantuar.png"
     };
 
-    // Zombie.json alias (exact) -> icon file, for cases the automatic matching below
-    // can't be expected to get right on its own (mirrors SeedPacketCardFactory's
-    // DISPLAY_NAME_ICON_OVERRIDES). Add entries here as you find mismatches.
+    
+    
+    
     private static final Map<String, String> ALIAS_ICON_OVERRIDES = new HashMap<>();
     static {
-        // "IceAge" is one merged word in the file names (ICEAGE_*) but two camelCase
-        // tokens in the alias (Ice + Age), so the automatic ICE_AGE_* candidate misses.
+        
+        
         ALIAS_ICON_OVERRIDES.put("ZombieIceAgeDodo", "iceage_dodo.png");
         ALIAS_ICON_OVERRIDES.put("ZombieIceAgeHunter", "iceage_hunter.png");
         ALIAS_ICON_OVERRIDES.put("ZombieIceAgeTroglobite", "iceage_troglobite.png");
-        // World prefix isn't part of the alias name at all.
+        
         ALIAS_ICON_OVERRIDES.put("ZombieWizard", "dark_wizard.png");
         ALIAS_ICON_OVERRIDES.put("ZombieNewspaper", "modern_newspaper.png");
         ALIAS_ICON_OVERRIDES.put("ZombieArcade", "eighties_arcade.png");
         ALIAS_ICON_OVERRIDES.put("ZombieCrystalSkull", "lostcity_crystalskull.png");
-        // File name doesn't separate the compound word the same way the alias does.
+        
         ALIAS_ICON_OVERRIDES.put("ZombieModernAllStar", "modern_allstar.png");
         ALIAS_ICON_OVERRIDES.put("ZombieLostCityJane", "lostcity_jane.png");
         ALIAS_ICON_OVERRIDES.put("ZombieDefault", "tutorial.png");
@@ -73,23 +73,23 @@ public class ZombieIconCardFactory implements Disposable {
         ALIAS_ICON_OVERRIDES.put("ZombieDarkJuggler", "dark_juggler.png");
     }
 
-    // Aliases confirmed to have no icon in zombies_ui at all - skip straight to the
-    // placeholder card instead of logging a "not found" error every rebuild.
-    // These are the Zombotany-style costume zombies (ZombiePeashooter etc.) - the
-    // pack has no icon for them, unlike ZombieAnimationRegistry's PAM lookup which
-    // reuses the plant's own animation for these.
+    
+    
+    
+    
+    
     private static final java.util.Set<String> ALIASES_WITHOUT_ICON = new java.util.HashSet<>(java.util.List.of(
             "ZombiePeashooter", "ZombieWallnut", "ZombieJalapeno", "ZombieSquash"
     ));
 
     private static final Pattern CAMEL_SPLIT = Pattern.compile("(?=[A-Z])");
 
-    // Texture cache so the same icon PNG isn't loaded from disk more than once.
+    
     private final Map<String, Texture> textureCache = new HashMap<>();
 
-    // A plain panel behind every icon so adjacent cards read as separate slots in the
-    // grid instead of icons floating directly on the board background. Built once and
-    // shared - same tone as the "unseen" mystery-card frame in CollectionScreen.
+    
+    
+    
     private Texture cardBackgroundTexture = new Texture("images/ui/zombies_ui/frame.png");
 
     /**

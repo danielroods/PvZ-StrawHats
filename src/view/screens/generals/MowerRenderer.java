@@ -66,8 +66,8 @@ class MowerRenderer {
     }
 
     private final GameScreen screen;
-    // Edge-detection so SFX_LAWN_MOWER plays once per row when a mower is
-    // triggered (IDLE -> TRANSITION), not every frame it's drawn.
+    
+    
     private final java.util.Map<Integer, model.pitches.LawnMower.MowerState> lastMowerState = new java.util.HashMap<>();
 
     MowerRenderer(GameScreen screen) {

@@ -94,7 +94,7 @@ class ConnectServerModal extends Modal {
         return new TextureRegionDrawable(loadTexture(WOOD_BACKGROUND_PATH));
     }
 
-    /** Same "load or transparent fallback" behaviour as UiScreen#loadTextureSafe. */
+    
     private Texture loadTexture(String path) {
         if (path != null && !path.isEmpty() && Gdx.files.internal(path).exists()) {
             Texture texture = new Texture(Gdx.files.internal(path));

@@ -50,12 +50,12 @@ class PamRenderer {
             if (pamPath.startsWith("assets/pvz-assets/")) {
                 pamPath = pamPath.substring("assets/pvz-assets/".length());
             }
-            // Some standalone effect/zombie PAMs (notably the Pirate Captain's
-            // parrot) are valid assets but are intentionally not present in
-            // animations.json.  The old implementation rejected those clips before
-            // PamPlayer even got a chance to load them.  Try the exact state directly
-            // first; the animation catalog is only a duration/lookup aid, not the
-            // source of truth for whether a PAM clip exists.
+            
+            
+            
+            
+            
+            
             String clipName = exactState;
             ClipRef clip = pamPlayer.getClip(pamPath, clipName);
             if (clip == null) {
@@ -262,7 +262,7 @@ class PamRenderer {
         return state == null ? "attack" : state;
     }
 
-    /** Looks up how long a zombie's clip for the given state actually plays, in seconds. Returns -1 if unknown. */
+    
     float resolveClipDuration(String alias, String preferredState) {
         AnimationJsonParser.AnimationConfig config = ZombieAnimationRegistry.resolve(alias);
         if (config == null || config.clips == null) return -1f;
@@ -272,7 +272,7 @@ class PamRenderer {
         return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
     }
 
-    /** Same as {@link #resolveClipDuration} but for a plant display name, e.g. "Peashooter". Returns -1 if unknown. */
+    
     float resolvePlantClipDuration(String displayName, String preferredState) {
         AnimationJsonParser.AnimationConfig config = AnimationFactory.resolveByDisplayName(displayName);
         if (config == null || config.clips == null) return -1f;

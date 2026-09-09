@@ -21,7 +21,7 @@ public class MatchStartOverlay {
             "768/FULL/UI/JOUST/MATCHLOADING/VS_ICON/VS_ICON.PAM";
     private static final float VS_ICON_SCALE = 0.6f;
     private static final float SHADE_ALPHA = 0.72f;
-    /** Used only if the clip's own duration can't be read (e.g. asset missing). */
+    
     private static final float FALLBACK_CLIP_DURATION = 1.2f;
 
     private final GameScreen screen;
@@ -36,7 +36,7 @@ public class MatchStartOverlay {
         return phase != Phase.IDLE;
     }
 
-    /** Kicks off the splash: "intro" clip first, then "outro", then idle. */
+    
     public void start() {
         phase = Phase.INTRO;
         clipTime = 0f;
@@ -60,7 +60,7 @@ public class MatchStartOverlay {
         }
     }
 
-    /** Call from inside the board's own batch.begin()/end() block, on top of everything else. */
+    
     public void draw() {
         if (phase == Phase.IDLE) return;
 

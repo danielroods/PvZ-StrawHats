@@ -41,7 +41,7 @@ class PlantRenderer {
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
     private static final float EXPLODING_PLANT_EFFECT_DURATION = 0.7f;
     private static final float SHROOM_DEATH_HOLD_SECONDS = 1.2f;
-    // Dark Wizard's hex (sheepening): transform once, then hold the sheep idle.
+    
     private static final String SHEEP_PAM = "768/FULL/EFFECTS/DARK_WIZARD_SHEEPENING/DARK_WIZARD_SHEEPENING.PAM";
     private static final float DEFAULT_SHEEP_TRANSFORM_DURATION = 0.6f;
     private static final float SHEEP_SCALE = 0.5f;
@@ -81,38 +81,38 @@ class PlantRenderer {
     private final Map<Plant, Float> sheepAnimTimes = new IdentityHashMap<>();
     private final Map<Cell, Float> octopusWrapAnimTimes = new IdentityHashMap<>();
     private final Map<Cell, Float> moldBlockAnimTimes = new IdentityHashMap<>();
-    // Fire-event detection + one-shot "attack" clip playback for plants (see drawPlants).
+    
     private final Map<Plant, Double> plantLastCooldown = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantAttackWindow = new IdentityHashMap<>();
-    // Tracks whether the fire event currently playing out in plantAttackAnimTimes was
-    // triggered while the plant was plant-food-boosted, so it plays "plantfood" instead
-    // of the normal "attack" clip - see drawPlants.
+    
+    
+    
     private final Map<Plant, Boolean> plantAttackIsBoosted = new IdentityHashMap<>();
-    // Split Pea shoots both forward (right) and backward (left) in the same volley, but only
-    // toward sides that actually have a target in range. Its PAM has three attack clips for
-    // this - "attack" (right only), "attack3" (left only), "attack2" (both sides) - so the
-    // side(s) that fired are captured once when the fire event is detected and held here for
-    // the rest of the attack window, so the clip choice doesn't flicker mid-animation.
+    
+    
+    
+    
+    
     private final Map<Plant, String> plantAttackBaseState = new IdentityHashMap<>();
-    // Sun-shroom growth-stage detection: a short one-shot "growth_stageN" clip plays once
-    // when GrowthTracker advances its stage (1->2 plays "growth_stage1", 2->3 plays
-    // "growth_stage2"), then playback falls back to the new stage's idle - see drawPlants.
+    
+    
+    
     private final Map<Plant, Integer> plantLastGrowthStage = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> plantGrowthWindow = new IdentityHashMap<>();
 
-    // Bowling Bulb cycles through 3 different balls (light/medium/heavy) each shot, both on
-    // a normal attack and on every shot of its Plant Food burst - see BowlingBulbStrategy's
-    // own ammoIndex. This mirrors that same 0/1/2 cycle here, advanced once per fire event
-    // (the same cooldown-reset detection used for plantAttackAnimTimes above), so the right
-    // "special"/"specialN" (attack), "plantfoodN" (Plant Food) and "reloadN" (post-attack
-    // cooldown, non-Plant-Food only) clip can be picked for whichever ball just fired.
+    
+    
+    
+    
+    
+    
     private final Map<Plant, Integer> bowlingBulbShotIndex = new IdentityHashMap<>();
 
-    // Doom-shroom has its own three-stage visual lifecycle: spawn -> stage idle ->
-    // stage transform -> next stage idle. These are tracked per instance because the
-    // plant can create new stage-1 Doom-shrooms when a higher-stage Doom explodes.
+    
+    
+    
     private final Map<Plant, Float> doomSpawnAnimTimes = new IdentityHashMap<>();
     private final Map<Plant, Float> doomSpawnWindows = new IdentityHashMap<>();
     private final Map<Plant, Float> doomTransformAnimTimes = new IdentityHashMap<>();
@@ -213,11 +213,11 @@ class PlantRenderer {
                 AudioManager.get().playSound(AudioEnum.SFX_PLANT_FOOD);
             }
 
-            // The model has no "attacking" state - ActStrategy.act() fires a shot the
-            // instant internalTimer hits 0 and immediately resets it to actionInterval.
-            // So a fire event is detected here by watching that reset happen (cooldown
-            // was <= 0 last frame, is > 0 now), and a short "attack" window is opened
-            // for plantAttackAnimTimes/plantAttackWindow to ride out.
+            
+            
+            
+            
+            
             double cooldown = plant.getIntervalTimer();
             Double lastCooldown = plantLastCooldown.put(plant, cooldown);
             if (!frozenInIce && !"Doom-shroom".equalsIgnoreCase(plant.getName())
@@ -255,9 +255,9 @@ class PlantRenderer {
             boolean attacking = plantAttackAnimTimes.containsKey(plant);
             boolean attackIsBoosted = attacking && Boolean.TRUE.equals(plantAttackIsBoosted.get(plant));
 
-            // Doom-shroom has explicit stage clips supplied by its PAM. A newly planted
-            // Doom starts with stage1_spawn; each GrowthTracker transition plays the
-            // corresponding transform clip once before settling into the new stage idle.
+            
+            
+            
             if ("Doom-shroom".equalsIgnoreCase(plant.getName())) {
                 int stage = Math.max(1, Math.min(3, plant.getGrowthStage()));
                 Integer lastStage = doomLastGrowthStage.put(plant, stage);
@@ -299,9 +299,9 @@ class PlantRenderer {
                 }
             }
 
-            // Sun-shroom grows through 3 stages over time (GrowthTracker). Every time it
-            // steps up a stage, briefly play the matching one-shot "growth_stageN" clip
-            // before settling back into that stage's idle/plantfood loop.
+            
+            
+            
             if (isSunShroom(plant)) {
                 int stage = plant.getGrowthStage();
                 Integer lastStage = plantLastGrowthStage.put(plant, stage);
@@ -449,10 +449,10 @@ class PlantRenderer {
             animTime = t;
             if (clipDuration > 0f) animTime %= clipDuration;
         } else if (sunBeanHasPlantFoodShield(plant) && plant.getVisualAnimationState() == null) {
-            // Sun Bean's Plant Food shell is the "plantfood" clip, and it stays up for as
-            // long as the armour it granted survives - not just for the boost window. The
-            // "plantfood_on" intro GrantArmor sets runs first through the visual-state
-            // branch below, which is why this only takes over once that has finished.
+            
+            
+            
+            
             preferredState = "plantfood";
             animTime = t;
         } else if (plant.isWallNut() && plant.getVisualAnimationState() != null) {
@@ -533,10 +533,10 @@ class PlantRenderer {
         } else if (isSunProducingPlant(plant)
                 && plant.isPlantFoodActive()
                 && plant.getVisualAnimationState() != null) {
-            // Sun producers use their Plant Food clip as a true one-shot. The model
-            // starts the clip when Plant Food is activated and keeps it alive only for
-            // the exact clip duration; do not modulo the time here, otherwise the last
-            // frames would loop/hold before the suns are dropped.
+            
+            
+            
+            
             preferredState = plant.getVisualAnimationState();
             float clipDuration = screen.pam().resolvePlantClipDuration(plant.getName(), preferredState);
             float elapsed = (float) plant.getVisualAnimationElapsed();
@@ -694,14 +694,14 @@ class PlantRenderer {
             drawn = screen.drawPam(path, preferredState, animTime, plantOffsetX, plantOffsetY,
                     0.55f, false, PlantCostumeMask.merge(endurianVisibility(plant, preferredState), plantCostumeVisibility(plant)));
         } else if (isMagnetShroom(plant)) {
-            // The "Magnet_Item" slot is where the real game swaps in whatever metal object
-            // the magnet just pulled off a zombie. The shipped atlas has no such artwork
-            // for it - MAGNETSHROOM_67X67, the image the PAM points that slot at, is a flat
-            // purple placeholder square - so showing it drew a purple block over the plant.
-            // Keep it hidden; the catch still reads through the plant's own catch/plantfood
-            // clips and the metal the zombie loses. Plant#isMagnetItemVisible stays as the
-            // model's record of "holding something" (it is synced to online clients), it
-            // just has no artwork to draw for it.
+            
+            
+            
+            
+            
+            
+            
+            
             Map<String, Boolean> magnetVisibility = new java.util.HashMap<>();
             magnetVisibility.put(MAGNET_ITEM_ELEMENT, false);
             drawn = screen.drawPam(path, preferredState, animTime,
@@ -842,7 +842,7 @@ class PlantRenderer {
         }
     }
 
-    /** Plays the brief "death"/"idle_stage4" clip queued up by trackExplodedPlants. */
+    
     private void drawDyingShroomEffects(float delta, float boardTileWidth, float boardTileHeight) {
         if (dyingShroomEffects.isEmpty()) return;
         for (DyingShroomEffect effect : dyingShroomEffects) {
@@ -923,7 +923,7 @@ class PlantRenderer {
         return new Position(origin.x(), origin.y());
     }
 
-    /** Finds the Dark Wizard effect currently hexing this plant, if any. */
+    
     private MageState findHexer(Plant plant) {
         if (plant.getPlantState() != Plant.PlantState.INCAPACITATED) return null;
         for (Zombie zombie : screen.session.getZombies()) {
@@ -935,7 +935,7 @@ class PlantRenderer {
 
     private record SheepFrame(String state, float time) { }
 
-    /** Advances the sheep transform's state (in place of the plant while it is hexed). */
+    
     private SheepFrame advanceSheepState(Plant plant, float delta) {
         float t = sheepAnimTimes.getOrDefault(plant, 0f) + delta;
         float transformDuration = AnimationFactory.exactClipDurationForPath(SHEEP_PAM, "animation");
@@ -1078,7 +1078,7 @@ class PlantRenderer {
                 || isSunShroom(plant);
     }
 
-    /** The full family that shows the "plantfood" clip for its whole Plant Food duration. */
+    
     private boolean isSunProducerFamily(Plant plant) {
         return isSunProducingPlant(plant) || (plant != null && "Sun Bean".equalsIgnoreCase(plant.getName()));
     }
@@ -1103,8 +1103,8 @@ class PlantRenderer {
         if (isHeadbutterLettuce(plant)) {
             return "plantfood_loop";
         }
-        // Cat-tail borrows Homing Thistle's rig, whose sustained-fire clip is the one
-        // meant to be repeated for the length of the volley.
+        
+        
         if (isCatTail(plant)) {
             return "plantfood_loop";
         }
@@ -1453,17 +1453,17 @@ class PlantRenderer {
 
     private String resolveAttackBaseState(Plant plant) {
         if (isHeadbutterLettuce(plant)) {
-            // Front (right, toward oncoming zombies) uses "attack"; a target caught on the
-            // back tile mirrors MeleeStrategy's facing flag and uses the separate "attack2"
-            // clip instead of a mirrored sprite (unlike Wasabi Whip/Chomper/Squash - see the
-            // meleePlant mirror check in the main draw loop, which this plant is deliberately
-            // not part of).
+            
+            
+            
+            
+            
             return plant.isMeleeFacingLeft() ? "attack2" : "attack";
         }
         if (plant != null && "Bonk Choy".equalsIgnoreCase(plant.getName())) {
-            // Same idea as Headbutter Lettuce above: Bonk Choy has its own real "attack2"
-            // clip for a back-tile hit, so it's also excluded from the meleePlant mirror
-            // check rather than mirroring the plain "attack" sprite.
+            
+            
+            
             return plant.isMeleeFacingLeft() ? "attack2" : "attack";
         }
         if (plant != null && "Kiwibeast".equalsIgnoreCase(plant.getName())) {
@@ -1535,7 +1535,7 @@ class PlantRenderer {
         };
     }
 
-    /** Plays the SFX matching a detected plant fire event. */
+    
     private void playFireEventSound(Plant plant) {
         if (plant == null) return;
         if (isSunProducingPlant(plant)) {
@@ -1569,7 +1569,7 @@ class PlantRenderer {
         return "attack";
     }
 
-    /** Whether Split Pea has any valid target on the given side (dxSign > 0 = right, < 0 = left). */
+    
     private boolean splitPeaSideHasTarget(Plant plant, double dxSign) {
         if (plant == null || screen.session == null) return false;
         return TargetFinder.alongVector(plant, new Position(dxSign, 0), screen.session, false)
@@ -1647,8 +1647,8 @@ class PlantRenderer {
             }
 
             if (plant.isGraveBuster()) {
-                // Only a finished chew earns the closing puff - a Grave Buster that was
-                // eaten off the grave, or shovelled, just disappears and leaves the grave.
+                
+                
                 if (plant.hasGraveBusterConsumedGrave()) {
                     screen.effects().addGraveBusterDirtEffect(plant.getPosition(),
                             EffectRenderer.GRAVE_BUSTER_DIRT_FADE_STATE);

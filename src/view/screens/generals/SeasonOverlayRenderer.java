@@ -75,9 +75,9 @@ class SeasonOverlayRenderer {
             }
         }
 
-        // Pirate Seas bridge: one plank sprite spans the complete four-tile water
-        // crossing. Bridge objects still live on each of the four cells for gameplay
-        // collision/pathing; the art is drawn only once per row so it is not duplicated.
+        
+        
+        
         drawPirateBridges(boardTileWidth, boardTileHeight);
     }
 
@@ -117,13 +117,13 @@ class SeasonOverlayRenderer {
         final float bridgeOffsetY = -boardTileHeight * 0.10f;
 
         for (int r = 0; r < screen.session.getRows(); r++) {
-            // A bridge is represented by four Bridge obstacles, one on each water cell.
-            // Draw the texture once from the first bridged water cell.
+            
+            
             int waterStart = Math.max(0, screen.session.getCols() - 4);
             Cell first = screen.session.getEnvironment().getCell(r, waterStart);
             if (first == null || !(first.getObstacle() instanceof Bridge)) continue;
 
-            // Keep the sprite exactly one tile high and exactly four tiles wide.
+            
             float x = GameScreen.BOARD_X + waterStart * boardTileWidth - (bridgeWidth - boardTileWidth * 4f) * 0.5f;
             float y = screen.cellY(r) - (bridgeHeight - boardTileHeight) * 0.5f + bridgeOffsetY;
             screen.assets().drawStaticEffectStretched(bridgePath, x, y, bridgeWidth, bridgeHeight);

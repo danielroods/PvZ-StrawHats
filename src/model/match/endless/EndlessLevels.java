@@ -40,10 +40,10 @@ public final class EndlessLevels {
             rows = level.getRows();
             cols = level.getCols();
             if (level.getZombiePool() != null) roster.addAll(level.getZombiePool());
-            // Starting a level unlocks every plant it lists (see MatchMenu.unlockStagePlants),
-            // so the Lottery offers what the chapter's ordinary stages offer and leaves the
-            // Zomboss stage's loadout to be earned there. Its zombies still count, though -
-            // they are what the late game escalates into.
+            
+            
+            
+            
             if (level.getAvailablePlants() != null && !(level instanceof BossLevel)) {
                 plants.addAll(level.getAvailablePlants());
             }

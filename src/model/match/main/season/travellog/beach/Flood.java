@@ -11,7 +11,7 @@ import model.pitches.Tile;
 import model.pitches.TileType;
 import model.utils.GameSession;
 
-/** Authoritative Big Wave Beach tide/grid rules. */
+
 public final class Flood {
     private Flood() {}
 
@@ -63,8 +63,8 @@ public final class Flood {
                 } else {
                     if (wasWater) {
                         cell.setTile(new Tile(TileType.Normal));
-                        // Aquatic traps need water. They are removed when the
-                        // tide goes back out; Lily Pad-supported land plants stay.
+                        
+                        
                         removeAquaticPlant(cell);
                     }
                 }
@@ -94,7 +94,7 @@ public final class Flood {
 
         Plant bottom = top.getBottom();
         if (bottom != null && bottom.isAlive() && bottom.getTags().contains(PlantTag.WATER)) {
-            // The land plant is supported by a Lily Pad.
+            
             return;
         }
 
@@ -109,11 +109,11 @@ public final class Flood {
         if (top == null || !top.isAlive()) return;
 
         if (top.getTags().contains(PlantTag.WATER)) {
-            // Lily Pad is also WATER, but it is a platform rather than an
-            // aquatic trap; it remains when the tide recedes.
+            
+            
             if (top.getTags().contains(PlantTag.STACK)) return;
-            // Zero HP marks this as an actual death (as opposed to a shovel pickup) so
-            // the renderer knows to play a death animation (e.g. Sea-shroom's "death").
+            
+            
             top.setHP(0);
             top.setAlive(false);
             cell.setPlant(null);
@@ -122,12 +122,12 @@ public final class Flood {
 
         Plant bottom = top.getBottom();
         if (bottom != null && bottom.getTags().contains(PlantTag.WATER)) {
-            // Keep the land plant and its Lily Pad; only a water-dependent top
-            // plant is removed by the receding tide.
+            
+            
             if (top.isAlive()) return;
         }
     }
-    /** Applies the physical wipe caused by the large crashing wave. */
+    
     public static void applyBigWaveWash(Level level, GameSession session) {
         if (level == null || session == null || session.getEnvironment() == null) return;
         int waterStart = Math.max(0, session.getCols() - level.getCurrentTideColumn());

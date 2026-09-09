@@ -100,8 +100,8 @@ public class CoopBeforeMenu extends BeforeMenu {
         }
         GeneralPrinter.print("Co-op match starting - " + selectedPlants.size()
                 + " plants vs " + selectedZombies.size() + " zombies.");
-        // Hand the players' own before-match loadouts into the match - the pre-placed
-        // defending plants stay exactly as before, only the pickable seeds/roster change.
+        
+        
         App.currentMenu = new CouchIZombieController(selectedPlants, selectedZombies);
     }
 

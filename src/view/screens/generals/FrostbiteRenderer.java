@@ -24,9 +24,9 @@ class FrostbiteRenderer {
     private static final float ICE_BLOCK_OFFSET_X = -50f;
     private static final float ICE_BLOCK_OFFSET_Y = 30f;
 
-    // Tile slider PAM animations (replace the old static up/down arrow textures).
-    // Scale/offset follow the same "anchor art inside its tile" pattern as the
-    // scorched-earth tile effect (see EffectRenderer.SCORCHED_TILE_SCALE/OFFSET_*).
+    
+    
+    
     private static final String TILESLIDER_DOWN_PAM =
             "768/FULL/EFFECTS/TILESLIDER_ICEAGE_DOWN/TILESLIDER_ICEAGE_DOWN.PAM";
     private static final String TILESLIDER_UP_PAM =
@@ -55,7 +55,7 @@ class FrostbiteRenderer {
      *  keyed by row*cols+col so it survives across frames. */
     private final Map<Integer, SliderTileEffect> sliderTileEffects = new HashMap<>();
 
-    /** One slider tile's current PAM phase and how long it has been in that phase. */
+    
     private static final class SliderTileEffect {
         String phase = TILESLIDER_STATE_IDLE;
         float phaseTime;
@@ -95,8 +95,8 @@ class FrostbiteRenderer {
             }
         }
 
-        // A tile can stop being slippery mid-match (obstacle destroyed, etc.) - drop
-        // its tracked phase so a stale entry doesn't linger in the map forever.
+        
+        
         sliderTileEffects.keySet().removeIf(key -> !stillSlippery.contains(key));
     }
 
@@ -158,7 +158,7 @@ class FrostbiteRenderer {
         effect.zombiePresentLastFrame = true;
     }
 
-    /** True while any zombie occupies (is being carried across) this slider tile's cell. */
+    
     private boolean isZombieBeingThrown(int row, int col) {
         for (Zombie zombie : screen.session.getZombies()) {
             if (zombie == null || !zombie.isAlive()) continue;

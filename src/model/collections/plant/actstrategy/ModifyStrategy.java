@@ -113,9 +113,9 @@ public class ModifyStrategy implements ActStrategy {
         Plant replacement = PlantFactory.createPlant(targetConfig.id, imitater.getLevel(),
                 new Position(col, row));
 
-        // Replace the board occupant itself. We do not mutate the Imitater into
-        // another runtime plant: the selected target becomes a real Plant object
-        // occupying the exact same tile.
+        
+        
+        
         if (!session.removePlantAt(row, col)) return;
         if (!session.plantAt(row, col, replacement)) {
             session.plantAt(row, col, imitater);
@@ -140,10 +140,10 @@ public class ModifyStrategy implements ActStrategy {
             }
         }
         if (nearest != null) {
-            // Strips the armor object outright (not just zeroing its HP) so the zombie
-            // is left exactly like a basic zombie - see ZombieArmorMask, which now
-            // explicitly hides every armor element whenever a zombie has no live
-            // Armour, instead of leaving it to whatever the PAM's clip defaults to.
+            
+            
+            
+            
             nearest.setArmour(null);
             user.setInternalTimer(user.getActionInterval());
             startMagnetPullAnimation(user);

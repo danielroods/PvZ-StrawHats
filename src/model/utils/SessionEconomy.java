@@ -178,7 +178,7 @@ class SessionEconomy {
         matchBoostedPlantIds.clear();
     }
 
-    /** Wipes every per-match counter back to the state a freshly started level expects. */
+    
     void resetMatchStats(int initialSun) {
         plantsLostThisMatch = 0;
         plantFamiliesUsedThisMatch.clear();

@@ -42,7 +42,7 @@ import java.util.List;
 public class CouchIZombieGameScreen extends GameScreen {
 
     private static final float BRAIN_WIDTH_FACTOR = 0.72f;
-    /** Same card sizes as the before-match loadout panels, so the in-match HUD matches. */
+    
     private static final float PLANT_CARD_W = 95f;
     private static final float PLANT_CARD_H = 60f;
     private static final float ZOMBIE_CARD_W = 72f;
@@ -50,9 +50,9 @@ public class CouchIZombieGameScreen extends GameScreen {
     private static final Color RED_LINE_COLOR = new Color(0.88f, 0.16f, 0.14f, 0.8f);
     private static final Color PLANT_ZONE = new Color(0.45f, 0.95f, 0.45f, 0.10f);
     private static final Color ZOMBIE_CURSOR = new Color(0.95f, 0.45f, 0.25f, 0.35f);
-    /** Room reserved on the right of the lawn for the P2 zombie tray, so it can't cover the grid. */
+    
     private static final float ZOMBIE_TRAY_AREA_WIDTH = 150f;
-    /** Same right-side loadout texture the before-match screen uses, shown behind the zombie tray. */
+    
     private static final String TEXTURE_RIGHT = "assets/images/ui/texture_right.png";
 
     {
@@ -108,7 +108,7 @@ public class CouchIZombieGameScreen extends GameScreen {
 
     @Override
     protected float reservedRightAreaWidth() {
-        // Same idea as the before-match loadout shift: keep the P2 zombie tray off the lawn.
+        
         return ZOMBIE_TRAY_AREA_WIDTH;
     }
 
@@ -191,11 +191,11 @@ public class CouchIZombieGameScreen extends GameScreen {
     private void handleZombiePlayerKeys(IZombieMatch match) {
         CouchIZombieController activeController = controller();
         if (activeController == null) {
-            // TEMP DIAGNOSTIC: if you see this in the log while trying to place a
-            // zombie, App.currentMenu isn't a CouchIZombieController anymore (something
-            // swapped it out), which is why every key here is silently doing nothing -
-            // match()/controller() both return null and the whole method is skipped
-            // before it even reads a keypress.
+            
+            
+            
+            
+            
             Gdx.app.error("CouchIZombieGameScreen", "handleZombiePlayerKeys: controller() is null, "
                     + "App.currentMenu is " + (App.currentMenu == null ? "null" : App.currentMenu.getClass()));
             return;
@@ -219,10 +219,10 @@ public class CouchIZombieGameScreen extends GameScreen {
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            // TEMP DIAGNOSTIC: confirms SPACE is even being seen, and shows exactly what
-            // was about to be sent to apply() - roster size/packetIndex mismatches are
-            // the other likely silent-failure cause (packetIndex pointing past the end
-            // of a roster that shrank, or the roster being empty).
+            
+            
+            
+            
             Gdx.app.log("CouchIZombieGameScreen", "SPACE pressed: packetIndex=" + packetIndex
                     + " rosterSize=" + roster.size() + " cursor=(" + cursorRow + "," + cursorCol + ")");
             if (packetIndex < roster.size()) {
@@ -291,9 +291,9 @@ public class CouchIZombieGameScreen extends GameScreen {
             int brains = Math.max(1, match.getBrainCount());
             hud.setProgressOverride(String.format("BRAINZ %d/%d   %02d:%02d", eaten, brains,
                     (int) (remaining / 60), (int) (remaining % 60)), eaten / (float) brains);
-            // The top HUD's sun readout reads the shared session, which is the zombie
-            // player's sun pool here - showing that up top is meaningless to P1, so show
-            // the plant player's own sun instead.
+            
+            
+            
             hud.setSunOverride(match.getPlantSun());
         }
         super.refreshHud(delta);
@@ -318,7 +318,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         drawBrains(match);
     }
 
-    /** Fills the strip reserved by {@link #reservedRightAreaWidth()} with the co-op loadout texture. */
+    
     private void drawRightTexture() {
         float viewW = stage.getViewport().getWorldWidth();
         float viewH = stage.getViewport().getWorldHeight();
@@ -473,8 +473,8 @@ public class CouchIZombieGameScreen extends GameScreen {
         zombieTrayTitle.setAlignment(Align.center);
         tray.add(zombieTrayTitle).width(ZOMBIE_CARD_W).padBottom(2f).row();
 
-        // Zombie sun readout, shown with the same brain art used for the lawn's brains
-        // instead of a plain "P2 sun" text line.
+        
+        
         Table sunRow = new Table();
         zombieSunIcon = new Image(brainTexture);
         zombieSunAmountLabel = new Label(String.valueOf(match.getZombieSun()), skin, "main");
@@ -562,8 +562,8 @@ public class CouchIZombieGameScreen extends GameScreen {
         tray.add(help).width(ZOMBIE_CARD_W).padTop(4f).row();
 
         tray.pack();
-        // Sit inside the reserved right-side strip (kept clear of the lawn), not the raw
-        // stage edge - the lawn's own right columns (the zombie placement area) end there.
+        
+        
         tray.setPosition(stage.getWidth() - ZOMBIE_TRAY_AREA_WIDTH
                 + (ZOMBIE_TRAY_AREA_WIDTH - tray.getWidth()) * 0.5f, 26f);
         zombieTray = tray;
@@ -632,6 +632,6 @@ public class CouchIZombieGameScreen extends GameScreen {
 
     @Override
     public void onMatchEndSequenceFinished(boolean won) {
-        // The controller decides the winner as soon as the shared match reports it.
+        
     }
 }

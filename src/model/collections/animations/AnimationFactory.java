@@ -57,7 +57,7 @@ public class AnimationFactory {
         return library;
     }
 
-    /** Exact lookup by the raw animation name as it appears in animations.json (case-insensitive). */
+    
     public static AnimationJsonParser.AnimationConfig get(String rawName) {
         if (rawName == null) return null;
         autoInit();
@@ -98,14 +98,14 @@ public class AnimationFactory {
         return config.clips.keySet().iterator().next();
     }
 
-    /** Same as {@link #resolveClipName} but looks the config up by its PAM path first. */
+    
     public static String resolveClipNameForPath(String pamPath, String preferredState) {
         if (pamPath == null) return null;
         autoInit();
         return resolveClipName(byPath.get(pamPath), preferredState);
     }
 
-    /** Same as {@link #clipDurationForDisplayName} but looks the config up by its PAM path first. */
+    
     public static float clipDurationForPath(String pamPath, String preferredState) {
         if (pamPath == null) return -1f;
         autoInit();
@@ -121,12 +121,12 @@ public class AnimationFactory {
         if (pamPath == null || exactState == null || exactState.isBlank()) return null;
         autoInit();
 
-        // Not every standalone PAM is listed in animations.json.  The Pirate
-        // Captain's parrot is one such asset: its clips live directly in the
-        // PAM, so refusing the state here makes drawPamExact() silently fail
-        // even though PamPlayer can load the clip.  Keep the registry lookup
-        // when available, but let direct PAM users request an exact clip when
-        // the registry has no entry for that path.
+        
+        
+        
+        
+        
+        
         AnimationJsonParser.AnimationConfig config = byPath.get(pamPath);
         if (config == null || config.clips == null || config.clips.isEmpty()) {
             return exactState;
@@ -161,9 +161,9 @@ public class AnimationFactory {
         return null;
     }
 
-    // ------------------------------------------------------------------
-    // Plants (keyed by Plants.json "name", e.g. "Sun-shroom", "Twin Sunflower")
-    // ------------------------------------------------------------------
+    
+    
+    
 
     /**
      * Exceptions found by cross-checking all 69 Plants.json entries against animations.json.
@@ -177,11 +177,11 @@ public class AnimationFactory {
         PLANT_NAME_OVERRIDES.put("MEGA_GATLING_PEA", "MEGAGATLING");
         PLANT_NAME_OVERRIDES.put("ICEBERG_LETTUCE", "HEADBUTTER_LETTUCE");
         PLANT_NAME_OVERRIDES.put("PHAT_BEET", "PHATBEETS");
-        // Best guess ("piercing" ~ spear) - double-check visually before relying on it.
+        
         PLANT_NAME_OVERRIDES.put("PIERCE_MINT", "SPEARMINT");
-        // Verified absent from animations.json - no "-pult" family entry for the corn plant.
+        
         PLANT_NAME_OVERRIDES.put("KERNEL_PULT", "KERNALPULT");
-        // Verified absent - no CATTAIL/CAT_TAIL entry at all in animations.json.
+        
         PLANT_NAME_OVERRIDES.put("CAT_TAIL", "HOMINGTHISTLE");
 
         PLANT_NAME_OVERRIDES.put("CATTAIL_MINT", "CONCEALMINT");
@@ -229,15 +229,15 @@ public class AnimationFactory {
         return (duration != null && duration > 0.0) ? duration.floatValue() : -1f;
     }
 
-    /** PAM path shortcut for {@link #resolveByDisplayName}, or null if nothing matched. */
+    
     public static String pathForDisplayName(String displayName) {
         AnimationJsonParser.AnimationConfig config = resolveByDisplayName(displayName);
         return config == null ? null : config.path;
     }
 
-    // ------------------------------------------------------------------
-    // Zombies (keyed by Zombie.json alias, e.g. "ZombieIceAgeTroglobite")
-    // ------------------------------------------------------------------
+    
+    
+    
 
     /**
      * Exceptions found by cross-checking all 31 Zombie.json aliases against animations.json.
@@ -254,18 +254,18 @@ public class AnimationFactory {
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_TOMB_RAISER", "ZOMBIE_EGYPT_TOMBRAISER");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ICE_AGE_DODO", "ZOMBIE_ICEAGE_DODORIDER");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_BEACH_SNORKEL", "ZOMBIE_BEACH_SNORKELER");
-        // Best guess (a juggler/jester are the same circus-performer archetype).
+        
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_DARK_JUGGLER", "ZOMBIE_DARK_JESTER");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_WIZARD", "ZOMBIE_DARK_WIZARD");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_CRYSTAL_SKULL", "ZOMBIE_LOSTCITY_CRYSTALSKULL");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_NEWSPAPER", "ZOMBIE_MODERN_NEWSPAPER");
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARCADE", "ZOMBIE_80S_ARCADE");
-        // Armor variants: no generic cone/bucket/brick/knight overlay entry exists in
-        // animations.json - it's rendered as a separate attachment in the original game.
-        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_1", null);      // Cone
-        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_2", null);      // Bucket
-        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_4", null);      // Brick
-        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_DARK_ARMOR_3", null); // Knight (shoulder armor + crown)
+        
+        
+        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_1", null);      
+        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_2", null);      
+        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_ARMOR_4", null);      
+        ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_DARK_ARMOR_3", null); 
     }
 
     /**
@@ -291,9 +291,9 @@ public class AnimationFactory {
                 : tokens;
 
         List<String> candidates = new ArrayList<>();
-        candidates.addAll(joinVariants(tokens));                                 // e.g. ZOMBIE_ICEAGE_HUNTER
-        candidates.addAll(joinVariants(bodyTokens));                             // e.g. ICEAGE_HUNTER
-        for (String v : joinVariants(bodyTokens)) candidates.add("ZOMBIE_" + v); // e.g. ZOMBIE_ICEAGE_HUNTER
+        candidates.addAll(joinVariants(tokens));                                 
+        candidates.addAll(joinVariants(bodyTokens));                             
+        for (String v : joinVariants(bodyTokens)) candidates.add("ZOMBIE_" + v); 
 
         for (String candidate : candidates) {
             if (library.containsKey(candidate)) return library.get(candidate);
@@ -301,15 +301,15 @@ public class AnimationFactory {
         return null;
     }
 
-    /** PAM path shortcut for {@link #resolveByZombieAlias}, or null if nothing matched. */
+    
     public static String pathForZombieAlias(String alias) {
         AnimationJsonParser.AnimationConfig config = resolveByZombieAlias(alias);
         return config == null ? null : config.path;
     }
 
-    // ------------------------------------------------------------------
-    // Shared tokenizing / matching helpers
-    // ------------------------------------------------------------------
+    
+    
+    
 
     private static final Pattern WORD_SPLIT = Pattern.compile("[ \\-]+");
     private static final Pattern CAMEL_SPLIT = Pattern.compile("(?=[A-Z])");
@@ -332,7 +332,7 @@ public class AnimationFactory {
         return String.join(" ", camelTokens(alias));
     }
 
-    /** Normalizes a raw name into the override-map key format (upper snake_case). */
+    
     private static String normalizeKey(String raw) {
         String[] tokens = splitWords(raw);
         return String.join("_", tokens).toUpperCase();

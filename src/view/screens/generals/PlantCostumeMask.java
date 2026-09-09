@@ -79,9 +79,9 @@ public final class PlantCostumeMask {
             if (parents == null) continue;
             for (String parent : parents) {
                 if (parent != null && !parent.isBlank()) {
-                    // Never override an explicit false entry. This keeps costume elements
-                    // that are deliberately hidden from being re-enabled merely because
-                    // they happen to be an ancestor of another requested element.
+                    
+                    
+                    
                     expanded.putIfAbsent(parent, true);
                 }
             }
@@ -98,7 +98,7 @@ public final class PlantCostumeMask {
             collectAncestors(root, new ArrayList<>(), result);
             return result;
         } catch (Throwable ignored) {
-            // If the hierarchy cannot be inspected, preserve the original visibility map.
+            
             return Collections.emptyMap();
         }
     }

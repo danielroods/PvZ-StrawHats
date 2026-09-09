@@ -44,8 +44,8 @@ public enum ZombossChapter {
                     "Ten thousand years I spent building this machine.",
                     "Let us see how your garden holds up against a god-king!")),
 
-    // Placeholder assets (reusing the Dark Ages Zomboss, the same way Pirates
-    // reuses Egypt's) until dedicated Future Zomboss art/PAM clips exist.
+    
+    
     FUTURE(1.35, "Future", "ZombieDarkZomboss",
             "768/FULL/ZOMBIE/ZOMBIE_DARK_ZOMBOSS/ZOMBIE_DARK_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",

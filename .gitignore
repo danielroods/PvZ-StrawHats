@@ -13,3 +13,6 @@ project_tree/
 server-data/
 # This client-side account file
 client-data/
+/CLAUDE.md
+/phase2.md
+/pvz2_terminal_test_cases.md

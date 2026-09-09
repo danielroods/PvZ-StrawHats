@@ -51,7 +51,7 @@ class CoopModeFlowTest {
 
     @Test
     void theMainMenuCoopBannerReachesTheCoopLoadout() {
-        // The Co-op banner on MainMenuScreen runs exactly this command.
+        
         App.currentMenu.handleCommand("menu enter coop");
 
         assertInstanceOf(CoopBeforeMenu.class, App.currentMenu,
@@ -98,9 +98,9 @@ class CoopModeFlowTest {
 
     @Test
     void theZombiePlayerCanDropEveryZombieTheCollectionOffers() {
-        // What SPACE does on the co-op screen, for each alias the picker shows. Each alias
-        // gets its own match so the shared 6 minute clock and the recharges cannot mask a
-        // zombie that simply refuses to be placed.
+        
+        
+        
         for (String alias : new CollectionManager().getAllZombieAliases()) {
             IZombieMatch match = new IZombieMatch(IZombieMatch.COUCH_MATCH_SECONDS,
                     List.of("Peashooter"), List.of(alias));

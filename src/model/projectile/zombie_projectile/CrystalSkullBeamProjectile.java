@@ -18,19 +18,19 @@ public class CrystalSkullBeamProjectile extends ZombieProjectile {
                 "ZombieCrystalSkull", session);
     }
 
-    /** Where the beam should stretch to - the plant that got hit. */
+    
     public Position getBeamTargetPosition() {
         return targetPosition;
     }
 
     @Override
     protected void updateFlightPath(double progress) {
-        // The beam doesn't move; it stays anchored at the zombie the whole time it's shown.
+        
         setPosition(startPosition);
     }
 
     @Override
     protected void onDestinationReached(GameSession session) {
-        // No-op: damage was already applied by CrystalSkullBeamEffect when the beam fired.
+        
     }
 }

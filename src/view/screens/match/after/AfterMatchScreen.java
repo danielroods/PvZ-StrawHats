@@ -68,8 +68,8 @@ public class AfterMatchScreen extends UiScreen {
 
     private static final String BACKGROUND = "assets/images/backg/mainmenu_background.png";
 
-    // One piñata skin per season we actually have art for. Every path/state below is exactly
-    // as provided; note EGYPT lives under INITIAL while the others live under FULL.
+    
+    
     private static final String PINATA_BEACH = "768/FULL/EFFECTS/PRIZE_PINATA_BEACH/PRIZE_PINATA_BEACH.PAM";
     private static final String PINATA_ICEAGE = "768/FULL/EFFECTS/PRIZE_PINATA_ICEAGE/PRIZE_PINATA_ICEAGE.PAM";
     private static final String PINATA_EGYPT = "768/INITIAL/EFFECTS/PRIZE_PINATA_EGYPT/PRIZE_PINATA_EGYPT.PAM";
@@ -84,12 +84,12 @@ public class AfterMatchScreen extends UiScreen {
 
     private static final float PINATA_INTRO_DURATION = 0.45f;
     private static final float PINATA_EXIT_DURATION = 0.35f;
-    // How far up the actor's box (0 = bottom edge, 1 = top edge) the piñata/pile is anchored.
-    // Raise this to push the piñata higher on screen; lower it to bring it back down.
+    
+    
     private static final float PINATA_ANCHOR_HEIGHT_RATIO = 0.35f;
-    // Fallback durations used only when animations.json has no explode/tap_pile entry for
-    // the piñata path (resolved automatically via AnimationFactory.clipDurationForPath
-    // whenever it does) - tune these against the real clip lengths if they feel off.
+    
+    
+    
     private static final float DEFAULT_EXPLODE_DURATION = 1.0f;
     private static final float DEFAULT_TAP_DURATION = 0.55f;
 
@@ -146,9 +146,9 @@ public class AfterMatchScreen extends UiScreen {
         AudioManager.get().playSound(wonMatch ? AudioEnum.SFX_MATCH_WIN : AudioEnum.SFX_MATCH_LOSE);
 
         if (wonMatch && !pinataSequenceStarted) {
-            // Only ever start the piñata sequence once per screen instance - build() itself
-            // only runs once (from show()), but this guard keeps the win path safe even if
-            // that ever changes.
+            
+            
+            
             pinataSequenceStarted = true;
             buildPinataStage();
         } else {
@@ -156,9 +156,9 @@ public class AfterMatchScreen extends UiScreen {
         }
     }
 
-    // ==================================================================
-    // Piñata sequence (win only)
-    // ==================================================================
+    
+    
+    
 
     private void buildPinataStage() {
         rootTable.clear();
@@ -171,10 +171,10 @@ public class AfterMatchScreen extends UiScreen {
 
         pinataActor = new PinataActor(resolvePinataPamPath());
         Table pinataCell = new Table();
-        // Deliberately generous: PamPlayer.draw() has no way to query a clip's native pixel
-        // size from here, so this box is sized well beyond the piñata's expected footprint
-        // rather than tightly fitted - a slightly oversized tap target is harmless, while an
-        // undersized one is exactly what caused taps to miss the sprite before.
+        
+        
+        
+        
         pinataCell.add(pinataActor).size(360f * 0.7f , 420f * 0.7f);
         layer.add(pinataCell).padBottom(SPACE_SM + 85f).row();
 
@@ -185,7 +185,7 @@ public class AfterMatchScreen extends UiScreen {
         rootTable.add(layer).expand().center();
     }
 
-    /** Two random seed packets (different plants where possible), one coin stack, one diamond. */
+    
     private List<PinataReward> generatePinataRewards() {
         List<PinataReward> rewards = new ArrayList<>();
 
@@ -197,8 +197,8 @@ public class AfterMatchScreen extends UiScreen {
             PinataReward reward = new PinataReward();
             reward.kind = RewardKind.SEED_PACKET;
             if (!pool.isEmpty()) {
-                // Distinct plants as long as at least 2 are unlocked (i=0 -> index 0, i=1 ->
-                // index 1 or wraps back to 0 only if there's genuinely just one unlocked plant).
+                
+                
                 PlantJsonParser.PlantConfig config = pool.get(i % pool.size());
                 reward.plantId = config.id;
                 reward.plantName = config.name;
@@ -206,7 +206,7 @@ public class AfterMatchScreen extends UiScreen {
                 reward.plantId = -1;
                 reward.plantName = "Peashooter";
             }
-            reward.amount = 1 + random.nextInt(5); // 1..5 seeds
+            reward.amount = 1 + random.nextInt(5); 
             rewards.add(reward);
         }
 
@@ -230,7 +230,7 @@ public class AfterMatchScreen extends UiScreen {
         }
     }
 
-    /** Called once per completed "tap_pile" animation cycle - i.e. once per tap that counts. */
+    
     private void onPinataTapResolved() {
         if (pinataRewardQueue.isEmpty()) return;
 
@@ -254,7 +254,7 @@ public class AfterMatchScreen extends UiScreen {
         }
     }
 
-    /** Called once the piñata has fully faded out after the last reward. */
+    
     private void onPinataFullyGone() {
         showOutcomeScroll();
     }
@@ -275,7 +275,7 @@ public class AfterMatchScreen extends UiScreen {
     }
 
 
-    /** Small reward icon that pops up above the piñata, floats, then fades away. */
+    
     private void showRewardPopup(PinataReward reward) {
         if (pinataActor == null) return;
 
@@ -291,8 +291,8 @@ public class AfterMatchScreen extends UiScreen {
         popup.setPosition(center.x - popup.getWidth() / 2f, center.y - 200f);
         popup.getColor().a = 0f;
 
-        // Added straight to the stage (not rootStack/modalStack) so its manual position isn't
-        // overwritten by a Stack forcing it to fill its parent on the next layout pass.
+        
+        
         stage.addActor(popup);
         popup.addAction(Actions.sequence(
                 Actions.parallel(Actions.fadeIn(0.2f), Actions.moveBy(0f, 30f, 0.9f)),
@@ -400,15 +400,15 @@ public class AfterMatchScreen extends UiScreen {
         if (seasonName.equalsIgnoreCase("Frostbite Caves")) return PINATA_ICEAGE;
         if (seasonName.equalsIgnoreCase("Egypt")) return PINATA_EGYPT;
         if (seasonName.equalsIgnoreCase("Dark Ages")) return PINATA_DARK;
-        // No dedicated piñata skin was supplied for any other season - Dark Ages' skin is the
-        // safest generic fallback.
+        
+        
         return PINATA_DARK;
     }
 
-    // ==================================================================
-    // Original end-of-match panel - identical to before this feature existed.
-    // On a loss this is the only thing build() ever shows.
-    // ==================================================================
+    
+    
+    
+    
 
     private void buildResultPanel() {
         rootTable.clear();
@@ -426,8 +426,8 @@ public class AfterMatchScreen extends UiScreen {
         banner.setColor(wonMatch ? new Color(0.45f, 1f, 0.5f, 1f) : new Color(1f, 0.4f, 0.35f, 1f));
         panel.add(banner).center().padBottom(6).row();
 
-        // Thin accent rule under the title, tinted to match the win/lose banner colour,
-        // so the panel reads as one deliberate block instead of title-then-text.
+        
+        
         Image rule = new Image(solidColorDrawable(wonMatch
                 ? new Color(0.45f, 1f, 0.5f, 0.55f) : new Color(1f, 0.4f, 0.35f, 0.55f)));
         panel.add(rule).width(220f).height(2f).padBottom(18).row();
@@ -455,8 +455,8 @@ public class AfterMatchScreen extends UiScreen {
 
         panel.add(buttons);
 
-        // Small pop-in: starts slightly smaller and transparent, settles into place. Kept
-        // short and subtle so it reads as "arriving" rather than a distracting bounce.
+        
+        
         panel.setTransform(true);
         panel.setOrigin(Align.center);
         panel.getColor().a = 0f;
@@ -502,9 +502,9 @@ public class AfterMatchScreen extends UiScreen {
         super.dispose();
     }
 
-    // ==================================================================
-    // Reward data
-    // ==================================================================
+    
+    
+    
 
     private enum RewardKind { SEED_PACKET, COIN, DIAMOND }
 
@@ -515,10 +515,10 @@ public class AfterMatchScreen extends UiScreen {
         int amount;
     }
 
-    // ==================================================================
-    // Piñata animation actor - state machine over the "idle" / "explode" / "idle_pile" /
-    // "tap_pile" clips exactly as named in the source PAM files.
-    // ==================================================================
+    
+    
+    
+    
 
     private enum PinataAnim { IDLE, EXPLODE, IDLE_PILE, TAP_PILE }
 
@@ -542,7 +542,7 @@ public class AfterMatchScreen extends UiScreen {
         }
 
         private void handleClick() {
-            if (exitTime >= 0f) return; // already breaking down, ignore further input
+            if (exitTime >= 0f) return; 
 
             if (state == PinataAnim.IDLE) {
                 state = PinataAnim.EXPLODE;
@@ -554,8 +554,8 @@ public class AfterMatchScreen extends UiScreen {
                 stateTime = 0f;
                 AudioManager.get().playSound(AudioEnum.SFX_CLICK);
             }
-            // Clicks during EXPLODE / TAP_PILE (animation mid-flight) are ignored so a
-            // double-click can't skip straight to the next reward.
+            
+            
         }
 
         void beginExit() {
@@ -622,18 +622,18 @@ public class AfterMatchScreen extends UiScreen {
                 float exitProgress = exitTime < 0f ? 0f : Math.min(1f, exitTime / PINATA_EXIT_DURATION);
                 float alpha = (0.4f + 0.6f * introProgress) * (1f - exitProgress) * parentAlpha;
                 if (alpha <= 0f) return;
-                // Grows in from 60% to 100% scale on intro, shrinks slightly again on exit.
+                
                 float visualScale = (0.6f + 0.4f * introProgress) * (1f - 0.25f * exitProgress) * 0.8f;
 
-                // ClickListener hit-tests this actor's own fixed getX()/getY()/getWidth()/
-                // getHeight() rectangle (set once by the Table cell in buildPinataStage()) -
-                // it has no visibility into the batch.setTransformMatrix() trick below, which
-                // only affects what gets *drawn*, not the actor's scene2d bounds. Anchoring at
-                // a fixed point inside that rectangle - one that never moves regardless of
-                // visualScale - keeps the sprite pinned inside the clickable area at every
-                // point in the animation. The anchor sits above the box's bottom edge (not
-                // exactly on it) so the piñata/pile reads higher on screen instead of hugging
-                // the very bottom of its cell.
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 float anchorX = getX() + getWidth() / 2f;
                 float anchorY = getY() + getHeight() * PINATA_ANCHOR_HEIGHT_RATIO;
 
@@ -656,7 +656,7 @@ public class AfterMatchScreen extends UiScreen {
         }
     }
 
-    /** Small looping-idle PAM icon, used for the coin/diamond reward pop-ups and scroll rows. */
+    
     private class PamIconActor extends Actor {
         private final String pamPath;
         private final String clipName;

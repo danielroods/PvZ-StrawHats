@@ -30,7 +30,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
             ICE_PAM, "missile_explosion",
             1.0, false);
 
-    /** The glacier is two columns deep, measured back from the right-hand edge. */
+    
     private static final int BLOCKED_COLUMN_COUNT = 2;
 
     private static final double CHILL_TICK_SECONDS = 2.2;
@@ -47,7 +47,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
         super(fight);
     }
 
-    /** First lawn column the glacier covers; planting is refused from here to the right edge. */
+    
     public int getBlockedColumnStart() {
         return Math.max(0, session().getCols() - BLOCKED_COLUMN_COUNT);
     }
@@ -106,7 +106,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
             }
         } else if ("slingshot".equals(action.getName())
                 && !slingshotFired && action.getStepProgress() >= 0.6) {
-            // The block leaves the sling about two thirds of the way through the wind-up.
+            
             slingshotFired = true;
             dropIceBlock();
         }

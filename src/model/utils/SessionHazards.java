@@ -23,9 +23,9 @@ class SessionHazards {
     private static final double BEACH_BIG_WAVE_DURATION_SECONDS = 5.50;
     private static final double BEACH_BIG_WAVE_ENTRY_DURATION_SECONDS = 2.80;
 
-    // How long a zombie visibly glides across a smooth row shift (tile sliders,
-    // Garlic's redirect, Sweet Potato's pull) so the row change reads as a
-    // glide instead of the zombie's row snapping in a single tick.
+    
+    
+    
     static final double SLIDER_RIDE_DURATION_SECONDS = 0.55;
 
     private double sandStormTimer = 0.0;
@@ -90,7 +90,7 @@ class SessionHazards {
         }
     }
 
-    /** A zombie currently being carried sideways by a Frostbite Caves tile slider. */
+    
     private static final class SliderRideEntry {
         double startX;
         final double startRow;
@@ -306,9 +306,9 @@ class SessionHazards {
             double progress = Math.min(1.0, ride.elapsed / SLIDER_RIDE_DURATION_SECONDS);
             double smooth = progress * progress * (3.0 - 2.0 * progress);
             double y = ride.startRow + (ride.targetRow - ride.startRow) * smooth;
-            // The zombie keeps walking forward at its own speed the whole time; only
-            // the row is eased, so the ride's x anchor advances by the same step the
-            // normal walk would have taken this tick.
+            
+            
+            
             ride.startX = ride.startX + stepX;
             zombie.setPosition(new Position(ride.startX, y));
 
@@ -337,7 +337,7 @@ class SessionHazards {
         sliderRideEntries.entrySet().removeIf(entry -> !entry.getKey().isAlive() || !zombies.contains(entry.getKey()));
     }
 
-    /** Clears every hazard entry animation, e.g. when a fresh level is loaded. */
+    
     void reset() {
         sandStormEntries.clear();
         sandStormActive = false;

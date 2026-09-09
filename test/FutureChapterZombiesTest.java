@@ -241,12 +241,12 @@ class FutureChapterZombiesTest {
         }
     }
 
-    /** Everything that has to be chewed through to kill this zombie: health plus armour. */
+    
     private static int totalPool(Zombie zombie) {
         return zombie.getMaxHp() + (zombie.getArmour() == null ? 0 : zombie.getArmour().getHP());
     }
 
-    /** Ticks until the jetpack is off the ground, and reports how long that took. */
+    
     private int tickUntilAirborne(Zombie jetpack) {
         for (int i = 1; i <= 200; i++) {
             session.tick();

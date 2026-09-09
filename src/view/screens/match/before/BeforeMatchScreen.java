@@ -59,10 +59,10 @@ public class BeforeMatchScreen extends GameScreen {
 
     protected static final float PREVIEW_ZOMBIE_SCALE = 0.46f;
     protected static final float PREVIEW_ZOMBIE_GAP_X = 52f;
-    // Shifts the whole zombie-preview group further right within its reserved area.
+    
     protected static final float PREVIEW_GROUP_SHIFT_X = 40f;
 
-    /** Loadout card size matching MatchHud exactly. */
+    
     protected static final float LOADOUT_CARD_W = 95f;
     protected static final float LOADOUT_CARD_H = 60f;
 
@@ -161,7 +161,7 @@ public class BeforeMatchScreen extends GameScreen {
                 float scale = viewH / texH;
                 float drawW = texW * scale;
 
-                // جابه‌جایی بک‌گراند سمت راست به میزان دلخواه
+                
                 float bgOffsetRight = 390f;
                 float drawX = viewW - drawW + bgOffsetRight;
 
@@ -222,9 +222,9 @@ public class BeforeMatchScreen extends GameScreen {
         }
     }
 
-    // Zombie Jester's own "idle" clip (ZOMBIE_DARK_JESTER) is broken/glitched in the
-    // asset, so the loadout preview intentionally shows its "walk" clip instead - same
-    // fallback the real game effectively falls back to when an idle clip is unusable.
+    
+    
+    
     protected static final String ZOMBIE_JESTER_ALIAS = "ZombieDarkJuggler";
 
     protected static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
@@ -254,27 +254,27 @@ public class BeforeMatchScreen extends GameScreen {
         float rightX = getBoardRight();
         float viewW = stage.getViewport().getWorldWidth();
         float areaW = Math.max(1f, viewW - rightX);
-        // Nudge the whole preview group further right within its reserved area.
+        
         float centerX = rightX + areaW * 0.5f + PREVIEW_GROUP_SHIFT_X;
 
-        // Keep zombies off the very top/bottom rows and only use the middle rows
-        // (rows 2/3/4, i.e. board indices 1..3 for a 5-row level) for the preview.
+        
+        
         List<String> aliasList = new ArrayList<>(uniqueAliases);
         int totalRows = Math.max(1, session.getRows());
         int[] usableRows = middlePreviewRows(totalRows);
         int rowCount = usableRows.length;
 
-        List<int[]> slots = new ArrayList<>(); // {aliasIndex, row, columnCycle}
+        List<int[]> slots = new ArrayList<>(); 
         for (int i = 0; i < aliasList.size(); i++) {
             int row = usableRows[i % rowCount];
             int columnCycle = i / rowCount;
             slots.add(new int[]{i, row, columnCycle});
         }
 
-        // Board row 0 is the farthest row on screen (top) and higher row indices sit
-        // lower/closer to the camera (see BoardLayout#cellY). In this 2.5D view the
-        // zombies nearer the camera (lower on screen, higher row index) need to be
-        // drawn on top of the ones farther away, so draw far-to-near: ascending row.
+        
+        
+        
+        
         slots.sort((a, b) -> Integer.compare(a[1], b[1]));
 
         for (int[] slot : slots) {
@@ -318,8 +318,8 @@ public class BeforeMatchScreen extends GameScreen {
         String path = ZombieAnimationRegistry.pathFor(alias, seasonFolder);
         if (path == null) return;
 
-        // Zombie Jester's idle clip is broken, so show its walk clip instead - every
-        // other zombie shows idle, matching the real game's loadout preview.
+        
+        
         boolean useWalkInstead = ZOMBIE_JESTER_ALIAS.equalsIgnoreCase(alias);
         String preferredState = useWalkInstead ? "walk" : "idle";
 
@@ -341,8 +341,8 @@ public class BeforeMatchScreen extends GameScreen {
 
         batch.setColor(Color.WHITE);
 
-        // Piano/arcade zombies carry a separate prop PAM in the real game (piano they
-        // play, cabinet they push) - draw it alongside the zombie's own idle here too.
+        
+        
         if (ZOMBIE_PIANO_ALIAS.equalsIgnoreCase(alias)) {
             drawPreviewProp(PIANO_PROP_PAM, "idle", drawX + PIANO_PREVIEW_OFFSET_X, drawY + PIANO_PREVIEW_OFFSET_Y, scale, false);
         } else if (ZOMBIE_ARCADE_ALIAS.equalsIgnoreCase(alias)) {
@@ -860,7 +860,7 @@ public class BeforeMatchScreen extends GameScreen {
         }
 
         if (slotCount >= 8) {
-            // Every slot is a normal one here, so there is nothing left to rent.
+            
         } else if (BeforeMenu.selectedPlants.size() == 8) {
             String rentedPlantName = BeforeMenu.selectedPlants.get(7);
             Actor rentedCardActor = createLoadoutCard(rentedPlantName, new ClickListener() {
@@ -928,9 +928,9 @@ public class BeforeMatchScreen extends GameScreen {
         if (clickListener != null) {
             stack.addListener(clickListener);
         }
-        // Give the plant card the same bordered-slot look the zombie cards have (their
-        // icon sits on a dedicated frame texture) - a thin card-background frame behind
-        // the packet art instead of the bare seed packet floating with no border.
+        
+        
+        
         return wrapWithCardFrame(stack, LOADOUT_CARD_W, LOADOUT_CARD_H);
     }
 

@@ -23,12 +23,12 @@ public class PelicanFlyMove implements MoveBehavior {
         this(3.0);
     }
 
-    /** @param rowGlideSpeed rows crossed per second while gliding between lanes. */
+    
     public PelicanFlyMove(double rowGlideSpeed) {
         this.rowGlideSpeed = rowGlideSpeed <= 0 ? 3.0 : rowGlideSpeed;
     }
 
-    /** Begin a smooth glide to {@code row}; harmless no-op if already gliding there. */
+    
     public void switchToRow(int row) {
         this.targetRow = (double) row;
     }

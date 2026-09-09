@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Data-driven registry for the plant costume list and its PAM visibility elements. */
+
 public final class PlantCostumeRegistry {
     private static final String RESOURCE = "PlantCostumes.json";
     private static final Map<String, List<PlantCostume>> BY_PLANT = new LinkedHashMap<>();

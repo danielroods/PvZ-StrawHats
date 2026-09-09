@@ -172,9 +172,9 @@ public class ZombieFactory {
 
         Object moveSpec = data.getOrDefault("move", "NormalWalk");
 
-        // Generic armor aliases reuse the chapter's basic-zombie art. In Pirate
-        // Seas they must also use the pirate ground movement so they respect
-        // bridges/open water exactly like ZombiePirateBasic.
+        
+        
+        
         if (isPirateSeason() && isGenericArmorAlias(alias)) {
             moveSpec = "PirateGroundWalk";
         }
@@ -295,12 +295,12 @@ public class ZombieFactory {
         if (type == null) return;
 
         if (type == PushableType.ICE_BLOCK) {
-            // Troglobites spawn already frozen solid inside their own ice (see
-            // Cave.placeFrostedZombies / FrostbiteFreezing.freezeZombieInIce). The
-            // pushable ice block - the same block, now containing a frozen imp - only
-            // drops onto the lawn once that ice melts and the zombie is released;
-            // see spawnFallingIceBlockOnRelease(), called from IceBlock.release().
-            // Only ever the one block - it is not replaced once destroyed.
+            
+            
+            
+            
+            
+            
             zombie.setPushableRespawnsRemaining(1);
             return;
         }
@@ -348,8 +348,8 @@ public class ZombieFactory {
         if (session != null) session.registerStructure(current);
 
         if (current.getType() == PushableType.ICE_BLOCK) {
-            // Troglobites only ever get the one ice block (see attachPushedStructureIfNeeded);
-            // it is not replaced once destroyed.
+            
+            
             return;
         }
 

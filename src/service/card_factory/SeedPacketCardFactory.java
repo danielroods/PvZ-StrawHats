@@ -26,7 +26,7 @@ public class SeedPacketCardFactory implements Disposable {
     private static final float CARD_WIDTH = 150f;
     private static final float CARD_HEIGHT = 190f;
 
-    // Every plant icon file present in assets/images/ui/plants_ui.
+    
     private static final String[] PLANT_ICON_FILES = {
             "ailmint.png", "akee.png", "aloe.png", "appeasemint.png", "applemortar.png", "aquavine.png",
             "armamint.png", "bamboospartan.png", "banana.png", "beansprout.png", "blastberry.png", "blastspinner.png",
@@ -68,48 +68,48 @@ public class SeedPacketCardFactory implements Disposable {
             "witchhazel.png", "xshot.png", "znakelily.png", "zoybeanpod.png", "rotorutbaga.png"
     };
 
-    // Every seed packet background present in assets/images/ui/seedpackets_ui.
+    
     private static final String[] PACKET_SKIN_FILES = {
             "beach.png", "boost.png", "cowboy.png", "dark.png", "dino.png", "eighties.png",
             "empty_packet.png", "future.png", "homeless.png", "iceage.png", "lostcity.png", "modernday.png",
             "pirate.png", "ready.png", "ready_premium.png", "selected.png", "selected_premium.png"
     };
 
-    // Mapping plants to their canonical world/category background packets.
+    
     private static final Map<String, String> DEFAULT_WORLD_PACKETS = new HashMap<>();
 
     static {
-        // Pirate Seas
+        
         registerSkin("pirate.png", "cherry_bomb", "coconutcannon", "kernelpult", "powerlily", "snapdragon", "spikerock", "spikeweed", "springbean", "threepeater");
 
-        // Wild West
+        
         registerSkin("cowboy.png", "cactus", "chilibean", "lightningreed", "melonpult", "peapod", "splitpea", "tallnut", "wintermelon");
 
-        // Far Future
+        
         registerSkin("future.png", "blover", "citron", "empea", "holonut", "laser_bean", "magnifyinggrass", "powerplant", "tileturnip", "ultomato");
 
-        // Dark Ages & Mushrooms
+        
         registerSkin("dark.png", "doomshroom", "fumeshroom", "guardshroom", "hypnoshroom", "magnetshroom", "peanut", "puffshroom", "scaredyshroom", "sunbean", "sunshroom", "tombtangler", "vamporcini", "witchhazel");
 
-        // Big Wave Beach & Aquatic
+        
         registerSkin("beach.png", "aquavine", "banana", "bowlingbulb", "guacodile", "lilypad", "seaflora", "seashooter", "seashroom", "sundewtangler", "tanglekelp", "waterrabbit");
 
-        // Frostbite Caves & Ice/Cold
+        
         registerSkin("iceage.png", "boingsetta", "chardguard", "chillypepper", "frostbonnet", "hotpotato", "icebloom", "iceshroom", "iceweed", "icycurrant", "pepperpult", "rotorutbaga", "rotobaga", "stunion");
 
-        // Lost City
+        
         registerSkin("lostcity.png", "akee", "endurian", "goldleaf", "lavaguava", "redstinger", "stallia");
 
-        // Neon Mixtape Tour & Electric
+        
         registerSkin("eighties.png", "celerystalker", "electriccurrant", "electricitea", "garlic", "intensivecarrot", "phatbeet", "sporeshroom", "thymewarp");
 
-        // Jurassic Marsh & Primal
+        
         registerSkin("dino.png", "bramblebush", "perfumeshroom", "primalpeashooter", "primalpotatomine", "primalsunflower", "primalwallnut", "rhubarbarian");
 
-        // Modern Day & Shadow
+        
         registerSkin("modernday.png", "dusklobber", "gloomvine", "grimrose", "moonflower", "murkadamia", "nightcap", "nightshade", "noctarine", "shadowpeashooter", "shadowshroom");
 
-        // Premium / Mints / Arena / Event Plants
+        
         registerSkin("ready_premium.png",
                 "ailmint", "aloe", "appeasemint", "applemortar", "armamint", "bamboospartan", "beansprout", "blastberry", "blastspinner", "blazeleaf", "blazingknight", "blockoli", "bloominghearts", "bombardmint", "bombegranate", "boomberry", "boomflower", "brainstem", "buduhboom", "buttercup", "buzzbutton", "caulipower", "chomper", "coldsnapdragon", "concealmint", "containmint", "cornfetti", "cranjelly", "dandelion", "dartichoke", "dazeychain", "devourbloom", "draftodil", "dragonbruit", "electricblueberry", "electricpeashooter", "electricpeel", "enchantmint", "enforcemint", "enlightenmint", "escaperoot", "explodeonut", "explodeovine", "filamint", "firepeashooter", "ghostpepper", "goldbloom", "grapeshot", "gumnut", "hammeruit", "headbutter", "heathseeker", "hocus", "hollyknight", "homingthistle", "hotdate", "hurrikale", "imitater", "imppear", "inferno", "jackolantern", "jalapeno", "kiwibeast", "lemonaid", "levitater", "mangofier", "maybee", "megagatling", "meteorflower", "missiletoe", "olivepit", "parsnip", "peppermint", "poisonpeashooter", "pokra", "powervine", "puffball", "pvine", "pyrevine", "pyroak", "reinforcemint", "rose", "sakura", "sapfling", "shinevine", "shrinkingviolet", "slingpea", "snappea", "snowpea", "solarsage", "solartomato", "sourshot", "spearmint", "squash", "stickybombrice", "strawburst", "sweetheartsnare", "sweetpotato", "tacticalcuke", "teleportatomine", "thornwhip", "tigergrass", "toadstool", "tumbleweed", "turkeypult", "voltsnapdragon", "wasabiwhip", "wintermint", "xshot", "znakelily", "zoybeanpod"
         );
@@ -121,10 +121,10 @@ public class SeedPacketCardFactory implements Disposable {
         }
     }
 
-    // plant name (lower-case) -> packet file name, overridable via setPacketSkin().
+    
     private final Map<String, String> packetSkinOverrides = new HashMap<>();
 
-    // Texture cache so the same packet/plant PNG isn't loaded from disk more than once.
+    
     private final Map<String, Texture> textureCache = new HashMap<>();
 
     private static final Map<String, String> DISPLAY_NAME_ICON_OVERRIDES = Map.of(
@@ -322,19 +322,19 @@ public class SeedPacketCardFactory implements Disposable {
     private String resolvePacketSkin(String plantName) {
         String lowerName = plantName.toLowerCase();
 
-        // ۱. بررسی دستی کاربر (در صورت وجود)
+        
         String override = packetSkinOverrides.get(lowerName);
         if (override != null && isKnownPacketSkin(override)) {
             return override;
         }
 
-        // ۲. بررسی پس‌زمینه اختصاصی دنیای گیاه
+        
         String worldSkin = DEFAULT_WORLD_PACKETS.get(lowerName);
         if (worldSkin != null && isKnownPacketSkin(worldSkin)) {
             return worldSkin;
         }
 
-        // ۳. پس‌زمینه پیش‌فرض
+        
         return DEFAULT_PACKET_SKIN;
     }
 

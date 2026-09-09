@@ -16,15 +16,15 @@ import java.util.List;
 
 public class ReelingTackleStatus implements ZombieEffectStatus {
 
-    // The hook sequence plays as three animation beats, one after another:
-    //   "cast"      - the line goes out and hooks the plant/zombie.
-    //   "cast_loop" - a one-second hold while the line stays taut.
-    //   "reel"      - the actual pull happens, PULL_DELAY seconds after the
-    //                 cast started (i.e. once cast + cast_loop have finished),
-    //                 not at the moment the cast begins.
+    
+    
+    
+    
+    
+    
     private static final double CAST_DURATION = 1.0;
     private static final double CAST_LOOP_DURATION = 1.0;
-    private static final double PULL_DELAY = CAST_DURATION + CAST_LOOP_DURATION; // 2 seconds after cast
+    private static final double PULL_DELAY = CAST_DURATION + CAST_LOOP_DURATION; 
     private static final double REEL_DURATION = 1.0;
 
     private final double reelCooldown;
@@ -98,8 +98,8 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
 
         if (sequenceTimer >= PULL_DELAY && !pullApplied) {
             pullApplied = true;
-            // The plant (or hostile zombie) only actually moves here, two
-            // seconds after the cast began - not back when the cast fired.
+            
+            
             caster.setActionAnimationState("reel", REEL_DURATION, false);
             performPull(caster, session);
         }
@@ -158,8 +158,8 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
         int nextCol = currentCol + 1;
 
         if (nextCol >= c) {
-            // Reeled all the way in - the whole stack (Lily Pad / Pumpkin included) goes
-            // under, not just the top rider.
+            
+            
             for (Plant plant : stack) {
                 if (plant.isAlive()) plant.takeDamage(plant.getHP(), caster);
             }
@@ -177,9 +177,9 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
                 .anyMatch(plant -> plant.isAlive() && plant.getTags().contains(PlantTag.WATER));
 
         if (destinationIsWater && !stackHasLivingWaterSupport) {
-            // Nothing in the stack is a Lily Pad (or other water plant) - dragging it onto
-            // open water would leave a non-water plant "standing" on water with no support,
-            // so it drowns right here instead.
+            
+            
+            
             for (Plant plant : stack) {
                 if (plant.isAlive()) plant.takeDamage(plant.getHP(), caster);
             }
@@ -188,9 +188,9 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
 
         activeCell.setPlant(null);
         targetCell.setPlant(targetPlant);
-        // Every link in the chain (top rider + whatever it's riding on) shares one physical
-        // position - move them all in lockstep so a Lily Pad/Pumpkin never gets left behind
-        // while its rider moves on, or vice versa.
+        
+        
+        
         for (Plant plant : stack) {
             plant.setPosition(new Position(nextCol, r));
         }

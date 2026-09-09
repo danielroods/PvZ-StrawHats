@@ -14,7 +14,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import model.match.endless.EndlessRun;
 
-/** Endless (Lottery) score panel, docked top-right beside the normal match HUD. */
+
 public class LotteryMatchHud extends Table implements Disposable {
 
     private final Label pointsLabel;
