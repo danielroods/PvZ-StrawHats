@@ -46,7 +46,12 @@ public final class ScreenManager {
         }
     }
 
-    
+    /**
+     * Refreshes whatever screen is currently on-screen with the latest model data, without
+     * changing which screen it is. Used by things that update the account from outside the
+     * normal menu flow (e.g. the local TA offer web server), so the player sees the change
+     * immediately instead of needing to leave and reopen the screen.
+     */
     public static void refreshCurrentScreen() {
         if (currentScreen instanceof view.screens.generals.UiScreen uiScreen) {
             uiScreen.refresh();
@@ -54,13 +59,13 @@ public final class ScreenManager {
     }
 
     public static void syncWithCurrentMenu() {
-        
-        
-        
-        
-        
-        
-        
+        // Don't swap screens out from under an in-flight win/lose sequence: some menus (mini
+        // games in particular) flip App.currentMenu to their end-of-game menu as soon as the
+        // outcome is known, well before the board-hold/fade/title animation on the current
+        // GameScreen finishes playing. This is polled every frame (see Main#render), so
+        // without this guard the very next frame would tear the animation down after a
+        // single frame. Once the sequence itself finishes it triggers a sync, so this never
+        // gets permanently stuck.
         if (currentScreen instanceof GameScreen gameScreen && gameScreen.isMatchEndSequenceActive()) {
             return;
         }
@@ -74,7 +79,16 @@ public final class ScreenManager {
         setScreen(resolveScreen(menu));
     }
 
-    
+    /**
+     * Same as {@link #syncWithCurrentMenu()}, but always rebuilds the screen even when
+     * {@link App#currentMenu} is still the same *class* it was before (e.g. restarting a
+     * match sets App.currentMenu to a brand new GameplayMenu instance, but it's still a
+     * GameplayMenu - syncWithCurrentMenu()'s same-class check would treat that as "nothing
+     * to do" and leave the old GameScreen on screen, still wired to the GameSession that
+     * "restart" just replaced, which is why nothing on it responded to input anymore).
+     * Used by restart flows, which always need a fresh screen instance regardless of
+     * whether the destination menu's class happens to match the one just left.
+     */
     public static void forceResync() {
         if (currentScreen instanceof GameScreen gameScreen && gameScreen.isMatchEndSequenceActive()) {
             return;

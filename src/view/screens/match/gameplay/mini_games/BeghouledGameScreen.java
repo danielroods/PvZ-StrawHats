@@ -95,11 +95,11 @@ public class BeghouledGameScreen extends GameScreen {
     private final Map<Plant, Position> lastKnownGridPos = new IdentityHashMap<>();
     private final Map<Plant, VisualAnim> activeAnims = new IdentityHashMap<>();
 
-    
-    
-    
-    
-    
+    // --- "Plants matched" effect --------------------------------------------------
+    // MOONFLOWER_EFFECT plays "spawn" then "end" on every tile that's currently
+    // highlighted as part of a resolved match (same positions drawMatchHighlight
+    // already pulses), so the match reads as a little burst of light before those
+    // plants clear off the board.
     private static final String MATCH_EFFECT_PAM = "768/INITIAL/EFFECTS/MOONFLOWER_EFFECT/MOONFLOWER_EFFECT.PAM";
     private static final String MATCH_EFFECT_SPAWN_STATE = "spawn";
     private static final String MATCH_EFFECT_END_STATE = "end";
@@ -237,7 +237,8 @@ public class BeghouledGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    
+    /** Brief pulsing highlight over plants about to be cleared, so removal reads as a "pop"
+     *  instead of an instant vanish once the model actually removes them. */
     private void drawMatchHighlight(float delta) {
         if (whitePixel == null || !(App.currentMenu instanceof BeghouledController controller)) return;
         var positions = controller.getGame().getMatchHighlightPositions();
@@ -260,7 +261,9 @@ public class BeghouledGameScreen extends GameScreen {
     }
 
     private boolean boardSeeded = false;
-    
+    /** Advances/draws the MOONFLOWER_EFFECT "spawn" -> "end" sequence on every tile
+     *  currently reported as part of a resolved match, keyed by "row,col" so it
+     *  survives the Position objects themselves changing identity between frames. */
     private void drawMatchEffects(float delta) {
         if (!(App.currentMenu instanceof BeghouledController controller)) {
             matchEffects.clear();
@@ -294,8 +297,8 @@ public class BeghouledGameScreen extends GameScreen {
             drawPam(MATCH_EFFECT_PAM, clipState, state.phaseElapsed, x, y, scale, false);
         }
 
-        
-        
+        // Match resolved and those tiles cleared off the board (no longer highlighted)
+        // -> drop their effect state so a future match at the same tile starts fresh.
         matchEffects.keySet().removeIf(key -> !currentKeys.contains(key));
     }
 
@@ -390,7 +393,8 @@ public class BeghouledGameScreen extends GameScreen {
         addBeforeModal(hudTable);
     }
 
-    
+    /** Builds one upgrade option as the same seed-packet card used on the loadout/match screens,
+     *  with a sun-cost badge and a dim overlay when the player can't currently afford it. */
     private Actor buildUpgradeCard(String plantName, int upgradeCost) {
         Group stack = new Group();
         stack.setTouchable(Touchable.enabled);

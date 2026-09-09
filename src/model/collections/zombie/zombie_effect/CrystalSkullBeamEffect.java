@@ -8,7 +8,13 @@ import model.projectile.zombie_projectile.CrystalSkullBeamProjectile;
 import model.utils.GameSession;
 import service.GameClock;
 
-
+/**
+ * Crystal Skull Zombie's laser: once a plant comes within range it winds up
+ * through "power_up" -> "power" -> "power_down" -> "attack" (in that order),
+ * then fires a beam that scratches from the zombie straight to the plant it
+ * locked onto, damaging it. After the beam fires the zombie waits out its
+ * cooldown before it can charge up again.
+ */
 public class CrystalSkullBeamEffect implements ZombieEffectStatus {
 
     private enum Phase { IDLE, POWER_UP, POWER, POWER_DOWN, ATTACK, COOLDOWN }
@@ -16,7 +22,7 @@ public class CrystalSkullBeamEffect implements ZombieEffectStatus {
     private static final double POWER_UP_DURATION = 0.5;
     private static final double POWER_DOWN_DURATION = 0.5;
     private static final double ATTACK_DURATION = 0.5;
-    
+    // How long the beam projectile stays on screen once fired.
     private static final double BEAM_VISUAL_DURATION = 0.35;
     private static final int MAX_RANGE_COLS = 9;
 
@@ -119,7 +125,7 @@ public class CrystalSkullBeamEffect implements ZombieEffectStatus {
                 new CrystalSkullBeamProjectile(muzzle, beamTarget, BEAM_VISUAL_DURATION, session));
     }
 
-    
+    /** Nearest plant in the zombie's own row, ahead of it (toward the house), within range. */
     private Plant findTargetAhead(Zombie zombie, GameSession session) {
         if (session.getEnvironment() == null || zombie.getPosition() == null) return null;
 

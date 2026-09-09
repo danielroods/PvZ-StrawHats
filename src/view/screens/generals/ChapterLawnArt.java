@@ -31,12 +31,12 @@ public final class ChapterLawnArt {
 
     public static String[] backgroundLayers(String seasonFolder, String gameplayFolder) {
         if (isSplitArt(seasonFolder)) {
-            
-            
-            
-            
-            
-            
+            // Future/Pirate never shipped a "map.png" - their lawn art is split into
+            // texture_left.png (left decorative panel) + texture.png (the actual
+            // playable deck/floor, matching IMAGE_BACKGROUNDS_*_TEXTURE in the
+            // original PAM resource pack). texture_right.png exists alongside these
+            // but isn't part of the stitched board - the PIRATE/FUTURE insets already
+            // account for a small right-edge margin baked into texture.png itself.
             return new String[] {
                     gameplayFolder + "texture_left.png",
                     gameplayFolder + "texture.png",

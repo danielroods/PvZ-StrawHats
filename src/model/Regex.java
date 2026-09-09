@@ -5,7 +5,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public enum Regex {
-    
+    // authentication
     REGISTER(
             "^\\s*register\\s+-u\\s+(?<username>\\S+)\\s+-p\\s+(?<password>\\S+)\\s+(?<passwordConfirm>\\S+)\\s+-n\\s+(?<nickname>\\S+)\\s+-e\\s+(?<email>\\S+)\\s+-g\\s+(?<gender>\\S+)\\s*$"
     ),
@@ -25,7 +25,7 @@ public enum Regex {
             "^\\s*menu\\s+logout\\s*$"
     ),
 
-    
+    // main menu
     MENU_ENTER_CHAPTER(
             "^\\s*menu\\s+enter\\s+chapter\\s+-c\\s+(?<chaptername>.+?)\\s*$"
     ),
@@ -79,7 +79,7 @@ public enum Regex {
             "^\\s*travel\\s+log\\s+play\\s+-m\\s+(?<minigame>[a-zA-Z0-9,-]+)\\s+-l\\s+(?<level>[1-3])\\s*$"
     ),
 
-    
+    // profile menu
     MENU_PROFILE_CHANGE_USERNAME(
             "^\\s*menu\\s+profile\\s+change-username\\s+-u\\s+(?<username>\\S+)\\s*$"
     ),
@@ -96,7 +96,7 @@ public enum Regex {
             "^\\s*menu\\s+profile\\s+show-info\\s*$"
     ),
 
-    
+    // collection
     MENU_COLLECTION_SHOW_PLANTS(
             "^\\s*menu\\s+collection\\s+show-plants\\s*$"
     ),
@@ -122,7 +122,7 @@ public enum Regex {
             "^\\s*menu\\s+collection\\s+purchase-plant\\s+-p\\s+(?<plantname>.+?)\\s*$"
     ),
 
-    
+    // green house
     SHOW_ALL_PLANTS(
             "^\\s*show\\s+all\\s+plants\\s*$"
     ),
@@ -158,7 +158,7 @@ public enum Regex {
             "^\\s*grow\\s*\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$"
     ),
 
-    
+    // in-match
     PLANT_AT(
             "^\\s*plant\\s+-t\\s+(?<type>.+?)\\s+at\\s*\\(\\s*(?<x>\\d+)\\s*,\\s*(?<y>\\d+)\\s*\\)\\s*$"
     ),
@@ -196,7 +196,7 @@ public enum Regex {
             "^\\s*shop\\s+buy\\s+-i\\s+(?<itemid>\\S+)\\s+-n\\s+(?<count>\\d+)(?:\\s+-t\\s+(?<planttype>.+?))?\\s*$"
     ),
 
-    
+    // generals
     MENU_ENTER(
             "^\\s*menu\\s+enter\\s+(?<menuname>.+?)\\s*$"
     ),
@@ -204,7 +204,7 @@ public enum Regex {
             "^\\s*(?:menu\\s+show\\s+current|show\\s+current\\s+menu)\\s*$"
     ),
 
-    
+    // in-match commands
     ADVANCE_TIME(
             "^\\s*advance\\s+time\\s+-t\\s+(?<ticks>\\d+)\\s+ticks?\\s*$"
     ),
@@ -257,7 +257,7 @@ public enum Regex {
             "^\\s*start\\s+zombie\\s+waves\\s*$"
     ),
 
-    
+    // mini-games
     MINIGAME_ADVANCE_TIME(
             "^\\s*advance\\s+time\\s+-t\\s+(?<ticks>\\d+)\\s+ticks?\\s*$"
     ),

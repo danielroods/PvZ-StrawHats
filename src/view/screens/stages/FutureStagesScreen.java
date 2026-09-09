@@ -71,9 +71,9 @@ public class FutureStagesScreen extends StagesScreen {
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.30f, 0f, 100f);
     private static final DecorTuning CLOUD_TUNING = new DecorTuning(300f, 200f, 0.30f, 0f, 0f);
 
-    
+    // Marker shown on each (non-boss) level island shifted (+25f right, +30f up)
     private static final DecorTuning LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.34f, 29f, 35f);
-    
+    // Boss node marker moved 80f left (25f - 80f = -55f) and 350f down (210f - 350f = -140f) relative to Zomboss anchor
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(220f, 220f, 0.40f, -25f, 60f);
 
     private static final DecorTuning TREE_TUNING = new DecorTuning(400f, 400f, 0.20f, 0f, 0f);
@@ -261,10 +261,10 @@ public class FutureStagesScreen extends StagesScreen {
 
             addMapDecorations();
 
-            
+            // Render path trail before home island and level nodes
             addActor(new TrailActor());
 
-            
+            // Render home island on top of trail line
             addHomeIsland();
 
             addDangerNodeHitArea();

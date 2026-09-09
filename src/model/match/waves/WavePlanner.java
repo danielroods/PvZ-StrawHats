@@ -26,7 +26,11 @@ public final class WavePlanner {
         return intervalSeconds(authoredDelay, progress, waveIndex == 0, type, difficultyLevel);
     }
 
-    
+    /**
+     * The same pacing curve driven by an explicit 0..1 ramp position instead of a
+     * position inside a fixed wave count, so a schedule that has no total (see
+     * {@link WaveDirector}) can still tighten its lulls the same way an authored one does.
+     */
     public static double intervalSeconds(double authoredDelay, double rampProgress,
                                          boolean firstWave, WaveType type,
                                          int difficultyLevel) {

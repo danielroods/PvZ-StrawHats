@@ -4,7 +4,7 @@ import model.App;
 import model.Regex;
 import view.GeneralPrinter;
 
-
+/** Menu for the main-menu "Console" event hub. */
 public class ConsoleMenu extends Menu {
     @Override public String getName() { return "Console"; }
 

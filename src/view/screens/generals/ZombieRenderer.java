@@ -39,12 +39,12 @@ class ZombieRenderer {
 
     private static final String ZOMBIE_SPAWN_EFFECT_PAM = "768/INITIAL/EFFECTS/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT/ZOMBIE_EGYPT_TOMBRAISER_BONE_HIT.PAM";
     private static final float ZOMBIE_SPAWN_EFFECT_DURATION = 1.33f;
-    
+    // Far Future has its own dirt burst for a zombie clawing its way out of a grave.
     private static final String FUTURE_SPAWN_EFFECT_PAM =
             "768/FULL/EFFECTS/DIRT_SPAWN_FUTURE/DIRT_SPAWN_FUTURE.PAM";
     private static final String FUTURE_SPAWN_EFFECT_STATE = "tomb_dirt_anim";
-    
-    
+    // The glowing emitter that sits on the Future Gargantuar's chest while it fires,
+    // authored with the same laser_start/laser_idle/laser_end beats its body plays.
     private static final String FUTURE_GARGANTUAR_BASE_PAM =
             "768/FULL/EFFECTS/ZOMBIE_FUTURE_GARGANTUAR_BASE/ZOMBIE_FUTURE_GARGANTUAR_BASE.PAM";
     private static final float FUTURE_GARGANTUAR_BASE_SCALE = 0.52f;
@@ -59,10 +59,10 @@ class ZombieRenderer {
 
     private static final String ZOMBIE_BEACH_FISHERMAN_ALIAS = "ZombieBeachFisherman";
     private static final String ZOMBIE_PIANO_ALIAS = "ZombiePiano";
-    
+    // Standalone prop PAM (idle/play/damage/die), drawn in front of the pianist's own body.
     private static final String PIANO_PROP_PAM = "768/FULL/ZOMBIE/PIANO/PIANO.PAM";
     private static final float DEFAULT_PIANO_DAMAGE_DURATION = 0.4f;
-    
+    // Piano sits just in front of (below/ahead of) the pianist's own body origin.
     private static final float PIANO_OFFSET_X = 46f;
     private static final float PIANO_OFFSET_Y = -6f;
     private static final float PIANO_SCALE = 0.52f;
@@ -77,41 +77,41 @@ class ZombieRenderer {
     private static final String ZOMBIE_PIRATE_CAPTAIN_ALIAS = "ZombiePirateCaptain";
     private static final String CAPTAIN_PARROT_PAM =
             "768/FULL/ZOMBIE/ZOMBIE_PIRATE_CAPTAIN_PARROT/ZOMBIE_PIRATE_CAPTAIN_PARROT.PAM";
-    
-    
+    // Companion sits just above/ahead of the captain's shoulder while riding, matching
+    // where the combined idle/walk PAM already draws the perched parrot.
     private static final float PARROT_OFFSET_X = 30f;
     private static final float PARROT_OFFSET_Y = 60f;
     private static final float PARROT_SCALE = 0.52f;
     private static final String ZOMBIE_TROGLOBITE_ALIAS = "ZombieIceAgeTroglobite";
-    
-    
-    
+    // The pushed ice block reuses the same texture the Troglobite was frozen inside
+    // (see FrostbiteRenderer.drawFrostbiteIceBlocks / GameScreenAssets.zombieIceBlockTexture)
+    // so it visibly reads as "the same ice, now falling and being pushed".
     private static final float ICE_BLOCK_PUSH_SCALE = 1.8f;
     private static final float ICE_BLOCK_FALL_HEIGHT_TILES = 5.5f;
-    
-    
-    
+    // Nudges the pushed ice block up and further left within its cell, matching the
+    // height the Troglobite's own body sits at (see FrostbiteRenderer.ICE_BLOCK_OFFSET_Y,
+    // which is used for the same block while it's still the stationary frozen obstacle).
     private static final float ICE_BLOCK_OFFSET_X = -95f;
     private static final float ICE_BLOCK_OFFSET_Y = 30f;
-    
-    
-    
+    // The frozen imp glimpsed inside the ice block, drawn at the same real scale as any
+    // other on-field zombie (ZOMBIE_SCALE) and scissor-clipped to the block's own drawn
+    // rectangle so it always reads as fully inside the ice, never spilling outside it.
     private static final String ICE_BLOCK_IMP_PAM = "768/FULL/ZOMBIE/ZOMBIE_ICEAGE_IMP/ZOMBIE_ICEAGE_IMP.PAM";
     private static final String ZOMBIE_MODERN_ALLSTAR_ALIAS = "ZombieModernAllStar";
     private static final String ZOMBIE_NEWSPAPER_ALIAS = "ZombieNewspaper";
-    
+    // Standalone prop PAM (idle/active/death), drawn at the pushed structure's own position.
     private static final String ARCADE_PROP_PAM = "768/FULL/EFFECTS/80S_ARCADE_CABINET/80S_ARCADE_CABINET.PAM";
     private static final float DEFAULT_ARCADE_DEATH_DURATION = 0.6f;
     private static final float ARCADE_SCALE = 0.6f;
-    
-    
+    // Named element inside every zombie's own PAM for the butter-stun face
+    // overlay; toggled via the element visibility mask, same as armor pieces.
     private static final String BUTTER_ELEMENT_NAME = "butter";
-    
-    
+    // A Protector's projected bubble, drawn over whichever zombie is carrying it.
+    // The art is the Moonflower plant-food shield (see ProtectorShield).
     private static final float SHIELD_SCALE = 0.52f;
     private static final float SHIELD_OFFSET_X = 22f;
     private static final float SHIELD_OFFSET_Y = 4f;
-    
+    /** How long the "bubble just popped into existence" clip plays before it settles. */
     private static final float SHIELD_ON_DURATION = 0.5f;
     private static final float WATER_RIPPLE_SCALE = 0.70f;
     private static final float DEFAULT_RIPPLE_EXIT_DURATION = 0.6f;
@@ -132,31 +132,31 @@ class ZombieRenderer {
     private static final float RIPPLE_OFFSET_X = -50f;
     private static final float RIPPLE_OFFSET_Y = -18f;
 
-    
-    
-    
-    
-    
+    // Swimmer (snorkel) zombie sits noticeably deeper than other beach zombies while
+    // submerged - only its head should poke out above the water clip line. The ripple
+    // itself is drawn from the zombie's own board position (see rippleDrawX/rippleDrawY
+    // below), which is untouched by this offset, so it stays in the same place as any
+    // other zombie's ripple.
     private static final String ZOMBIE_BEACH_SNORKEL_ALIAS = "ZombieBeachSnorkel";
     private static final float SWIMMER_SUBMERGE_OFFSET_Y = 58f;
     private static final float DEFAULT_SUBMERGE_OFFSET_Y = 20f;
 
-    
-    
-    
-    
+    // Tints a zombie's own PAM draw blue while it's chilled (Status.FREEZE), applied via
+    // SpriteBatch color multiplication so the tint rides along with the actual animation
+    // frames (transparent pixels stay transparent) instead of drawing a flat colored shape
+    // over it.
     private static final Color FREEZE_TINT = new Color(0.55f, 0.78f, 1f, 1f);
     private static final Color FROZEN_TINT = new Color(0.42f, 0.68f, 1f, 1f);
     private static final Color FREEZE_FALLBACK_TINT = new Color(0.35f, 0.55f, 0.85f, 1f);
 
-    
-    
+    // Same idea as FREEZE_TINT, but for a hypnotized zombie's body - a purple/pink wash
+    // via SpriteBatch color multiplication.
     private static final Color HYPNO_TINT = new Color(0.85f, 0.55f, 1f, 1f);
     private static final Color HYPNO_FALLBACK_TINT = new Color(0.65f, 0.4f, 0.85f, 1f);
 
-    
-    
-    
+    // Rising hypnosis bubbles drawn over a hypnotized zombie's body, purple/pink and
+    // semi-transparent - several of them, staggered so they don't all pop in step,
+    // climbing from the zombie's feet to over its head, then fading out and looping.
     private static final Color HYPNO_BUBBLE_COLOR = new Color(0.87f, 0.45f, 0.95f, 1f);
     private static final int HYPNO_BUBBLE_COUNT = 6;
     private static final float HYPNO_BUBBLE_CYCLE_SECONDS = 1.8f;
@@ -176,20 +176,20 @@ class ZombieRenderer {
         final Position position;
         final boolean facingRight;
         final float duration;
-        
+        // Shock always plays first when the zombie was killed by Electric Blueberry.
         final String shockPath;
         final float shockDuration;
-        
+        // After shock, ash plays when this zombie has an ash-death asset.
         final String ashPath;
         final float ashDuration;
         final boolean barrelBroken;
         final boolean swashbucklerWaterDeath;
-        
-        
+        // Height above the lane the zombie was drawn at when it died (jetpack in flight),
+        // so the death animation plays where the zombie actually was.
         final float hoverLift;
-        
-        
-        
+        // The barrel survives independently of the pusher zombie.  Keep the actual
+        // structure reference so it can continue rolling after the zombie's death
+        // sequence has finished.
         final PushableStructure barrelStructure;
         float time;
         float barrelRollTime;
@@ -225,9 +225,9 @@ class ZombieRenderer {
     private final Map<Zombie, Float> zombieAnimTimes = new IdentityHashMap<>();
     private final Map<Zombie, ZombieWaterRipple> zombieWaterRipples = new IdentityHashMap<>();
     private final Map<Zombie, Boolean> zombieGyratingLast = new IdentityHashMap<>();
-    
-    
-    
+    // Edge-detection for one-shot SFX (same idiom as zombieGyratingLast above):
+    // fires SFX_ZOMBIE_EAT the frame a zombie starts biting, SFX_HYPNOTIZE the
+    // frame Hypno-shroom flips a zombie to the player's side.
     private final Map<Zombie, Boolean> zombieEatingLast = new IdentityHashMap<>();
     private final Map<Zombie, Boolean> zombieHypnotizedLast = new IdentityHashMap<>();
     private final Map<Zombie, String> zombieActionStateLast = new IdentityHashMap<>();
@@ -259,8 +259,8 @@ class ZombieRenderer {
             if (zombie == null || zombie.getPosition() == null) continue;
             if (zombie.isBoss()) continue;
 
-            
-            
+            // A Gargantuar entering the active zombie list gets a very small, short
+            // camera jolt. Edge-detected per instance so it never shakes every frame.
             if (isGargantuarAlias(zombie.getAlias())
                     && !gargantuarShakeTriggered.getOrDefault(zombie, false)) {
                 gargantuarShakeTriggered.put(zombie, true);
@@ -298,8 +298,8 @@ class ZombieRenderer {
                 AudioManager.get().playSound(AudioEnum.SFX_NECROMANCY);
             }
 
-            
-            
+            // Hypno-shroom's registered overlay marks a zombie that now fights for the player;
+            // without it a hypnotised zombie is indistinguishable from a hostile one.
             boolean hypnotized = zombie.isHypnotized();
             if (hypnotized && !zombieHypnotizedLast.getOrDefault(zombie, false)) {
                 AudioManager.get().playSound(AudioEnum.SFX_HYPNOTIZE);
@@ -346,9 +346,9 @@ class ZombieRenderer {
             }
             zombieGyratingLast.put(zombie, gyratingNow);
 
-            
-            
-            
+            // PusherMove leaves the visual "push" state active while the barrel zombie
+            // is moving. If the zombie has already acquired a target, that stale push
+            // state must not mask its eat animation.
             boolean staleBarrelPushWhileEating =
                     ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())
                             && zombie.getZombieState() == ZombieState.EATING
@@ -366,9 +366,9 @@ class ZombieRenderer {
             if (zombie.getZombieState() == ZombieState.DEAD) {
                 preferred = barrelBroken ? "die2" : "die";
             } else if (hasActionOverride) {
-                
-                
-                
+                // A special one-off/looping action beat (e.g. "toss", "push",
+                // "cast", "cast_loop", "reel") takes priority over the plain
+                // eat/spin/walk resolution below.
                 preferred = zombie.getActionAnimationState();
                 if (!preferred.equals(zombieActionStateLast.get(zombie))) {
                     if ("power_up".equals(preferred) || "laser_start".equals(preferred)) {
@@ -379,14 +379,14 @@ class ZombieRenderer {
                 }
                 zombieActionStateLast.put(zombie, preferred);
             } else if (isBarrelPusher) {
-                
-                
-                
-                
+                // ZombieBarrelRoller's first walking clip contains the barrel as part of
+                // the same PAM.  When the barrel is gone, the corresponding walk2 clip
+                // removes the barrel (apart from the remaining particle artwork).
+                // Never let PusherMove's "push" action override these clips.
                 preferred = barrelBroken ? "walk2" : "walk";
             } else if (zombie.getZombieState() == ZombieState.EATING) {
-                
-                
+                // ZombieBeachFisherman's PAM has no dedicated "eat" clip; it
+                // reuses its "toss" animation for chomping instead.
                 boolean hasNewspaper = ZOMBIE_NEWSPAPER_ALIAS.equals(zombie.getAlias())
                         && zombie.getArmour() instanceof ZombieArmour armour
                         && !armour.isDestroyed();
@@ -417,8 +417,8 @@ class ZombieRenderer {
                 if (zombie.isActionAnimationLoop()) {
                     animationTime = duration > 0f ? elapsed % duration : elapsed;
                 } else {
-                    
-                    
+                    // One-shot beat: play forward and hold the last frame
+                    // instead of looping/glitching once it finishes.
                     animationTime = duration > 0f ? Math.min(elapsed, duration) : elapsed;
                 }
             } else if (("walk".equals(preferred) || "walk2".equals(preferred)
@@ -435,16 +435,16 @@ class ZombieRenderer {
             ZombotanyArt.Head plantHead = ZombotanyArt.headFor(zombie.getAlias());
             if (plantHead != null) armorVisibility = mergeHeadlessMask(armorVisibility);
 
-            
-            
-            
+            // The butter-stun face overlay is a named element baked into each
+            // zombie's own PAM (same idea as the armor pieces above), so it's
+            // toggled the same way rather than drawn as a separate asset.
             Map<String, Boolean> elementVisibility = armorVisibility != null
                     ? armorVisibility : new java.util.HashMap<>();
             elementVisibility.put(BUTTER_ELEMENT_NAME, zombie.getStatus() == Zombie.Status.BUTTER);
 
-            
-            
-            
+            // FROZEN is the solid freeze (Ice-shroom, Iceberg Lettuce's and Snow Pea's
+            // Plant Food); FREEZE is the chill a snow projectile leaves. Both read as ice,
+            // so both get the blue wash - previously a zombie frozen stiff looked untouched.
             boolean chilled = zombie.getStatus() == Zombie.Status.FREEZE
                     || zombie.getStatus() == Zombie.Status.FROZEN;
             ZombieVisualArgs visualArgs = new ZombieVisualArgs(t, x, zombieDrawY,
@@ -605,9 +605,9 @@ class ZombieRenderer {
             if (normalDeathDuration <= 0f) normalDeathDuration = DEATH_ANIM_DURATION;
 
             if (swashbucklerWaterDeath) {
-                
-                
-                
+                // This death is a rope-swing failure, not the ordinary corpse animation.
+                // The zombie PAM supplies the "swing failure" clip; the water splash is
+                // rendered separately after it finishes.
                 normalDeathDuration = SWASHBUCKLER_FAILURE_DURATION + SWASHBUCKLER_SPLASH_DURATION;
             }
 
@@ -673,25 +673,25 @@ class ZombieRenderer {
             float postShockTime = dz.shockPath == null ? dz.time : dz.time - dz.shockDuration;
 
             if (dz.ashPath != null) {
-                
+                // Shock is complete; play the ash-death animation next.
                 float ashTime = Math.min(postShockTime, dz.ashDuration);
                 screen.queueRowDraw(row, () -> screen.drawPam(dz.ashPath, ZombieAshAnimationRegistry.ASH_STATE,
                         ashTime, x - 10f, zombieOffsetY, 0.52f, dz.facingRight));
                 continue;
             }
 
-            
-            
-            
-            
-            
-            
+            // Once the death animation has fully played out, the pusher's own corpse
+            // pose must stop being drawn - otherwise it stays glued to the screen
+            // forever (frozen on its last "die" frame) instead of disappearing, even
+            // though the code below has already moved on to animating the surviving
+            // barrel independently. Only the barrel logic further down should still
+            // run past this point.
             boolean deathAnimComplete = dz.time >= dz.duration;
             if (!deathAnimComplete) {
                 String path = ZombieAnimationRegistry.pathFor(dz.alias, screen.seasonFolder);
 
-                
-                
+                // Particles (head + hand) drop off and settle onto the row's ground
+                // over roughly the first half of the death animation.
                 float normalDeathTime = Math.max(0f, postShockTime);
                 float normalDeathDuration = Math.max(0.001f, dz.duration - dz.shockDuration);
                 float fallProgress = Math.min(1f, normalDeathTime / (normalDeathDuration * 0.5f));
@@ -723,10 +723,10 @@ class ZombieRenderer {
                 }
             }
 
-            
-            
-            
-            
+            // The barrel is a separate object, but it must NOT appear during the
+            // pusher's death animation: the combined zombie PAM owns the visual during
+            // that entire sequence.  Only after the zombie death animation is complete
+            // does the surviving barrel take over as a standalone rolling PAM.
             if (dz.barrelStructure != null && dz.time >= dz.duration) {
                 PushableStructure barrel = dz.barrelStructure;
                 if (barrel.isAlive() && barrel.getPosition() != null) {
@@ -746,8 +746,8 @@ class ZombieRenderer {
                             barrelX, barrelY, BARREL_SCALE, dz.facingRight));
                     dz.barrelRollTime += delta;
                 } else if (dz.barrelDeathTime < 0f) {
-                    
-                    
+                    // If the surviving barrel is destroyed after the pusher has died,
+                    // start its own death clip from frame zero.
                     dz.barrelDeathTime = 0f;
                 }
 
@@ -779,7 +779,12 @@ class ZombieRenderer {
                         && dz.barrelDeathTime >= DEFAULT_BARREL_DEATH_DURATION));
     }
 
-    
+    /**
+     * Several small purple/pink bubbles rising from a hypnotized zombie's feet to over its
+     * head, staggered so they don't all pop at once, each fading in, floating up with a
+     * slight side-to-side sway, then fading out and looping back to the bottom - same idea
+     * as the original game's hypnosis bubble trail.
+     */
     private void drawHypnoBubbles(Zombie zombie, float t, float baseX, float baseY, float boardTileHeight) {
         float riseHeight = boardTileHeight * 0.85f;
         float fadeWindow = 0.15f;
@@ -820,9 +825,9 @@ class ZombieRenderer {
                 bodyScale * head.scale());
     }
 
-    
-    
-    
+    // Pianist's piano prop: same "idle"/"walk"->eat resolution as the zombie body, plus a
+    // one-shot "damage" beat (mirrors OctopusThrow's toss trick, but driven off HP deltas
+    // since a piano hit isn't its own attack/effect) and its own "die" clip.
     private void drawZombiePiano(Zombie zombie, String preferred, float t, float delta, float x, float zombieDrawY,
                                  boolean facingRight) {
         if (!ZOMBIE_PIANO_ALIAS.equals(zombie.getAlias())) return;
@@ -875,11 +880,11 @@ class ZombieRenderer {
         screen.pam().drawPamExact(PIANO_PROP_PAM, "die", pianoTime, pianoX, pianoY, PIANO_SCALE, facingRight);
     }
 
-    
-    
-    
-    
-    
+    // Arcade cabinet the ZombieArcade pushes ahead of itself: idle while intact and not
+    // being pushed, active while the zombie's own "push" beat is running (see PusherMove),
+    // and a one-shot death clip the moment the structure's HP hits zero. Positioned from the
+    // structure's own board Position rather than the zombie's, since the cabinet leads the
+    // zombie by PusherMove.PUSH_GAP and can lag behind on destruction.
     private void drawZombieArcade(Zombie zombie, float delta, float boardTileWidth, boolean facingRight) {
         if (!ZOMBIE_ARCADE_ALIAS.equals(zombie.getAlias())) return;
         PushableStructure structure = zombie.getPushedStructure();
@@ -911,9 +916,9 @@ class ZombieRenderer {
         float arcadeY = screen.cellY(pos.y()) + 40f;
         screen.pam().drawPamExact(ARCADE_PROP_PAM, arcadeState, arcadeTime, arcadeX, arcadeY, ARCADE_SCALE, facingRight);
 
-        
-        
-        
+        // Same water ripple treatment as any zombie standing in the surf, but driven off
+        // the cabinet's own board position (it leads the zombie by PusherMove.PUSH_GAP)
+        // rather than the pushing zombie's.
         if (screen.isBeach()) {
             String arcadeRipplePam = ripplePamFor(zombie.getAlias());
             ZombieWaterRipple arcadeRipple = updateWaterRipple(arcadeWaterRipples, zombie, pos, delta, arcadeRipplePam);
@@ -934,11 +939,18 @@ class ZombieRenderer {
     private static final java.util.Set<String> PARROT_OBJECT_STATES = java.util.Set.of(
             "fly", "carry", "fly back", "die");
     private static final float PARROT_ACTION_SPEED_FACTOR = 1.8f;
-    
-    
+    // How far (in px) the parrot travels from the captain's shoulder during its raid,
+    // since there's no real per-plant target position tracked on the model side yet.
     private static final float PARROT_RAID_DISTANCE = 220f;
 
-    
+    /**
+     * Draws the Pirate Captain's parrot whenever {@link model.collections.zombie.zombie_effect.ParrotCompanionEffect}
+     * has it off the captain's shoulder (see the {@code actionAnimationState} names it drives).
+     * While riding, the perched parrot is already baked into the captain's own idle/walk/eat
+     * PAM, so this deliberately draws nothing outside the raid states. "parrot_releas" and
+     * "parrot_land" are also skipped here - those play on the captain's own body PAM, not on
+     * {@link #CAPTAIN_PARROT_PAM}, so the standalone parrot object has nothing to draw during them.
+     */
     private void drawZombieParrot(Zombie zombie, float t, float delta, float x, float zombieDrawY, boolean facingRight) {
         if (!ZOMBIE_PIRATE_CAPTAIN_ALIAS.equals(zombie.getAlias())) return;
 
@@ -962,8 +974,8 @@ class ZombieRenderer {
                 ? Math.min(1f, elapsed / (duration * PARROT_ACTION_SPEED_FACTOR))
                 : Math.min(1f, elapsed / 1.0f);
 
-        
-        
+        // Outbound leg grows the offset from 0 to the full raid distance, the carry
+        // leg holds it at full distance, and the return leg shrinks it back to 0.
         float travel = switch (state) {
             case "fly" -> PARROT_RAID_DISTANCE * progress;
             case "carry" -> PARROT_RAID_DISTANCE;
@@ -971,9 +983,9 @@ class ZombieRenderer {
             default -> 0f;
         };
 
-        
-        
-        
+        // "carry" is authored moving to the right, but the parrot always carries its
+        // stolen plant leftward toward the nearest un-bridged water tile - flip only
+        // this clip on top of the zombie's own facing so it reads correctly either way.
         boolean drawFacingRight = "carry".equals(state) != facingRight;
 
         float direction = facingRight ? 1f : -1f;
@@ -982,21 +994,26 @@ class ZombieRenderer {
         screen.pam().drawPamExact(CAPTAIN_PARROT_PAM, state, parrotTime, parrotX, parrotY, PARROT_SCALE, drawFacingRight);
     }
 
-    
+    /**
+     * Renders the Pirate Barrel Pusher's separate barrel after the pusher zombie
+     * has died, or its one-shot death animation after the barrel itself is destroyed.
+     * While both are alive, the combined pusher PAM already contains the barrel and
+     * this method deliberately draws nothing.
+     */
     private void drawZombieBarrel(Zombie zombie, float delta, float boardTileWidth) {
         if (!ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())) return;
 
-        
-        
-        
-        
+        // The first/walk animation of ZombieBarrelRoller already contains the intact
+        // barrel.  Drawing the standalone barrel while the zombie is alive creates the
+        // visible "two barrels" bug.  The standalone barrel is intentionally rendered
+        // only by drawDyingZombies(), after the pusher's death animation has completed.
     }
 
-    
-    
-    
-    
-    
+    // The ice block a Troglobite pushes ahead of itself once freed. Falls smoothly in
+    // from above the lawn onto the cell just ahead of the zombie (mirroring the arcade
+    // cabinet's placement / ZombossRenderer's sky-strike drop) and, once landed, is drawn
+    // at the structure's own board position exactly like the arcade cabinet so it keeps
+    // pace with PusherMove while being shoved along - and by plants/tile sliders moving it.
     private void drawZombieIceBlock(Zombie zombie, float boardTileWidth, float boardTileHeight) {
         if (!ZOMBIE_TROGLOBITE_ALIAS.equals(zombie.getAlias())) return;
         PushableStructure structure = zombie.getPushedStructure();
@@ -1025,9 +1042,9 @@ class ZombieRenderer {
         screen.batch.draw(texture, drawX, drawY, drawW, drawH);
         screen.batch.setColor(Color.WHITE);
 
-        
-        
-        
+        // The frozen imp riding inside the block, at the same real scale as any other
+        // on-field zombie, centered over the block and hard-clipped to its bounds so it
+        // never spills outside the ice regardless of the PAM's own art anchor/padding.
         boolean clipActive = pushRectClip(drawX, drawY, drawW, drawH);
         try {
             float impCenterX = drawX + drawW * 0.5f;
@@ -1165,10 +1182,10 @@ class ZombieRenderer {
                 ripplePamFor(zombie.getAlias()));
     }
 
-    
-    
-    
-    
+    // Shared ripple state machine, keyed by whatever owns the ripple (a zombie for its own
+    // ripple, or the zombie that pushes an arcade cabinet for the cabinet's ripple) so the
+    // arcade box can get the same "in water / exiting" water ripple as any other zombie
+    // without duplicating this logic.
     private ZombieWaterRipple updateWaterRipple(Map<Zombie, ZombieWaterRipple> rippleMap, Zombie key,
                                                 Position position, float delta, String ripplePam) {
         ZombieWaterRipple ripple = rippleMap.computeIfAbsent(key, z -> new ZombieWaterRipple());
@@ -1252,7 +1269,8 @@ class ZombieRenderer {
         ScissorStack.popScissors();
     }
 
-    
+    /** Generic version of pushWaterClip/popWaterClip for clipping to an arbitrary rectangle
+     *  (e.g. keeping the frozen imp fully inside the pushed ice block's own drawn bounds). */
     private boolean pushRectClip(float x, float y, float width, float height) {
         screen.batch.flush();
         Rectangle clipBounds = new Rectangle(x, y, width, height);

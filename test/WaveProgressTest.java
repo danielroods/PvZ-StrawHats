@@ -127,7 +127,7 @@ class WaveProgressTest {
         double previous = session.getWaveProgress();
         for (int tick = 0; tick < 4000; tick++) {
             session.tick();
-            
+            // Wipe the lawn every tick so every wave qualifies for the early pull-in.
             for (Zombie zombie : new ArrayList<>(session.getZombies())) {
                 zombie.setHp(0);
             }
@@ -198,7 +198,10 @@ class WaveProgressTest {
         assertEquals(0, session.getWavesSpawnedCount());
     }
 
-    
+    /**
+     * Every authored adventure level, driven end to end: the meter has to climb from empty to
+     * full without a single step back, and land on 1.0 exactly when the final wave launches.
+     */
     @ParameterizedTest
     @ValueSource(ints = {101, 102, 103, 201, 202, 203, 301, 302, 303, 401, 402, 403})
     void everyAuthoredLevelRunsItsMeterFromEmptyToFull(int levelId) throws Exception {
@@ -229,9 +232,9 @@ class WaveProgressTest {
                 progressWhenLastWaveLaunched = now;
                 break;
             }
-            
-            
-            
+            // An undefended lawn loses some special levels (the deadline, save-our-seeds and
+            // survival ones) long before the schedule runs out; the meter still has to have
+            // behaved on the way there, which the monotonic check above already covers.
             if (session.isGameOver() || session.isGameWon()) break;
         }
 

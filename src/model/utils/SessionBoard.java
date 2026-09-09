@@ -26,7 +26,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * Everything that reads or mutates the match grid itself: placing/removing plants,
+ * graves, pushable structures, per-tick occupancy refresh, and the lawn-mower breach
+ * check at the left edge of the lawn.
+ */
 class SessionBoard {
 
     private final GameSession session;
@@ -78,7 +82,17 @@ class SessionBoard {
         }
     }
 
-    
+    /**
+     * A non-water plant can only exist on a water tile while it's actually riding a living
+     * Lily Pad (or Pumpkin-on-Lily-Pad, etc.) somewhere in its stack. That stack is a simple
+     * top -> bottom chain ({@link Plant#getBottom()}), and normally the Lily Pad is the
+     * bottom-most link. {@link #clearDeadPlantsFromGrid()} already handles the top of a stack
+     * dying (falling back to whatever's underneath); this handles the opposite case - the Lily
+     * Pad itself (or any other water-tagged link) dying or otherwise going missing while a
+     * non-water rider is still alive on top of it, and also the ReelingTackleStatus drag
+     * mechanic dropping a non-water plant onto a water tile it was never allowed to occupy.
+     * Either way, nothing that isn't a water plant is allowed to keep existing on water.
+     */
     void drownUnsupportedPlants() {
         Environment environment = environment();
 
@@ -104,7 +118,7 @@ class SessionBoard {
                     for (Plant p : stack) {
                         if (p.isGraveBuster()) continue;
                         if (p.isAlive() && !p.getTags().contains(PlantTag.WATER)) {
-                            
+                            // Drown outright - bypasses armor on purpose, this isn't a normal hit.
                             p.setAlive(false);
                         }
                     }
@@ -302,7 +316,7 @@ class SessionBoard {
 
         if (hotPotatoMeltsFrozenPlant) {
 
-            
+            // Remove the ice immediately.
             FrostbiteFreezing.damageFrozenPlantIfInIce(
                     session,
                     existing,

@@ -19,7 +19,10 @@ import service.GameClock;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Renders the text-adventure views of a live match - the ASCII lawn, the loadout/plant
+ * status listing, a single tile's contents, and the zombie roster - for the command layer.
+ */
 class SessionReporter {
 
     private final GameSession session;

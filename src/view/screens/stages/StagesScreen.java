@@ -173,7 +173,12 @@ public abstract class StagesScreen extends UiScreen {
         }
     }
 
-    
+    /**
+     * The danger node is this chapter's Lottery stage: a hidden, unlisted endless level
+     * built from the chapter's own stages, so it plays the same season (map, hazards,
+     * obstacles, assets) with the chapter's full zombie roster - and, unlike an authored
+     * stage, keeps generating waves for as long as the player survives.
+     */
     protected Level buildDangerLevel() {
         EndlessChapter chapter = EndlessChapter.forSeason(getChapterName());
         if (chapter == null) return null;

@@ -49,8 +49,8 @@ public final class AssetPaths {
     public static final String TROPHY_FROSTBITE_CAVES = TROPHIES_IMAGES + "trophy_iceage.png";
     public static final String TROPHY_BIG_WAVE_BEACH = TROPHIES_IMAGES + "trophy_beach.png";
     public static final String TROPHY_DARK_AGES = TROPHIES_IMAGES + "trophy_dark.png";
-    
-    
+    // Not yet playable chapters (see project notes) - paths reserved so TrophyManager's
+    // chapter list only needs a new entry, not new constants, once they're added for real.
     public static final String TROPHY_PIRATE_SEAS = TROPHIES_IMAGES + "trophy_pirate.png";
     public static final String TROPHY_FAR_FUTURE = TROPHIES_IMAGES + "trophy_future.png";
 

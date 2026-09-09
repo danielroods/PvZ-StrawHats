@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-
+/** Owns/picks plant costumes for the currently signed-in account. */
 public final class PlantCostumeManager {
     public static final int COST = 5000;
 
@@ -36,8 +36,8 @@ public final class PlantCostumeManager {
                 .contains(costumeId);
     }
 
-    
-    
+    /** Null/blank means the original/default plant art. */
+    /** Name-based lookup for non-Plant instances such as the board drag preview. */
     public static String selectedCostumeForPlantName(String plantName) {
         if (plantName == null || plantName.isBlank()) return null;
         UserState state = state();
@@ -53,7 +53,7 @@ public final class PlantCostumeManager {
         return selected == null || selected.isBlank() ? null : selected;
     }
 
-    
+    /** Null clears the costume and restores the original plant art. */
     public static boolean choose(int plantId, String plantName, String costumeId) {
         UserState state = state();
         if (state == null || !state.isPlantUnlocked(plantId)) return false;

@@ -74,23 +74,23 @@ public class GameScreen extends UiScreen {
     private final NukeEffect nukeEffect = new NukeEffect(this);
     private Image nukeFlashOverlay;
 
-    
-    
+    // Lightweight gameplay camera shake. The base camera position is never changed;
+    // a temporary offset is applied for the duration of the effect and restored after draw.
     private float screenShakeTime = 0f;
     private float screenShakeDuration = 0f;
     private float screenShakeStrength = 0f;
 
-    
+    // Wave-start banner state. The scheduler already exposes the authoritative spawned-wave count.
     private int lastDisplayedWaveCount = 0;
     private float waveBannerTime = 0f;
     private String waveBannerText = null;
     private final GlyphLayout waveBannerLayout = new GlyphLayout();
 
     private view.hud.ZombossDialogueBox zombossDialogue;
-    
+    // Play the Zomboss NPC voice only once for the whole NPC dialogue sequence.
     private boolean zombossNpcVoicePlayed = false;
-    
-    
+    // Edge-detection so SFX_SANDSTORM plays once per storm, not every frame
+    // refreshSandStormAudio() runs - see that method.
     private boolean lastSandStormActive = false;
 
     double tickAccumulator;
@@ -126,7 +126,7 @@ public class GameScreen extends UiScreen {
 
     private void flushRowDrawQueue() {
         if (rowDrawQueue.isEmpty()) return;
-        
+        // A stable sort, so within one row+layer everything keeps its submission order.
         rowDrawQueue.sort(Comparator.<QueuedRowDraw>comparingInt(q -> q.row)
                 .thenComparingInt(q -> q.layer));
         for (QueuedRowDraw queued : rowDrawQueue) {
@@ -137,7 +137,7 @@ public class GameScreen extends UiScreen {
 
     @Override
     public void initParticles() {
-        
+        // Gameplay effects are rendered by the board layers below.
     }
 
     @Override
@@ -163,7 +163,12 @@ public class GameScreen extends UiScreen {
         screenShakeTime = 0f;
     }
 
-    
+    /**
+     * Full-screen white flash used by the "release the nuke" cheat. Added
+     * directly to the stage (on top of rootStack, so above the HUD too) and
+     * left non-touchable so it never blocks clicks on anything underneath it,
+     * even while fully visible.
+     */
     private void createNukeFlashOverlay() {
         nukeFlashOverlay = new Image(new TextureRegionDrawable(whitePixel));
         nukeFlashOverlay.setFillParent(true);
@@ -172,7 +177,7 @@ public class GameScreen extends UiScreen {
         stage.addActor(nukeFlashOverlay);
     }
 
-    
+    /** Wired to the HUD's nuke button. */
     protected void triggerNukeCheat() {
         if (!CheatAccess.isEnabled()) return;
         nukeEffect.trigger();
@@ -348,7 +353,13 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    
+    /**
+     * Advances the simulation by one fixed tick (see GameClock.SECONDS_PER_TICK).
+     * Default: ticks the shared GameSession directly, exactly as before. A screen
+     * whose model wraps the session in something with its own extra bookkeeping
+     * (e.g. a minigame with its own win/loss condition and its own scheduler) can
+     * override this instead of duplicating render()'s whole tick loop.
+     */
     protected void tickSession() {
         session.tick();
     }
@@ -357,12 +368,18 @@ public class GameScreen extends UiScreen {
         return new ArrayList<>(BeforeMenu.selectedPlants);
     }
 
-    
+    /** True only for the loadout screen that renders the match board before waves begin. */
     protected boolean isBeforeMatchPreview() {
         return false;
     }
 
-    
+    /**
+     * Horizontal space to leave empty on the right of the lawn, shifting the whole board
+     * left by that much (see {@link view.screens.generals.BoardLayout}). Before-match
+     * preview screens use this to make room for the loadout/preview panel; gameplay
+     * screens that dock a side panel over the board (e.g. co-op's zombie tray) can
+     * override this too, so that panel doesn't sit on top of playable lawn columns.
+     */
     protected float reservedRightAreaWidth() {
         return 0f;
     }
@@ -388,10 +405,10 @@ public class GameScreen extends UiScreen {
                 fight.getDialogueCount());
     }
 
-    
-    
-    
-    
+    // Edge-detection for SFX_SANDSTORM (Egypt's entry hazard) - same idiom as
+    // refreshZombossDialogue/lastTideColumn above, kept here (rather than per-screen)
+    // since isSandStormActive() is session-level and every GameScreen subclass already
+    // reaches render() -> refreshHud() each frame.
     private void refreshSandStormAudio() {
         if (session == null) return;
         boolean active = session.isSandStormActive();
@@ -401,7 +418,7 @@ public class GameScreen extends UiScreen {
         lastSandStormActive = active;
     }
 
-    
+    /** Called by ZombieRenderer when a heavy zombie enters the board. */
     void triggerScreenShake(float strength, float duration) {
         if (strength <= 0f || duration <= 0f) return;
         screenShakeStrength = Math.max(screenShakeStrength, strength);
@@ -459,8 +476,8 @@ public class GameScreen extends UiScreen {
         float x = cx - waveBannerLayout.width * 0.5f;
         float y = cy + waveBannerLayout.height * 0.5f;
 
-        
-        
+        // Black broken/dashed-looking letter border: several separated offset passes
+        // rather than a solid rectangular box. The red glyphs remain the focal layer.
         font.getColor().set(0f, 0f, 0f, alpha);
         float d = 2.5f;
         font.draw(batch, waveBannerText, x - d, y);
@@ -516,7 +533,13 @@ public class GameScreen extends UiScreen {
         interaction.selectPlant(plantName);
     }
 
-    
+    /**
+     * What happens when a board cell is tapped/clicked. Default is the normal
+     * plant/shovel/food flow below. Mini-games with a different interaction model
+     * (Vasebreaker's break-vase-then-plant, Wallnut Bowling's launch-a-nut,
+     * I Zombie's place-a-zombie, Beghouled's swap-two-gems) override this instead
+     * of touching handleBoardClick/handlePlantDragRelease directly.
+     */
     protected void onCellClicked(int row, int col) {
         interaction.plantAtCell(row, col);
     }
@@ -529,7 +552,8 @@ public class GameScreen extends UiScreen {
         return interaction.itemUnderMouse(click);
     }
 
-    
+    /** Matches never show toast notifications (they popped in over gameplay UI,
+     *  e.g. Beghouled's upgrade cards, and swallowed the clicks meant for it). */
     @Override
     protected boolean notificationsEnabled() {
         return false;
@@ -570,7 +594,16 @@ public class GameScreen extends UiScreen {
         return matchEnd.isIdle();
     }
 
-    
+    /**
+     * Whether the win/lose sequence (board hold -> fade -> "YOU WON"/"YOU LOST" title) is
+     * currently mid-flight. Public so {@link controller.ScreenManager} can hold off swapping
+     * screens while it plays - some menus (mini games in particular) flip {@link
+     * model.App#currentMenu} to the end-of-game menu as soon as the outcome is known, well
+     * before this sequence finishes, and {@code ScreenManager} is polled every frame
+     * independently of this screen's own render loop. Without this guard that per-frame poll
+     * swaps the screen away after a single frame, and the animation never gets a chance to
+     * play.
+     */
     public boolean isMatchEndSequenceActive() {
         return !matchEnd.isIdle();
     }
@@ -637,12 +670,18 @@ public class GameScreen extends UiScreen {
         batch.end();
     }
 
-    
+    /**
+     * Hook for a pre-match splash (e.g. the "VS" icon shown right as a networked match
+     * begins). No-op by default; drawn last, on top of everything else in the board
+     * batch, right after {@link MatchEndSequence#drawMatchEndOverlay()}. Override and
+     * pair with a helper that draws via {@link #batch}/{@link #whitePixel} the same way
+     * {@code MatchEndSequence} does.
+     */
     protected void drawMatchStartOverlay() {
     }
 
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
-        
+        // Default seasons have no extra gameplay overlay.
     }
 
     protected boolean areLawnMowersVisible() {
@@ -690,7 +729,12 @@ public class GameScreen extends UiScreen {
     private static final float DEADLINE_FLOWER_SCALE = 0.52f;
     private float deadlineFlowerLineClock = 0f;
 
-    
+    /**
+     * Draws the Ice Age (Frostbite Caves) dead-line marker - a STAR_OBJECTIVE_FLOWER
+     * effect on every row of the given column - instead of a plain colored bar.
+     * Used everywhere a "line you can't cross" needs to be shown: PvP/campaign dead
+     * lines, Wall-nut Bowling's red line, and I, Zombie's red line.
+     */
     protected void drawDeadlineFlowerLine(int col, int rows) {
         deadlineFlowerLineClock += Gdx.graphics.getDeltaTime();
         float loopDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, "idle");
@@ -707,7 +751,15 @@ public class GameScreen extends UiScreen {
         return drawPam(path, preferred, time, x, y, scale, flip, null);
     }
 
-    
+    /**
+     * Same as the 7-arg drawPam, but with a per-element visibility mask. Pass a
+     * Map<String, Boolean> where each key is one of the PAM clip's named elements
+     * and the value is whether that element should currently be drawn - e.g. the
+     * armor pieces on a basic zombie, switched off one at a time as armor health
+     * drops. Set the actual element name strings where noted in drawZombies()
+     * below; null (or omitting the map via the 7-arg overload) draws every
+     * element, same as before.
+     */
     public boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip,
                            Map<String, Boolean> elementVisibility) {
         return pam.drawPam(path, preferred, time, x, y, scale, flip, elementVisibility);
@@ -717,7 +769,10 @@ public class GameScreen extends UiScreen {
         return pam.drawPamMirrored(path, preferred, time, x, y, scale);
     }
 
-    
+    /**
+     * Rotates the clip to face an arbitrary travel direction instead of only mirroring
+     * left/right - see {@link PamRenderer#drawPamRotated}.
+     */
     public boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
                                   float rotationDegrees) {
         return pam.drawPamRotated(path, preferred, time, x, y, scale, rotationDegrees);
@@ -745,10 +800,10 @@ public class GameScreen extends UiScreen {
             String name = session.getLevel().getSeason().getName();
             if (name != null && !name.isBlank()) return name.trim().toLowerCase().replace('-', ' ');
         }
-        
-        
-        
-        
+        // Mini-games have no Level/Season on their session, so fall back to seasonFolder,
+        // which mini-game screens set to their own SEASON_LAWN_MOWER_PAM_PATHS key
+        // (see BeghouledGameScreen, VasebreakerGameScreen, WallnutBowlingGameScreen,
+        // IZombieGameScreen, ZombotanyGameScreen).
         return seasonFolder == null ? "" : seasonFolder.trim().toLowerCase().replace('-', ' ');
     }
 

@@ -85,7 +85,9 @@ public class ModifyStrategy implements ActStrategy {
         imitaterActions.remove(user);
     }
 
-    
+    /** Select exactly one loadout plant at match start and keep that target for the
+     * entire lifetime of each Imitater. The Imitater is never copied from a nearby
+     * plant, so planting it later cannot make it switch targets dynamically. */
     private String resolveImitaterTargetName() {
         for (String selected : BeforeMenu.selectedPlants) {
             if (selected != null && !selected.equalsIgnoreCase("Imitater")) return selected;
@@ -111,9 +113,9 @@ public class ModifyStrategy implements ActStrategy {
         Plant replacement = PlantFactory.createPlant(targetConfig.id, imitater.getLevel(),
                 new Position(col, row));
 
-        
-        
-        
+        // Replace the board occupant itself. We do not mutate the Imitater into
+        // another runtime plant: the selected target becomes a real Plant object
+        // occupying the exact same tile.
         if (!session.removePlantAt(row, col)) return;
         if (!session.plantAt(row, col, replacement)) {
             session.plantAt(row, col, imitater);
@@ -138,23 +140,27 @@ public class ModifyStrategy implements ActStrategy {
             }
         }
         if (nearest != null) {
-            
-            
-            
-            
+            // Strips the armor object outright (not just zeroing its HP) so the zombie
+            // is left exactly like a basic zombie - see ZombieArmorMask, which now
+            // explicitly hides every armor element whenever a zombie has no live
+            // Armour, instead of leaving it to whatever the PAM's clip defaults to.
             nearest.setArmour(null);
             user.setInternalTimer(user.getActionInterval());
             startMagnetPullAnimation(user);
         }
     }
 
-    
+    /** Only bucket and crown armor (Dark Ages basic zombie's crown+shoulder set) are
+     * flagged metallic in the armor data - anything else (cone, brick, newspaper,
+     * shoulder armor on its own) is not something Magnet-shroom can pull off. */
     private boolean hasMetalArmour(Zombie zombie) {
         return zombie.getArmour() instanceof model.collections.armour.ZombieArmour armour
                 && armour.getHP() > 0 && armour.isMetal();
     }
 
-    
+    /** Kicks off the "special" clip: the caught item travels to the plant over that
+     * clip's own duration. Plant#tickVisualAnimation carries it on to "catch" and then
+     * back to idle (with the Magnet_Item element left visible) once it lands. */
     private void startMagnetPullAnimation(Plant user) {
         float specialDuration = model.collections.animations.AnimationFactory
                 .clipDurationForDisplayName(user.getName(), "special");

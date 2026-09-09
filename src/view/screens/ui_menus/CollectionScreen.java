@@ -71,10 +71,14 @@ public class CollectionScreen extends UiScreen {
 
     private static final String TAG_ICON_DIR = "assets/images/ui/collection/tags/";
 
-    
+    /** Blank circular plaque in the mintfam set - no dedicated family art, so it doubles as the generic fallback. */
     private static final String DEFAULT_TAG_ICON = TAG_ICON_DIR + "mintfam_banner.png";
 
-    
+    /**
+     * Maps each PlantTag to the closest-themed icon in the real mintfam_* set (only 15
+     * distinct family icons exist, vs. 38 tags), so cards get a fitting icon instead of
+     * mostly falling back to the default plaque.
+     */
     private static final Map<PlantTag, String> TAG_ICON_PATHS = buildTagIconPaths();
 
     private static Map<PlantTag, String> buildTagIconPaths() {
@@ -541,12 +545,12 @@ public class CollectionScreen extends UiScreen {
                 cardStack.setSize(cardW, cardH);
                 cardStack.add(card);
             } else {
-                
-                
-                
-                
-                
-                
+                // zombies_ui has no flat icon for entire chapters (Far Future, Pirate
+                // Seas, Mech zombies, Swashbuckler) even though those zombies do have
+                // a working idle PAM animation - the same one openZombieInfo already
+                // draws successfully in the info popup. Reuse that animation, scaled
+                // down to card size, on top of the same tombstone-frame background
+                // every real icon card uses, instead of leaving a blank placeholder.
                 cardStack.setSize(cardW, cardH);
                 cardStack.add(new Image(new TextureRegionDrawable(zombieCardFactory.getCardBackground())));
                 Actor animatedIcon = buildAnimatedZombieIcon(alias, cardW, cardH);
@@ -599,7 +603,15 @@ public class CollectionScreen extends UiScreen {
         return sb.length() == 0 ? alias : sb.toString();
     }
 
-    
+    /**
+     * Builds a scaled-down, clipped copy of the same idle-animation box
+     * {@link #buildZombieInfoPopup} uses (250x250 outer box, 220x220 actor, actor
+     * placed at (0,0) with the same +110/+85 offsets - see {@link PlantIdleAnimationActor}),
+     * for use as a card icon when {@link ZombieIconCardFactory} has no flat icon for
+     * the alias. {@link pvz.libpvz.pam.PamPlayer#draw} always renders at native pixel
+     * size (it takes no scale parameter), so shrinking it requires wrapping it in a
+     * transform-enabled {@link Group} and scaling that instead.
+     */
     private Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
         String animationPath = null;
         try {
@@ -632,7 +644,7 @@ public class CollectionScreen extends UiScreen {
         return clip;
     }
 
-    
+    /** A plain {@link Group} that scissor-clips its children to its own bounds. */
     private static class ClippedGroup extends Group {
         ClippedGroup(float width, float height) {
             setSize(width, height);
@@ -1042,7 +1054,7 @@ public class CollectionScreen extends UiScreen {
 
         void movePreview(int delta) {
             List<PlantCostume> costumes = PlantCostumeManager.costumesForPlant(plantName);
-            int total = costumes.size() + 1; 
+            int total = costumes.size() + 1; // index 0 is the original/default art.
             previewIndex = (previewIndex + delta) % total;
             if (previewIndex < 0) previewIndex += total;
             previewCostumeId = previewIndex == 0 ? null : costumes.get(previewIndex - 1).id;

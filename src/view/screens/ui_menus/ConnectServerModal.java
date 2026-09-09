@@ -18,7 +18,11 @@ import view.screens.generals.BaseScreen;
 import view.screens.generals.Modal;
 import view.screens.generals.Toast;
 
-
+/**
+ * Popup that asks the player to connect to the game server. Opened by tapping the
+ * island icon on the online-match hub screen. Reuses the same wood-board look as the
+ * other net screens, on top of the shared {@link Modal} scrim/panel plumbing.
+ */
 class ConnectServerModal extends Modal {
 
     private static final String WOOD_BACKGROUND_PATH = "assets/images/backg/wood board.png";
@@ -90,7 +94,7 @@ class ConnectServerModal extends Modal {
         return new TextureRegionDrawable(loadTexture(WOOD_BACKGROUND_PATH));
     }
 
-    
+    /** Same "load or transparent fallback" behaviour as UiScreen#loadTextureSafe. */
     private Texture loadTexture(String path) {
         if (path != null && !path.isEmpty() && Gdx.files.internal(path).exists()) {
             Texture texture = new Texture(Gdx.files.internal(path));

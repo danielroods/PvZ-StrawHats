@@ -142,7 +142,11 @@ class EndlessLotteryTest {
         return total / aliases.size();
     }
 
-    
+    /**
+     * Wave one million, asked for directly: the budget, the wave size and the power
+     * multiplier all have to stay finite and sane, or a long run would eventually wrap an
+     * int around and hand the player a free lawn.
+     */
     @Test
     void aWaveDeepIntoTheRunStaysWithinItsLimits() {
         EndlessLevel level = lotteryFor(EndlessChapter.BIG_WAVE_BEACH);
@@ -178,7 +182,7 @@ class EndlessLotteryTest {
         int spawnedSoFar = 0;
         for (int tick = 0; tick < 20_000; tick++) {
             session.tick();
-            
+            // Keep the lawn clear so the schedule, not the player, is what is under test.
             for (Zombie zombie : new ArrayList<>(session.getZombies())) zombie.setHp(0);
             session.getZombies().clear();
             spawnedSoFar = Math.max(spawnedSoFar, session.getWavesSpawnedCount());
@@ -192,7 +196,11 @@ class EndlessLotteryTest {
                 "the wave count reports how far the run has got");
     }
 
-    
+    /**
+     * Scaling has to reach every zombie on the lawn, not only the ones the wave schedule
+     * placed - Dark Ages raises its own from graves and a Gargantuar throws its own imps,
+     * and a deep run would be trivial if those stayed at their starting strength.
+     */
     @Test
     void everyZombieThatReachesTheLawnIsScaledByHowDeepTheRunIs() {
         EndlessLevel level = lotteryFor(EndlessChapter.EGYPT);

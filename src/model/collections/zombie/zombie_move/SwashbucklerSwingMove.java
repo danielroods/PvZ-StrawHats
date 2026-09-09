@@ -9,7 +9,15 @@ import model.utils.GameSession;
 
 import java.util.Random;
 
-
+/**
+ * Pirate Seas movement for the Swashbuckler.
+ *
+ * A Swashbuckler is authored to enter an unbridged row from the sea side, swing
+ * on its rope for several complete "swing back" cycles, then either land on the
+ * left edge of the sea or fall into the water. The swing is visual-only until
+ * the move resolves; after a successful landing the normal walking movement
+ * resumes.
+ */
 public final class SwashbucklerSwingMove implements MoveBehavior {
     private static final Random RANDOM = new Random();
 
@@ -40,7 +48,7 @@ public final class SwashbucklerSwingMove implements MoveBehavior {
         int row = (int) Math.round(pos.y());
         int waterStart = Math.max(0, lawn.getCols() - Pirate.WATER_COLUMN_COUNT);
 
-        
+        // If this is somehow spawned on a bridge row, never trap it in the swing state.
         if (!WaterCrossing.isOpenWater(session, row, waterStart)) {
             zombie.clearActionAnimationState();
             zombie.setMoveBehavior(new PirateGroundWalk());
@@ -53,8 +61,8 @@ public final class SwashbucklerSwingMove implements MoveBehavior {
         if (!state.resolved) {
             state.elapsed += deltaTime;
 
-            
-            
+            // One complete rope cycle is represented by one full "swing back" clip.
+            // Keep the clip looping while the move counts the authored cycles.
             zombie.setActionAnimationState("swing back", 0, true);
 
             if (state.elapsed >= SWING_COUNT * SWING_SECONDS) {
@@ -74,7 +82,7 @@ public final class SwashbucklerSwingMove implements MoveBehavior {
         }
 
         if (state.success) {
-            
+            // Once the success clip has completed, return to ordinary Pirate Seas walking.
             if (zombie.getActionAnimationState() == null) {
                 states.remove(zombie);
                 zombie.setMoveBehavior(new PirateGroundWalk());

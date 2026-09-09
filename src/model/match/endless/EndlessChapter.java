@@ -2,7 +2,11 @@ package model.match.endless;
 
 import java.util.Locale;
 
-
+/**
+ * The four chapters that have a Lottery (endless) node, and the stable identity each
+ * one uses everywhere its record is stored: the season it plays in, the key its high
+ * score is saved under, and the synthetic level id its match runs with.
+ */
 public enum EndlessChapter {
 
     EGYPT("egypt", "Egypt", "Ancient Egypt"),
@@ -12,7 +16,12 @@ public enum EndlessChapter {
     PIRATES("pirates", "Pirates", "Pirates"),
     FUTURE("future", "Future", "Future");
 
-    
+    /**
+     * Lottery levels are synthetic - they are never listed in Levels.json - so they take
+     * ids below every authored level. Negative ids keep them out of
+     * LevelProgression/UserState.lastLevel, which only ever move forward through the
+     * authored ladder.
+     */
     private static final int LEVEL_ID_BASE = -1_000_000;
 
     private final String key;

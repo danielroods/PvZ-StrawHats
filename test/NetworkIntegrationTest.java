@@ -104,7 +104,7 @@ class NetworkIntegrationTest {
             try {
                 server.start();
             } catch (Exception ignored) {
-                
+                // The socket closes when the test tears the server down.
             }
         }, "test-server");
         thread.setDaemon(true);
@@ -501,7 +501,11 @@ class NetworkIntegrationTest {
         peer.close();
     }
 
-    
+    /**
+     * A submitted score must not make the server look newer than the client that just
+     * played, or the client's own next save is answered with (and reconciled back to) the
+     * server's older copy - silently rolling the rest of that session's progress back.
+     */
     @Test
     @Order(10)
     void submittingAScoreDoesNotMakeTheClientsOwnSaveLookStale() throws Exception {

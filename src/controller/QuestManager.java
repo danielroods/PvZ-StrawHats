@@ -109,7 +109,7 @@ public class QuestManager {
                 }
             }
         }
-        
+        // update every progress even if the player quits before finishing a quest.
         if (changed) QuestLoader.saveActiveQuestsProgress();
 
     }

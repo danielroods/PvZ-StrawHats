@@ -83,12 +83,12 @@ public class SquashStrategy implements ActStrategy {
             }
 
             case JUMP_DOWN -> {
-                
+                // The whole jump-down clip has finished. Land NOW.
                 smashLanding(user, session, action);
                 action.remainingSmashes--;
 
-                
-                
+                // Keep the squash visually on the landing cell for the renderer,
+                // but do not leave an animation state running after the landing.
                 user.setSquashVisualPosition(action.target);
                 user.clearVisualAnimationState();
 
@@ -167,17 +167,17 @@ public class SquashStrategy implements ActStrategy {
     private void smashLanding(Plant squash, GameSession session, Action action) {
         if (session == null || action == null || action.target == null) return;
 
-        
-        
+        // IMPORTANT: hit the Zombie selected at the beginning of the jump,
+        // not whichever Zombie happens to occupy the cell when Squash lands.
         Zombie primary = action.targetZombie;
         if (primary != null && primary.isAlive()) {
-            
-            
+            // Squash is an instant-kill plant. Use enough damage to kill through
+            // normal HP while still going through Zombie's normal death pipeline.
             primary.takeDamage(Math.max(primary.getHP() + 1, squash.getDamage()), squash);
         }
 
-        
-        
+        // Keep the original landing-area behavior for any other Zombie actually
+        // standing on the landing cell.
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || zombie == primary || !zombie.isAlive()
                     || zombie.getPosition() == null) {

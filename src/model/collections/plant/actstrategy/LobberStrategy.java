@@ -112,8 +112,8 @@ public class LobberStrategy implements ActStrategy {
         if (user.getTags().contains(PlantTag.POISON)) return new PoisonHit(areaLength);
         if (user.getName().equalsIgnoreCase("Kernel-pult")) {
             double butterChance = BASE_BUTTER_CHANCE + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
-            
-            
+            // Plant Food ("Butter Barrage") always butters every zombie it hits;
+            // outside of that it's the normal random chance per shot.
             if (user.isPlantFoodActive() || Math.random() < butterChance) {
                 return new ButterHit(areaLength);
             }

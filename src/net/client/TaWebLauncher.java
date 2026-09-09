@@ -7,7 +7,7 @@ import net.server.ta.TaPortalServer;
 
 import java.io.File;
 
-
+/** Starts the local TA web portal on demand. It is independent of GameServer. */
 public final class TaWebLauncher {
     private static TaPortalServer portal;
 

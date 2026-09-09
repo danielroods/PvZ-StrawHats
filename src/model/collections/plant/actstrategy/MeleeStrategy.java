@@ -86,9 +86,9 @@ public class MeleeStrategy implements ActStrategy {
             if (user.getTags().contains(PlantTag.POISON)) zombie.takeDamage(userDamage, true);
             else zombie.takeDamage(userDamage, user);
 
-            
-            
-            
+            // Headbutter Lettuce sometimes butters the zombie it just hit - same chance
+            // (base + BUTTER_CHANCE_BUFF upgrade) and stun length as Kernel-pult's normal
+            // (non-Plant-Food) butter shots.
             if (headbutterLettuce && zombie.isAlive()) {
                 double butterChance = HEADBUTTER_LETTUCE_BASE_BUTTER_CHANCE
                         + user.getSpecialUpgrade("BUTTER_CHANCE_BUFF", 0);
@@ -98,7 +98,7 @@ public class MeleeStrategy implements ActStrategy {
             }
 
             if ("Kiwibeast".equalsIgnoreCase(user.getName()) && zombie.isAlive()) {
-                
+                // Not every Kiwi attack knocks back. Every second successful hit does.
                 int hitNumber = user.incrementKiwibeastHitCounter();
                 if (hitNumber % 2 == 0) {
                     Position zp = zombie.getPosition();

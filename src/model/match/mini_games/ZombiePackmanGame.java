@@ -12,7 +12,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * Lightweight standalone simulation for the Console's Zombie Packman game.
+ * It deliberately does not use GameSession: the board is 200x200 and needs its own
+ * continuous, camera-following movement model rather than the 5x9 PvZ lane model.
+ */
 public final class ZombiePackmanGame {
     public static final int WIDTH = 200, HEIGHT = 200;
     public static final int MAX_LIVES = 9;

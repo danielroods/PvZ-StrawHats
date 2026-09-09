@@ -7,7 +7,14 @@ import view.screens.generals.GameScreen;
 
 import java.util.Map;
 
-
+/**
+ * Sequence played once the match outcome is decided, before actually leaving the game
+ * screen: the board keeps rendering as-is for {@link #MATCH_END_HOLD_DURATION}s, then the
+ * board shades into dark over {@link #MATCH_END_FADE_DURATION}s, then the "YOU WON"/"YOU
+ * LOST" title PAM plays (intro clip, then loop) for {@link #MATCH_END_TITLE_DURATION}s,
+ * and only then does the real "end game" command fire and the screen hand off to the
+ * after-match menu.
+ */
 public class MatchEndSequence {
 
     enum MatchEndPhase { NONE, HOLD, FADE, TITLE }
@@ -64,7 +71,12 @@ public class MatchEndSequence {
         }
     }
 
-    
+    /**
+     * Starts the win/lose sequence instead of ending the match immediately: the board keeps
+     * rendering for a few seconds, then shades dark, then shows the outcome title, and only
+     * once that has all played out does {@link #finishMatchEndSequence()} actually run the
+     * "end game" command and hand off to the after-match menu.
+     */
     public void startMatchEndSequence(boolean won) {
         matchEndWon = won;
         matchEndPhase = MatchEndPhase.HOLD;
@@ -106,7 +118,12 @@ public class MatchEndSequence {
         controller.ScreenManager.syncWithCurrentMenu();
     }
 
-    
+    /**
+     * Darkens the board a little once the outcome is decided (FADE/TITLE phases), then draws
+     * the "YOU WON"/"YOU LOST" title PAM on top during TITLE - "intro" for the clip's own
+     * intro length, then "loop" for the rest of the title window. Only the single named title
+     * image is shown, via the same elementVisibility mask drawPam uses for zombie armor.
+     */
     public void drawMatchEndOverlay() {
         if (matchEndPhase != MatchEndPhase.FADE && matchEndPhase != MatchEndPhase.TITLE) return;
 

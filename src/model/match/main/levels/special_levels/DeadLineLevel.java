@@ -5,7 +5,7 @@ import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
 public class DeadLineLevel extends Level {
-    private Position deadLine; 
+    private Position deadLine; // e.g., column x = 3
 
     
     @Override

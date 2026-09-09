@@ -20,7 +20,7 @@ public class BigNut extends Nut {
     public boolean onHitZombie(Zombie zombie, GameSession session) {
         int armorHp = zombie.getArmor() == null ? 0 : zombie.getArmor().getHP();
         zombie.takeDamage(zombie.getHp() + armorHp + 1, this);
-        return false; 
+        return false; // keeps rolling straight through
     }
 
     @Override

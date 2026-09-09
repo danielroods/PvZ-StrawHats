@@ -8,7 +8,19 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Live bookkeeping for one endless (Lottery) run: how long it has lasted, how many
+ * zombies it has killed, and the score those kills are worth.
+ * <p>
+ * The scoring is the five-pattern Meow Point formula the Lottery mode already used -
+ * piercing bonus, how fast the zombie went down, how many died at once, the running
+ * combo, all multiplied by a difficulty factor that climbs with match time. Two things
+ * changed, both because the old version could not produce a correct number: the "at
+ * once" window and the difficulty ramp are measured in match time instead of wall-clock
+ * milliseconds (so pausing or the 2x/3x speed button no longer distorts them), and the
+ * running total is a saturating {@code long} with a capped multiplier so an endless run
+ * can never wrap it around.
+ */
 public final class EndlessRun {
 
     public static final double SCORE_MULTIPLIER_RAMP_SECONDS = 20.0;
@@ -63,7 +75,10 @@ public final class EndlessRun {
         return award;
     }
 
-    
+    /**
+     * Drops spawn times for zombies that left the lawn without dying (a wiped board, a
+     * mini-game style reset), so a run that lasts for hours cannot accumulate them.
+     */
     public void pruneSpawnTimes(List<Zombie> liveZombies) {
         if (spawnTimes.isEmpty()) return;
         if (liveZombies == null || liveZombies.isEmpty()) {

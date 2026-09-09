@@ -14,7 +14,7 @@ public class RandomVase extends Vase {
     public enum Content { EMPTY, ZOMBIE, PLANT }
 
     private final Content content;
-    private final int plantId; 
+    private final int plantId; // only meaningful when content == PLANT
     private final String[] zombieAliases;
 
     public RandomVase(Position position, int[] unlockedPlantIds, String[] zombieAliases) {
@@ -55,7 +55,7 @@ public class RandomVase extends Vase {
                 session.spawnZombie(zombie);
             }
             case PLANT -> minigame.dropSeedPacket(position, plantId);
-            case EMPTY -> {  }
+            case EMPTY -> { /* nothing happens */ }
         }
     }
 }

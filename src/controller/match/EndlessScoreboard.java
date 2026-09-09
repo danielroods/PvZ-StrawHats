@@ -9,7 +9,13 @@ import model.utils.GameSession;
 import net.client.NetworkClient;
 import view.GeneralPrinter;
 
-
+/**
+ * Books an endless (Lottery) run into the account that played it, once, when the match
+ * ends. The account's own {@link UserState} is the single source of truth: the record is
+ * written there and saved through {@link User#save()}, which is what mirrors it to
+ * client-data/Data.json offline and pushes it to the server (newest revision wins) when
+ * signed in - so the leaderboard sees the same number either way.
+ */
 public final class EndlessScoreboard {
 
     public record Result(EndlessChapter chapter, long score, long best, boolean improved) {

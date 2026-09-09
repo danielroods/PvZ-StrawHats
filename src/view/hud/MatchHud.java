@@ -44,7 +44,7 @@ import java.util.function.Consumer;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
-
+/** Single in-match HUD layer. Gameplay mutation stays in GameScreen. */
 public final class MatchHud extends Table implements Disposable {
     private static final float CARD_W = 95f;
 
@@ -78,8 +78,8 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
     private final WaveProgressMeter waveMeter;
-    
-    
+    // Edge-detection for SFX_WAVE_START (same idiom used throughout the renderers):
+    // fires once each time getWavesSpawnedCount() ticks up.
     private int lastWavesSpawnedCount = -1;
     private GameSession lastSession;
 
@@ -363,7 +363,7 @@ public final class MatchHud extends Table implements Disposable {
         invalidateHierarchy();
     }
 
-    
+    /** Briefly darkens the nuke button as click feedback, then smoothly restores it. */
     private void darkenNukeButtonBriefly() {
         nukeButton.clearActions();
         nukeButton.setColor(Color.WHITE);
@@ -509,7 +509,7 @@ public final class MatchHud extends Table implements Disposable {
             return;
         }
 
-        
+        // Vasebreaker and Beghouled have no wave schedule at all, so there is nothing to meter.
         if (total <= 0) {
             waveLabel.setText("");
             waveLabel.setVisible(false);
@@ -633,7 +633,7 @@ public final class MatchHud extends Table implements Disposable {
 
             @Override
             public void touchDragged(InputEvent event, float x, float y, int pointer) {
-                
+                // Selection stays armed while the pointer travels from the card to the lawn.
             }
 
             @Override
@@ -673,7 +673,13 @@ public final class MatchHud extends Table implements Disposable {
         this.pamPlayer = pamPlayer;
     }
 
-    
+    /**
+     * Overrides the top-of-screen sun readout with an explicit value instead of the raw
+     * session sun count. Used by modes (like couch I, Zombie) where the shared session's
+     * sun pool belongs to one side only, so showing it as "the" sun total is misleading -
+     * pass the value that's actually meaningful for the player looking at this HUD.
+     * Pass null to go back to showing the session's own sun count.
+     */
     public void setSunOverride(Integer sun) {
         this.sunOverride = sun;
     }
@@ -724,7 +730,11 @@ public final class MatchHud extends Table implements Disposable {
         }
     }
 
-    
+    /**
+     * Lightweight graphical conveyor. The belt is tiled from one small texture,
+     * while seed cards are regular Scene2D actors so they remain fully draggable.
+     * Cards are clipped to the metal frame and are ordered top -> bottom.
+     */
     private final class ConveyorBeltWidget extends Group implements Disposable {
         private static final float FRAME_WIDTH = 127f;
         private static final float SIDE_WIDTH = 18f;

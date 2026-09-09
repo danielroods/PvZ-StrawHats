@@ -96,7 +96,11 @@ public class ZombieFactory {
         return ((Number) data.getOrDefault("WavePointCost", DEFAULT_WAVE_POINT_COST)).intValue();
     }
 
-    
+    /**
+     * True for zombies whose configured movement is airborne/flying. Pirate Seas uses
+     * this when choosing spawn lanes: flyers may enter any lane, while ground zombies
+     * must enter through a bridge lane so they never appear in the open-water section.
+     */
     public static boolean isFlying(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);
@@ -168,9 +172,9 @@ public class ZombieFactory {
 
         Object moveSpec = data.getOrDefault("move", "NormalWalk");
 
-        
-        
-        
+        // Generic armor aliases reuse the chapter's basic-zombie art. In Pirate
+        // Seas they must also use the pirate ground movement so they respect
+        // bridges/open water exactly like ZombiePirateBasic.
         if (isPirateSeason() && isGenericArmorAlias(alias)) {
             moveSpec = "PirateGroundWalk";
         }
@@ -291,12 +295,12 @@ public class ZombieFactory {
         if (type == null) return;
 
         if (type == PushableType.ICE_BLOCK) {
-            
-            
-            
-            
-            
-            
+            // Troglobites spawn already frozen solid inside their own ice (see
+            // Cave.placeFrostedZombies / FrostbiteFreezing.freezeZombieInIce). The
+            // pushable ice block - the same block, now containing a frozen imp - only
+            // drops onto the lawn once that ice melts and the zombie is released;
+            // see spawnFallingIceBlockOnRelease(), called from IceBlock.release().
+            // Only ever the one block - it is not replaced once destroyed.
             zombie.setPushableRespawnsRemaining(1);
             return;
         }
@@ -309,7 +313,12 @@ public class ZombieFactory {
         placeOnLawnIfPossible(zombie, structure);
     }
 
-    
+    /**
+     * Called once a Troglobite's surrounding ice block melts away and frees it. Drops a
+     * fresh pushable ice block - with a frozen imp waiting inside - onto the cell just
+     * ahead of the zombie, the same spot an arcade cabinet would be placed for a
+     * ZombieArcade, and starts its "falls smoothly from the sky" animation.
+     */
     public static void spawnFallingIceBlockOnRelease(Zombie zombie) {
         if (zombie == null || !"ZombieIceAgeTroglobite".equals(zombie.getAlias())) return;
         if (zombie.getPushedStructure() != null) return;
@@ -339,8 +348,8 @@ public class ZombieFactory {
         if (session != null) session.registerStructure(current);
 
         if (current.getType() == PushableType.ICE_BLOCK) {
-            
-            
+            // Troglobites only ever get the one ice block (see attachPushedStructureIfNeeded);
+            // it is not replaced once destroyed.
             return;
         }
 

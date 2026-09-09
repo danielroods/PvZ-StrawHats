@@ -20,17 +20,17 @@ public class LoginMenu extends Menu {
         return "Login Menu";
     }
 
-    
+    /** True once "forget password" succeeded and we're waiting on "answer -a ...". Read-only view onto the wizard state above - no behavior change. */
     public static boolean isAwaitingSecurityAnswer() {
         return pendingPasswordReset != null && !awaitingNewPassword;
     }
 
-    
+    /** True once the security answer was correct and we're waiting on the raw new-password line. */
     public static boolean isAwaitingNewPassword() {
         return awaitingNewPassword;
     }
 
-    
+    /** The question text to show while {@link #isAwaitingSecurityAnswer()} is true; null otherwise. */
     public static String getPendingSecurityQuestion() {
         return pendingPasswordReset != null ? pendingPasswordReset.securityQuestion : null;
     }

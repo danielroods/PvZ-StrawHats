@@ -51,9 +51,9 @@ public class GameSession {
     private Boolean skySunEnabledOverride = null;
     private double skySunIntervalMultiplier = 1.0;
     private int difficultyLevel;
-    
-    
-    
+    /// When true, the player is on the zombies' side (e.g. the I, Zombie mini-game) and
+    /// zombie effects that would normally raid the opponent's sun bank (Ra Zombie's
+    /// SunThief effect) instead generate sun for the player.
     private boolean zombieSunProductionMode = false;
 
     private final SessionHazards hazards = new SessionHazards(this);
@@ -169,7 +169,7 @@ public class GameSession {
 
     public boolean isZombieInBeachBigWave(Zombie zombie) { return hazards.isZombieInBeachBigWave(zombie); }
 
-    
+    /** Starts a Big Wave Beach hazard from a non-wave system such as the Beach Zomboss fight. */
     public void beginBeachBigWave(int waveIndex) {
         if (level == null || level.getSeason() == null
                 || !"Big Wave Beach".equalsIgnoreCase(level.getSeason().getName())) return;
@@ -177,7 +177,7 @@ public class GameSession {
         Flood.applyBigWaveWash(level, this);
     }
 
-    
+    /** Adds a zombie to the currently active Big Wave Beach entrance animation. */
     public void addBeachBigWaveEntry(Zombie zombie, int row, double startX, double targetX) {
         if (zombie == null) return;
         hazards.addBeachBigWaveEntry(zombie, row, startX, targetX);

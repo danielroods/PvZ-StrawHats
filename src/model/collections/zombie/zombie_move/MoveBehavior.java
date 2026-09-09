@@ -50,10 +50,10 @@ public interface MoveBehavior {
         int redirectedRow = row + (tile.slipperyDirection() == SlipperyDirection.UP ? -1 : 1);
         if (redirectedRow < 0 || redirectedRow >= lawn.getRows()) return next;
 
-        
-        
-        
-        
+        // Instead of snapping the row in a single tick, hand the zombie off to a
+        // short smooth glide (see GameSession/SessionHazards#beginSliderRide) so the
+        // TILESLIDER_ICEAGE_UP/DOWN active_start/active_end animation actually has
+        // time to play while the row visibly changes.
         session.beginSliderRide(zombie, next.x(), row, redirectedRow);
         return next;
     }

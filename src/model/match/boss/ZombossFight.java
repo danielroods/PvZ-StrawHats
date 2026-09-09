@@ -71,7 +71,7 @@ public class ZombossFight {
 
     private double spawnTimer;
 
-    
+    // Big Wave Beach boss fight: the tide rushes in several times during the battle.
     private static final double[] BEACH_BIG_WAVE_HEALTH_TRIGGERS = {0.75, 0.50, 0.25};
     private static final int BEACH_BIG_WAVE_BOSS_ZOMBIE_COUNT = 6;
     private int beachBigWavesTriggered = 0;
@@ -226,7 +226,7 @@ public class ZombossFight {
     public String getBossClip() {
         if (phase == ZombossPhase.SILENCE) return null;
         if (phase == ZombossPhase.BOSS_INTRO) return ZombossChapter.INTRO_CLIP;
-        
+        // Once die_exit has played out the boss has left; nothing more is drawn for it.
         if (phase == ZombossPhase.FINISHED) return null;
         if (phase == ZombossPhase.DEFEATED) {
             return deathSequence == null ? null : deathSequence.getCurrentClip();
@@ -395,7 +395,7 @@ public class ZombossFight {
     public void advanceDialogue() {
         if (phase != ZombossPhase.NPC_TALK) return;
 
-        
+        // Advance through all dialogue boxes normally.
         if (dialogueIndex + 1 < chapter.getDialogue().size()) {
             dialogueIndex++;
         } else {

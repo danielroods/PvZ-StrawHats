@@ -5,7 +5,7 @@ import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
 public abstract class Nut {
-    protected static final double SPEED = 3.0; 
+    protected static final double SPEED = 3.0; // columns per second
 
     protected Position position;
     protected Position direction;

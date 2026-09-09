@@ -37,9 +37,9 @@ public class GameMenuScreen extends UiScreen {
 
     private Group buttonLayer;
 
-    
-    
-    
+    // ============================================================
+    // MENU AREAS
+    // ============================================================
     /*
      * GAMING CLUB / MINI-GAMES
      *
@@ -109,9 +109,9 @@ public class GameMenuScreen extends UiScreen {
     private Texture textBackgroundTexture;
 
 
-    
-    
-    
+    // ============================================================
+    // ZOOM TRANSITION
+    // ============================================================
 
     private static final float ZOOM_IN_DURATION = 0.45f;
     private static final float ZOOM_TARGET = 0.35f;
@@ -203,9 +203,9 @@ public class GameMenuScreen extends UiScreen {
         addBeforeModal(buttonLayer);
 
 
-        
-        
-        
+        // ========================================================
+        // CREATE BUTTONS
+        // ========================================================
 
 
 
@@ -264,9 +264,9 @@ public class GameMenuScreen extends UiScreen {
         );
 
 
-        
-        
-        
+        // ========================================================
+        // ADD BUTTONS
+        // ========================================================
 
 
         buttonLayer.addActor(gaming);
@@ -277,9 +277,9 @@ public class GameMenuScreen extends UiScreen {
         buttonLayer.addActor(leaderboard);
 
 
-        
-        
-        
+        // ========================================================
+        // FUNCTIONS
+        // ========================================================
 
 
 
@@ -355,7 +355,12 @@ public class GameMenuScreen extends UiScreen {
     }
 
 
-    
+    /**
+     * Creates an invisible TextButton.
+     *
+     * The visual wooden signs / boards are already part of
+     * the background artwork.
+     */
     private TextButton createButton(
             String text,
             float x,

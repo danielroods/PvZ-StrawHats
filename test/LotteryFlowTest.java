@@ -34,10 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
+/**
+ * The whole Lottery flow driven through the real menu state machine - pick the node,
+ * choose a loadout, play until the lawn is overrun, then land on the after-match menu -
+ * checking that the run is scored, saved against the right chapter of the right account,
+ * and shows up on that account's leaderboard row.
+ */
 class LotteryFlowTest {
 
-    
+    /** Keeps {@link User#save()} out of the project's real client-data/Data.json. */
     private static final class MemoryStore implements UserStore {
         private int saves;
 
@@ -130,7 +135,7 @@ class LotteryFlowTest {
         return session;
     }
 
-    
+    /** Free peashooters, so the run actually kills things and scores. */
     private void defendTheLawn(GameSession session) {
         for (int column = 1; column <= 2; column++) {
             for (int row = 0; row < session.getRows(); row++) {

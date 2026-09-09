@@ -6,7 +6,7 @@ public final class Protocol {
     public static final int DEFAULT_PORT = 7777;
     public static final String DEFAULT_HOST = "127.0.0.1";
 
-    
+    // Client-local TA offer web portal. It does not depend on GameServer.
     public static final String TA_WEB_HOST = "127.0.0.1";
     public static final String TA_WEB_PATH = "/ta";
 

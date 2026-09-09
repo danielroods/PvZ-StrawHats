@@ -4,7 +4,7 @@ import model.match.main.levels.Level;
 import model.utils.GameSession;
 
 public class LoveYourPlantsLevel extends Level {
-    private int maxPlantLoss = 3; 
+    private int maxPlantLoss = 3; // if more than this many plants die, you lose
     private int plantsLost = 0;
 
     @Override

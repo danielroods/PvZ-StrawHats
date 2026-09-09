@@ -235,7 +235,13 @@ public abstract class UiScreen extends BaseScreen {
         return outer;
     }
 
-    
+    /**
+     * A coin/diamond top-bar widget that also works as the "generic cheat" trigger:
+     * touching it opens {@link CurrencyCheatModal}, letting the player type an amount
+     * of that currency to add to the current account. Used by every menu that shows
+     * a coin or diamond counter (main, game, stages, greenhouse, collection, shop),
+     * so the cheat behaviour lives in exactly one place.
+     */
     protected Table currencyWidget(CurrencyType currency, int amount) {
         Table widget = createResourceWidget(currency.getIconPath(), String.valueOf(amount));
         widget.addListener(new ClickListener() {
@@ -248,11 +254,21 @@ public abstract class UiScreen extends BaseScreen {
         return widget;
     }
 
-    
+    /**
+     * Called after the currency cheat popup changes the user's coins/diamonds so the
+     * screen can redraw itself with the new values. Screens that display a coin or
+     * diamond widget (via {@link #currencyWidget}) should override this to call their
+     * own rebuild method (usually a private {@code build()}).
+     */
     protected void refreshContent() {
     }
 
-    
+    /**
+     * Public entry point so code outside this screen (e.g. the local TA offer web server,
+     * which updates the account from a background HTTP thread) can ask an already-open
+     * screen to redraw itself with fresh model data, instead of the player having to leave
+     * and reopen the screen to see the change.
+     */
     public void refresh() {
         refreshContent();
     }
@@ -356,7 +372,9 @@ public abstract class UiScreen extends BaseScreen {
         }
     }
 
-    
+    /** Menus show toast notifications by default; gameplay screens turn them off
+     *  (see GameScreen) since they were popping in over match UI, e.g. Beghouled's
+     *  upgrade cards, and eating the clicks meant for it. */
     protected boolean notificationsEnabled() {
         return true;
     }

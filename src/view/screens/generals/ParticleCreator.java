@@ -16,7 +16,7 @@ import static view.screens.generals.BaseScreen.SCREEN_WIDTH;
 
 public class ParticleCreator {
 
-    
+    // ۱. مقدار آلفا روی ۱ ثابت شد
     private static final float FIXED_ALPHA = 1.0f;
     private final int particleCount;
     private final float minSpeed, maxSpeed, fastness, minSize, maxSize;
@@ -100,7 +100,7 @@ public class ParticleCreator {
         p.speedY = MathUtils.random(minSpeed, maxSpeed);
         p.size = MathUtils.random(minSize, maxSize);
 
-        
+        // ۲. شفافیت یکسان و کاملاً کامل برای همه پارتیکل‌ها
         p.alpha = FIXED_ALPHA;
 
         p.rotation = MathUtils.random(0f, 360f);
@@ -117,7 +117,7 @@ public class ParticleCreator {
             p.x += p.speedX * delta;
             p.rotation += p.rotationSpeed * delta;
 
-            
+            // ۳. بخش تغییر مقادیر آلفا حذف شد تا همیشه ثابت بماند
 
             if (p.y < minY - 20 || p.x < minX - 30 || p.x > maxX + 30) {
                 spawn(p, false);

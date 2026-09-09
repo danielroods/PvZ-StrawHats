@@ -15,11 +15,11 @@ public class ConveyorBeltLevel extends Level {
     private static final double CONVEYOR_INTERVAL_SECONDS = 12.0;
     private static final Random RAND = new Random();
 
-    
+    /** Plant templates configured for this level. */
     private List<Plant> conveyorPlants;
     private int maxConveyorSize = 8;
 
-    
+    /** Active cards on the visual conveyor, ordered top -> bottom. */
     private final List<Plant> activeConveyorPlants = new ArrayList<>();
     private double conveyorTimer = 0;
 
@@ -49,12 +49,15 @@ public class ConveyorBeltLevel extends Level {
         if (offered != null) activeConveyorPlants.add(offered);
     }
 
-    
+    /**
+     * Compatibility accessor: the card at the top of the conveyor is the
+     * currently offered plant for older controller code.
+     */
     public Plant getCurrentPlant() {
         return activeConveyorPlants.isEmpty() ? null : activeConveyorPlants.get(0);
     }
 
-    
+    /** Removes the top card, preserving the old conveyor API. */
     public Plant takeCurrentPlant() {
         if (activeConveyorPlants.isEmpty()) return null;
         Plant taken = activeConveyorPlants.remove(0);
@@ -62,7 +65,7 @@ public class ConveyorBeltLevel extends Level {
         return taken;
     }
 
-    
+    /** Removes the exact card selected by the player, including a middle card. */
     public boolean takeConveyorPlant(Plant plant) {
         if (plant == null) return false;
         boolean removed = activeConveyorPlants.remove(plant);
@@ -70,7 +73,7 @@ public class ConveyorBeltLevel extends Level {
         return removed;
     }
 
-    
+    /** Active cards, ordered from the fixed top card down to the newest bottom card. */
     public List<Plant> getActiveConveyorPlants() {
         return Collections.unmodifiableList(activeConveyorPlants);
     }

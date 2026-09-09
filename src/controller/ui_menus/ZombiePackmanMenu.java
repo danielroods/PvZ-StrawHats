@@ -3,7 +3,7 @@ package controller.ui_menus;
 import model.App;
 import view.GeneralPrinter;
 
-
+/** Controller/menu state for the standalone Zombie Packman mini-game. */
 public class ZombiePackmanMenu extends Menu {
     @Override public String getName() { return "Zombie Packman"; }
 

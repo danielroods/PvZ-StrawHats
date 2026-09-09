@@ -60,10 +60,10 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private double endurianSpikeCooldown = 0.0;
     private double endurianAttackVisualTimer = 0.0;
 
-    
-    
-    
-    
+    // Cactus: true while ducked underground because a zombie is standing on its own tile
+    // (down/down_idle/down_attack), and true while popped up on tiptoe to shoot a
+    // Gargantuar (up_stretch/attack_stretch) - see tickCactusPosture(). The two are
+    // mutually exclusive.
     private boolean cactusUnderground = false;
     private boolean cactusStretching = false;
 
@@ -71,19 +71,19 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     private boolean potatoMineArmed = false;
     private boolean potatoMineDetonationPending = false;
-    
-    
+    // Set only when a zombie's eating/chomping attack actually kills a potato mine.
+    // Such a death must not trigger the mine's explosion effect.
     private boolean potatoMineEatenByZombie = false;
     private boolean chomperSpecialActive = false;
     private boolean chomperSpecialPending = false;
     private boolean chomperDigestIdlePending = false;
     private int kiwibeastHitCounter = 0;
 
-    
-    
+    // Imitater keeps the loadout-selected target until its planting animation
+    // completes, then becomes that plant.
     private String imitaterTargetName;
     private boolean imitaterTransformationStarted = false;
-    private int imitaterAnimationPhase = 0; 
+    private int imitaterAnimationPhase = 0; // 0=idle, 1=attack, 2=transformed
 
     private Position squashVisualPosition;
     private Position squashVisualOrigin;
@@ -91,13 +91,13 @@ public abstract class Plant extends Item implements Pluck, Attack {
     private boolean squashActionState = false;
     private boolean specialInvulnerable = false;
 
-    
-    
-    
-    
+    // Magnet-shroom: whether it is currently holding a caught metal item (the PAM's
+    // "Magnet_Item" element). False = nothing caught yet, element must stay hidden.
+    // Set true once a "catch" animation completes, and set false again once Plant Food
+    // throws the held items at zombies - see ModifyStrategy and DisarmBlast.
     private boolean magnetItemVisible = false;
-    
-    
+    // Set when Hot Potato is planted on an IceBlock so the renderer can play the
+    // ice-melting puddle effect once, without coupling the model to EffectRenderer.
     private boolean hotPotatoMeltEffectPending = false;
     private boolean graveBusterConsumedGrave = false;
 
@@ -175,9 +175,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
             boolean cactusBurstFinished = isCactus()
                     && plantFoodEffect instanceof model.collections.plant.plantfood.TimedProjectileBurst burst
                     && burst.isBurstFinished();
-            
-            
-            
+            // Cactus's Plant Food timer runs forever (see activatePlant), so once its initial
+            // burst has fired, fall through and let the normal ActStrategy cadence keep it
+            // shooting for the rest of its life instead of freezing on the burst forever.
             if (!cactusBurstFinished && (plantFoodEffect == null || plantFoodEffect.drivesActStrategy())) return;
         }
 
@@ -231,8 +231,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 setHP(0);
                 this.state = PlantState.DYING;
                 if (name.equalsIgnoreCase("Doom-shroom")) {
-                    
-                    
+                    // A Doom-shroom can also be killed by a zombie before its fuse ends;
+                    // that death must detonate it at its current growth stage.
                     this.internalTimer = 0.0;
                     if (this.actStrategy != null) this.actStrategy.act(this, frostSession);
                 }
@@ -254,7 +254,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         Position center = getPosition();
         if (session == null || center == null) return;
 
-        
+        // Torchwood's death explosion only affects zombies in/around its tile.
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
             Position zp = zombie.getPosition();
@@ -449,7 +449,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         return this.plantFoodEffect != null && this.plantFoodTimer <= 0 && isAlive();
     }
 
-    
+    /** Internal Plant Food transfer used by Pumpkin. It intentionally bypasses UI/card checks. */
     public boolean activatePlantFoodFromPumpkin(GameSession session) {
         if (!canUsePlantFood() || session == null) return false;
         return activatePlant(session);
@@ -481,8 +481,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
             Double staged = growthTracker.getStageValue("damage");
             if (staged != null) base = staged.intValue() + damageUpgradeBonus;
         }
-        
-        
+        // Cactus deals reduced damage while ducked underground hiding from a zombie
+        // standing on its tile - see tickCactusPosture().
         if (isCactus() && cactusUnderground) {
             base = Math.max(1, (int) Math.round(base * 0.5));
         }
@@ -629,9 +629,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 : Math.signum(zombie.getSpeed().x());
         if (Math.abs(directionX) < 0.0001) directionX = -1.0;
         double redirectX = originalX + (0.06 * directionX);
-        
-        
-        
+        // Glide the zombie into its new row over a short duration instead of
+        // snapping it there instantly — the same smooth row-shift used by
+        // Frostbite Caves tile sliders (see GameSession#beginSliderRide).
         session.beginSliderRide(zombie, redirectX, currentRow, targetRow);
         zombie.startKnockback(0.03 * directionX, 0.12);
         zombie.applyStatus(Zombie.Status.BUTTER, 0.65);
@@ -668,8 +668,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
                     : Math.signum(zombie.getSpeed().x());
             if (Math.abs(directionX) < 0.0001) directionX = -1.0;
             double redirectX = zp.x() + (0.06 * directionX);
-            
-            
+            // Same smooth row glide as the single-bite redirect above, rather
+            // than snapping every zombie on the row instantly.
             session.beginSliderRide(zombie, redirectX, row, targetRow);
             zombie.startKnockback(0.03 * directionX, 0.12);
             zombie.applyStatus(Zombie.Status.BUTTER, 7.5);
@@ -733,7 +733,18 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.cactusStretching = stretching;
     }
 
-    
+    /**
+     * Cactus has two situational postures on top of its normal idle/attack:
+     * - it ducks underground (down -> down_idle/down_attack loop -> up) for as long as a
+     *   zombie is standing on its own tile, dealing reduced damage while hidden (see
+     *   getDamage()) instead of eating a melee hit;
+     * - lacking a Balloon Zombie to justify the pose, it instead pops up on its "stretch"
+     *   pose (up_stretch -> attack_stretch -> down_stretch) whenever it's shooting at a
+     *   Gargantuar, so that clip still gets used.
+     * Both transitions are one-shot clips driven through the existing
+     * visualAnimationState mechanism; the looping down/up-stretch clip choice itself is
+     * resolved by PlantRenderer from the booleans this method maintains.
+     */
     private void tickCactusPosture(GameSession session) {
         if (!isCactus() || session == null || !isAlive()) return;
 
@@ -914,7 +925,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
     }
 
 
-    
+    /// getState()/setState(ItemState) pair with an unrelated return type.
     public PlantState getPlantState() {
         return this.state;
     }
@@ -1004,20 +1015,21 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.visualAnimationElapsed = 0.0;
     }
 
-    
+    /** Freeze the current visual clip on its final frame. Used by Squash so the
+     * landing frame is actually rendered before the plant is removed. */
     public void holdVisualAnimationAtEnd() {
         this.visualAnimationElapsed += this.visualAnimationRemaining;
         this.visualAnimationRemaining = 0.0;
     }
 
     private void finishPlantFoodVisualState() {
-        
-        
-        
-        
-        
-        
-        
+        // Plant Food visual states are temporary. Once the Plant Food timer ends,
+        // never leave the plant locked on an intro/loop/outro frame. Clearing the
+        // explicit visual state lets PlantRenderer resume its normal idle/attack
+        // selection on the very next frame.
+        //
+        // Chomper is the only exception: if its eating special is still active,
+        // return to its looping special idle instead of the normal idle.
         if ("Sweet Potato".equalsIgnoreCase(name)) {
             specialInvulnerable = false;
             clearVisualAnimationState();
@@ -1039,8 +1051,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
     }
 
     private void advanceKiwibeastGrowthOnDamage() {
-        
-        
+        // Kiwibeast growth is time-based through GrowthTracker.update().
+        // Damage must not change its growth stage.
     }
 
     public int incrementKiwibeastHitCounter() {
@@ -1053,8 +1065,8 @@ public abstract class Plant extends Item implements Pluck, Attack {
 
     public void startChomperBite(boolean killedZombie) {
         if (!"Chomper".equalsIgnoreCase(name)) return;
-        
-        
+        // The attack clip is bite_end; the renderer will switch to special/special_idle
+        // only when a zombie was actually killed.
         setVisualAnimationState("bite_end", 0.45);
         chomperSpecialPending = killedZombie;
     }
@@ -1071,15 +1083,15 @@ public abstract class Plant extends Item implements Pluck, Attack {
         visualAnimationRemaining = Math.max(0.0, visualAnimationRemaining - deltaTimeSeconds);
         if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
                 && "special".equals(visualAnimationState)) {
-            
-            
+            // The metal item has finished travelling to the plant - switch to the
+            // "catch" clip that shows it actually grabbing hold of it.
             float catchDuration = model.collections.animations.AnimationFactory
                     .clipDurationForDisplayName(name, "catch");
             setVisualAnimationState("catch", catchDuration > 0f ? catchDuration : 0.5);
         } else if (visualAnimationRemaining <= 0 && "Magnet-shroom".equalsIgnoreCase(name)
                 && "catch".equals(visualAnimationState)) {
-            
-            
+            // Caught for good - the Magnet_Item element stays visible from here on,
+            // through idle, until Plant Food throws it away (see DisarmBlast).
             magnetItemVisible = true;
             clearVisualAnimationState();
         } else if (visualAnimationRemaining <= 0 && "special".equals(visualAnimationState)) {
@@ -1102,9 +1114,9 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 setVisualAnimationState("special", 0.8);
             }
         } else if (visualAnimationRemaining <= 0) {
-            
-            
-            
+            // Generic one-shot states (e.g. Kernel-pult's butter "attack2" throw)
+            // that don't need a special follow-up transition just revert to the
+            // normal idle/attack resolution once their window elapses.
             clearVisualAnimationState();
         }
     }

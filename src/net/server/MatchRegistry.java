@@ -230,9 +230,9 @@ public class MatchRegistry {
                     "brainsEaten", match.getBrainsEaten(),
                     "brainCount", match.getBrainCount(),
                     "elapsed", match.getElapsedSeconds());
-            
-            
-            
+            // The winner is told the total the server just wrote rather than being left to
+            // add one of its own, so the two copies of the account converge on one number
+            // however the state sync happens to be ordered around the match ending.
             if (winner == role && winnerMiniGamesWon >= 0) {
                 payload.addProperty("miniGamesWon", winnerMiniGamesWon);
             }

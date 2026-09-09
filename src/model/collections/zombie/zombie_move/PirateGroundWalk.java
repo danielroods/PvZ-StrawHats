@@ -7,7 +7,17 @@ import model.pitches.WaterCrossing;
 import model.pitches.obstacles.Bridge;
 import model.utils.GameSession;
 
-
+/**
+ * Ground-bound movement for the Pirate Seas chapter.
+ * <p>
+ * Behaves exactly like {@link NormalWalk} on dry land. The moment a step
+ * would carry the zombie onto a {@link TileType#Water} cell that has no
+ * {@link Bridge} plank on it, the zombie is held at the water's edge instead
+ * (it just stands there and renders on that row, unable to cross) - matching
+ * every land zombie in this chapter except the flying seagull/pelican
+ * zombies, which use {@link SeagullFlyMove}/{@link PelicanFlyMove} and never
+ * call this.
+ */
 public class PirateGroundWalk implements MoveBehavior {
 
     @Override
@@ -26,7 +36,7 @@ public class PirateGroundWalk implements MoveBehavior {
 
         if (newCol != oldCol) {
             if (WaterCrossing.isOpenWater(session, (int) Math.round(nextPos.y()), newCol)) {
-                
+                // Held at the edge - keep the old column, drop only the row/vertical drift.
                 nextPos = new Position(pos.x(), nextPos.y());
             } else if (session != null) {
                 nextPos = applySliderRedirect(zombie, pos, nextPos, session);

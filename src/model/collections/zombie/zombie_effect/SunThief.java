@@ -13,8 +13,8 @@ import service.GameClock;
 
 public class SunThief implements ZombieEffectStatus {
     private static final double GRAB_PERIOD = 5.0;
-    
-    
+    // How long Ra's one-shot "power_up" beat plays before the looping
+    // "power" clip takes over for the rest of the grab window.
     private static final double POWER_UP_DURATION = 0.5;
 
     private final boolean directBankStealer;
@@ -34,8 +34,8 @@ public class SunThief implements ZombieEffectStatus {
     private double lockOnTimer = 0;
     private Position groundedTargetOrigin;
 
-    
-    
+    // Sun-production state, used instead of the raiding behavior above when the
+    // session marks the zombies as being on the player's side (e.g. I, Zombie).
     private static final int SUN_PRODUCTION_AMOUNT = GroundSun.SunDropType.REGULAR.getValue();
     private boolean producingSun = false;
     private double productionCycleTimer = 0;
@@ -75,8 +75,8 @@ public class SunThief implements ZombieEffectStatus {
     @Override
     public void onDeath(Zombie target, GameSession session) {
         if (refundDispensedOnDeath || session == null) return;
-        
-        
+        // In sun-production mode every sun was already handed to the player the
+        // moment it was produced, so there is nothing left to refund on death.
         if (session.isZombieSunProductionMode()) {
             refundDispensedOnDeath = true;
             return;
@@ -86,10 +86,10 @@ public class SunThief implements ZombieEffectStatus {
         refundDispensedOnDeath = true;
     }
 
-    
-    
-    
-    
+    /// Ra Zombie fighting for the player (I, Zombie): instead of locking onto a
+    /// fallen sun and dragging it away, Ra channels its own sun and hands it
+    /// straight to the player's bank. Re-uses the exact same "power_up" -> "power"
+    /// animation beats as the theft behavior, just repeated on a loop.
     private void handleSunProduction(Zombie producer, GameSession session) {
         if (!producingSun) {
             producingSun = true;
@@ -127,8 +127,8 @@ public class SunThief implements ZombieEffectStatus {
             designatedTarget = scanForFallenSun(session);
             lockOnTimer = 0;
             if (designatedTarget == null) return;
-            
-            
+            // Just locked on: play the one-shot power-up beat, then the
+            // looping power beat carries the rest of the GRAB_PERIOD window.
             groundedTargetOrigin = designatedTarget.getPosition();
             if (designatedTarget instanceof GroundSun groundSun) {
                 groundSun.beginRedStealAnimation();
@@ -140,8 +140,8 @@ public class SunThief implements ZombieEffectStatus {
 
         lockOnTimer += GameClock.SECONDS_PER_TICK;
 
-        
-        
+        // Drag the sun across the lawn toward Ra for the rest of the grab
+        // window, rather than leaving it sitting still until it vanishes.
         if (groundedTargetOrigin != null && raider.getPosition() != null) {
             double progress = Math.min(1.0, lockOnTimer / GRAB_PERIOD);
             Position pulled = groundedTargetOrigin.add(

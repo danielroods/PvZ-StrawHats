@@ -125,7 +125,7 @@ public class ServerConnection {
         try {
             socket.close();
         } catch (IOException ignored) {
-            
+            // Nothing useful to do when the socket refuses to close.
         }
     }
 }

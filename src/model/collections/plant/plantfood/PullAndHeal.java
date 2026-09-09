@@ -41,8 +41,8 @@ public class PullAndHeal implements PlantFoodEffect {
             int fromRow = (int) Math.round(zombiePos.y());
             int toRow = (int) Math.round(center.y());
             if (fromRow != toRow) {
-                
-                
+                // Glide into the Sweet Potato's row smoothly instead of
+                // snapping instantly — same row-shift used by tile sliders.
                 session.beginSliderRide(zombie, zombiePos.x(), fromRow, toRow);
             } else {
                 zombie.setPosition(new Position(zombiePos.x(), center.y()));

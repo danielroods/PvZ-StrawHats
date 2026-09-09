@@ -11,10 +11,25 @@ import view.GeneralPrinter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
+/**
+ * Before-match loadout menu used for co-op. Plant commands (add/remove/boost/
+ * upgrade plant, show plants...) are all inherited unchanged from {@link BeforeMenu} -
+ * co-op does not touch that mechanism. The only addition is a mirrored roster
+ * command pair for the human zombie player ("add zombie -t X" / "remove zombie -t X"),
+ * backed by {@link BeforeMenu#selectedZombies} instead of a level-supplied zombie pool.
+ * "start game" is overridden: instead of starting the normal wave-based
+ * GameplayMenu, co-op hands off to the existing {@link CouchIZombieController}
+ * match, whose own placement mechanism is left exactly as it was.
+ */
 public class CoopBeforeMenu extends BeforeMenu {
 
-    
+    /**
+     * Exactly what the match can actually field. It used to be 7 (mirroring the plant
+     * loadout), but {@link IZombieMatch} only ever builds {@link IZombieMatch#MAX_ROSTER_SIZE}
+     * packets and the in-match tray only binds hotkeys 1-6, so a 7th pick was accepted in
+     * the loadout and then silently dropped - it never reached the tray and could never
+     * be placed. Deriving it keeps the picker honest.
+     */
     public static final int ZOMBIE_SLOTS = IZombieMatch.MAX_ROSTER_SIZE;
 
     private static final Pattern ADD_ZOMBIE = Pattern.compile(
@@ -85,8 +100,8 @@ public class CoopBeforeMenu extends BeforeMenu {
         }
         GeneralPrinter.print("Co-op match starting - " + selectedPlants.size()
                 + " plants vs " + selectedZombies.size() + " zombies.");
-        
-        
+        // Hand the players' own before-match loadouts into the match - the pre-placed
+        // defending plants stay exactly as before, only the pickable seeds/roster change.
         App.currentMenu = new CouchIZombieController(selectedPlants, selectedZombies);
     }
 

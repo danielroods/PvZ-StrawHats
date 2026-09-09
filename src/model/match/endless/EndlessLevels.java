@@ -11,7 +11,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 
-
+/**
+ * Builds a chapter's Lottery level out of that chapter's own authored stages, so the
+ * endless run plays on the same season (map, hazards, obstacles, assets) with the same
+ * board and the full zombie roster the chapter ever uses - including the ones only its
+ * Zomboss stage draws on, which is what gives the late game something to escalate into.
+ */
 public final class EndlessLevels {
 
     private static final int ENDLESS_INITIAL_SUN = 250;
@@ -35,10 +40,10 @@ public final class EndlessLevels {
             rows = level.getRows();
             cols = level.getCols();
             if (level.getZombiePool() != null) roster.addAll(level.getZombiePool());
-            
-            
-            
-            
+            // Starting a level unlocks every plant it lists (see MatchMenu.unlockStagePlants),
+            // so the Lottery offers what the chapter's ordinary stages offer and leaves the
+            // Zomboss stage's loadout to be earned there. Its zombies still count, though -
+            // they are what the late game escalates into.
             if (level.getAvailablePlants() != null && !(level instanceof BossLevel)) {
                 plants.addAll(level.getAvailablePlants());
             }
@@ -67,7 +72,12 @@ public final class EndlessLevels {
         return chapterLevels;
     }
 
-    
+    /**
+     * Frostbite Caves never spawns its Troglobites through the wave schedule - the season
+     * pre-freezes them onto the lawn instead, and the scheduler filters them out of every
+     * wave (see {@code WaveScheduler.entryAliases}). Leaving them in the endless roster
+     * would silently shrink waves, so they are dropped here rather than paid for twice.
+     */
     private static List<String> playableRoster(EndlessChapter chapter, List<String> roster) {
         List<String> playable = new ArrayList<>(new LinkedHashSet<>(roster));
         playable.removeIf(alias -> alias == null

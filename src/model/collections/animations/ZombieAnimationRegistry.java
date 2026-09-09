@@ -35,9 +35,9 @@ public class ZombieAnimationRegistry {
             Map.entry("ZombiePiratePelican", "ZOMBIE_PIRATE_PELICAN"),
             Map.entry("ZombiePirateGargantuar", "PIRATE_GARGANTUAR"),
             Map.entry("ZombiePirateCaptain", "ZOMBIE_PIRATE_CAPTAIN"),
-            
-            
-            
+            // Swashbuckler's PAM is a direct asset and contains the normal zombie
+            // clips plus the rope-swing clips: "swing back", "swing success",
+            // and "swing failure".
             Map.entry("ZombieSwashbuckler", "ZOMBIE_SWASHBUCKLER"),
 
             Map.entry("ZombieFutureBasic", "ZOMBIE_FUTURE_BASIC"),

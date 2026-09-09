@@ -134,8 +134,8 @@ public final class NetworkClient {
     }
 
     public void disconnect() {
-        
-        
+        // Flush any unsaved progress to the server before the connection goes away,
+        // so closing the game can't drop it.
         if (User.isRemote() && User.currentUser != null) {
             User.save();
         }
@@ -317,7 +317,11 @@ public final class NetworkClient {
         send(Protocol.BONUS_SCORE_SUBMIT, Envelope.obj("score", score), reply);
     }
 
-    
+    /**
+     * Reports one endless (Lottery) run for a chapter. The authoritative copy still
+     * travels with the account state (see {@link #pushStateNow()}); this only makes sure
+     * the server's record for that chapter is at least as good as the run just played.
+     */
     public void submitLotteryScore(String chapterKey, long score, Consumer<Envelope> reply) {
         send(Protocol.BONUS_SCORE_SUBMIT,
                 Envelope.obj("score", score, "chapter", chapterKey), reply);
@@ -366,10 +370,10 @@ public final class NetworkClient {
         if (!connection.isRunning()) {
             String failure = connection.getFailure();
             statusMessage = failure == null ? "Disconnected." : failure;
-            
-            
-            
-            
+            // The server just disappeared - the connection is already dead, so a remote
+            // save would just try to push over that dead connection and silently fail.
+            // Switch to the local store FIRST, then save, so this actually writes the
+            // in-memory progress straight to disk instead of losing it.
             boolean wasRemote = User.isRemote();
             User.useLocalStore();
             if (wasRemote && User.currentUser != null) {

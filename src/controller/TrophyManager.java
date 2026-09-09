@@ -17,11 +17,11 @@ public class TrophyManager {
     public record TrophyEntry(String chapterName, String trophyImagePath,
                                boolean earned, String trophyTitle, String trophyDescription) {}
 
-    
-    
-    
-    
-    
+    // One joke "Almanac entry" per chapter, in the spirit of the real game's trophy
+    // flavor text (e.g. "Zombot Multi-stage Masher" for Modern Day) - written fresh here
+    // rather than reused from ZombossChapter's battle dialogue, since a trophy caption
+    // is a different kind of joke (proud museum-placard humor) than a boss's mid-fight
+    // taunt.
     private record TrophyFlavor(String title, String description) {}
 
     private static final java.util.Map<String, TrophyFlavor> TROPHY_FLAVOR = java.util.Map.of(
@@ -46,7 +46,7 @@ public class TrophyManager {
                             + "out, still loses to a well-placed cabbage.")
     );
 
-    
+    // Ordered the same way the chapters unlock in Adventure Mode.
     private static final String[] CHAPTER_ORDER = {
             "Egypt", "Big Wave Beach", "Frostbite Caves", "Dark Ages", "Pirates", "Future"
     };

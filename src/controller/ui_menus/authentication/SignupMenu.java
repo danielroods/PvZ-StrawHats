@@ -22,7 +22,7 @@ public class SignupMenu extends Menu {
 
     private static final String SPECIAL_CHARS = "!#$%^&*()=+}{}[]|/\\:;'\"<>?";
 
-    
+    // the things we are working on currently
     private static String pendingUsername, pendingPassword, pendingNickname, pendingEmail, pendingGender;
 
     private static boolean isPendingSecurityAnswer = false;
@@ -32,12 +32,12 @@ public class SignupMenu extends Menu {
         return "SignUP Menu";
     }
 
-    
+    /** True between a successful "register" and a successful "pick question". Read-only view onto the wizard state above - no behavior change. */
     public static boolean isPendingSecurityAnswer() {
         return isPendingSecurityAnswer;
     }
 
-    
+    /** The same fixed question list handleRegister()/handlePickQuestion() already use, so a view never has to duplicate this text. */
     public static List<String> getSecurityQuestions() {
         return SECURITY_QUESTIONS;
     }
@@ -79,7 +79,7 @@ public class SignupMenu extends Menu {
         String email = matcher.group("email"), gender = matcher.group("gender");
 
         if (!(validateUsername(username) && validatePassword(password, passwordConfirm) && validateNickname(nickname)
-                && validateEmail(email) && validateGender(gender))) return; 
+                && validateEmail(email) && validateGender(gender))) return; // discrete structure
 
         pendingUsername = username;
         pendingPassword = password;

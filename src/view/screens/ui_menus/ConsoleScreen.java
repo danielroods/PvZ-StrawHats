@@ -15,7 +15,7 @@ import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.screens.generals.UiScreen;
 
-
+/** Minimal Console hub. Visual polish is intentionally deferred; gameplay is the focus. */
 public class ConsoleScreen extends UiScreen {
     @Override public void show() {
         setBackground("assets/images/backg/mainmenu_background.png");
