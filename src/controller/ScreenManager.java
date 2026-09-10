@@ -201,6 +201,9 @@ public final class ScreenManager {
             if (seasonName != null && seasonName.equalsIgnoreCase("Pirates")) {
                 return new PirateGameScreen();
             }
+            if (seasonName != null && seasonName.equalsIgnoreCase("Future")) {
+                return new FutureGameScreen();
+            }
             return new GameScreen();
         }
         if (menu instanceof AfterMenu) {

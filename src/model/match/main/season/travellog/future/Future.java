@@ -1,26 +1,23 @@
 package model.match.main.season.travellog.future;
 
-import model.collections.zombie.Zombie;
-import model.collections.zombie.ZombieFactory;
+import model.match.main.levels.special_levels.BossLevel;
 import model.match.main.season.Season;
-import model.match_mechanisms.vector.Position;
 import model.pitches.Cell;
 import model.pitches.Environment;
-import model.pitches.obstacles.Grave;
+import model.pitches.Tile;
+import model.pitches.TileType;
 import model.utils.GameSession;
 
-import java.util.Random;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class Future extends Season {
-    private static final int INITIAL_GRAVE_COUNT = 3;
-    private static final int GRAVES_ADDED_PER_WAVE = 2;
-    private static final int MAX_GRAVES = 14;
-    private static final double NECROMANCY_CHANCE = 0.50;
-    private static final double FRONT_GRAVE_WEIGHT = 0.20;  
-    private static final double BACK_GRAVE_WEIGHT = 1.00;   
+    private static final TileType[] LINK_TILE_PAIRS = {
+            TileType.LinkTile01, TileType.LinkTile02, TileType.LinkTile03
+    };
+
     private static final Random RANDOM = new Random();
 
     public Future() {
@@ -34,127 +31,58 @@ public class Future extends Season {
     public void placeSeasonObstacles(GameSession session) {
         if (session == null || session.getEnvironment() == null) return;
         Environment env = session.getEnvironment();
-
-        placeGraves(session, INITIAL_GRAVE_COUNT);
-    }
-
-    @Override
-    public void onWaveStart(GameSession session, int waveIndex) {
-        if (session == null || session.getEnvironment() == null) return;
-
-        if (waveIndex > 0) {
-            int targetTotal = Math.min(MAX_GRAVES, INITIAL_GRAVE_COUNT + waveIndex * GRAVES_ADDED_PER_WAVE);
-            placeGraves(session, targetTotal - countGraves(session));
-        }
-
-        necromancy(session, waveIndex);
-    }
-
-    private static void placeGraves(GameSession session, int count) {
-        if (session == null || session.getEnvironment() == null || count <= 0) return;
-        Environment env = session.getEnvironment();
+        boolean isBoss = session.getLevel() instanceof BossLevel;
 
         List<Cell> candidates = new ArrayList<>();
         for (int row = 0; row < env.getRows(); row++) {
             for (int col = 0; col < env.getCols(); col++) {
                 Cell cell = env.getCell(row, col);
-                if (cell != null && cell.getObstacle() == null && cell.getStructure() == null && !cell.hasPlant()) {
+                if (cell != null && cell.getTile() == null && cell.getObstacle() == null && !cell.hasPlant()) {
                     candidates.add(cell);
                 }
             }
         }
+        Collections.shuffle(candidates, RANDOM);
 
+        if (isBoss) {
+            for (TileType pairType : LINK_TILE_PAIRS) {
+                placePair(candidates, pairType);
+            }
+            return;
+        }
+
+        for (TileType pairType : LINK_TILE_PAIRS) {
+            if (RANDOM.nextBoolean()) {
+                placePair(candidates, pairType);
+            }
+        }
+    }
+
+    private static void placePair(List<Cell> candidates, TileType pairType) {
         int placed = 0;
-        while (placed < count && countGraves(session) < MAX_GRAVES && !candidates.isEmpty()) {
-            double totalWeight = 0.0;
-            for (Cell cell : candidates) {
-                int col = cell.getCol();
-                totalWeight += (col >= 5 && col <= 9) ? BACK_GRAVE_WEIGHT : FRONT_GRAVE_WEIGHT;
-            }
-
-            double roll = RANDOM.nextDouble() * totalWeight;
-            Cell selected = candidates.get(candidates.size() - 1);
-            for (Cell cell : candidates) {
-                int col = cell.getCol();
-                roll -= (col >= 5 && col <= 9) ? BACK_GRAVE_WEIGHT : FRONT_GRAVE_WEIGHT;
-                if (roll <= 0.0) {
-                    selected = cell;
-                    break;
-                }
-            }
-
-            selected.setObstacle(new Grave(Grave.randomDarkAgeReward()));
-            candidates.remove(selected);
+        while (placed < 2 && !candidates.isEmpty()) {
+            Cell cell = candidates.remove(candidates.size() - 1);
+            cell.setTile(new Tile(pairType));
             placed++;
         }
     }
 
-    private static int countGraves(GameSession session) {
-        Environment env = session.getEnvironment();
-        int count = 0;
-        for (int row = 0; row < env.getRows(); row++) {
-            for (int col = 0; col < env.getCols(); col++) {
-                Cell cell = env.getCell(row, col);
-                if (cell != null && cell.getObstacle() instanceof Grave) count++;
-            }
-        }
-        return count;
+    public static boolean isLinkTile(TileType type) {
+        return type == TileType.LinkTile01 || type == TileType.LinkTile02 || type == TileType.LinkTile03;
     }
 
-    /**
-     * A grave only opens where nothing is standing yet, so a risen zombie never appears on top
-     * of one that is already walking through that spot.
-     */
-    private static boolean isSpotClear(GameSession session, int row, int col) {
-        for (Zombie zombie : session.getZombies()) {
-            if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;
-            if ((int) Math.round(zombie.getPosition().y()) != row) continue;
-            double separation =
-                    model.match.waves.WavePacing.minSeparation(zombie.getAlias(), "ZombieDefault");
-            if (Math.abs(zombie.getPosition().x() - col) < separation) return false;
-        }
-        return true;
-    }
-
-    public static void necromancy(GameSession session, int waveIndex) {
-        if (session == null || session.getEnvironment() == null) return;
+    public static Cell findLinkPartnerCell(GameSession session, int row, int col, TileType pairType) {
+        if (session == null || session.getEnvironment() == null || !isLinkTile(pairType)) return null;
         Environment env = session.getEnvironment();
-
-        List<Cell> graves = new ArrayList<>();
-        for (int row = 0; row < env.getRows(); row++) {
-            for (int col = 0; col < env.getCols(); col++) {
-                Cell cell = env.getCell(row, col);
-                if (cell != null
-                        && col >= 5 && col <= 9
-                        && cell.getObstacle() instanceof Grave
-                        && !cell.hasPlant()
-                        && cell.getStructure() == null
-                        && isSpotClear(session, row, col)) {
-                    graves.add(cell);
+        for (int r = 0; r < env.getRows(); r++) {
+            for (int c = 0; c < env.getCols(); c++) {
+                if (r == row && c == col) continue;
+                Cell cell = env.getCell(r, c);
+                if (cell != null && cell.getTile() != null && cell.getTile().type() == pairType) {
+                    return cell;
                 }
             }
         }
-
-        Collections.shuffle(graves, RANDOM);
-        int raised = 0;
-        for (Cell cell : graves) {
-            if (RANDOM.nextDouble() >= NECROMANCY_CHANCE) continue;
-
-            int row = cell.getRow();
-            int col = cell.getCol();
-
-            Zombie risen = ZombieFactory.create("ZombieDefault", row, col);
-            risen.setPosition(new Position(col, row));
-            risen.setFromNecromancy(true);
-            session.spawnZombieForCurrentWave(risen);
-            raised++;
-            view.GeneralPrinter.print("Future necromancy spawned " + risen.getName()
-                    + " at grave cell (row=" + row + ", col=" + col + ").");
-        }
-
-        if (raised > 0) {
-            view.GeneralPrinter.print("Future necromancy raised " + raised
-                    + " zombie(s) from graves on wave " + (waveIndex + 1) + ".");
-        }
+        return null;
     }
 }

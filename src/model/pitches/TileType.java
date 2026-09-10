@@ -3,5 +3,8 @@ package model.pitches;
 public enum TileType {
     Normal,
     Slippery,
-    Water
+    Water,
+    LinkTile01,
+    LinkTile02,
+    LinkTile03
 }

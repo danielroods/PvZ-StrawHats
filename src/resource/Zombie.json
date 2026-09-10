@@ -3034,6 +3034,52 @@
   },
   {
     "aliases": [
+      "ZombiePirateZomboss"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 195,
+        "y": 195
+      },
+      "CanSpawnPlantFood": false,
+      "Cost": 0,
+      "EatDPS": 0,
+      "Hitpoints": 21000,
+      "Size": "large",
+      "Speed": 0.0,
+      "WavePointCost": 5000,
+      "Weight": 100000,
+      "move": "StationaryMove",
+      "attack": "ChompAttack",
+      "defense": "NormalDefense"
+    }
+  },
+  {
+    "aliases": [
+      "ZombieFutureZomboss"
+    ],
+    "objclass": "ZombiePropertySheet",
+    "objdata": {
+      "ArtCenter": {
+        "x": 195,
+        "y": 195
+      },
+      "CanSpawnPlantFood": false,
+      "Cost": 0,
+      "EatDPS": 0,
+      "Hitpoints": 25000,
+      "Size": "large",
+      "Speed": 0.0,
+      "WavePointCost": 5000,
+      "Weight": 100000,
+      "move": "StationaryMove",
+      "attack": "ChompAttack",
+      "defense": "NormalDefense"
+    }
+  },
+  {
+    "aliases": [
       "ZombieBarrelRoller"
     ],
     "objclass": "ZombiePropertySheet",

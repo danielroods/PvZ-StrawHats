@@ -443,7 +443,30 @@ public abstract class Plant extends Item implements Pluck, Attack {
                 sibling.plantFoodTimer = Math.max(0.0, sibling.plantFoodEffect.getDurationSeconds());
             }
         }
+
+        triggerLinkTilePartner(session);
         return true;
+    }
+
+    private void triggerLinkTilePartner(GameSession session) {
+        if (session == null || session.getEnvironment() == null || getPosition() == null) return;
+
+        int row = (int) Math.round(getPosition().y());
+        int col = (int) Math.round(getPosition().x());
+        model.pitches.Cell myCell = session.getEnvironment().getCell(row, col);
+        if (myCell == null || myCell.getTile() == null
+                || !model.match.main.season.travellog.future.Future.isLinkTile(myCell.getTile().type())) {
+            return;
+        }
+
+        model.pitches.Cell partnerCell = model.match.main.season.travellog.future.Future
+                .findLinkPartnerCell(session, row, col, myCell.getTile().type());
+        if (partnerCell == null || !partnerCell.hasPlant()) return;
+
+        Plant partner = partnerCell.getPlant();
+        if (partner != null && partner.canUsePlantFood()) {
+            partner.activatePlant(session);
+        }
     }
     public boolean canUsePlantFood() {
         return this.plantFoodEffect != null && this.plantFoodTimer <= 0 && isAlive();

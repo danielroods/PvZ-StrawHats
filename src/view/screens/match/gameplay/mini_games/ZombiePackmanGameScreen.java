@@ -100,6 +100,7 @@ public class ZombiePackmanGameScreen extends BaseScreen {
 
     @Override
     public void show() {
+        AudioManager.get().playMusic(AudioEnum.CONSULE_MUSIC, true);
         super.show();
         camera = new OrthographicCamera(VIEW_W, VIEW_H);
         game = new ZombiePackmanGame();
@@ -143,7 +144,6 @@ public class ZombiePackmanGameScreen extends BaseScreen {
             }
         };
         multiplexer.addProcessor(keyboard);
-        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
     }
 
     private void preload() {

@@ -8,6 +8,9 @@ public enum AudioEnum {
     FROSTBITE_MUSIC("assets/audio/music/Just The Two Of Us Grover Washington Jr.mp3"),
     BEACH_MUSIC("assets/audio/music/Elton John-I m Still Standing -musicdel.ir 128.mp3"),
     DARK_AGES_MUSIC("assets/audio/music/Gloria Gaynor - I will survive (128).mp3"),
+    PIRATE_MUSIC("assets/audio/music/Irish Rovers - What Will We Do With a Drunken Sailor.mp3"),
+    FUTURE_MUSIC("assets/audio/music/1249204_Evangelion---Fly-me-to-The.mp3"),
+    CONSULE_MUSIC("assets/audio/music/287057_Rick_Roll.mp3"),
 
 
     

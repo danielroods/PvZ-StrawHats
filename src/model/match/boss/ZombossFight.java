@@ -6,7 +6,9 @@ import model.collections.zombie.ZombieFactory;
 import model.match.boss.behavior.BeachZombossBehavior;
 import model.match.boss.behavior.DarkAgeZombossBehavior;
 import model.match.boss.behavior.EgyptZombossBehavior;
+import model.match.boss.behavior.FutureZombossBehavior;
 import model.match.boss.behavior.IceAgeZombossBehavior;
+import model.match.boss.behavior.PirateZombossBehavior;
 import model.match.boss.behavior.ZombossBehavior;
 import model.match.main.levels.Level;
 import model.match.waves.LaneBag;
@@ -71,7 +73,7 @@ public class ZombossFight {
 
     private double spawnTimer;
 
-    
+
     private static final double[] BEACH_BIG_WAVE_HEALTH_TRIGGERS = {0.75, 0.50, 0.25};
     private static final int BEACH_BIG_WAVE_BOSS_ZOMBIE_COUNT = 6;
     private int beachBigWavesTriggered = 0;
@@ -93,8 +95,8 @@ public class ZombossFight {
             case ICE_AGE -> new IceAgeZombossBehavior(this);
             case BEACH -> new BeachZombossBehavior(this);
             case DARK_AGES -> new DarkAgeZombossBehavior(this);
-            case PIRATES -> new EgyptZombossBehavior(this);
-            case FUTURE -> null;
+            case PIRATES -> new PirateZombossBehavior(this);
+            case FUTURE -> new FutureZombossBehavior(this);
         };
     }
 
@@ -224,9 +226,11 @@ public class ZombossFight {
     }
 
     public String getBossClip() {
-        if (phase == ZombossPhase.SILENCE) return null;
+        if (phase == ZombossPhase.SILENCE) {
+            return chapter.hasPreIntro() ? ZombossChapter.PRE_INTRO_CLIP : null;
+        }
         if (phase == ZombossPhase.BOSS_INTRO) return ZombossChapter.INTRO_CLIP;
-        
+
         if (phase == ZombossPhase.FINISHED) return null;
         if (phase == ZombossPhase.DEFEATED) {
             return deathSequence == null ? null : deathSequence.getCurrentClip();
@@ -236,6 +240,11 @@ public class ZombossFight {
     }
 
     public double getBossClipTime() {
+        if (phase == ZombossPhase.SILENCE && chapter.hasPreIntro()) {
+            double length = AnimationFactory.exactClipDurationForPath(
+                    chapter.getBossPam(), ZombossChapter.PRE_INTRO_CLIP);
+            return length > 0 ? phaseElapsed % length : phaseElapsed;
+        }
         if (phase == ZombossPhase.BOSS_INTRO) {
             double length = AnimationFactory.exactClipDurationForPath(
                     chapter.getBossPam(), ZombossChapter.INTRO_CLIP);
@@ -395,7 +404,7 @@ public class ZombossFight {
     public void advanceDialogue() {
         if (phase != ZombossPhase.NPC_TALK) return;
 
-        
+
         if (dialogueIndex + 1 < chapter.getDialogue().size()) {
             dialogueIndex++;
         } else {

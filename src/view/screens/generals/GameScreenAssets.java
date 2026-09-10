@@ -126,12 +126,17 @@ class GameScreenAssets {
     private Texture loadBoardTexture(String[] layers) {
         if (layers == null || layers.length == 0) return null;
 
-        FileHandle[] files = new FileHandle[layers.length];
-        for (int i = 0; i < layers.length; i++) {
-            FileHandle file = Gdx.files.internal(resolveExistingAssetPath(layers[i]));
-            if (!file.exists()) return null;
-            files[i] = file;
+        java.util.List<FileHandle> existing = new java.util.ArrayList<>();
+        for (String layer : layers) {
+            FileHandle file = Gdx.files.internal(resolveExistingAssetPath(layer));
+            if (file.exists()) {
+                existing.add(file);
+            } else {
+                Gdx.app.error("GameScreen", "Missing chapter background layer: " + layer);
+            }
         }
+        if (existing.isEmpty()) return null;
+        FileHandle[] files = existing.toArray(new FileHandle[0]);
         if (files.length == 1) return new Texture(files[0]);
 
         Pixmap[] parts = new Pixmap[files.length];

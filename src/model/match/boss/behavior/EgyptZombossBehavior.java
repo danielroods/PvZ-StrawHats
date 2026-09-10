@@ -58,8 +58,8 @@ public class EgyptZombossBehavior extends ZombossBehavior {
     }
 
     private void chooseAbility() {
-        
-        
+
+
         Plant reachable = ZombossLawn.plantWithinReach(session(), fight.getBossPosition(),
                 STOMP_REACH);
         if (reachable != null && random().nextDouble() < STOMP_CHANCE) {
@@ -78,11 +78,11 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         }
     }
 
-    private void beginCooldown() {
+    protected void beginCooldown() {
         fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
-    
+
 
     private void startStomp() {
         stompApplied = false;
@@ -99,7 +99,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         if (victim != null) ZombossLawn.destroyPlant(session(), victim);
     }
 
-    
+
 
     private boolean startJump() {
         Plant victim = ZombossLawn.pickBombardTarget(session(), random());
@@ -116,7 +116,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         return true;
     }
 
-    
+
 
     private void startPortal() {
         portalSpawned = 0;
@@ -128,15 +128,15 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         beginCooldown();
     }
 
-    
 
-    private void startMissile() {
+
+    protected void startMissile() {
         fight.startAction(fight.newAction("missile")
                 .then("missile_start").then("rocket_launch"));
         beginCooldown();
     }
 
-    private void launchMissile() {
+    protected void launchMissile() {
         Plant target = ZombossLawn.pickBombardTarget(session(), random());
         if (target == null) return;
         fight.addSkyStrike(new ZombossSkyStrike(MISSILE,
@@ -144,7 +144,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
                 (int) Math.round(target.getPosition().x())));
     }
 
-    
+
 
     private void startWalk() {
         Position from = fight.getBossPosition();
@@ -174,7 +174,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         }
         if (targetCol < MIN_COLUMN || targetCol > MAX_COLUMN
                 || targetRow < 0 || targetRow > rows - 1) {
-            
+
             fight.setActionCooldown(1.5);
             return;
         }
@@ -184,12 +184,12 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         beginCooldown();
     }
 
-    
+
 
     @Override
     public void onStunStart() {
-        
-        
+
+
         if (jumpHome != null) fight.moveBossTo(jumpHome.x(), jumpHome.y());
         jumpVictim = null;
         moveFrom = null;
@@ -198,8 +198,8 @@ public class EgyptZombossBehavior extends ZombossBehavior {
 
     @Override
     public void onActionFinished(ZombossActionSequence sequence) {
-        
-        
+
+
         switch (sequence.getName()) {
             case "walk" -> {
                 if (moveTo != null) fight.moveBossTo(moveTo.x(), moveTo.y());
@@ -234,7 +234,7 @@ public class EgyptZombossBehavior extends ZombossBehavior {
         switch (step) {
             case 1 -> {
                 moveFrom = fight.getBossPosition();
-                
+
             }
             case 2 -> {
                 fight.moveBossTo(moveTo.x(), moveTo.y());

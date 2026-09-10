@@ -36,23 +36,23 @@ public enum ZombossChapter {
                     "Every grave on this lawn answers to me tonight.",
                     "Burn, little garden. Burn brightly.")),
 
-    PIRATES(1.0, "Pirates", "ZombieEgyptZomboss",
-            "768/INITIAL/ZOMBIE/ZOMBIE_EGYPT_ZOMBOSS/ZOMBIE_EGYPT_ZOMBOSS.PAM",
+    PIRATES(1.0, "Pirates", "ZombiePirateZomboss",
+            "768/FULL/ZOMBIE/ZOMBIE_PIRATE_ZOMBOSS/ZOMBIE_PIRATE_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",
             List.of("die", "die_idle", "die_talk", "die_exit"),
             List.of("So the little sprouts dug their way into MY pyramid.",
                     "Ten thousand years I spent building this machine.",
                     "Let us see how your garden holds up against a god-king!")),
 
-    
-    
-    FUTURE(1.35, "Future", "ZombieDarkZomboss",
-            "768/FULL/ZOMBIE/ZOMBIE_DARK_ZOMBOSS/ZOMBIE_DARK_ZOMBOSS.PAM",
+
+
+    FUTURE(1.35, "Future", "ZombieFutureZomboss",
+            "768/FULL/ZOMBIE/ZOMBIE_FUTURE_ZOMBOSS/ZOMBIE_FUTURE_ZOMBOSS.PAM",
             "stun_start", "stun_loop", "stun_end",
             List.of("die", "die_talk", "die_exit"),
             List.of("You really thought you could out-tech ME?",
                     "Every gadget on this lawn answers to my signal now.",
-                    "Let us see your garden survive the future!"));
+                    "Let us see your garden survive the future!"), true);
 
     public static final String NPC_PAM = "768/FULL/NPC/ZOMBOSS/ZOMBOSS.PAM";
     public static final String NPC_ENTER_CLIP = "zomboss_enter";
@@ -63,6 +63,7 @@ public enum ZombossChapter {
 
     public static final String INTRO_CLIP = "intro";
     public static final String IDLE_CLIP = "idle";
+    public static final String PRE_INTRO_CLIP = "Pre_intro";
 
     private final double spawnPacing;
     private final String seasonName;
@@ -73,10 +74,18 @@ public enum ZombossChapter {
     private final String stunEndClip;
     private final List<String> deathClips;
     private final List<String> dialogue;
+    private final boolean hasPreIntro;
 
     ZombossChapter(double spawnPacing, String seasonName, String alias, String bossPam,
                    String stunStartClip, String stunLoopClip, String stunEndClip,
                    List<String> deathClips, List<String> dialogue) {
+        this(spawnPacing, seasonName, alias, bossPam, stunStartClip, stunLoopClip, stunEndClip,
+                deathClips, dialogue, false);
+    }
+
+    ZombossChapter(double spawnPacing, String seasonName, String alias, String bossPam,
+                   String stunStartClip, String stunLoopClip, String stunEndClip,
+                   List<String> deathClips, List<String> dialogue, boolean hasPreIntro) {
         this.spawnPacing = spawnPacing;
         this.seasonName = seasonName;
         this.alias = alias;
@@ -86,6 +95,7 @@ public enum ZombossChapter {
         this.stunEndClip = stunEndClip;
         this.deathClips = deathClips;
         this.dialogue = dialogue;
+        this.hasPreIntro = hasPreIntro;
     }
 
     public double getSpawnPacing() { return spawnPacing; }
@@ -105,6 +115,8 @@ public enum ZombossChapter {
     public List<String> getDeathClips() { return deathClips; }
 
     public List<String> getDialogue() { return dialogue; }
+
+    public boolean hasPreIntro() { return hasPreIntro; }
 
     public static ZombossChapter fromSeason(String name) {
         if (name == null) return null;

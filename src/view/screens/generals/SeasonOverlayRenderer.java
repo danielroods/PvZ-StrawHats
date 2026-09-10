@@ -28,8 +28,11 @@ class SeasonOverlayRenderer {
 
     private static final float GRID_LINE_THICKNESS = 2f;
 
-    private static final String BEACH_PROTECT_TILE_PATH =
-            "assets/images/chapters/beach/gameplay/protect_tile_112x125.png";
+    private static final String[] BEACH_PROTECT_TILE_PATHS = {
+            "assets/images/chapters/beach/gameplay/protect_tile_112x125.png",
+            "assets/images/chapters/beach/gameplay/protect_tile.png",
+            "assets/images/chapters/beach/gameplay/save_your_seed_tile.png"
+    };
 
     private static final String DEADLINE_FLOWER_PAM =
             "768/INITIAL/EFFECTS/STAR_OBJECTIVE_FLOWER/STAR_OBJECTIVE_FLOWER.PAM";
@@ -75,9 +78,9 @@ class SeasonOverlayRenderer {
             }
         }
 
-        
-        
-        
+
+
+
         drawPirateBridges(boardTileWidth, boardTileHeight);
     }
 
@@ -117,13 +120,13 @@ class SeasonOverlayRenderer {
         final float bridgeOffsetY = -boardTileHeight * 0.10f;
 
         for (int r = 0; r < screen.session.getRows(); r++) {
-            
-            
+
+
             int waterStart = Math.max(0, screen.session.getCols() - 4);
             Cell first = screen.session.getEnvironment().getCell(r, waterStart);
             if (first == null || !(first.getObstacle() instanceof Bridge)) continue;
 
-            
+
             float x = GameScreen.BOARD_X + waterStart * boardTileWidth - (bridgeWidth - boardTileWidth * 4f) * 0.5f;
             float y = screen.cellY(r) - (bridgeHeight - boardTileHeight) * 0.5f + bridgeOffsetY;
             screen.assets().drawStaticEffectStretched(bridgePath, x, y, bridgeWidth, bridgeHeight);
@@ -255,7 +258,11 @@ class SeasonOverlayRenderer {
         if (row < 0 || col < 0 || row >= screen.session.getRows() || col >= screen.session.getCols()) return;
         float x = GameScreen.BOARD_X + col * boardTileWidth;
         float y = screen.cellY(row);
-        screen.assets().drawStaticEffectStretched(BEACH_PROTECT_TILE_PATH, x, y, boardTileWidth, boardTileHeight);
+        for (String path : BEACH_PROTECT_TILE_PATHS) {
+            if (screen.assets().drawStaticEffectStretched(path, x, y, boardTileWidth, boardTileHeight)) {
+                return;
+            }
+        }
     }
 
     /**

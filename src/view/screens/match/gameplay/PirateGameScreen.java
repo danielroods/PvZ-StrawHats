@@ -12,6 +12,6 @@ public class PirateGameScreen extends GameScreen {
     @Override
     public void show() {
         super.show();
-        AudioManager.get().playMusic(AudioEnum.EGYPT_MUSIC, true);
+        AudioManager.get().playMusic(AudioEnum.PIRATE_MUSIC, true);
     }
 }

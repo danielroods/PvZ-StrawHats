@@ -64,6 +64,7 @@ public class GameScreen extends UiScreen {
     private final BoardInteraction interaction = new BoardInteraction(this);
     private final SeasonOverlayRenderer overlays = new SeasonOverlayRenderer(this);
     private final FrostbiteRenderer frostbite = new FrostbiteRenderer(this);
+    private final FutureRenderer future = new FutureRenderer(this);
     private final PlantRenderer plants = new PlantRenderer(this);
     private final ZombieRenderer zombies = new ZombieRenderer(this);
     private final EffectRenderer effects = new EffectRenderer(this);
@@ -74,23 +75,23 @@ public class GameScreen extends UiScreen {
     private final NukeEffect nukeEffect = new NukeEffect(this);
     private Image nukeFlashOverlay;
 
-    
-    
+
+
     private float screenShakeTime = 0f;
     private float screenShakeDuration = 0f;
     private float screenShakeStrength = 0f;
 
-    
+
     private int lastDisplayedWaveCount = 0;
     private float waveBannerTime = 0f;
     private String waveBannerText = null;
     private final GlyphLayout waveBannerLayout = new GlyphLayout();
 
     private view.hud.ZombossDialogueBox zombossDialogue;
-    
+
     private boolean zombossNpcVoicePlayed = false;
-    
-    
+
+
     private boolean lastSandStormActive = false;
 
     double tickAccumulator;
@@ -126,7 +127,7 @@ public class GameScreen extends UiScreen {
 
     private void flushRowDrawQueue() {
         if (rowDrawQueue.isEmpty()) return;
-        
+
         rowDrawQueue.sort(Comparator.<QueuedRowDraw>comparingInt(q -> q.row)
                 .thenComparingInt(q -> q.layer));
         for (QueuedRowDraw queued : rowDrawQueue) {
@@ -137,7 +138,7 @@ public class GameScreen extends UiScreen {
 
     @Override
     public void initParticles() {
-        
+
     }
 
     @Override
@@ -162,13 +163,6 @@ public class GameScreen extends UiScreen {
         waveBannerText = null;
         screenShakeTime = 0f;
     }
-
-    /**
-     * Full-screen white flash used by the "release the nuke" cheat. Added
-     * directly to the stage (on top of rootStack, so above the HUD too) and
-     * left non-touchable so it never blocks clicks on anything underneath it,
-     * even while fully visible.
-     */
     private void createNukeFlashOverlay() {
         nukeFlashOverlay = new Image(new TextureRegionDrawable(whitePixel));
         nukeFlashOverlay.setFillParent(true);
@@ -177,7 +171,7 @@ public class GameScreen extends UiScreen {
         stage.addActor(nukeFlashOverlay);
     }
 
-    
+
     protected void triggerNukeCheat() {
         if (!CheatAccess.isEnabled()) return;
         nukeEffect.trigger();
@@ -205,10 +199,7 @@ public class GameScreen extends UiScreen {
     }
 
     protected String[] getGameplayBackgroundLayers() {
-        if (ChapterLawnArt.isSplitArt(seasonFolder)) {
-            return ChapterLawnArt.backgroundLayers(seasonFolder, getSeasonGameplayFolder());
-        }
-        return new String[] { getGameplayBackgroundPath() };
+        return ChapterLawnArt.backgroundLayers(seasonFolder, getSeasonGameplayFolder());
     }
 
     ChapterLawnArt.Insets boardInsets() {
@@ -353,13 +344,6 @@ public class GameScreen extends UiScreen {
         }
     }
 
-    /**
-     * Advances the simulation by one fixed tick (see GameClock.SECONDS_PER_TICK).
-     * Default: ticks the shared GameSession directly, exactly as before. A screen
-     * whose model wraps the session in something with its own extra bookkeeping
-     * (e.g. a minigame with its own win/loss condition and its own scheduler) can
-     * override this instead of duplicating render()'s whole tick loop.
-     */
     protected void tickSession() {
         session.tick();
     }
@@ -368,18 +352,11 @@ public class GameScreen extends UiScreen {
         return new ArrayList<>(BeforeMenu.selectedPlants);
     }
 
-    
+
     protected boolean isBeforeMatchPreview() {
         return false;
     }
 
-    /**
-     * Horizontal space to leave empty on the right of the lawn, shifting the whole board
-     * left by that much (see {@link view.screens.generals.BoardLayout}). Before-match
-     * preview screens use this to make room for the loadout/preview panel; gameplay
-     * screens that dock a side panel over the board (e.g. co-op's zombie tray) can
-     * override this too, so that panel doesn't sit on top of playable lawn columns.
-     */
     protected float reservedRightAreaWidth() {
         return 0f;
     }
@@ -405,10 +382,10 @@ public class GameScreen extends UiScreen {
                 fight.getDialogueCount());
     }
 
-    
-    
-    
-    
+
+
+
+
     private void refreshSandStormAudio() {
         if (session == null) return;
         boolean active = session.isSandStormActive();
@@ -418,7 +395,7 @@ public class GameScreen extends UiScreen {
         lastSandStormActive = active;
     }
 
-    
+
     void triggerScreenShake(float strength, float duration) {
         if (strength <= 0f || duration <= 0f) return;
         screenShakeStrength = Math.max(screenShakeStrength, strength);
@@ -476,8 +453,8 @@ public class GameScreen extends UiScreen {
         float x = cx - waveBannerLayout.width * 0.5f;
         float y = cy + waveBannerLayout.height * 0.5f;
 
-        
-        
+
+
         font.getColor().set(0f, 0f, 0f, alpha);
         float d = 2.5f;
         font.draw(batch, waveBannerText, x - d, y);
@@ -533,13 +510,6 @@ public class GameScreen extends UiScreen {
         interaction.selectPlant(plantName);
     }
 
-    /**
-     * What happens when a board cell is tapped/clicked. Default is the normal
-     * plant/shovel/food flow below. Mini-games with a different interaction model
-     * (Vasebreaker's break-vase-then-plant, Wallnut Bowling's launch-a-nut,
-     * I Zombie's place-a-zombie, Beghouled's swap-two-gems) override this instead
-     * of touching handleBoardClick/handlePlantDragRelease directly.
-     */
     protected void onCellClicked(int row, int col) {
         interaction.plantAtCell(row, col);
     }
@@ -552,8 +522,6 @@ public class GameScreen extends UiScreen {
         return interaction.itemUnderMouse(click);
     }
 
-    /** Matches never show toast notifications (they popped in over gameplay UI,
-     *  e.g. Beghouled's upgrade cards, and swallowed the clicks meant for it). */
     @Override
     protected boolean notificationsEnabled() {
         return false;
@@ -594,16 +562,6 @@ public class GameScreen extends UiScreen {
         return matchEnd.isIdle();
     }
 
-    /**
-     * Whether the win/lose sequence (board hold -> fade -> "YOU WON"/"YOU LOST" title) is
-     * currently mid-flight. Public so {@link controller.ScreenManager} can hold off swapping
-     * screens while it plays - some menus (mini games in particular) flip {@link
-     * model.App#currentMenu} to the end-of-game menu as soon as the outcome is known, well
-     * before this sequence finishes, and {@code ScreenManager} is polled every frame
-     * independently of this screen's own render loop. Without this guard that per-frame poll
-     * swaps the screen away after a single frame, and the animation never gets a chance to
-     * play.
-     */
     public boolean isMatchEndSequenceActive() {
         return !matchEnd.isIdle();
     }
@@ -638,6 +596,7 @@ public class GameScreen extends UiScreen {
         overlays.drawBackground(bw, bh);
         overlays.drawTiles(bw, bh);
         frostbite.drawFrostbiteTileArt(delta);
+        future.drawLinkTileArt(delta);
         drawSeasonGameplayEffects(delta, bw, bh);
         overlays.drawSpecialEffects(delta, bw, bh);
         zomboss.drawBackdrop();
@@ -681,7 +640,7 @@ public class GameScreen extends UiScreen {
     }
 
     protected void drawSeasonGameplayEffects(float delta, float bw, float bh) {
-        
+
     }
 
     protected boolean areLawnMowersVisible() {
@@ -800,10 +759,10 @@ public class GameScreen extends UiScreen {
             String name = session.getLevel().getSeason().getName();
             if (name != null && !name.isBlank()) return name.trim().toLowerCase().replace('-', ' ');
         }
-        
-        
-        
-        
+
+
+
+
         return seasonFolder == null ? "" : seasonFolder.trim().toLowerCase().replace('-', ' ');
     }
 

@@ -85,6 +85,7 @@ public class ZombieDashGameScreen extends BaseScreen {
 
     @Override
     public void show() {
+        AudioManager.get().playMusic(AudioEnum.CONSULE_MUSIC, true);
         super.show();
         camera = new OrthographicCamera(VIEW_W, VIEW_H);
         camera.position.set(VIEW_W / 2f, VIEW_H / 2f, 0f);
@@ -126,7 +127,6 @@ public class ZombieDashGameScreen extends BaseScreen {
             }
         };
         multiplexer.addProcessor(keyboard);
-        AudioManager.get().playMusic(AudioEnum.MINI_GAME_MUSIC, true);
     }
 
     private void preload() {
