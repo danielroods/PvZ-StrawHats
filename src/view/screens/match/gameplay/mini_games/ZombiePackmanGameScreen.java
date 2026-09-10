@@ -31,8 +31,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A self-contained 200x200 Pac-Man-style maze. The world is intentionally independent of
- * GameScreen because a 200x200 continuous board is a very different simulation from PvZ's
+ * A self-contained 240x240 Pac-Man-style maze. The world is intentionally independent of
+ * GameScreen because a large continuous board is a very different simulation from PvZ's
  * five-lane Match/GameSession model.
  */
 public class ZombiePackmanGameScreen extends BaseScreen {
@@ -69,8 +69,22 @@ public class ZombiePackmanGameScreen extends BaseScreen {
     private static final float PLANT_SCALE = 0.50f;
     private static final float WALL_SCALE = 0.48f;
 
+    /** Classic Pac-Man ghost colors, one per personality (Blinky/Pinky/Inky/Clyde). */
+    private static final Color[] GHOST_COLORS = {
+            new Color(0.92f, 0.24f, 0.24f, 1f),
+            new Color(1f, 0.55f, 0.85f, 1f),
+            new Color(0.35f, 0.85f, 0.98f, 1f),
+            new Color(1f, 0.65f, 0.25f, 1f),
+    };
+    private static final Color GHOST_FRIGHT_COLOR = new Color(0.28f, 0.35f, 0.95f, 1f);
+    private static final Color GHOST_RECOVER_COLOR = new Color(0.85f, 0.85f, 0.92f, 0.55f);
+
     private final Map<String, ClipRef> clipCache = new HashMap<>();
     private ZombiePackmanGame game;
+    private boolean playerFacingRight;
+    private final Map<ZombiePackmanGame.GhostState, Boolean> ghostFacingRight = new HashMap<>();
+    private String playerAnimState;
+    private float playerAnimTime;
     private OrthographicCamera camera;
     private TextureBank textureBank;
     private PamPlayer pamPlayer;
@@ -88,10 +102,10 @@ public class ZombiePackmanGameScreen extends BaseScreen {
     public void show() {
         super.show();
         camera = new OrthographicCamera(VIEW_W, VIEW_H);
-        camera.position.set(100 * 32f, 100 * 32f, 0f);
+        game = new ZombiePackmanGame();
+        camera.position.set(game.getX() * game.getMap().tileSize, game.getY() * game.getMap().tileSize, 0f);
         camera.update();
 
-        game = new ZombiePackmanGame();
         font = new BitmapFont();
         font.getData().setScale(1.05f);
         coinTexture = loadTexture(COIN_TEXTURE);
@@ -195,7 +209,7 @@ public class ZombiePackmanGameScreen extends BaseScreen {
         drawProjectiles(tile);
         drawGhosts(tile);
         drawWalls(tile,minX,maxX,minY,maxY);
-        drawPlayer(tile);
+        drawPlayer(tile,delta);
         if (game.getTransformEffectTimer()>0) drawPam(TRANSFORM_PAM,"beam_down",worldTime,game.getX()*tile-40,game.getY()*tile-40,0.55f,false,null);
         batch.end();
     }
@@ -210,11 +224,12 @@ public class ZombiePackmanGameScreen extends BaseScreen {
 
     private void drawCoins(int tile,int minX,int maxX,int minY,int maxY){
         if(coinTexture==null)return;
+        float base=tile*1.7f;
         for(long key:game.getCoins()){
             int x=(int)(key>>32), y=(int)key;
             if(x<minX||x>maxX||y<minY||y>maxY)continue;
-            float s=0.52f+0.08f*MathUtils.sin(worldTime*6f+x*0.3f+y*0.2f);
-            float size=tile*0.60f*s/0.60f;
+            float s=0.90f+0.12f*MathUtils.sin(worldTime*6f+x*0.3f+y*0.2f);
+            float size=base*s;
             batch.draw(coinTexture,x*tile+(tile-size)/2f,y*tile+(tile-size)/2f,size,size);
         }
     }
@@ -262,15 +277,31 @@ public class ZombiePackmanGameScreen extends BaseScreen {
     }
 
     private void drawGhosts(int tile){
+        boolean frightened = game.getZoybeanTimer()>0;
+        boolean flashWarning = frightened && game.getZoybeanTimer()<2.5f;
         for(ZombiePackmanGame.GhostState g:game.getGhosts()){
-            String state="idle";
-            float t=worldTime;
+            boolean recovering = g.isRecovering();
+            String state;
             if(g.chasing){
-                
-                
-                state=((worldTime % 1.0f) < 0.5f) ? "attack_start" : "attack_end";
+                state="attack_loop";
+            } else {
+                state=((worldTime*0.6f + g.personality) % 2f) < 1.6f ? "idle" : "idle2";
             }
-            drawPam(GHOST_PAM,state,t,g.x*tile-25,g.y*tile-22,GHOST_SCALE,g.direction==Direction.RIGHT,null);
+            float clipDur=AnimationFactory.clipDurationForPath(normalize(GHOST_PAM),state);
+            float t=clipDur>0?(worldTime%clipDur):worldTime;
+            if(recovering){
+                batch.setColor(GHOST_RECOVER_COLOR);
+            } else if(frightened){
+                if(flashWarning && (worldTime % 0.3f) < 0.15f) batch.setColor(Color.WHITE);
+                else batch.setColor(GHOST_FRIGHT_COLOR);
+            } else {
+                batch.setColor(GHOST_COLORS[g.personality]);
+            }
+            if(g.direction==Direction.RIGHT)ghostFacingRight.put(g,true);
+            else if(g.direction==Direction.LEFT)ghostFacingRight.put(g,false);
+            boolean gFlip=ghostFacingRight.getOrDefault(g,false);
+            drawPam(GHOST_PAM,state,t,g.x*tile-25,g.y*tile-22,GHOST_SCALE,gFlip,null);
+            batch.setColor(Color.WHITE);
         }
     }
 
@@ -285,24 +316,36 @@ public class ZombiePackmanGameScreen extends BaseScreen {
         }
     }
 
-    private void drawPlayer(int tile){
+    private void drawPlayer(int tile,float delta){
+        if(game.isGameOver()){
+            float dur=AnimationFactory.clipDurationForPath(normalize(PLAYER_PAM),"die");
+            float t=dur>0?Math.min(deathFlash,dur-0.03f):deathFlash;
+            drawPam(PLAYER_PAM,"die",t,game.getX()*tile-28,game.getY()*tile-20,PLAYER_SCALE,false,null);
+            return;
+        }
         boolean zoy=game.getZoybeanTimer()>0;
         boolean zombotany=game.getZombotanyTimer()>0 && !zoy;
         String state;
         if(game.isEating())state="eat"; else state=game.getDirection()==Direction.NONE?"idle":"walk";
-        boolean movingRight=game.getDirection()==Direction.RIGHT;
-        boolean movingLeft=game.getDirection()==Direction.LEFT;
-        boolean flip=zoy?movingLeft:movingRight;
+        if(game.getDirection()==Direction.RIGHT)playerFacingRight=true;
+        else if(game.getDirection()==Direction.LEFT)playerFacingRight=false;
+        boolean flip=zoy?!playerFacingRight:playerFacingRight;
         if(game.getPotionTimer()>0 && !zoy && !zombotany)batch.setColor(1f,0.55f,0.82f,1f);
         if(game.isInvulnerable() && !zoy)batch.setColor(0.92f,1f,0.95f,1f);
 
+        String bodyPam=zombotany?ZombotanyArt.BODY_PAM:(zoy?ZOYBEAN_PAM:PLAYER_PAM);
+        if(!state.equals(playerAnimState)){playerAnimState=state;playerAnimTime=0f;}
+        else playerAnimTime+=delta;
+        float clipDur=AnimationFactory.clipDurationForPath(normalize(bodyPam),state);
+        float animTime=clipDur>0?(playerAnimTime%clipDur):playerAnimTime;
+
         if(zombotany){
-            drawPam(ZombotanyArt.BODY_PAM,state,game.getEatAnimationTime(),game.getX()*tile-28,game.getY()*tile-20,
+            drawPam(ZombotanyArt.BODY_PAM,state,animTime,game.getX()*tile-28,game.getY()*tile-20,
                     PLAYER_SCALE,flip,ZombotanyArt.headlessBodyMask());
-            drawPam("768/INITIAL/PLANT/PEASHOOTER/PEASHOOTER.PAM","idle",game.getEatAnimationTime(),
+            drawPam("768/INITIAL/PLANT/PEASHOOTER/PEASHOOTER.PAM","idle",worldTime,
                     game.getX()*tile+6,game.getY()*tile+28,0.33f,flip,null);
         } else {
-            drawPam(zoy?ZOYBEAN_PAM:PLAYER_PAM,state,game.getEatAnimationTime(),game.getX()*tile-28,
+            drawPam(bodyPam,state,animTime,game.getX()*tile-28,
                     game.getY()*tile-20,PLAYER_SCALE,flip,null);
         }
         batch.setColor(Color.WHITE);
@@ -365,10 +408,11 @@ public class ZombiePackmanGameScreen extends BaseScreen {
 
             batch.flush();
             com.badlogic.gdx.math.Matrix4 old=batch.getTransformMatrix().cpy();
-            batch.getTransformMatrix().translate(x,y,0).scale(scale,scale,1);
+            float scaleX = flip ? -scale : scale;
+            batch.getTransformMatrix().translate(x,y,0).scale(scaleX,scale,1);
             batch.setTransformMatrix(batch.getTransformMatrix());
-            if(visibility==null)pamPlayer.draw(batch,clip,time,0,0,flip);
-            else pamPlayer.draw(batch,clip,time,0,0,flip,visibility);
+            if(visibility==null)pamPlayer.draw(batch,clip,time,0,0,false);
+            else pamPlayer.draw(batch,clip,time,0,0,false,visibility);
             batch.flush();
             batch.setTransformMatrix(old);
             return true;
@@ -394,7 +438,7 @@ public class ZombiePackmanGameScreen extends BaseScreen {
         Pixmap p=new Pixmap(1,1,Pixmap.Format.RGBA8888);p.setColor(Color.WHITE);p.fill();Texture t=new Texture(p);p.dispose();return new TextureRegion(t);
     }
 
-    private void restart(){ game=new ZombiePackmanGame(); clipCache.clear(); preload(); deathFlash=0; winPulse=0; }
+    private void restart(){ game=new ZombiePackmanGame(); clipCache.clear(); ghostFacingRight.clear(); playerFacingRight=false; playerAnimState=null; playerAnimTime=0f; preload(); deathFlash=0; winPulse=0; }
     private void exitToConsole(){ App.currentMenu=new controller.ui_menus.ConsoleMenu(); ScreenManager.forceResync(); }
 
     @Override public void dispose(){

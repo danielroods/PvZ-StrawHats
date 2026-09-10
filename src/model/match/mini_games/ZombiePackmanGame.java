@@ -14,12 +14,14 @@ import java.util.Set;
 
 /**
  * Lightweight standalone simulation for the Console's Zombie Packman game.
- * It deliberately does not use GameSession: the board is 200x200 and needs its own
+ * It deliberately does not use GameSession: the board is 240x240 and needs its own
  * continuous, camera-following movement model rather than the 5x9 PvZ lane model.
  */
 public final class ZombiePackmanGame {
-    public static final int WIDTH = 200, HEIGHT = 200;
+    public static final int WIDTH = 240, HEIGHT = 240;
     public static final int MAX_LIVES = 9;
+    private static final int COIN_SPACING = 3;
+    private static final float COIN_PICKUP_RADIUS = 0.85f;
 
     public enum Direction { NONE, UP, DOWN, LEFT, RIGHT }
 
@@ -64,13 +66,17 @@ public final class ZombiePackmanGame {
         public boolean isWallNut() { return type.equalsIgnoreCase("Wall-nut"); }
     }
 
+    /** Personality index: 0 Blinky (direct chaser), 1 Pinky (ambusher), 2 Inky (erratic), 3 Clyde (shy). */
     public static final class GhostState {
         public float x, y;
         public final float spawnX, spawnY;
+        public final int personality;
         public boolean chasing;
         public float pathTimer;
+        public float frightRecoverTimer;
         public Direction direction = Direction.LEFT;
-        GhostState(GhostDef d) { x=d.x+0.5f; y=d.y+0.5f; spawnX=x; spawnY=y; }
+        GhostState(GhostDef d, int personality) { x=d.x+0.5f; y=d.y+0.5f; spawnX=x; spawnY=y; this.personality=personality; }
+        public boolean isRecovering() { return frightRecoverTimer > 0; }
     }
 
     public static final class Projectile {
@@ -136,7 +142,7 @@ public final class ZombiePackmanGame {
             }
         }
         for (GhostDef g : map.ghosts) {
-            if (!walls.contains(key(g.x,g.y))) ghosts.add(new GhostState(g));
+            if (!walls.contains(key(g.x,g.y))) ghosts.add(new GhostState(g, ghosts.size() % 4));
             excluded.add(key(g.x,g.y));
         }
         for (PowerDef p : map.powerups) {
@@ -144,6 +150,7 @@ public final class ZombiePackmanGame {
             excluded.add(key(p.x,p.y));
         }
         for (int xx=0; xx<map.width; xx++) for (int yy=0; yy<map.height; yy++) {
+            if (xx % COIN_SPACING != 0 || yy % COIN_SPACING != 0) continue;
             if (!walls.contains(key(xx,yy)) && !excluded.contains(key(xx,yy))) coins.add(key(xx,yy));
         }
         totalCoins = coins.size();
@@ -306,15 +313,26 @@ public final class ZombiePackmanGame {
         }
     }
 
+    private static final float[] GHOST_CHASE_SPEED = {4.4f, 4.0f, 4.2f, 3.8f};
+    private static final float[] GHOST_PATROL_SPEED = {2.3f, 2.2f, 2.2f, 2.0f};
+
     private void updateGhosts(float delta) {
+        boolean frightened = zoybeanTimer > 0;
         for (GhostState g:ghosts) {
+            g.frightRecoverTimer = Math.max(0, g.frightRecoverTimer-delta);
+            boolean recovering = g.isRecovering();
             float dist=distance(g.x,g.y,x,y);
-            g.chasing = dist<12f || (g.chasing && dist<18f);
-            float speed=g.chasing?4.2f:2.2f;
+            float speed;
+            if (recovering) { g.chasing=false; speed=3.4f; }
+            else if (frightened) { g.chasing=false; speed=3.0f; }
+            else {
+                g.chasing = dist<12f || (g.chasing && dist<18f);
+                speed = g.chasing ? GHOST_CHASE_SPEED[g.personality] : GHOST_PATROL_SPEED[g.personality];
+            }
             g.pathTimer-=delta;
             if (g.pathTimer<=0) {
                 g.pathTimer=0.25f;
-                Direction d=chooseGhostDirection(g);
+                Direction d=chooseGhostDirection(g,frightened,recovering);
                 if (d!=Direction.NONE) g.direction=d;
             }
             float nx=g.x,ny=g.y;
@@ -323,27 +341,70 @@ public final class ZombiePackmanGame {
             if(g.direction==Direction.UP)ny+=speed*delta;
             if(g.direction==Direction.DOWN)ny-=speed*delta;
             if(canOccupy(nx,ny)) {g.x=nx;g.y=ny;} else g.pathTimer=0;
-            if(distance(g.x,g.y,x,y)<0.65f) hurtPlayer();
+            if(distance(g.x,g.y,x,y)<0.65f) {
+                if (recovering) { /* eyes heading home - harmless */ }
+                else if (frightened) eatGhost(g);
+                else hurtPlayer();
+            }
         }
     }
 
-    private Direction chooseGhostDirection(GhostState g) {
+    private void eatGhost(GhostState g) {
+        g.x=g.spawnX; g.y=g.spawnY; g.frightRecoverTimer=3f; g.chasing=false;
+    }
+
+    private Direction chooseGhostDirection(GhostState g, boolean frightened, boolean recovering) {
+        float targetX, targetY;
+        boolean maximize;
+        if (recovering) { targetX=g.spawnX; targetY=g.spawnY; maximize=false; }
+        else if (frightened) { targetX=x; targetY=y; maximize=true; }
+        else { float[] t=personalityTarget(g); targetX=t[0]; targetY=t[1]; maximize=false; }
+
         Direction[] dirs={Direction.UP,Direction.DOWN,Direction.LEFT,Direction.RIGHT};
-        Direction best=Direction.NONE; float bestScore=Float.MAX_VALUE;
+        Direction best=Direction.NONE;
+        float bestScore = maximize ? -Float.MAX_VALUE : Float.MAX_VALUE;
         for(Direction d:dirs){
             float nx=g.x,ny=g.y;
             if(d==Direction.LEFT)nx-=1;if(d==Direction.RIGHT)nx+=1;if(d==Direction.UP)ny+=1;if(d==Direction.DOWN)ny-=1;
             if(!canOccupy(nx,ny))continue;
-            float score=distance(nx,ny,x,y);
-            if(!g.chasing) score += (float)(Math.random()*4);
-            if(score<bestScore){bestScore=score;best=d;}
+            float score=distance(nx,ny,targetX,targetY);
+            if(!g.chasing && !maximize && !recovering) score += (float)(Math.random()*4);
+            boolean better = maximize ? score>bestScore : score<bestScore;
+            if(better){bestScore=score;best=d;}
         }
         return best;
     }
 
+    /** Where each ghost personality currently wants to head, in world (tile) coordinates. */
+    private float[] personalityTarget(GhostState g) {
+        switch (g.personality) {
+            case 1: { // Pinky: ambush a few tiles ahead of the player's current heading
+                float ax=x, ay=y;
+                if(direction==Direction.LEFT) ax-=4; else if(direction==Direction.RIGHT) ax+=4;
+                else if(direction==Direction.UP) ay+=4; else if(direction==Direction.DOWN) ay-=4;
+                return new float[]{ax, ay};
+            }
+            case 2: // Inky: erratic - occasionally lunges at a random offset instead of the player directly
+                if (Math.random() < 0.35) return new float[]{x + (float)(Math.random()*10-5), y + (float)(Math.random()*10-5)};
+                return new float[]{x, y};
+            case 3: // Clyde: shy - chases from afar but retreats toward home once close
+                if (distance(g.x,g.y,x,y) < 5f) return new float[]{g.spawnX, g.spawnY};
+                return new float[]{x, y};
+            default: // Blinky: direct chase
+                return new float[]{x, y};
+        }
+    }
+
     private void collectCoins() {
         int tx=(int)Math.floor(x),ty=(int)Math.floor(y);
-        if(coins.remove(key(tx,ty)))coinsCollected++;
+        for (int dx=-1; dx<=1; dx++) for (int dy=-1; dy<=1; dy++) {
+            int cx=tx+dx, cy=ty+dy;
+            if (!coins.contains(key(cx,cy))) continue;
+            if (distance(x,y,cx+0.5f,cy+0.5f) <= COIN_PICKUP_RADIUS) {
+                coins.remove(key(cx,cy));
+                coinsCollected++;
+            }
+        }
     }
     private void collectPowerups() {
         int tx=(int)Math.floor(x),ty=(int)Math.floor(y);
@@ -370,7 +431,7 @@ public final class ZombiePackmanGame {
     }
 
     private void hurtPlayer(){
-        if(invulnerableTimer>0||gameOver||won)return;
+        if(invulnerableTimer>0||zoybeanTimer>0||gameOver||won)return;
         lives--;
         if(lives<=0){lives=0;gameOver=true;return;}
         x=spawnX;y=spawnY;direction=Direction.NONE;desiredDirection=Direction.NONE;invulnerableTimer=1.8f;
