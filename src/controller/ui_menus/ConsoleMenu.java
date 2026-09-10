@@ -26,8 +26,10 @@ public class ConsoleMenu extends Menu {
         return "[ Console ]\n"
                 + "Games:\n"
                 + "  Zombie Packman\n"
+                + "  Zombie Dash\n"
                 + "Commands:\n"
                 + "  menu enter zombie packman\n"
+                + "  menu enter zombie dash\n"
                 + "  menu exit | menu show current";
     }
 }

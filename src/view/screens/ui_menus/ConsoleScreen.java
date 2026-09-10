@@ -33,10 +33,19 @@ public class ConsoleScreen extends UiScreen {
         top.add().expandX();
         rootTable.add(top).fillX().row();
 
+        Table games = new Table();
+        games.add(createGameCard("assets/images/ui/calendar_card_7day_mgpwinterevent.png",
+                "Zombie Packman", "menu enter zombie packman")).size(420, 260).padRight(25);
+        games.add(createGameCard("assets/images/ui/calendar_card_7day_mgpwinterevent.png",
+                "Zombie Dash", "menu enter zombie dash")).size(420, 260);
+        rootTable.add(games).padTop(35).center();
+    }
+
+    private Stack createGameCard(String imagePath, String title, String command) {
         Stack card = new Stack();
-        Texture tex = loadTextureSafe("assets/images/ui/calendar_card_7day_mgpwinterevent.png");
+        Texture tex = loadTextureSafe(imagePath);
         ImageButton image = new ImageButton(new TextureRegionDrawable(tex));
-        Label label = new Label("Zombie Packman", skin, "title");
+        Label label = new Label(title, skin, "title");
         label.setAlignment(Align.center);
         Table text = new Table();
         text.add(label).expand().bottom().padBottom(20);
@@ -44,9 +53,9 @@ public class ConsoleScreen extends UiScreen {
         card.add(text);
         card.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                runCommand("menu enter zombie packman");
+                runCommand(command);
             }
         });
-        rootTable.add(card).size(420, 260).padTop(35).center();
+        return card;
     }
 }

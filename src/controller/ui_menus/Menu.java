@@ -40,6 +40,7 @@ public abstract class Menu {
             case "adventure" -> App.currentMenu = new AdventureMenu();
             case "network" -> App.currentMenu = new NetworkMenu();
             case "zombie packman" -> App.currentMenu = new ZombiePackmanMenu();
+            case "zombie dash" -> App.currentMenu = new ZombieDashMenu();
             case "coop", "co-op", "izombiecoop" -> {
                 
                 

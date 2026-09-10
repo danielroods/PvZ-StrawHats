@@ -122,6 +122,10 @@ public final class ScreenManager {
             return new view.screens.generals.LoadingScreen(
                     ZombiePackmanGameScreen::new);
         }
+        if (menu instanceof ZombieDashMenu) {
+            return new view.screens.generals.LoadingScreen(
+                    ZombieDashGameScreen::new);
+        }
         if (menu instanceof ProfileMenu) {
             return new ProfileMenuScreen();
         }
