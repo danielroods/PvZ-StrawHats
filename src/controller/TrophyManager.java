@@ -27,8 +27,7 @@ public class TrophyManager {
     private static final java.util.Map<String, TrophyFlavor> TROPHY_FLAVOR = java.util.Map.of(
             "Egypt", new TrophyFlavor("Golden Zomboss Sarcophagus",
                     "Defeated the pharaoh's finest reanimation engine. It came with a curse, a "
-                            + "ten-thousand-year warranty, and surprisingly good cup holders. All three "
-                            + "are now yours to ignore."),
+                            + "ten-thousand-year warranty."),
             "Pirates", new TrophyFlavor("Barnacled Boss-Wreck Trophy",
                     "Sunk a mechanical menace beneath the waves along with its captain's dignity. "
                             + "Smells faintly of brine, motor oil, and unearned confidence."),

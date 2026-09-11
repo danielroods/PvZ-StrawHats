@@ -1,8 +1,10 @@
 package view.screens.ui_menus;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -28,7 +30,6 @@ public class TrophiesScreen extends UiScreen {
     private static final float SHELF_WIDTH = 900f;
     private static final float TROPHY_SIZE_X = 135f;
     private static final float TROPHY_SIZE_Y = 240f;
-
 
     private final TrophyManager manager = new TrophyManager();
 
@@ -73,7 +74,6 @@ public class TrophiesScreen extends UiScreen {
         ImageButton backBtn = createIconButton("assets/images/ui/buttons_hud_back_normal.png", 54, 54,
                 () -> runCommand("menu exit"));
 
-
         Table topLeft = new Table();
         topLeft.left();
         topLeft.add(backBtn).width(120).height(48).padRight(20);
@@ -94,19 +94,16 @@ public class TrophiesScreen extends UiScreen {
         return topBar;
     }
 
-    /**
-     * One chapter's "shelf": a wood-tile backdrop behind the chapter name, with the
-     * trophy on the left and its matching key on the right - same side-by-side
-     * arrangement as the real game's Almanac (see project reference screenshot).
-     */
     private Table buildShelf(TrophyManager.TrophyEntry entry) {
         Table shelf = new Table();
         Drawable shelfBg = loadDrawableSafe(AssetPaths.TROPHIES_SHELF_TILE);
+
         if (shelfBg != null) {
             shelf.setBackground(shelfBg);
         } else {
             shelf.setBackground(solidColorDrawable(new Color(0.24f, 0.16f, 0.08f, 0.9f)));
         }
+
         shelf.pad(SPACE_LG);
 
         Label chapterLabel = new Label(entry.chapterName(), skin, "title");
@@ -123,6 +120,7 @@ public class TrophiesScreen extends UiScreen {
     private Table buildTrophySlot(TrophyManager.TrophyEntry entry) {
         Table slot = new Table();
         String imagePath = entry.earned() ? entry.trophyImagePath() : AssetPaths.TROPHY_LOCKED_SILHOUETTE;
+
         Image trophyImage = new Image(loadTextureSafe(imagePath));
         trophyImage.setColor(1f, 1f, 1f, entry.earned() ? 1f : 0.35f);
 
@@ -136,59 +134,172 @@ public class TrophiesScreen extends UiScreen {
                 public void clicked(InputEvent event, float x, float y) {
                     new TrophyDetailModal(entry).show();
                 }
+
                 @Override
-                public void enter(InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                public void enter(InputEvent event, float x, float y, int pointer,
+                                  com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
                     imageBox.addAction(Actions.scaleTo(1.1f, 1.1f, 0.12f));
                 }
+
                 @Override
-                public void exit(InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor toActor) {
+                public void exit(InputEvent event, float x, float y, int pointer,
+                                 com.badlogic.gdx.scenes.scene2d.Actor toActor) {
                     imageBox.addAction(Actions.scaleTo(1f, 1f, 0.12f));
                 }
             });
+
             imageBox.setOrigin(TROPHY_SIZE_X / 2f, TROPHY_SIZE_Y / 2f);
         }
 
         slot.add(imageBox).size(TROPHY_SIZE_X, TROPHY_SIZE_Y).row();
         slot.add(new Label(entry.earned() ? "Trophy" : "???", skin, "muted")).padTop(4);
+
         return slot;
     }
-
-
 
     private Drawable loadDrawableSafe(String path) {
         Texture texture = loadTextureSafe(path);
         return texture == null ? null : new TextureRegionDrawable(texture);
     }
 
+    private Drawable roundedTopBackground(String path) {
+        if (!Gdx.files.internal(path).exists()) {
+            return null;
+        }
+
+        Pixmap source = new Pixmap(Gdx.files.internal(path));
+        int width = source.getWidth();
+        int height = source.getHeight();
+
+        int scale = 3;
+        int radius = 42 * scale;
+
+        int scaledWidth = width * scale;
+        int scaledHeight = height * scale;
+
+        Pixmap result = new Pixmap(
+                scaledWidth,
+                scaledHeight,
+                Pixmap.Format.RGBA8888
+        );
+
+        result.setColor(0f, 0f, 0f, 0f);
+        result.fill();
+
+        for (int y = 0; y < scaledHeight; y++) {
+            for (int x = 0; x < scaledWidth; x++) {
+
+                boolean draw = true;
+
+                // Bottom left
+                if (x < radius && y < radius) {
+                    float dx = x - radius;
+                    float dy = y - radius;
+
+                    if (dx * dx + dy * dy > radius * radius) {
+                        draw = false;
+                    }
+                }
+
+                // Bottom right
+                if (x >= scaledWidth - radius && y < radius) {
+                    float dx = x - (scaledWidth - radius - 1);
+                    float dy = y - radius;
+
+                    if (dx * dx + dy * dy > radius * radius) {
+                        draw = false;
+                    }
+                }
+
+                // Top left
+                if (x < radius && y >= scaledHeight - radius) {
+                    float dx = x - radius;
+                    float dy = y - (scaledHeight - radius - 1);
+
+                    if (dx * dx + dy * dy > radius * radius) {
+                        draw = false;
+                    }
+                }
+
+                // Top right
+                if (x >= scaledWidth - radius && y >= scaledHeight - radius) {
+                    float dx = x - (scaledWidth - radius - 1);
+                    float dy = y - (scaledHeight - radius - 1);
+
+                    if (dx * dx + dy * dy > radius * radius) {
+                        draw = false;
+                    }
+                }
+
+                if (draw) {
+                    int sourceX = Math.min(width - 1, x / scale);
+                    int sourceY = Math.min(height - 1, y / scale);
+
+                    result.drawPixel(
+                            x,
+                            y,
+                            source.getPixel(sourceX, sourceY)
+                    );
+                }
+            }
+        }
+
+        source.dispose();
+
+        Texture texture = new Texture(result);
+        texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+
+        result.dispose();
+
+        return new TextureRegionDrawable(
+                new TextureRegion(texture)
+        );
+    }
+
+
     private Drawable solidColorDrawable(Color color) {
         Pixmap pixmap = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();
+
         Texture texture = new Texture(pixmap);
         pixmap.dispose();
+
         return new TextureRegionDrawable(new TextureRegion(texture));
     }
 
-    /** Pop-up shown when an earned trophy is clicked: the trophy enlarged, with the
-     *  chapter name underneath - the "click on a trophy and it gets a bit bigger"
-     *  behaviour asked for, done as a modal rather than growing the shelf tile itself
-     *  so the layout of the other shelves never shifts. */
     private class TrophyDetailModal extends Modal {
+
         TrophyDetailModal(TrophyManager.TrophyEntry entry) {
+
+            Drawable popupBackground =
+                    roundedTopBackground("assets/images/shop/no-ad_background.png");
+
+            if (popupBackground != null) {
+                content.setBackground(popupBackground);
+            }
+
             Image bigTrophy = new Image(loadTextureSafe(entry.trophyImagePath()));
-            content.add(bigTrophy).size(TROPHY_SIZE_X * 2f, TROPHY_SIZE_Y * 2f).padBottom(SPACE_MD).row();
+
+            content.add(bigTrophy)
+                    .size(TROPHY_SIZE_X * 2f, TROPHY_SIZE_Y * 2f)
+                    .padBottom(SPACE_MD)
+                    .row();
 
             Label title = new Label(entry.chapterName() + " Trophy", skin, "title");
             title.setAlignment(Align.center);
             title.setWrap(true);
+            title.setColor(Color.BLACK);
             content.add(title).width(360).padBottom(SPACE_SM).row();
 
             Label subtitle = new Label(entry.trophyDescription(), skin, "muted");
             subtitle.setWrap(true);
             subtitle.setAlignment(Align.center);
+            subtitle.setColor(Color.BLACK);
             content.add(subtitle).width(360f).padBottom(SPACE_MD).row();
 
             content.add(secondaryButton("Close", this::hide)).width(160).height(48);
         }
     }
 }
+
