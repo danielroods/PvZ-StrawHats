@@ -621,6 +621,7 @@ public class GameScreen extends UiScreen {
         interaction.drawHover(bw, bh);
         drawSeasonForegroundEffects(delta, bw, bh);
         zomboss.drawNpc();
+        zomboss.drawNarrationIcon();
         interaction.drawDragPreview(delta);
         matchEnd.drawMatchEndOverlay();
         drawMatchStartOverlay();

@@ -50,6 +50,12 @@ public final class MatchHud extends Table implements Disposable {
 
     private static final float WAVE_BAR_HEIGHT = 32f;
 
+    private static final String ZOMBOSS_TOPPER_PAM =
+            "768/INITIAL/UI/PAUSEMENU/ZOMBOSS_TOPPER_ANIM/ZOMBOSS_TOPPER_ANIM.PAM";
+    private static final String ZOMBOSS_TOPPER_CLIP = "animation";
+    private static final float ZOMBOSS_TOPPER_HEIGHT = 46f;
+    private static final float ZOMBOSS_TOPPER_SCALE = 0.5f;
+
     private static final float CARD_H = 60;
 
     private static final float TOOL_BUTTON_SIZE = 64f;
@@ -78,8 +84,8 @@ public final class MatchHud extends Table implements Disposable {
     private final TextButton debugAddFoodButton;
     private final Table debugRow = new Table();
     private final WaveProgressMeter waveMeter;
-    
-    
+
+
     private int lastWavesSpawnedCount = -1;
     private GameSession lastSession;
 
@@ -100,6 +106,7 @@ public final class MatchHud extends Table implements Disposable {
     private boolean shovelActive;
     private boolean foodActive;
     private PamPlayer pamPlayer;
+    private final ZombossTopperActor zombossTopper = new ZombossTopperActor();
     private Table leftColumn;
     private Table rightArea;
     private ConveyorBeltWidget conveyorWidget;
@@ -265,7 +272,12 @@ public final class MatchHud extends Table implements Disposable {
         difficultyOverlay.add(new DifficultyMeterActor()).size(26f, 26f).padRight(-5f);
         waveBarStack.add(difficultyOverlay);
 
+        zombossTopper.setVisible(false);
+        Table topperRow = new Table();
+        topperRow.add(zombossTopper).growX().height(ZOMBOSS_TOPPER_HEIGHT);
+
         Table centerColumn = new Table();
+        centerColumn.add(topperRow).growX().height(ZOMBOSS_TOPPER_HEIGHT).row();
         centerColumn.add(waveBarStack).growX().height(WAVE_BAR_HEIGHT).row();
         centerColumn.add(objectiveLabel).growX().padTop(3f).row();
         centerColumn.add(startButton).size(130, 38).padTop(5f);
@@ -363,7 +375,7 @@ public final class MatchHud extends Table implements Disposable {
         invalidateHierarchy();
     }
 
-    
+
     private void darkenNukeButtonBriefly() {
         nukeButton.clearActions();
         nukeButton.setColor(Color.WHITE);
@@ -485,8 +497,10 @@ public final class MatchHud extends Table implements Disposable {
             waveMeter.setMode(WaveProgressMeter.Mode.BOSS);
             waveMeter.setValue(health);
             waveMeter.setVisible(true);
+            zombossTopper.setVisible(true);
             return;
         }
+        zombossTopper.setVisible(false);
 
         if (currentLevel instanceof model.match.main.levels.special_levels.TimedWarLevel timedWar) {
             double secondsRemaining = timedWar.getSecondsRemaining();
@@ -509,7 +523,7 @@ public final class MatchHud extends Table implements Disposable {
             return;
         }
 
-        
+
         if (total <= 0) {
             waveLabel.setText("");
             waveLabel.setVisible(false);
@@ -633,7 +647,7 @@ public final class MatchHud extends Table implements Disposable {
 
             @Override
             public void touchDragged(InputEvent event, float x, float y, int pointer) {
-                
+
             }
 
             @Override
@@ -942,6 +956,46 @@ public final class MatchHud extends Table implements Disposable {
             topTexture.dispose();
             sideTexture.dispose();
             beltTexture.dispose();
+        }
+    }
+
+    private final class ZombossTopperActor extends Actor {
+        private float stateTime = 0f;
+
+        ZombossTopperActor() {
+            setTouchable(Touchable.disabled);
+        }
+
+        @Override
+        public void act(float delta) {
+            super.act(delta);
+            stateTime += delta;
+        }
+
+        @Override
+        public void draw(Batch batch, float parentAlpha) {
+            super.draw(batch, parentAlpha);
+            if (pamPlayer == null) return;
+
+            pvz.libpvz.pam.ClipRef clip = pamPlayer.getClip(ZOMBOSS_TOPPER_PAM, ZOMBOSS_TOPPER_CLIP);
+            if (clip == null) return;
+
+            float duration = model.collections.animations.AnimationFactory
+                    .exactClipDurationForPath(ZOMBOSS_TOPPER_PAM, ZOMBOSS_TOPPER_CLIP);
+            float animTime = duration > 0f ? stateTime % duration : stateTime;
+
+            float x = getX() + getWidth() / 2f;
+            float y = getY() + getHeight() / 2f;
+
+            batch.flush();
+            com.badlogic.gdx.math.Matrix4 old = batch.getTransformMatrix().cpy();
+            batch.getTransformMatrix().translate(x, y, 0f).scale(ZOMBOSS_TOPPER_SCALE, ZOMBOSS_TOPPER_SCALE, 1f);
+            batch.setTransformMatrix(batch.getTransformMatrix());
+
+            pamPlayer.draw(batch, clip, animTime, 0f, 0f, true);
+
+            batch.flush();
+            batch.setTransformMatrix(old);
         }
     }
 

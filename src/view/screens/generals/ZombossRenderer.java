@@ -58,6 +58,12 @@ class ZombossRenderer {
             "768/FULL/EFFECTS/ZOMBOSS_GLACIER_FOGGING/ZOMBOSS_GLACIER_FOGGING.PAM";
     private static final String GLACIER_CLIP = "animation";
 
+    private static final String NARRATION_ICON_PAM =
+            "768/INITIAL/NPC/NARRATIONICONS_ZOMBOSS/NARRATIONICONS_ZOMBOSS.PAM";
+    private static final String NARRATION_ENTER_CLIP = "anim_enter";
+    private static final String NARRATION_LEAVE_CLIP = "anim_leave";
+    private static final float NARRATION_SCALE = 0.6f;
+
     private final GameScreen screen;
 
     private float effectTime;
@@ -142,6 +148,35 @@ class ZombossRenderer {
         float viewW = screen.stage.getViewport().getWorldWidth();
         screen.drawPam(ZombossChapter.NPC_PAM, clip, (float) fight.getNpcClipTime(),
                 viewW - NPC_MARGIN_X, NPC_MARGIN_Y + 90f, NPC_SCALE, false);
+    }
+
+    void drawNarrationIcon() {
+        if (screen.isBeforeMatchPreview()) return;
+        ZombossFight fight = fight();
+        if (fight == null || fight.getPhase() != ZombossPhase.SILENCE) return;
+
+        double elapsed = fight.getPhaseElapsed();
+        float enterLength = AnimationFactory.exactClipDurationForPath(
+                NARRATION_ICON_PAM, NARRATION_ENTER_CLIP);
+
+        String clip;
+        float clipTime;
+        if (enterLength <= 0 || elapsed < enterLength) {
+            clip = NARRATION_ENTER_CLIP;
+            clipTime = (float) elapsed;
+        } else {
+            clip = NARRATION_LEAVE_CLIP;
+            float leaveElapsed = (float) elapsed - enterLength;
+            float leaveLength = AnimationFactory.exactClipDurationForPath(
+                    NARRATION_ICON_PAM, NARRATION_LEAVE_CLIP);
+            if (leaveLength > 0 && leaveElapsed >= leaveLength) return;
+            clipTime = leaveElapsed;
+        }
+
+        float viewW = screen.stage.getViewport().getWorldWidth();
+        float viewH = screen.stage.getViewport().getWorldHeight();
+        screen.drawPam(NARRATION_ICON_PAM, clip, clipTime, viewW / 2f, viewH / 2f,
+                NARRATION_SCALE, false);
     }
 
     private void drawGlacier(int sealedColumnStart) {
