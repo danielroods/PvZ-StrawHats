@@ -74,6 +74,8 @@ public class AfterMatchScreen extends UiScreen {
     private static final String PINATA_ICEAGE = "768/FULL/EFFECTS/PRIZE_PINATA_ICEAGE/PRIZE_PINATA_ICEAGE.PAM";
     private static final String PINATA_EGYPT = "768/INITIAL/EFFECTS/PRIZE_PINATA_EGYPT/PRIZE_PINATA_EGYPT.PAM";
     private static final String PINATA_DARK = "768/FULL/EFFECTS/PRIZE_PINATA_DARK/PRIZE_PINATA_DARK.PAM";
+    private static final String PINATA_PIRATE = "768/FULL/EFFECTS/PRIZE_PINATA_PIRATE/PRIZE_PINATA_PIRATE.PAM";
+    private static final String PINATA_FUTURE = "768/FULL/EFFECTS/PRIZE_PINATA_FUTURE/PRIZE_PINATA_FUTURE.PAM";
 
     private static final String COIN_DIAMOND_PAM = "768/INITIAL/EFFECTS/COIN_DIAMOND/COIN_DIAMOND.PAM";
     private static final String COIN_STACK_PAM = "768/INITIAL/EFFECTS/COIN_STACK/COIN_STACK.PAM";
@@ -400,6 +402,8 @@ public class AfterMatchScreen extends UiScreen {
         if (seasonName.equalsIgnoreCase("Frostbite Caves")) return PINATA_ICEAGE;
         if (seasonName.equalsIgnoreCase("Egypt")) return PINATA_EGYPT;
         if (seasonName.equalsIgnoreCase("Dark Ages")) return PINATA_DARK;
+        if (seasonName.equalsIgnoreCase("Future")) return PINATA_FUTURE;
+        if (seasonName.equalsIgnoreCase("Pirates")) return PINATA_PIRATE;
         
         
         return PINATA_DARK;

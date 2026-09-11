@@ -50,6 +50,20 @@ public final class MatchHud extends Table implements Disposable {
 
     private static final float WAVE_BAR_HEIGHT = 32f;
 
+    private static final float FOOD_BANK_HEIGHT = 64f;
+    private static final float FOOD_BUTTON_SIZE = 40f;
+    private static final float FOOD_CIRCLE_CENTER_X_FRACTION = 0.215f;
+    private static final float FOOD_CIRCLE_CENTER_Y_FRACTION = 0.50f;
+    private static final float FOOD_PIP_SIZE = 14f;
+    private static final float FOOD_PIP_SCALE = 0.7f;
+    private static final Vector2[] FOOD_PIP_FRACTIONS = {
+            new Vector2(0.42f, 0.50f),
+            new Vector2(0.53f, 0.50f),
+            new Vector2(0.65f, 0.50f),
+            new Vector2(0.77f, 0.50f),
+            new Vector2(0.89f, 0.50f),
+    };
+
     private static final String ZOMBOSS_TOPPER_PAM =
             "768/INITIAL/UI/PAUSEMENU/ZOMBOSS_TOPPER_ANIM/ZOMBOSS_TOPPER_ANIM.PAM";
     private static final String ZOMBOSS_TOPPER_CLIP = "animation";
@@ -66,6 +80,7 @@ public final class MatchHud extends Table implements Disposable {
 
     private final Button shovelButton;
     private final Button foodButton;
+    private final List<Image> foodPips = new ArrayList<>();
     private final Button nukeButton;
     private final Skin skin;
     private final SeedPacketCardFactory cardFactory = new SeedPacketCardFactory();
@@ -77,8 +92,8 @@ public final class MatchHud extends Table implements Disposable {
     private final Label coinLabel;
     private final Label waveLabel;
     private final Label objectiveLabel;
-    private final TextButton pauseButton;
-    private final TextButton speedButton;
+    private final ImageButton pauseButton;
+    private final ImageButton speedButton;
     private final TextButton startButton;
     private final TextButton debugAddSunButton;
     private final TextButton debugAddFoodButton;
@@ -124,6 +139,7 @@ public final class MatchHud extends Table implements Disposable {
     private Cell<Button> nukeCell;
     private Boolean lastDebugRowShown;
     private Boolean lastNukeShown;
+    private final TextureRegionDrawable glassSlotDrawable;
 
     private static final class SlotView {
         final String name;
@@ -136,6 +152,7 @@ public final class MatchHud extends Table implements Disposable {
     }
 
     private final class PlantCardSlot extends Group {
+        private final Image glassBackground;
         private final Actor artwork;
         private final Image unavailable;
         private final Image selected;
@@ -146,6 +163,12 @@ public final class MatchHud extends Table implements Disposable {
             this.artwork = artwork;
             setSize(width, height);
             setTouchable(Touchable.enabled);
+
+            glassBackground = new Image(glassSlotDrawable);
+            glassBackground.setColor(1f, 1f, 1f, 0.18f);
+            glassBackground.setScaling(Scaling.stretch);
+            glassBackground.setTouchable(Touchable.disabled);
+            addActor(glassBackground);
 
             if (artwork != null) {
                 artwork.setTouchable(Touchable.disabled);
@@ -183,6 +206,7 @@ public final class MatchHud extends Table implements Disposable {
         }
 
         private void layoutChildren() {
+            if (glassBackground != null) glassBackground.setBounds(0f, 0f, getWidth(), getHeight());
             if (artwork != null) artwork.setBounds(0f, 0f, getWidth(), getHeight());
             if (unavailable != null) unavailable.setBounds(0f, 0f, getWidth(), getHeight());
             if (selected != null) selected.setBounds(0f, 0f, getWidth(), getHeight());
@@ -208,6 +232,8 @@ public final class MatchHud extends Table implements Disposable {
         overlayPixelTexture = new Texture(overlayPixmap);
         overlayPixmap.dispose();
         overlayPixelDrawable = new TextureRegionDrawable(new TextureRegion(overlayPixelTexture));
+        Texture glassSlotTexture = loadTexture("assets/images/ui/cooldown.png");
+        glassSlotDrawable = new TextureRegionDrawable(new TextureRegion(glassSlotTexture));
         setFillParent(true);
         setTouchable(Touchable.childrenOnly);
         top().left();
@@ -221,7 +247,8 @@ public final class MatchHud extends Table implements Disposable {
         objectiveLabel.setAlignment(Align.center);
         objectiveLabel.setWrap(true);
 
-        pauseButton = new TextButton("II", skin);
+        Texture pauseBtnTex = loadTexture("assets/images/ui/pause_button.png");
+        pauseButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(pauseBtnTex)));
         startButton = new TextButton("START", skin);
 
         Texture shovelBtnTex = loadTexture("assets/images/chapters/egypt/gameplay/shovel_button.png");
@@ -238,9 +265,11 @@ public final class MatchHud extends Table implements Disposable {
         debugAddSunButton = new TextButton("+25 Sun", skin);
         debugAddFoodButton = new TextButton("+1 Food", skin);
 
-        speedButton = new TextButton(model.utils.GameSettings.get().getGameSpeed() + "x", skin);
+        Texture speedBtnTex = loadTexture("assets/images/ui/2x.png");
+        speedButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(speedBtnTex)));
 
         pauseButton.addListener(click(() -> { if (pauseAction != null) pauseAction.run(); }));
+        addPressDarken(pauseButton);
         speedButton.addListener(click(() -> { if (speedAction != null) speedAction.run(); }));
         shovelButton.addListener(click(() -> { if (shovelAction != null) shovelAction.run(); }));
         foodButton.addListener(click(() -> { if (foodAction != null) foodAction.run(); }));
@@ -303,27 +332,69 @@ public final class MatchHud extends Table implements Disposable {
         row();
 
         Table bankFrame = new Table();
-        bankFrame.setBackground(skin.getDrawable("card-background"));
         bankFrame.pad(5f);
         loadoutRow.top();
-        ScrollPane loadoutScroll = new ScrollPane(loadoutRow);
-        loadoutScroll.setScrollingDisabled(true, false);
-        loadoutScroll.setFadeScrollBars(false);
-        loadoutScroll.setOverscroll(false, false);
-        bankFrame.add(loadoutScroll).top().grow();
+        bankFrame.add(loadoutRow).top().grow();
+
+        Texture foodBankTex = loadTexture("assets/images/ui/plantfood_bank.png");
+        float foodBankAspect = foodBankTex.getHeight() > 0
+                ? (float) foodBankTex.getWidth() / foodBankTex.getHeight() : 1f;
+        float foodBankWidth = FOOD_BANK_HEIGHT * foodBankAspect;
+
+        Image foodBankImage = new Image(new TextureRegionDrawable(new TextureRegion(foodBankTex)));
+        foodBankImage.setTouchable(Touchable.disabled);
+
+        // Positioned manually (not centered by a Table cell) since the icon sits on the
+        // circle, which is off-center within the wider bank graphic.
+        Group foodIconLayer = new Group();
+        foodIconLayer.setTouchable(Touchable.childrenOnly);
+        foodButton.setSize(FOOD_BUTTON_SIZE, FOOD_BUTTON_SIZE);
+        foodButton.setPosition(
+                foodBankWidth * FOOD_CIRCLE_CENTER_X_FRACTION - FOOD_BUTTON_SIZE / 2f,
+                FOOD_BANK_HEIGHT * FOOD_CIRCLE_CENTER_Y_FRACTION - FOOD_BUTTON_SIZE / 2f);
+        foodIconLayer.addActor(foodButton);
+
+        Texture foodPipTex = loadTexture("assets/images/ui/plantfood_bank_collect.png");
+        Group foodPipsGroup = new Group();
+        foodPipsGroup.setTouchable(Touchable.disabled);
+        for (Vector2 fraction : FOOD_PIP_FRACTIONS) {
+            Image pip = new Image(new TextureRegionDrawable(new TextureRegion(foodPipTex)));
+            pip.setSize(FOOD_PIP_SIZE, FOOD_PIP_SIZE);
+            pip.setScale(FOOD_PIP_SCALE);
+            pip.setOrigin(Align.center);
+            pip.setPosition(foodBankWidth * fraction.x - FOOD_PIP_SIZE / 2f,
+                    FOOD_BANK_HEIGHT * fraction.y - FOOD_PIP_SIZE / 2f);
+            pip.setTouchable(Touchable.disabled);
+            pip.setVisible(false);
+            foodPips.add(pip);
+            foodPipsGroup.addActor(pip);
+        }
 
         Stack foodStack = new Stack();
-        foodStack.add(foodButton);
+        foodStack.add(foodBankImage);
+        foodStack.add(foodIconLayer);
         Table foodBadge = new Table();
         foodBadge.bottom().right();
         foodBadge.add(foodLabel).pad(2f);
         foodBadge.setTouchable(Touchable.disabled);
         foodStack.add(foodBadge);
+        foodStack.add(foodPipsGroup);
+
+        float loadoutRowHeight = CARD_H + 4f;
+        float foodRowOffset = 5f + 7 * loadoutRowHeight; // aligns with the 7th loadout slot (index 6)
+
+        Table loadoutRowTable = new Table();
+        loadoutRowTable.top();
+        loadoutRowTable.add(bankFrame).top().left();
+
+        Table foodCell = new Table();
+        foodCell.top();
+        foodCell.add(foodStack).size(foodBankWidth, FOOD_BANK_HEIGHT).padTop(foodRowOffset);
+        loadoutRowTable.add(foodCell).top().left().padLeft(8f);
 
         leftColumn = new Table();
         leftColumn.top();
-        leftColumn.add(bankFrame).top().expand().fill().row();
-        leftColumn.add(foodStack).size(64, 64).padTop(8f).row();
+        leftColumn.add(loadoutRowTable).top().left();
 
         conveyorWidget = new ConveyorBeltWidget();
         conveyorWidget.setVisible(false);
@@ -376,6 +447,10 @@ public final class MatchHud extends Table implements Disposable {
     }
 
 
+    private static final Color PRESS_DARKEN_TINT = new Color(0.4f, 0.4f, 0.4f, 1f);
+    private static final Color SPEED_2X_TINT = new Color(0.7f, 0.7f, 0.7f, 1f);
+    private static final Color SPEED_3X_TINT = new Color(0.4f, 0.4f, 0.4f, 1f);
+
     private void darkenNukeButtonBriefly() {
         nukeButton.clearActions();
         nukeButton.setColor(Color.WHITE);
@@ -384,6 +459,35 @@ public final class MatchHud extends Table implements Disposable {
                 Actions.delay(0.6f),
                 Actions.color(Color.WHITE, 0.3f)
         ));
+    }
+
+    private void addPressDarken(ImageButton button) {
+        button.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button2) {
+                button.getImage().setColor(PRESS_DARKEN_TINT);
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button2) {
+                button.getImage().setColor(Color.WHITE);
+            }
+        });
+    }
+
+    private Color speedButtonTint(int speed) {
+        return switch (speed) {
+            case 2 -> SPEED_2X_TINT;
+            case 3 -> SPEED_3X_TINT;
+            default -> Color.WHITE;
+        };
+    }
+
+    private void updateFoodPips(int plantFoodCount) {
+        for (int i = 0; i < foodPips.size(); i++) {
+            foodPips.get(i).setVisible(i < plantFoodCount);
+        }
     }
 
     private ClickListener click(Runnable action) {
@@ -450,6 +554,7 @@ public final class MatchHud extends Table implements Disposable {
         if (session == null) return;
         sunLabel.setText(String.valueOf(sunOverride != null ? sunOverride : session.getSunCount()));
         foodLabel.setText(String.valueOf(session.getPlantFoodCount()));
+        updateFoodPips(session.getPlantFoodCount());
         int coins = 0;
         if (model.user_data.User.currentUser != null && model.user_data.User.currentUser.userState != null) {
             coins = model.user_data.User.currentUser.userState.coins;
@@ -464,7 +569,7 @@ public final class MatchHud extends Table implements Disposable {
         foodButton.setChecked(foodActive);
         foodButton.setDisabled(session.getPlantFoodCount() <= 0);
         refreshCheatVisibility();
-        speedButton.setText(model.utils.GameSettings.get().getGameSpeed() + "x");
+        speedButton.getImage().setColor(speedButtonTint(model.utils.GameSettings.get().getGameSpeed()));
         updateLoadout(session, selectedPlants);
         updateConveyor(session);
     }
@@ -596,8 +701,9 @@ public final class MatchHud extends Table implements Disposable {
             loadoutRow.add(slot.card).size(CARD_W, CARD_H).pad(2f).row();
         }
         for (int i = selectedPlants.size(); i < 8; i++) {
-            Table empty = new Table();
-            empty.setBackground(skin.getDrawable("card-background"));
+            Image empty = new Image(glassSlotDrawable);
+            empty.setScaling(Scaling.stretch);
+            empty.setColor(1f, 1f, 1f, 0.18f);
             loadoutRow.add(empty).size(CARD_W, CARD_H).pad(2f).row();
         }
     }

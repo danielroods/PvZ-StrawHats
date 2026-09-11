@@ -13,7 +13,7 @@ import java.util.Set;
 
 class SessionEconomy {
 
-    private static final int MAX_PLANT_FOOD = 3;
+    private static final int MAX_PLANT_FOOD = 5;
     private static final double MIN_SKY_SUN_INTERVAL = 12.0;
     private static final double SKY_SUN_INTERVAL_START = 6.0;
     private static final double SKY_SUN_INTERVAL_GROWTH = 0.05;
@@ -178,7 +178,7 @@ class SessionEconomy {
         matchBoostedPlantIds.clear();
     }
 
-    
+
     void resetMatchStats(int initialSun) {
         plantsLostThisMatch = 0;
         plantFamiliesUsedThisMatch.clear();

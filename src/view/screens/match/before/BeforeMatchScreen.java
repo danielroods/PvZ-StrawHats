@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -66,6 +67,8 @@ public class BeforeMatchScreen extends GameScreen {
     protected static final float LOADOUT_CARD_W = 95f;
     protected static final float LOADOUT_CARD_H = 60f;
 
+    protected static final String LOADOUT_SLOT_BG = "assets/images/ui/cooldown.png";
+    protected static final String PREVIEW_PANEL_BG = "assets/images/ui/quest_panel_daily.png";
     protected static final String BACK_ICON = "assets/images/ui/buttons_hud_back_normal.png";
     protected static final String LOCK_ICON = "assets/images/ui/collection/lock_small_gold.png";
     protected static final String COIN_ICON = "assets/images/ui/buttons_coin_buy_normal.png";
@@ -505,8 +508,8 @@ public class BeforeMatchScreen extends GameScreen {
 
     protected Table buildPreviewPanel() {
         Table box = new Table();
-        box.setBackground(skin.getDrawable("card-background"));
-        box.pad(8).top().left();
+        box.setBackground(previewPanelBackground());
+        box.pad(8).padTop(3f).top().left();
 
         List<PlantJsonParser.PlantConfig> allPlants = collectionManager.getAllPlants();
         PlantJsonParser.PlantConfig config = null;
@@ -534,6 +537,11 @@ public class BeforeMatchScreen extends GameScreen {
         int maxLevel = PlantProgression.maxLevel(config);
         PlantStats stats = PlantStats.of(config, unlocked ? level : PlantStats.MIN_LEVEL);
 
+        Label nameLabel = new Label(config.name + " (Lv. " + level + "/" + maxLevel + ")",
+                skin, "title");
+        nameLabel.setFontScale(0.9f);
+        box.add(nameLabel).colspan(3).left().padBottom(6).row();
+
         Stack animBox = new Stack();
         animBox.add(new Image(getRoundedAnimBgDrawable()));
         animBox.add(new Image(roundedBorderDrawable(Color.WHITE, 2f, 12f)));
@@ -557,11 +565,6 @@ public class BeforeMatchScreen extends GameScreen {
 
         Table infoTable = new Table();
         infoTable.top().left();
-
-        Label nameLabel = new Label(config.name + " (Lv. " + level + "/" + maxLevel + ")",
-                skin, "title");
-        nameLabel.setFontScale(0.9f);
-        infoTable.add(nameLabel).left().padBottom(2).row();
 
         Label catLabel = new Label("Type: " + config.category, skin, "main");
         catLabel.setFontScale(0.75f);
@@ -833,7 +836,6 @@ public class BeforeMatchScreen extends GameScreen {
 
     protected Table buildLoadoutPanel(Level level) {
         Table panel = new Table();
-        panel.setBackground(skin.getDrawable("card-background"));
         panel.pad(2f).top();
 
         Table slots = new Table();
@@ -884,12 +886,7 @@ public class BeforeMatchScreen extends GameScreen {
             slots.add(rentSlot).size(LOADOUT_CARD_W, LOADOUT_CARD_H).pad(1f).row();
         }
 
-        ScrollPane scrollPane = new ScrollPane(slots);
-        scrollPane.setScrollingDisabled(true, false);
-        scrollPane.setFadeScrollBars(false);
-        scrollPane.setOverscroll(false, false);
-
-        panel.add(scrollPane).expand().fill().row();
+        panel.add(slots).expand().fill().row();
 
         int currentSelected = Math.min(BeforeMenu.selectedPlants.size(), slotCount);
         Label info = new Label(currentSelected + "/" + slotCount, skin, "main");
@@ -898,6 +895,26 @@ public class BeforeMatchScreen extends GameScreen {
         panel.add(info).padTop(2).padBottom(2);
 
         return panel;
+    }
+
+    private TextureRegionDrawable loadoutSlotDrawable;
+    private NinePatchDrawable previewPanelDrawable;
+    private static final int PREVIEW_PANEL_HEADER_PX = 29;
+
+    protected TextureRegionDrawable loadoutSlotBackground() {
+        if (loadoutSlotDrawable == null) {
+            loadoutSlotDrawable = new TextureRegionDrawable(new TextureRegion(loadTextureSafe(LOADOUT_SLOT_BG)));
+        }
+        return loadoutSlotDrawable;
+    }
+
+    protected NinePatchDrawable previewPanelBackground() {
+        if (previewPanelDrawable == null) {
+            Texture tex = loadTextureSafe(PREVIEW_PANEL_BG);
+            NinePatch patch = new NinePatch(tex, 10, 10, PREVIEW_PANEL_HEADER_PX, 10);
+            previewPanelDrawable = new NinePatchDrawable(patch);
+        }
+        return previewPanelDrawable;
     }
 
     protected Actor createLoadoutCard(String plantName, ClickListener clickListener) {
@@ -941,31 +958,36 @@ public class BeforeMatchScreen extends GameScreen {
      * baked into the icon texture itself). Returned actor keeps the requested outer size.
      */
     protected Actor wrapWithCardFrame(Actor content, float outerW, float outerH) {
-        Table framed = new Table();
-        framed.setBackground(skin.getDrawable("card-background"));
-        framed.pad(3f);
-        framed.add(content).size(outerW - 6f, outerH - 6f);
+        Stack framed = new Stack();
+
+        Image glass = new Image(loadoutSlotBackground());
+        glass.setScaling(Scaling.stretch);
+        glass.setColor(1f, 1f, 1f, 0.18f);
+        framed.add(glass);
+
+        Table inner = new Table();
+        inner.pad(3f);
+        inner.add(content).size(outerW - 6f, outerH - 6f);
+        framed.add(inner);
+
+        framed.setSize(outerW, outerH);
         return framed;
     }
 
     protected Actor createEmptyLoadoutSlot(String labelText, boolean isRent, ClickListener clickListener) {
         Table slot = new Table();
-        slot.setBackground(skin.getDrawable("card-background"));
 
         Stack stack = new Stack();
-        Label label = new Label(labelText, skin, "main");
-        label.setAlignment(Align.center);
-        label.setColor(isRent ? Color.WHITE : Color.LIGHT_GRAY);
-        label.setFontScale(0.75f);
-        stack.add(label);
+
+        Image glass = new Image(loadoutSlotBackground());
+        glass.setScaling(Scaling.stretch);
+        glass.setColor(1f, 1f, 1f, 0.18f);
+        stack.add(glass);
 
         if (isRent) {
             Image lockImg = new Image(loadTextureSafe(LOCK_ICON));
             lockImg.setScaling(Scaling.fit);
-            Container<Image> lockCont = new Container<>(lockImg);
-            lockCont.size(16f, 16f);
-            lockCont.right().bottom().pad(2);
-            stack.add(lockCont);
+            stack.add(lockImg);
         }
 
         slot.add(stack).expand().fill();
