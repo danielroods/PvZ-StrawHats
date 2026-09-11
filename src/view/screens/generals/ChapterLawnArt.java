@@ -37,6 +37,10 @@ public final class ChapterLawnArt {
     }
 
     public static String[] backgroundLayers(String seasonFolder, String gameplayFolder) {
+        return backgroundLayers(seasonFolder, gameplayFolder, gameplayFolder + "map.png");
+    }
+
+    public static String[] backgroundLayers(String seasonFolder, String gameplayFolder, String defaultBackgroundPath) {
         if (isFuture(seasonFolder)) {
             return new String[] { FUTURE_GAMEPLAY_TEXTURE };
         }
@@ -46,6 +50,6 @@ public final class ChapterLawnArt {
                     gameplayFolder + "texture.png",
             };
         }
-        return new String[] { gameplayFolder + "map.png" };
+        return new String[] { defaultBackgroundPath };
     }
 }

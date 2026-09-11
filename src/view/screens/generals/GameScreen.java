@@ -199,7 +199,7 @@ public class GameScreen extends UiScreen {
     }
 
     protected String[] getGameplayBackgroundLayers() {
-        return ChapterLawnArt.backgroundLayers(seasonFolder, getSeasonGameplayFolder());
+        return ChapterLawnArt.backgroundLayers(seasonFolder, getSeasonGameplayFolder(), getGameplayBackgroundPath());
     }
 
     ChapterLawnArt.Insets boardInsets() {
