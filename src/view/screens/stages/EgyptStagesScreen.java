@@ -65,6 +65,7 @@ public class EgyptStagesScreen extends StagesScreen {
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.53f, 35f, 25f);
     private static final DecorTuning PYRAMID_TUNING = new DecorTuning(350f, 300f, 0.15f, 70f, -215f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.30f, 37f, 140f);
+    private static final DecorTuning ZOMBOSS_HOLOGRAM_TUNING = new DecorTuning(560f, 760f, 0.30f, 37f, 220f);
     private static final DecorTuning TORNADO_TUNING = new DecorTuning(250f, 300f, 0.30f, -83f, -24f);
     private static final DecorTuning ROCK_TUNING = new DecorTuning(100f, 100f, 0.22f, 0f, 0f);
     private static final DecorTuning DUST_TUNING = new DecorTuning(200f, 150f, 0.50f, 10f, 45f);
@@ -80,6 +81,7 @@ public class EgyptStagesScreen extends StagesScreen {
         SMALL_ISLAND_5("images/chapters/egypt/anim6_208x139.png", false),
 
         BIG_BOSS_DECOR_ISLAND("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_EGYPT/ZOMBOSS_NODE_EGYPT.PAM", true),
+        ZOMBOSS_HOLOGRAM("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_HOLOGRAM/ZOMBOSS_NODE_HOLOGRAM.PAM", true),
         LEVEL_NODE("768/INITIAL/WORLDMAP/LEVEL_NODE/LEVEL_NODE.PAM", true),
 
         FLOATING_ROCK_ANIM_1("768/INITIAL/WORLDMAP/EGYPT/ANIM9/ANIM9.PAM", true),
@@ -421,6 +423,11 @@ public class EgyptStagesScreen extends StagesScreen {
             DecorTuning tuning = boss ? BOSS_LEVEL_NODE_TUNING : LEVEL_NODE_TUNING;
             addActor(createAnchoredAnimation(MapObjectType.LEVEL_NODE, tuning, nodeState.getPamState(),
                     centerX[index], centerY[index]));
+
+            if (boss) {
+                addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_HOLOGRAM, ZOMBOSS_HOLOGRAM_TUNING, "idle",
+                        centerX[index] + 10f, centerY[index] - 250f));
+            }
         }
 
         private class TrailActor extends Actor {
@@ -469,14 +476,22 @@ public class EgyptStagesScreen extends StagesScreen {
     }
 
     private class MapDecorationActor extends Actor {
+        private static final String[] HOLOGRAM_STATES = {"idle", "idle3", "idle4", "laugh_broken", "laugh"};
+
         private final MapObjectType objectType;
         private Texture texture;
-        private final String pamState;
+        private String pamState;
         private float stateTime = 0f;
+        private float animDuration = 0f;
 
         public MapDecorationActor(MapObjectType objectType, float width, float height, String state) {
             this.objectType = objectType;
-            this.pamState = state;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            } else {
+                this.pamState = state;
+            }
             setSize(width, height);
 
             if (!objectType.isPamAnimation()) {
@@ -491,6 +506,11 @@ public class EgyptStagesScreen extends StagesScreen {
         public void act(float delta) {
             super.act(delta);
             stateTime += delta;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM && stateTime >= animDuration) {
+                stateTime = 0f;
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            }
         }
 
         @Override

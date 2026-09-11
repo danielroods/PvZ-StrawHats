@@ -60,6 +60,7 @@ public class PirateStagesScreen extends StagesScreen {
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.55f, -20f, -10f);
     private static final DecorTuning DANGER_NODE_TUNING = new DecorTuning(350f, 300f, 0.38f, 45f, 75f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.42f, 10f, 40f);
+    private static final DecorTuning ZOMBOSS_HOLOGRAM_TUNING = new DecorTuning(560f, 760f, 0.42f, 10f, 120f);
     private static final DecorTuning WAVE_TUNING = new DecorTuning(90f, 180f, 0.30f, -120f, -60f);
     private static final DecorTuning SPLASH_TUNING = new DecorTuning(200f, 150f, 0.50f, 0f, 60f);
     private static final DecorTuning STAR_TUNING = new DecorTuning(25f, 25f, 0.30f, 0f, 0f);
@@ -76,6 +77,7 @@ public class PirateStagesScreen extends StagesScreen {
         SMALL_ISLAND_4("assets/images/chapters/pirate/decs/island17.png", false),
         SMALL_ISLAND_5("assets/images/chapters/pirate/decs/island18.png", false),
         ZOMBOSS_NODE("768/FULL/WORLDMAP/ZOMBOSS_NODE_PIRATE/ZOMBOSS_NODE_PIRATE.PAM", true, null, null),
+        ZOMBOSS_HOLOGRAM("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_HOLOGRAM/ZOMBOSS_NODE_HOLOGRAM.PAM", true, null, null),
         LEVEL_NODE("768/INITIAL/WORLDMAP/LEVEL_NODE/LEVEL_NODE.PAM", true),
         DANGER_NODE_ANIM("768/FULL/WORLDMAP/DANGER_NODE_PIRATE/DANGER_NODE_PIRATE.PAM", true,
                 "assets/images/chapters/pirate/island5.png", new Color(0.85f, 0.25f, 0.22f, 1f)),
@@ -419,6 +421,8 @@ public class PirateStagesScreen extends StagesScreen {
                 String zombossState = (status == StageStatus.COMPLETED) ? "defeated" : "defeated";
                 addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_NODE, ZOMBOSS_TUNING, zombossState,
                         centerX[index], centerY[index]));
+                addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_HOLOGRAM, ZOMBOSS_HOLOGRAM_TUNING, "idle",
+                        centerX[index] - 10f, centerY[index] - 50f));
             } else {
                 float width = NODE_WIDTH;
                 float height = NODE_HEIGHT;
@@ -521,15 +525,23 @@ public class PirateStagesScreen extends StagesScreen {
     }
 
     private class MapDecorationActor extends Actor {
+        private static final String[] HOLOGRAM_STATES = {"idle", "idle3", "idle4", "laugh_broken", "laugh"};
+
         private final MapObjectType objectType;
         private Texture texture;
         private Texture fallbackTexture;
-        private final String pamState;
+        private String pamState;
         private float stateTime = 0f;
+        private float animDuration = 0f;
 
         public MapDecorationActor(MapObjectType objectType, float width, float height, String state) {
             this.objectType = objectType;
-            this.pamState = state;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            } else {
+                this.pamState = state;
+            }
             setSize(width, height);
 
             if (!objectType.isPamAnimation()) {
@@ -548,6 +560,11 @@ public class PirateStagesScreen extends StagesScreen {
         public void act(float delta) {
             super.act(delta);
             stateTime += delta;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM && stateTime >= animDuration) {
+                stateTime = 0f;
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            }
         }
 
         @Override

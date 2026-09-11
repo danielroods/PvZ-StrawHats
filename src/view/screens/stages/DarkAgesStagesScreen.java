@@ -70,6 +70,7 @@ public class DarkAgesStagesScreen extends StagesScreen {
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.45f, -14f, 70f);
     private static final DecorTuning DANGER_NODE_TUNING = new DecorTuning(350f, 300f, 0.50f, 45f, 130f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.30f, 0f, 100f);
+    private static final DecorTuning ZOMBOSS_HOLOGRAM_TUNING = new DecorTuning(560f, 760f, 0.30f, 0f, 180f);
     private static final DecorTuning FIREFLY_TUNING = new DecorTuning(25f, 25f, 0.15f, 0f, 0f);
     private static final DecorTuning CLOUD_TUNING = new DecorTuning(300f, 200f, 0.30f, 0f, 0f);
     private static final DecorTuning LIGHTNING_TUNING = new DecorTuning(300f, 300f, 0.28f, 0f, 0f);
@@ -89,6 +90,7 @@ public class DarkAgesStagesScreen extends StagesScreen {
         LEVEL_NODE("768/INITIAL/WORLDMAP/LEVEL_NODE/LEVEL_NODE.PAM", true),
 
         ZOMBOSS_BOSS_ISLAND("768/FULL/WORLDMAP/ZOMBOSS_NODE_DARK/ZOMBOSS_NODE_DARK.PAM", true),
+        ZOMBOSS_HOLOGRAM("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_HOLOGRAM/ZOMBOSS_NODE_HOLOGRAM.PAM", true),
 
         DANGER_NODE_ANIM("768/FULL/WORLDMAP/DANGER_NODE_DARK/DANGER_NODE_DARK.PAM", true),
 
@@ -193,11 +195,11 @@ public class DarkAgesStagesScreen extends StagesScreen {
         scrollPane.layout();
         scrollPane.setScrollY(0);
 
-        
-        
-        
-        
-        
+
+
+
+
+
         wrap.add(scrollPane).expand().fill().padLeft(-50).padRight(-50).padTop(0).padBottom(0);
         return wrap;
     }
@@ -421,6 +423,8 @@ public class DarkAgesStagesScreen extends StagesScreen {
                 String zombossState = (status == StageStatus.COMPLETED) ? "defeated" : "active";
                 addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_BOSS_ISLAND, ZOMBOSS_TUNING, zombossState,
                         centerX[index], centerY[index]));
+                addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_HOLOGRAM, ZOMBOSS_HOLOGRAM_TUNING, "idle",
+                        centerX[index], centerY[index] - 75f));
             } else {
                 String islandPath = STAGE_ISLAND_TEXTURES[index % STAGE_ISLAND_TEXTURES.length];
 
@@ -568,6 +572,8 @@ public class DarkAgesStagesScreen extends StagesScreen {
     }
 
     private class MapDecorationActor extends Actor {
+        private static final String[] HOLOGRAM_STATES = {"idle", "idle3", "idle4", "laugh_broken", "laugh"};
+
         private final MapObjectType objectType;
         private Texture texture;
         private String pamState;
@@ -579,6 +585,9 @@ public class DarkAgesStagesScreen extends StagesScreen {
             if (objectType == MapObjectType.CLOUD_ANIM_1 || objectType == MapObjectType.CLOUD_ANIM_2) {
                 String[] states = {"idle", "idle2", "idle3", "idle4"};
                 this.pamState = states[(int) (Math.random() * states.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            } else if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
                 this.animDuration = 3f + (float) (Math.random() * 3f);
             } else {
                 this.pamState = state;
@@ -602,6 +611,12 @@ public class DarkAgesStagesScreen extends StagesScreen {
                     stateTime = 0f;
                     String[] states = {"idle", "idle2", "idle3", "idle4"};
                     this.pamState = states[(int) (Math.random() * states.length)];
+                    this.animDuration = 3f + (float) (Math.random() * 3f);
+                }
+            } else if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                if (stateTime >= animDuration) {
+                    stateTime = 0f;
+                    this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
                     this.animDuration = 3f + (float) (Math.random() * 3f);
                 }
             }

@@ -69,11 +69,12 @@ public class FutureStagesScreen extends StagesScreen {
 
     private static final DecorTuning DANGER_NODE_TUNING = new DecorTuning(350f, 300f, 0.50f, 45f, 130f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.30f, 0f, 100f);
+    private static final DecorTuning ZOMBOSS_HOLOGRAM_TUNING = new DecorTuning(560f, 760f, 0.30f, 0f, 180f);
     private static final DecorTuning CLOUD_TUNING = new DecorTuning(300f, 200f, 0.30f, 0f, 0f);
 
-    
+
     private static final DecorTuning LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.34f, 29f, 35f);
-    
+
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(220f, 220f, 0.40f, -25f, 60f);
 
     private static final DecorTuning TREE_TUNING = new DecorTuning(400f, 400f, 0.20f, 0f, 0f);
@@ -88,6 +89,7 @@ public class FutureStagesScreen extends StagesScreen {
         SMALL_ISLAND_4("768/FULL/WORLDMAP/FUTURE/ANIM12/ANIM12.PAM", true),
 
         ZOMBOSS_BOSS_ISLAND("768/FULL/WORLDMAP/ZOMBOSS_NODE_FUTURE/ZOMBOSS_NODE_FUTURE.PAM", true),
+        ZOMBOSS_HOLOGRAM("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_HOLOGRAM/ZOMBOSS_NODE_HOLOGRAM.PAM", true),
         DANGER_NODE_ANIM("768/FULL/WORLDMAP/DANGER_NODE_FUTURE/DANGER_NODE_FUTURE.PAM", true),
         LEVEL_NODE("768/INITIAL/WORLDMAP/LEVEL_NODE/LEVEL_NODE.PAM", true),
 
@@ -261,10 +263,10 @@ public class FutureStagesScreen extends StagesScreen {
 
             addMapDecorations();
 
-            
+
             addActor(new TrailActor());
 
-            
+
             addHomeIsland();
 
             addDangerNodeHitArea();
@@ -431,6 +433,8 @@ public class FutureStagesScreen extends StagesScreen {
                 String zombossState = (status == StageStatus.COMPLETED) ? "defeated" : "active";
                 addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_BOSS_ISLAND, ZOMBOSS_TUNING, zombossState,
                         centerX[index], centerY[index]));
+                addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_HOLOGRAM, ZOMBOSS_HOLOGRAM_TUNING, "idle",
+                        centerX[index], centerY[index] - 80f));
 
                 Group bossNodeGroup = createAnchoredAnimation(MapObjectType.LEVEL_NODE, BOSS_LEVEL_NODE_TUNING, nodeState.getPamState(),
                         centerX[index], centerY[index]);
@@ -592,6 +596,8 @@ public class FutureStagesScreen extends StagesScreen {
     }
 
     private class MapDecorationActor extends Actor {
+        private static final String[] HOLOGRAM_STATES = {"idle", "idle3", "idle4", "laugh_broken", "laugh"};
+
         private final MapObjectType objectType;
         private Texture texture;
         private String pamState;
@@ -603,6 +609,9 @@ public class FutureStagesScreen extends StagesScreen {
             if (objectType == MapObjectType.CLOUD_ANIM_1 || objectType == MapObjectType.CLOUD_ANIM_2) {
                 this.pamState = "idle";
                 this.animDuration = Float.MAX_VALUE;
+            } else if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
             } else {
                 this.pamState = state;
             }
@@ -625,6 +634,12 @@ public class FutureStagesScreen extends StagesScreen {
                     stateTime = 0f;
                     this.pamState = "idle";
                     this.animDuration = Float.MAX_VALUE;
+                }
+            } else if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                if (stateTime >= animDuration) {
+                    stateTime = 0f;
+                    this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                    this.animDuration = 3f + (float) (Math.random() * 3f);
                 }
             }
         }

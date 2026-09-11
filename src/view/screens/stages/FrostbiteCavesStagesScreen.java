@@ -64,6 +64,7 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
     private static final DecorTuning BOSS_LEVEL_NODE_TUNING = new DecorTuning(260f, 260f, 0.53f, 45f, 25f);
     private static final DecorTuning DANGER_NODE_TUNING = new DecorTuning(350f, 300f, 0.40f, 90f, -150f);
     private static final DecorTuning ZOMBOSS_TUNING = new DecorTuning(560f, 760f, 0.50f, 37f, 160f);
+    private static final DecorTuning ZOMBOSS_HOLOGRAM_TUNING = new DecorTuning(560f, 760f, 0.50f, 37f, 240f);
     private static final DecorTuning BLIZZARD_TUNING = new DecorTuning(250f, 300f, 0.30f, -83f, -24f);
     private static final DecorTuning ICE_CHUNK_TUNING = new DecorTuning(100f, 100f, 0.22f, 0f, 0f);
     private static final DecorTuning SNOW_DUST_TUNING = new DecorTuning(200f, 150f, 0.50f, 10f, 45f);
@@ -83,6 +84,7 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         SMALL_ISLAND_7("assets/images/chapters/frostbite_cave/island11.png", false),
 
         BIG_BOSS_DECOR_ISLAND("images/chapters/frostbite_cave/island8.png", false),
+        ZOMBOSS_HOLOGRAM("768/INITIAL/WORLDMAP/ZOMBOSS_NODE_HOLOGRAM/ZOMBOSS_NODE_HOLOGRAM.PAM", true),
         LEVEL_NODE("768/INITIAL/WORLDMAP/LEVEL_NODE/LEVEL_NODE.PAM", true),
 
         FLOATING_ICE_ANIM_1("768/FULL/WORLDMAP/ICEAGE/ANIM27/ANIM27.PAM", true),
@@ -436,6 +438,11 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
             DecorTuning tuning = boss ? BOSS_LEVEL_NODE_TUNING : LEVEL_NODE_TUNING;
             addActor(createAnchoredAnimation(MapObjectType.LEVEL_NODE, tuning, nodeState.getPamState(),
                     centerX[index], centerY[index]));
+
+            if (boss) {
+                addActor(createAnchoredAnimation(MapObjectType.ZOMBOSS_HOLOGRAM, ZOMBOSS_HOLOGRAM_TUNING, "idle",
+                        centerX[index] +80f, centerY[index] - 160f));
+            }
         }
 
         private class TrailActor extends Actor {
@@ -485,14 +492,22 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
     }
 
     private class MapDecorationActor extends Actor {
+        private static final String[] HOLOGRAM_STATES = {"idle", "idle3", "idle4", "laugh_broken", "laugh"};
+
         private final MapObjectType objectType;
         private Texture texture;
-        private final String pamState;
+        private String pamState;
         private float stateTime = 0f;
+        private float animDuration = 0f;
 
         public MapDecorationActor(MapObjectType objectType, float width, float height, String state) {
             this.objectType = objectType;
-            this.pamState = state;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM) {
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            } else {
+                this.pamState = state;
+            }
             setSize(width, height);
 
             if (!objectType.isPamAnimation()) {
@@ -507,6 +522,11 @@ public class FrostbiteCavesStagesScreen extends StagesScreen {
         public void act(float delta) {
             super.act(delta);
             stateTime += delta;
+            if (objectType == MapObjectType.ZOMBOSS_HOLOGRAM && stateTime >= animDuration) {
+                stateTime = 0f;
+                this.pamState = HOLOGRAM_STATES[(int) (Math.random() * HOLOGRAM_STATES.length)];
+                this.animDuration = 3f + (float) (Math.random() * 3f);
+            }
         }
 
         @Override
