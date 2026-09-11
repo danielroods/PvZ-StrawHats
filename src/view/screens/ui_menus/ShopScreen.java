@@ -53,6 +53,14 @@ public class ShopScreen extends UiScreen {
     private static final float ITEMS_BOX_W = 700f;
     private static final float PANEL_H = 380f;
 
+    private static final String CARD_YELLOW = "assets/images/shop/store_card_yellow.png";
+    private static final String CARD_GREEN = "assets/images/shop/store_card_green.png";
+    private static final String CARD_DYNAMIC = "assets/images/shop/store_dynamic_slot_card.png";
+    private static final String CARD_BLUE = "assets/images/shop/store_card_blue.png";
+    private static final String CARD_PURPLE = "assets/images/shop/store_card_purple.png";
+    private static final String DAILY_BACKGROUND = "assets/images/shop/no-ad_background.png";
+    private static final String ITEMS_BACKGROUND = "assets/images/backg/wood board.png";
+
     private enum ShopTab { PLANTS, CURRENCY }
 
     private ShopTab currentTab = ShopTab.PLANTS;
@@ -81,12 +89,24 @@ public class ShopScreen extends UiScreen {
 
         centerTable.add(buildCategoryTabs()).left().padBottom(SPACE_SM).row();
 
-        Table board = new Table();
-        board.setBackground(skin.getDrawable("card-background"));
-        board.pad(SPACE_MD);
-        board.add(buildDailyOfferBox(state)).width(DAILY_BOX_W).height(PANEL_H).top().padRight(SPACE_MD);
-        board.add(buildItemsBox(state)).width(ITEMS_BOX_W).height(PANEL_H).top();
-        centerTable.add(board);
+        Table sections = new Table();
+
+        Table dailySection = new Table();
+        dailySection.setBackground(skin.getDrawable("card-background"));
+        dailySection.pad(SPACE_SM);
+        Table dailyBackground = new Table();
+        dailyBackground.setBackground(cardBackground(DAILY_BACKGROUND));
+        dailyBackground.add(buildDailyOfferBox(state)).expand().fill();
+        dailySection.add(dailyBackground).expand().fill();
+
+        Table itemsSection = new Table();
+        itemsSection.setBackground(cardBackground(ITEMS_BACKGROUND));
+        itemsSection.pad(SPACE_MD);
+        itemsSection.add(buildItemsBox(state)).expand().fill();
+
+        sections.add(dailySection).width(DAILY_BOX_W).height(PANEL_H).top().padRight(SPACE_MD);
+        sections.add(itemsSection).width(ITEMS_BOX_W).height(PANEL_H).top();
+        centerTable.add(sections);
 
         rootTable.add(centerTable).expand().center().row();
     }
@@ -173,34 +193,46 @@ public class ShopScreen extends UiScreen {
     }
 
     private Table buildTaOfferCard() {
+        String cardId = "ta-offer";
+        String detail = "Open the project web portal for the TA coin offer.";
+
         Table card = new Table();
-        card.setBackground(skin.getDrawable("card-background"));
+        card.setBackground(cardBackground(CARD_DYNAMIC));
+        card.setClip(true);
         card.pad(SPACE_SM);
         card.top();
 
+        Table detailsSlot = new Table();
+        detailsSlot.top();
+
+        Table headerRow = new Table();
         Label nameLabel = new Label("Special TA Coin Offer", skin, "main");
         nameLabel.setFontScale(0.85f);
         nameLabel.setWrap(true);
-        card.add(nameLabel).width(CARD_W - 40f).left().row();
+        headerRow.add(nameLabel).expandX().left().width(CARD_W - 30f);
+        card.add(headerRow).fillX().row();
 
         Image icon = new Image(loadTextureSafe("assets/images/ui/offerwall_treasure_chest_coins.png"));
         card.add(icon).size(CARD_IMAGE_SIZE, CARD_IMAGE_SIZE).padTop(SPACE_SM).padBottom(SPACE_SM).row();
 
-        Label detail = new Label("Open the project web portal for the TA coin offer.", skin, "muted");
-        detail.setWrap(true);
-        detail.setFontScale(0.85f);
-        card.add(detail).width(CARD_W - 40f).height(DETAILS_H).padBottom(SPACE_SM).row();
+        fillDetailsSlot(detailsSlot, cardId, detail);
+        card.add(detailsSlot).width(CARD_W - 40f).height(DETAILS_H).padBottom(SPACE_SM).row();
         card.add().expandY().row();
 
         TextButton open = primaryButton("Open Offer", () -> net.client.TaWebLauncher.open());
-        card.add(open).width(150).height(44);
+        card.add(open).width(150).height(44).bottom().padBottom(12);
+        card.removeActor(open);
+        card.addActor(open);
+        open.setSize(150f, 44f);
+        open.setPosition((CARD_W - open.getWidth()) / 2f, 42f);
         return card;
     }
 
     private Table buildDailyOfferCard(UserState state) {
         String cardId = "daily-offer";
         Table card = new Table();
-        card.setBackground(skin.getDrawable("card-background"));
+        card.setBackground(cardBackground(CARD_YELLOW));
+        card.setClip(true);
         card.pad(SPACE_SM);
         card.top();
 
@@ -216,8 +248,7 @@ public class ShopScreen extends UiScreen {
         Label nameLabel = new Label(plantName, skin, "main");
         nameLabel.setFontScale(0.85f);
         nameLabel.setWrap(true);
-        headerRow.add(nameLabel).expandX().left().width(CARD_W - 60f);
-        headerRow.add(buildInfoButton(cardId, detailsSlot, detail)).size(22, 22).right();
+        headerRow.add(nameLabel).expandX().left().width(CARD_W - 30f);
         card.add(headerRow).fillX().row();
 
         Image icon = new Image(loadTextureSafe(iconFor(Product.DAILY_OFFER)));
@@ -232,7 +263,11 @@ public class ShopScreen extends UiScreen {
                         ? "Bought" : Product.DAILY_OFFER.getCoinCost() + " coins",
                 () -> new ConfirmBuyModal(Product.DAILY_OFFER, () -> buy("daily-offer", 1, null)).show());
         buyBtn.setDisabled(!canBuy);
-        card.add(buyBtn).width(150).height(44);
+        card.add(buyBtn).width(150).height(44).bottom().padBottom(12);
+        card.removeActor(buyBtn);
+        card.addActor(buyBtn);
+        buyBtn.setSize(150f, 44f);
+        buyBtn.setPosition((CARD_W - buyBtn.getWidth()) / 2f, 42f);
 
         return card;
     }
@@ -240,7 +275,8 @@ public class ShopScreen extends UiScreen {
     private Table buildItemCard(Product product, UserState state) {
         String cardId = product.getItemId();
         Table card = new Table();
-        card.setBackground(skin.getDrawable("card-background"));
+        card.setBackground(cardBackground(cardBackgroundFor(product)));
+        card.setClip(true);
         card.pad(SPACE_SM);
         card.top();
 
@@ -253,8 +289,7 @@ public class ShopScreen extends UiScreen {
         Label nameLabel = new Label(product.getDisplayName(), skin, "main");
         nameLabel.setFontScale(0.85f);
         nameLabel.setWrap(true);
-        headerRow.add(nameLabel).expandX().left().width(CARD_W - 60f);
-        headerRow.add(buildInfoButton(cardId, detailsSlot, detail)).size(22, 22).right();
+        headerRow.add(nameLabel).expandX().left().width(CARD_W - 30f);
         card.add(headerRow).fillX().row();
 
         Image icon = new Image(loadTextureSafe(iconFor(product)));
@@ -265,9 +300,27 @@ public class ShopScreen extends UiScreen {
         card.add().expandY().row();
 
         TextButton buyBtn = primaryButton(costLabel(product), () -> onBuyClicked(product, state));
-        card.add(buyBtn).width(150).height(44);
+        card.add(buyBtn).width(150).height(44).bottom().padBottom(12);
+        card.removeActor(buyBtn);
+        card.addActor(buyBtn);
+        buyBtn.setSize(150f, 44f);
+        buyBtn.setPosition((CARD_W - buyBtn.getWidth()) / 2f, 42f);
 
         return card;
+    }
+
+    private String cardBackgroundFor(Product product) {
+        return switch (product) {
+            case PLANT_FOOD -> CARD_GREEN;
+            case POT -> CARD_BLUE;
+            case SEED_RANDOM, SEED_CHOICE -> CARD_PURPLE;
+            case CURRENCY_EXCHANGE -> CARD_DYNAMIC;
+            default -> CARD_DYNAMIC;
+        };
+    }
+
+    private TextureRegionDrawable cardBackground(String path) {
+        return new TextureRegionDrawable(loadTextureSafe(path));
     }
 
     private ImageButton buildInfoButton(String cardId, Table detailsSlot, String detail) {
@@ -409,7 +462,7 @@ public class ShopScreen extends UiScreen {
         return user.userState.seedPacketInventory.values().stream().mapToInt(Integer::intValue).sum();
     }
 
-    
+
 
     private Table createIconButtonWithLabelTable(String path, float width, float height, String text, Runnable action) {
         Table container = new Table();
