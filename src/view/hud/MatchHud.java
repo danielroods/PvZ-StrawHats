@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Scaling;
@@ -77,6 +78,8 @@ public final class MatchHud extends Table implements Disposable {
     private static final float DEBUG_BUTTON_WIDTH = 100f;
 
     private static final float DEBUG_BUTTON_HEIGHT = 36f;
+
+    private static final String DEBUG_BUTTON_PATH = "assets/images/ui/demo.png";
 
     private final Button shovelButton;
     private final Button foodButton;
@@ -262,8 +265,8 @@ public final class MatchHud extends Table implements Disposable {
         foodStyle.imageChecked = foodStyle.imageUp;
         foodButton = new ImageButton(foodStyle);
 
-        debugAddSunButton = new TextButton("+25 Sun", skin);
-        debugAddFoodButton = new TextButton("+1 Food", skin);
+        debugAddSunButton = debugButton("+25 Sun");
+        debugAddFoodButton = debugButton("+1 Food");
 
         Texture speedBtnTex = loadTexture("assets/images/ui/2x.png");
         speedButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(speedBtnTex)));
@@ -412,6 +415,25 @@ public final class MatchHud extends Table implements Disposable {
         add(rightArea).colspan(2).expand().fill();
 
         refreshCheatVisibility();
+    }
+
+    private TextButton debugButton(String text) {
+        TextButton.TextButtonStyle style =
+                new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+
+        if (Gdx.files.internal(DEBUG_BUTTON_PATH).exists()) {
+            Drawable background = new TextureRegionDrawable(
+                    new TextureRegion(new Texture(Gdx.files.internal(DEBUG_BUTTON_PATH))));
+            style.up = background;
+            style.over = background;
+            style.down = background;
+            style.checked = background;
+        }
+
+        style.fontColor = Color.BLACK;
+        style.overFontColor = Color.BLACK;
+        style.downFontColor = Color.BLACK;
+        return new TextButton(text, style);
     }
 
     private void refreshCheatVisibility() {
