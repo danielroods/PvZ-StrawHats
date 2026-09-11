@@ -58,6 +58,7 @@ public final class ZombiePackmanGame {
         public float disableTimer;
         public float eatTimer;
         public boolean alive = true;
+        public Direction facing = Direction.LEFT;
 
         PlantState(PlantDef d) {
             type = d.type; x = d.x; y = d.y;
@@ -81,12 +82,14 @@ public final class ZombiePackmanGame {
 
     public static final class Projectile {
         public float x, y, vx, vy;
-        public final boolean pea;
-        public final boolean octopus;
+        public final boolean pea, octopus, hostile, lobbed;
+        public final String projectileType;
         public float life = 7f;
         public float damage;
-        Projectile(float x, float y, float vx, float vy, boolean pea, boolean octopus, float damage) {
-            this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.pea=pea; this.octopus=octopus; this.damage=damage;
+        Projectile(float x,float y,float vx,float vy,boolean pea,boolean octopus,float damage,
+                   boolean hostile,boolean lobbed,String projectileType){
+            this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.pea=pea;this.octopus=octopus;
+            this.damage=damage;this.hostile=hostile;this.lobbed=lobbed;this.projectileType=projectileType;
         }
     }
 
@@ -146,6 +149,7 @@ public final class ZombiePackmanGame {
             excluded.add(key(g.x,g.y));
         }
         for (PowerDef p : map.powerups) {
+            if (p == null || walls.contains(key(p.x,p.y))) continue;
             powerups.add(new PowerState(p));
             excluded.add(key(p.x,p.y));
         }
@@ -181,6 +185,7 @@ public final class ZombiePackmanGame {
     public int getCoinsCollected() { return coinsCollected; }
     public int getTotalCoins() { return totalCoins; }
     public float getOctopusTimer() { return octopusTimer; }
+    public boolean isOctopusForm() { return octopusTimer > 0; }
     public float getZombotanyTimer() { return zombotanyTimer; }
     public float getPotionTimer() { return potionTimer; }
     public float getZoybeanTimer() { return zoybeanTimer; }
@@ -288,14 +293,22 @@ public final class ZombiePackmanGame {
     }
     private void firePlant(PlantState p) {
         float dx=x-(p.x+0.5f), dy=y-(p.y+0.5f);
-        float vx=0,vy=0;
-        if (Math.abs(dx)>Math.abs(dy)) vx=Math.signum(dx)*7f; else vy=Math.signum(dy)*7f;
-        if (p.type.equalsIgnoreCase("Repeater")) {
-            projectiles.add(new Projectile(p.x+0.5f,p.y+0.5f,vx,vy,true,false,1));
-            projectiles.add(new Projectile(p.x+0.5f,p.y+0.5f,vx,vy,true,false,1));
-        } else {
-            float d = p.type.equalsIgnoreCase("Citron") ? 2f : 1f;
-            projectiles.add(new Projectile(p.x+0.5f,p.y+0.5f,vx,vy,true,false,d));
+        Direction face;
+        if(Math.abs(dx)>Math.abs(dy)) face=dx<0?Direction.LEFT:Direction.RIGHT;
+        else face=dy<0?Direction.DOWN:Direction.UP;
+        p.facing=face;
+        boolean lobbed=p.type.equalsIgnoreCase("Melon-pult");
+        float speed=lobbed?6.2f:7f, vx=0, vy=0;
+        if(face==Direction.LEFT)vx=-speed;
+        else if(face==Direction.RIGHT)vx=speed;
+        else if(face==Direction.UP)vy=speed;
+        else vy=-speed;
+        if(p.type.equalsIgnoreCase("Repeater")){
+            projectiles.add(new Projectile(p.x+.5f,p.y+.5f,vx,vy,true,false,1f,true,false,"Repeater"));
+            projectiles.add(new Projectile(p.x+.5f,p.y+.5f,vx*.94f,vy*.94f,true,false,1f,true,false,"Repeater"));
+        }else{
+            float damage=p.type.equalsIgnoreCase("Citron")?2f:(lobbed?1.5f:1f);
+            projectiles.add(new Projectile(p.x+.5f,p.y+.5f,vx,vy,true,false,damage,true,lobbed,p.type));
         }
     }
 
@@ -303,8 +316,8 @@ public final class ZombiePackmanGame {
         for (int i=projectiles.size()-1;i>=0;i--) {
             Projectile p=projectiles.get(i);
             p.life-=delta; p.x+=p.vx*delta; p.y+=p.vy*delta;
-            if (p.life<=0 || !canOccupy(p.x,p.y)) { projectiles.remove(i); continue; }
-            if (distance(p.x,p.y,x,y)<0.55f) { hurtPlayer(); projectiles.remove(i); continue; }
+            if (p.life<=0 || (!p.lobbed && !canOccupy(p.x,p.y))) { projectiles.remove(i); continue; }
+            if (p.hostile && distance(p.x,p.y,x,y)<0.55f) { hurtPlayer(); projectiles.remove(i); continue; }
             if (p.octopus) {
                 for (PlantState plant:plants) if (plant.alive && distance(p.x,p.y,plant.x+0.5f,plant.y+0.5f)<0.75f) {
                     plant.disableTimer=3f; p.life=0; break;
@@ -426,7 +439,9 @@ public final class ZombiePackmanGame {
             float vx=0,vy=0;
             if(direction==Direction.LEFT)vx=-9;if(direction==Direction.RIGHT)vx=9;if(direction==Direction.UP)vy=9;if(direction==Direction.DOWN)vy=-9;
             if(vx==0&&vy==0)vx=9;
-            projectiles.add(new Projectile(x,y,vx,vy,false,octopusTimer>0,2.5f*getDamageMultiplier()));
+            boolean octopus = octopusTimer > 0;
+            projectiles.add(new Projectile(x,y,vx,vy,false,octopus,2.5f*getDamageMultiplier(),
+                    false,false,octopus ? "Octopus" : "ZombiePeashooter"));
         }
     }
 
@@ -434,7 +449,7 @@ public final class ZombiePackmanGame {
         if(invulnerableTimer>0||zoybeanTimer>0||gameOver||won)return;
         lives--;
         if(lives<=0){lives=0;gameOver=true;return;}
-        x=spawnX;y=spawnY;direction=Direction.NONE;desiredDirection=Direction.NONE;invulnerableTimer=1.8f;
+        invulnerableTimer=1.8f;
     }
 
     private boolean hasLineOfSight(float ax,float ay,float bx,float by){
