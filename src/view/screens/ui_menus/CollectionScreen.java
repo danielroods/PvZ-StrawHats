@@ -74,11 +74,7 @@ public class CollectionScreen extends UiScreen {
     
     private static final String DEFAULT_TAG_ICON = TAG_ICON_DIR + "mintfam_banner.png";
 
-    /**
-     * Maps each PlantTag to the closest-themed icon in the real mintfam_* set (only 15
-     * distinct family icons exist, vs. 38 tags), so cards get a fitting icon instead of
-     * mostly falling back to the default plaque.
-     */
+    
     private static final Map<PlantTag, String> TAG_ICON_PATHS = buildTagIconPaths();
 
     private static Map<PlantTag, String> buildTagIconPaths() {
@@ -603,15 +599,7 @@ public class CollectionScreen extends UiScreen {
         return sb.length() == 0 ? alias : sb.toString();
     }
 
-    /**
-     * Builds a scaled-down, clipped copy of the same idle-animation box
-     * {@link #buildZombieInfoPopup} uses (250x250 outer box, 220x220 actor, actor
-     * placed at (0,0) with the same +110/+85 offsets - see {@link PlantIdleAnimationActor}),
-     * for use as a card icon when {@link ZombieIconCardFactory} has no flat icon for
-     * the alias. {@link pvz.libpvz.pam.PamPlayer#draw} always renders at native pixel
-     * size (it takes no scale parameter), so shrinking it requires wrapping it in a
-     * transform-enabled {@link Group} and scaling that instead.
-     */
+    
     private Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
         String animationPath = null;
         try {

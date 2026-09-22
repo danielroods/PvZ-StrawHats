@@ -18,11 +18,7 @@ import view.screens.generals.BaseScreen;
 import view.screens.generals.Modal;
 import view.screens.generals.Toast;
 
-/**
- * Popup that asks the player to connect to the game server. Opened by tapping the
- * island icon on the online-match hub screen. Reuses the same wood-board look as the
- * other net screens, on top of the shared {@link Modal} scrim/panel plumbing.
- */
+
 class ConnectServerModal extends Modal {
 
     private static final String WOOD_BACKGROUND_PATH = "assets/images/backg/wood board.png";

@@ -51,8 +51,7 @@ class FrostbiteRenderer {
 
     private final GameScreen screen;
 
-    /** Tracks each slider tile's idle -> active_start -> active_end -> idle cycle,
-     *  keyed by row*cols+col so it survives across frames. */
+    
     private final Map<Integer, SliderTileEffect> sliderTileEffects = new HashMap<>();
 
     
@@ -119,12 +118,7 @@ class FrostbiteRenderer {
         }
     }
 
-    /**
-     * Idle by default. When a zombie is currently riding/being thrown by this tile,
-     * plays "active_start" once, then holds on "active_end" for as long as the
-     * zombie is still there, then returns to "idle" the moment no zombie is present -
-     * matching the requested intro/outro behaviour without a separate loop state.
-     */
+    
     private void advanceSliderPhase(SliderTileEffect effect, boolean zombiePresent, String pamPath, float delta) {
         effect.phaseTime += delta;
 

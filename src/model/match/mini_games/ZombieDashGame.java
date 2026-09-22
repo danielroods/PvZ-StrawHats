@@ -5,12 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Lightweight standalone simulation for the Console's Zombie Dash game.
- * Like ZombiePackmanGame, it deliberately does not use GameSession: this is an endless
- * 3-lane runner (forward auto-scroll, up/down lane switching) rather than the 5x9 PvZ
- * lane-defense model, so it keeps its own tiny simulation instead of reusing GameSession.
- */
+
 public final class ZombieDashGame {
     public static final int LANE_COUNT = 3;
     public static final int MAX_LIVES = 3;
@@ -26,8 +21,7 @@ public final class ZombieDashGame {
     private static final float SHOOTER_FIRE_RANGE = 7f;
     private static final float PEA_SPAWN_OFFSET = 1.2f;
     private static final float PEA_EXTRA_SPEED = 5f;
-    /** Matches PlantRenderer's DEFAULT_PLANT_ATTACK_DURATION so a shooter's "just fired" window
-     *  lines up with how long the main game's Peashooter/Snow Pea attack clip actually plays. */
+    
     public static final float SHOOTER_FLASH_TIME = 0.4f;
 
     public enum EntityType { PLANT, GRAVE, PEASHOOTER, SNOWPEA, PEA, SUN, COIN, BRAIN }
@@ -41,11 +35,11 @@ public final class ZombieDashGame {
         public float distance;
         public boolean collected;
         public boolean hit;
-        /** Shooter plants (Peashooter/Snow Pea) only: fires once, then stays quiet. */
+        
         public boolean hasFired;
-        /** Shooter plants only: >0 briefly while playing its "attack" clip after firing. */
+        
         public float fireFlashTimer;
-        /** Pea entities only: true when launched by a Snow Pea, for an icy render tint. */
+        
         public boolean icy;
 
         SpawnEntity(EntityType type, int lane, float distance) {
@@ -133,9 +127,7 @@ public final class ZombieDashGame {
         cleanupBehind();
     }
 
-    /** Advances shooter plants: flashes their "just fired" state and, once a plant is close
-     *  enough ahead of the player, launches a single pea at it that flies in faster than the
-     *  ambient scroll speed so it reads as an actual projectile rather than another obstacle. */
+    
     private void updateShooters(float delta) {
         List<SpawnEntity> newPeas = null;
         for (SpawnEntity e : entities) {
@@ -166,7 +158,7 @@ public final class ZombieDashGame {
         }
     }
 
-    /** Gap between waves shrinks gently as time passes, ramping difficulty up smoothly. */
+    
     private float spawnGap() {
         float minGap = 5.5f - Math.min(2.5f, elapsedTime * 0.02f);
         float maxGap = 8.5f - Math.min(3.0f, elapsedTime * 0.025f);
@@ -194,13 +186,12 @@ public final class ZombieDashGame {
         }
     }
 
-    /** 0 at the start, ramping toward 0.35 over a few minutes; keeps early game gentle. */
+    
     private float difficultyRamp() {
         return Math.min(0.35f, elapsedTime / 400f);
     }
 
-    /** Plain Plant/Gravestone at first; shooter plants join the mix once the player has
-     *  had a chance to get comfortable with basic dodging. */
+    
     private EntityType rollObstacle() {
         if (elapsedTime < SHOOTER_START_TIME) {
             return random.nextBoolean() ? EntityType.PLANT : EntityType.GRAVE;

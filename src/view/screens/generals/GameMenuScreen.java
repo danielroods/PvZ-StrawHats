@@ -355,12 +355,7 @@ public class GameMenuScreen extends UiScreen {
     }
 
 
-    /**
-     * Creates an invisible TextButton.
-     *
-     * The visual wooden signs / boards are already part of
-     * the background artwork.
-     */
+    
     private TextButton createButton(
             String text,
             float x,

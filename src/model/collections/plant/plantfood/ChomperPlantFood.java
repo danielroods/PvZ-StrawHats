@@ -9,15 +9,7 @@ import model.utils.GameSession;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/**
- * Chomper Plant Food:
- * 1) 1 second pull, with every affected zombie moving toward Chomper at the same speed.
- * 2) Up to the first three non-Gargantuar zombies that reach Chomper are eaten.
- * 3) All remaining pulled zombies are returned to the exact positions they occupied before
- *    the superpower started.
- *
- * Visual states are advanced here so PlantRenderer only has to display the requested clip.
- */
+
 public class ChomperPlantFood implements PlantFoodEffect {
     private static final double TOTAL_DURATION = 3.0;
     private static final double PULL_DURATION = 1.0;

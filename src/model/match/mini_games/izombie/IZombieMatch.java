@@ -69,8 +69,7 @@ public class IZombieMatch {
             "ZombieImp", "ZombieDefault", "ZombieArmor1", "ZombieNewspaper", "ZombieRa", "ZombieArmor2");
 
     
-    /** How many zombie packets a match can hold - also the number of loadout slots the
-     *  before-match screens offer, and the number of 1-6 hotkeys the in-match tray binds. */
+    
     public static final int MAX_ROSTER_SIZE = 6;
 
     private record ZombiePacketTemplate(String displayName, int cost, double recharge) {}
@@ -99,12 +98,7 @@ public class IZombieMatch {
         this(matchSeconds, null, null);
     }
 
-    /**
-     * @param plantLoadout  plant names to build the seed tray from (see BeforeMenu.selectedPlants);
-     *                      falls back to the built-in {@link #SEED_BANK} when null/empty.
-     * @param zombieLoadout zombie aliases to build the roster from (see BeforeMenu.selectedZombies);
-     *                      falls back to {@link #DEFAULT_ROSTER} when null/empty.
-     */
+    
     public IZombieMatch(double matchSeconds, List<String> plantLoadout, List<String> zombieLoadout) {
         this.matchSeconds = matchSeconds;
         this.session = new GameSession(ROWS, COLS);

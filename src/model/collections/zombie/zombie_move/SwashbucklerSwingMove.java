@@ -9,15 +9,7 @@ import model.utils.GameSession;
 
 import java.util.Random;
 
-/**
- * Pirate Seas movement for the Swashbuckler.
- *
- * A Swashbuckler is authored to enter an unbridged row from the sea side, swing
- * on its rope for several complete "swing back" cycles, then either land on the
- * left edge of the sea or fall into the water. The swing is visual-only until
- * the move resolves; after a successful landing the normal walking movement
- * resumes.
- */
+
 public final class SwashbucklerSwingMove implements MoveBehavior {
     private static final Random RANDOM = new Random();
 

@@ -13,21 +13,10 @@ import java.util.Set;
 
 public class Pirate extends Season {
 
-    /**
-     * There's no dedicated pirate map/tileset yet, so the sea is carved out of
-     * the right side of whatever grid the level provides: the rightmost
-     * {@link #WATER_COLUMN_COUNT} columns are open water that only flying
-     * zombies (seagull/pelican) can cross freely.
-     */
+    
     public static final int WATER_COLUMN_COUNT = 4;
 
-    /**
-     * Rows that have a plank bridge across the water, letting ground zombies
-     * (basic, flag, imp, gargantuar, captain, barrel roller, ...) reach the
-     * lawn. Every other row's water is impassable to them - they just stand
-     * there. No level data exists yet to drive this per-level, so every other
-     * row gets a bridge as a reasonable placeholder.
-     */
+    
     private Set<Integer> bridgeRows;
 
     public Pirate() {

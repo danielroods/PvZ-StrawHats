@@ -83,11 +83,7 @@ public final class Flood {
         }
     }
 
-    /**
-     * A rising tide washes away ordinary plants that are exposed to water.
-     * A Lily Pad is the intended protection for land plants in real BWB logic,
-     * so a plant stacked on a live Lily Pad remains in place.
-     */
+    
     private static void washLandPlants(Cell cell) {
         Plant top = cell.getPlant();
         if (top == null || !top.isAlive()) return;

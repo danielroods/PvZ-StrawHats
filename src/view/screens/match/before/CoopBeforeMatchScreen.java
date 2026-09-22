@@ -36,21 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Co-op variant of {@link BeforeMatchScreen}. Co-op has no level-supplied zombie
- * pool - instead the human zombie player builds their own roster here, on a
- * screen shifted a bit to the right so there is room for two loadout columns:
- * the normal plant loadout on the left (unchanged from BeforeMatchScreen) and a
- * new, I-Zombie-card-scaled zombie loadout on the right. Between them sit two
- * stacked selection grids - the plant collection on top (identical to
- * BeforeMatchScreen's grid) and an equivalent zombie collection below it, built
- * the same way CollectionScreen builds its zombie tab (via ZombieIconCardFactory).
- * <p>
- * The actual add/remove-plant and add/remove-zombie mechanism is untouched: this
- * class only builds the screen and still drives everything through
- * {@code runCommand(...)} / {@link BeforeMenu#selectedZombies}, exactly like the
- * normal screen does for plants.
- */
+
 public class CoopBeforeMatchScreen extends BeforeMatchScreen {
 
     protected static final int PLANT_SLOTS = 8;
@@ -383,12 +369,7 @@ public class CoopBeforeMatchScreen extends BeforeMatchScreen {
         scheduleBuild();
     }
 
-    /**
-     * Same fallback {@link view.screens.ui_menus.CollectionScreen} uses for zombie aliases
-     * with no flat icon art (Far Future, Pirate Seas, Mech, Swashbuckler): a scaled-down,
-     * clipped copy of the idle-animation box, since {@link pvz.libpvz.pam.PamPlayer#draw}
-     * always renders at native pixel size and needs a transform-enabled {@link Group} to shrink.
-     */
+    
     protected Actor buildAnimatedZombieIcon(String alias, float cardW, float cardH) {
         String animationPath = null;
         try {

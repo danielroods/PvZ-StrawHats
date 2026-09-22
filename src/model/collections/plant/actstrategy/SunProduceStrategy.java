@@ -72,11 +72,7 @@ public class SunProduceStrategy implements ActStrategy {
                 * (session.isDoubleSunRate() ? BOSS_LEVEL_INTERVAL_SCALE : 1.0));
     }
 
-    /**
-     * How many separate sun drops a single production cycle spawns, based on the plant's
-     * type. Twin Sunflower represents two flowers at once, so it drops two suns per cycle;
-     * every other sun producer (Sunflower, Primal Sunflower, Sun-shroom) drops one.
-     */
+    
     private int sunCountFor(Plant plant) {
         if ("Twin Sunflower".equalsIgnoreCase(plant.getName())) return 2;
         return 1;

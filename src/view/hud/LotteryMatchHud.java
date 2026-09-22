@@ -68,10 +68,7 @@ public class LotteryMatchHud extends Table implements Disposable {
         return label;
     }
 
-    /**
-     * @param record the account's stored best for this chapter, or a negative value when
-     *               the chapter has never been played.
-     */
+    
     public void update(EndlessRun run, int waveNumber, long record) {
         if (run == null) return;
         pointsLabel.setText("Meow Points: " + run.getScore());

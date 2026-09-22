@@ -7,29 +7,7 @@ import model.pitches.Environment;
 import model.utils.GameSession;
 import service.GameClock;
 
-/**
- * Drives the Pirate Captain's parrot companion.
- * <p>
- * The parrot normally just rides on the captain, so it has no separate
- * {@code Zombie}/projectile of its own most of the time; the captain plays
- * its own idle/walk/eat clips exactly like a normal zombie. Periodically the
- * parrot leaves to steal a plant:
- * <ol>
- *     <li>{@link CaptainParrot#CLIP_RELEASE} plays once as it launches,</li>
- *     <li>{@link CaptainParrot#CLIP_FLY} while it travels to the nearest
- *         plant ahead of the captain,</li>
- *     <li>{@link CaptainParrot#CLIP_CARRY} (rendered flipped - see that
- *         constant's javadoc) as it carries the plant to the nearest
- *         un-bridged water tile and drops it,</li>
- *     <li>{@link CaptainParrot#CLIP_FLYBACK} back to the captain, finishing
- *         with {@link CaptainParrot#CLIP_LAND}.</li>
- * </ol>
- * Since this codebase has no notion of a standalone "carried plant" render
- * object yet, the plant is removed from its cell the moment it's grabbed
- * (matching the moment {@code carry} would start) - a renderer can use the
- * captain's {@code actionAnimationState} sequence below to know when to draw
- * the detached parrot object instead of tracking a separate entity here.
- */
+
 public class ParrotCompanionEffect implements ZombieEffectStatus {
 
     private static final double PARROT_ACTION_SPEED_FACTOR = 1.8;
@@ -94,11 +72,7 @@ public class ParrotCompanionEffect implements ZombieEffectStatus {
         captain.setActionAnimationState(clip, stageTimer, loop);
     }
 
-    /**
-     * Grabs the nearest live plant ahead of the captain on its row and
-     * removes it, simulating the parrot carrying it off to be dropped in the
-     * nearest bridge-less water tile.
-     */
+    
     private void stealNearestPlant(Zombie captain, GameSession session) {
         Environment env = session.getEnvironment();
         if (env == null) return;

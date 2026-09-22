@@ -574,11 +574,7 @@ public class CouchIZombieGameScreen extends GameScreen {
         return String.valueOf(zeroBasedIndex + 1);
     }
 
-    /**
-     * Same idea as the before-match loadout panel: a thin card-background frame behind
-     * a card so plant cards read as a bordered slot the same way zombie cards do (their
-     * frame.png border is baked into the icon texture itself).
-     */
+    
     private com.badlogic.gdx.scenes.scene2d.Actor wrapWithCardFrame(
             com.badlogic.gdx.scenes.scene2d.Actor content, float outerW, float outerH) {
         Table framed = new Table();

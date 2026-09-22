@@ -630,13 +630,7 @@ public class GameScreen extends UiScreen {
         batch.end();
     }
 
-    /**
-     * Hook for a pre-match splash (e.g. the "VS" icon shown right as a networked match
-     * begins). No-op by default; drawn last, on top of everything else in the board
-     * batch, right after {@link MatchEndSequence#drawMatchEndOverlay()}. Override and
-     * pair with a helper that draws via {@link #batch}/{@link #whitePixel} the same way
-     * {@code MatchEndSequence} does.
-     */
+    
     protected void drawMatchStartOverlay() {
     }
 
@@ -689,12 +683,7 @@ public class GameScreen extends UiScreen {
     private static final float DEADLINE_FLOWER_SCALE = 0.52f;
     private float deadlineFlowerLineClock = 0f;
 
-    /**
-     * Draws the Ice Age (Frostbite Caves) dead-line marker - a STAR_OBJECTIVE_FLOWER
-     * effect on every row of the given column - instead of a plain colored bar.
-     * Used everywhere a "line you can't cross" needs to be shown: PvP/campaign dead
-     * lines, Wall-nut Bowling's red line, and I, Zombie's red line.
-     */
+    
     protected void drawDeadlineFlowerLine(int col, int rows) {
         deadlineFlowerLineClock += Gdx.graphics.getDeltaTime();
         float loopDuration = AnimationFactory.clipDurationForPath(DEADLINE_FLOWER_PAM, "idle");
@@ -711,15 +700,7 @@ public class GameScreen extends UiScreen {
         return drawPam(path, preferred, time, x, y, scale, flip, null);
     }
 
-    /**
-     * Same as the 7-arg drawPam, but with a per-element visibility mask. Pass a
-     * Map<String, Boolean> where each key is one of the PAM clip's named elements
-     * and the value is whether that element should currently be drawn - e.g. the
-     * armor pieces on a basic zombie, switched off one at a time as armor health
-     * drops. Set the actual element name strings where noted in drawZombies()
-     * below; null (or omitting the map via the 7-arg overload) draws every
-     * element, same as before.
-     */
+    
     public boolean drawPam(String path, String preferred, float time, float x, float y, float scale, boolean flip,
                            Map<String, Boolean> elementVisibility) {
         return pam.drawPam(path, preferred, time, x, y, scale, flip, elementVisibility);
@@ -729,10 +710,7 @@ public class GameScreen extends UiScreen {
         return pam.drawPamMirrored(path, preferred, time, x, y, scale);
     }
 
-    /**
-     * Rotates the clip to face an arbitrary travel direction instead of only mirroring
-     * left/right - see {@link PamRenderer#drawPamRotated}.
-     */
+    
     public boolean drawPamRotated(String path, String preferred, float time, float x, float y, float scale,
                                   float rotationDegrees) {
         return pam.drawPamRotated(path, preferred, time, x, y, scale, rotationDegrees);

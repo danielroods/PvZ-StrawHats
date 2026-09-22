@@ -159,10 +159,7 @@ public class DarkAgesStagesScreen extends StagesScreen {
         setupParticles(MapObjectType.PARTICLE.getPath(), 25, 14f, 26f, 1.1f);
     }
 
-    /**
-     * Dark Ages inserts an extra chapter-title row between the top bar and the
-     * path, unlike the other chapters, so this overrides the shared build().
-     */
+    
     @Override
     protected void build() {
         rootTable.clear();

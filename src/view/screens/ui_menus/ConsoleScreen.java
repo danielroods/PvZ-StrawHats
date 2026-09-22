@@ -34,10 +34,10 @@ public class ConsoleScreen extends UiScreen {
         rootTable.add(top).fillX().row();
 
         Table games = new Table();
-        games.add(createGameCard("assets/images/ui/calendar_card_7day_mgpwinterevent.png",
+        games.add(createGameCard("assets/images/console/packman.png",
                 "Zombie Packman", "menu enter zombie packman")).size(420, 260).padRight(25);
-        games.add(createGameCard("assets/images/ui/calendar_card_7day_mgpwinterevent.png",
-                "Zombie Dash", "menu enter zombie dash")).size(420, 260);
+        games.add(createGameCard("assets/images/console/zombie dash.png",
+                "Zombie Dash", "menu enter zombie dash")).size(420, 260).padLeft(25);
         rootTable.add(games).padTop(35).center();
     }
 

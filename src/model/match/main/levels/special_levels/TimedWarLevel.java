@@ -4,13 +4,7 @@ import model.match.main.levels.Level;
 import model.match_mechanisms.Time;
 import model.utils.GameSession;
 
-/**
- * Survival mode: huge, near-continuous zombie waves, and the player wins simply by lasting
- * until the clock runs out - there is no kill quota. Losing still works exactly like every
- * other level (a zombie reaching the house / lawnmower line, handled by the normal
- * {@code checkZombieBreaches()} path in {@code SessionTicker}), so this level intentionally
- * never reports its own loss condition.
- */
+
 public class TimedWarLevel extends Level {
     private Time timeLimit;
     private double configuredTimeLimitSeconds;
@@ -33,12 +27,7 @@ public class TimedWarLevel extends Level {
         zombiesKilledSoFar++;
     }
 
-    /**
-     * Survival levels never lose on their own account - only running out of lawnmowers /
-     * a zombie reaching the house (handled generically for every level) can end the match
-     * early. Previously this also failed the level whenever the timer hit zero, which made
-     * "survive the timer" impossible to actually win.
-     */
+    
     @Override
     public boolean checkLossCondition(GameSession session) {
         return false;
@@ -63,8 +52,7 @@ public class TimedWarLevel extends Level {
         return timeLimit == null ? 0 : Math.max(0, timeLimit.getSecondsRemaining());
     }
 
-    /** Full survival duration in seconds (e.g. 120 for a 2-minute survive level), for the HUD
-     *  countdown's progress fraction. */
+    
     public double getTotalDurationSeconds() {
         return configuredTimeLimitSeconds;
     }

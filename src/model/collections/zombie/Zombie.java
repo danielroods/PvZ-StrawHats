@@ -295,12 +295,7 @@ public class Zombie extends Item implements Attack {
         if (session != null) session.notifyZombieDied(this, killerName);
     }
 
-    /**
-     * Whether the given damage source was fire-based (e.g. a Fire Peashooter
-     * pea), used to decide if a zombie's death should play the ash-death
-     * animation instead of its normal die animation. Mirrors the same
-     * fire-source check used elsewhere for ice/obstacle fire damage.
-     */
+    
     private boolean isFireDamageSource(Object damageSource) {
         if (FrostbiteFreezing.isFireDamageSource(damageSource)) return true;
         if (damageSource instanceof Projectile projectile) {
@@ -310,11 +305,7 @@ public class Zombie extends Item implements Attack {
         return false;
     }
 
-    /**
-     * Whether the killing hit came from Electric Blueberry's electric projectile.
-     * The renderer uses this flag to play the zombie-specific shock death before
-     * falling back to the normal/ash death sequence.
-     */
+    
     private boolean isShockDamageSource(Object damageSource) {
         if (!(damageSource instanceof Projectile projectile)) return false;
         Plant sourcePlant = projectile.getSourcePlant();
@@ -452,19 +443,7 @@ public class Zombie extends Item implements Attack {
         }
     }
 
-    /**
-     * Plays a one-off or looping visual-only animation state (e.g. "toss",
-     * "push", "cast", "cast_loop", "reel") on top of walk/eat/die.
-     *
-     * @param state    the animation clip name to prefer, or null to clear it.
-     * @param duration how long (seconds) to keep showing it before automatically
-     *                 reverting to the default walk/eat resolution; pass 0 (or
-     *                 less) for a state that should persist until explicitly
-     *                 cleared with {@link #clearActionAnimationState()}.
-     * @param loop     whether the clip should loop (e.g. a continuous "push"
-     *                 while shoving a structure) or play once and hold its
-     *                 last frame (e.g. a single "toss"/"cast"/"reel" beat).
-     */
+    
     public void setActionAnimationState(String state, double duration, boolean loop) {
         if (state == null) {
             clearActionAnimationState();
@@ -595,16 +574,12 @@ public class Zombie extends Item implements Attack {
     
     public double getDragUnderWaterProgress() { return dragUnderWaterProgress; }
 
-    /** Cosmetic only: pushes the renderer's draw position further under the fixed water
-     * clip line without moving the zombie's actual grid position (or the ripple, which is
-     * drawn off that grid position and so stays put). */
+    
     public void setDragUnderWaterProgress(double progress) {
         this.dragUnderWaterProgress = Math.max(0.0, Math.min(1.0, progress));
     }
 
-    /** Marks that this zombie's upcoming death was a Tangle Kelp drag-under-water kill, so
-     * the renderer skips the normal splash/particle "die" playback - the zombie has already
-     * visually vanished beneath the ripple by the time it actually dies. */
+    
     public void markDragUnderWaterDeath() { this.dragUnderWaterDeath = true; }
 
     public boolean diedFromDragUnderWater() { return dragUnderWaterDeath; }

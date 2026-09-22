@@ -539,11 +539,7 @@ public class Beghouled extends MiniGameMode {
         return java.util.Arrays.stream(boardPlantIds).boxed().toList();
     }
 
-    /**
-     * Names of every plant that's directly seeded on this level's own board (boardPlantIds)
-     * and has an upgrade defined - nothing else. A level only offers upgrades for the plants
-     * that actually exist on it, full stop - no other level's plants included.
-     */
+    
     public List<String> getUpgradeablePlantNames() {
         Set<Integer> onThisBoard = new HashSet<>();
         for (int id : boardPlantIds) onThisBoard.add(id);

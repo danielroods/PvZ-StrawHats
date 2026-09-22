@@ -31,11 +31,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Draws the plants on the lawn and owns their animation state: the idle/attack clip
- * choice, the fire-event detection that opens an attack window, stack- and Split-Pea-aware
- * clip names, the chill frost overlay, and the plant-food glow.
- */
+
 class PlantRenderer {
 
     private static final float DEFAULT_PLANT_ATTACK_DURATION = 0.4f;
@@ -55,13 +51,7 @@ class PlantRenderer {
 
     private final GameScreen screen;
 
-    /**
-     * A short-lived, position-only playback of a plant's own "death" (Sea-shroom) or
-     * "idle_stage4" (Puff-shroom lifespan-expiry death) clip. The plant itself is already
-     * gone from session.getPlants() by the time this plays - see trackExplodedPlants -
-     * so this is tracked independently of any live Plant instance, the same way
-     * EffectRenderer's exploding-plant effects are.
-     */
+    
     private static final class DyingShroomEffect {
         final String path;
         final String state;
@@ -795,10 +785,7 @@ class PlantRenderer {
         octopusWrapAnimTimes.keySet().removeIf(cell -> cell == null || cell.getObstacle() == null);
     }
 
-    /**
-     * Draws the idle mold animation over any tile blocked by {@link MoldBlock}
-     * (e.g. the unplantable column in the "Not Every Where You Can Plant!" level).
-     */
+    
     private void drawMoldBlocks(float delta, float boardTileWidth, float boardTileHeight) {
         if (screen.session.getEnvironment() == null) return;
 
@@ -820,11 +807,7 @@ class PlantRenderer {
         moldBlockAnimTimes.keySet().removeIf(cell -> cell == null || !(cell.getObstacle() instanceof MoldBlock));
     }
 
-    /**
-     * Tangle Kelp's Plant Food can drag zombies under on tiles other than its own - there's
-     * no real plant standing there, so each such tile borrows a plain "attack" clip of the
-     * same PAM for as long as {@link TangleKelpPlantFood#remoteAttackTiles()} reports it.
-     */
+    
     private void drawTangleKelpRemoteAttacks(TangleKelpPlantFood effect, float boardTileWidth) {
         List<Position> tiles = effect.remoteAttackTiles();
         if (tiles.isEmpty()) return;
@@ -954,12 +937,7 @@ class PlantRenderer {
         return new SheepFrame(state, time);
     }
 
-    /**
-     * Stackable plants (e.g. Pea Pod, tagged {@link PlantTag#STACK}) have a separate clip per
-     * number of peas: "idle"/"attack" for 1 pea, "idle2".."idle5"/"attack2".."attack5" for
-     * 2-5 peas. Appends the current stack count to {@code baseState} for those plants only;
-     * everything else keeps using the plain base state name.
-     */
+    
     private String plantStackState(Plant plant, String baseState) {
         if (plant.getTags().contains(PlantTag.STACK)) {
             int stackNumber = plant.getStackNumber();
@@ -971,12 +949,7 @@ class PlantRenderer {
         return baseState;
     }
 
-    /**
-     * Picks the base "attack" clip name for a plant's just-fired volley. Every plant except
-     * Split Pea keeps using {@link #plantStackState}'s plain "attack" (or "attack2".."attack5"
-     * for STACK-tagged plants); Split Pea gets its own side-aware resolution since it can fire
-     * right, left, or both in the same volley - see {@link #splitPeaAttackBaseState}.
-     */
+    
     private String resolveIdleState(Plant plant) {
         if (plant != null && plant.isWallNut()) {
             return plant.getWallNutHealthAnimationState();
@@ -1045,12 +1018,7 @@ class PlantRenderer {
         return plant != null && "Fume-shroom".equalsIgnoreCase(plant.getName());
     }
 
-    /**
-     * Puff-shroom counts up through 3 stages over its lifespan (30s each, {@link
-     * #puffShroomStage} derives the stage purely from elapsed lifespan time so it needs no
-     * extra state). Plant Food resets its lifespan back to 0 elapsed (see {@link
-     * Plant#activatePlant}), which naturally drops this back to stage 1 too.
-     */
+    
     private int puffShroomStage(Plant plant) {
         if (!isPuffShroom(plant)) return 1;
         double lifespan = plant.getLifespanSeconds();
@@ -1060,15 +1028,7 @@ class PlantRenderer {
         return Math.max(1, Math.min(3, stage));
     }
 
-    /**
-     * Sunflower, Twin Sunflower, Primal Sunflower and Sun-shroom all use the "special"
-     * clip (Sun-shroom's staged "special_stageN" variant) while they're actively producing
-     * a sun. Sun Bean doesn't produce sun this way (biting it marks the zombie as a sun-bean
-     * carrier - halo overlay until that zombie dies, then it drops sun - see Plant#takeDamage
-     * and Zombie#markSunBeanCarrier), so it's excluded here even though it's still part of
-     * {@link #isSunProducerFamily}
-     * for Plant Food purposes.
-     */
+    
     private boolean isSunProducingPlant(Plant plant) {
         if (plant == null) return false;
         String name = plant.getName();
@@ -1094,11 +1054,7 @@ class PlantRenderer {
         return "special";
     }
 
-    /**
-     * Stage-aware "plantfood" clip name; Sun-shroom has per-stage variants, Sea-shroom uses
-     * its own "pf" clip name, and everything else (including Puff-shroom and Fume-shroom)
-     * just uses the plain "plantfood" clip for its whole Plant Food duration.
-     */
+    
     private String plantFoodClipState(Plant plant) {
         if (isHeadbutterLettuce(plant)) {
             return "plantfood_loop";
@@ -1169,12 +1125,7 @@ class PlantRenderer {
         };
     }
 
-    /**
-     * Cactus's idle loop while it isn't mid-transition and isn't in its brief fire-event
-     * attack window (see resolveAttackBaseState/plantFoodClipState for the attack clips,
-     * and Plant#tickCactusPosture for the down/up one-shot transitions handled generically
-     * through the visualAnimationState catch-all above this in the draw-loop if-chain).
-     */
+    
     private String cactusIdleState(Plant plant) {
         boolean plantFood = plant.isPlantFoodActive();
         if (plant.isCactusUnderground()) {
@@ -1306,13 +1257,7 @@ class PlantRenderer {
         return plant != null && "Iceberg Lettuce".equalsIgnoreCase(plant.getName());
     }
 
-    /**
-     * Drives Headbutter Lettuce's three-phase Plant Food sequence: "plantfood_on" (intro,
-     * played once as soon as Plant Food activates), "plantfood_loop" (holds for whatever
-     * remains of the Plant Food window), then "plantfood_off" (outro, played once - note
-     * this runs *after* isPlantFoodActive() has already gone false, the same idiom
-     * advanceExplodeONutTimers uses for its own "plantfood_off").
-     */
+    
     private void advanceHeadbutterLettuceTimers(Plant plant, float delta) {
         boolean active = plant.isPlantFoodActive();
         boolean wasActive = Boolean.TRUE.equals(headbutterLettucePfWasActive.put(plant, active));
@@ -1339,8 +1284,7 @@ class PlantRenderer {
         }
     }
 
-    /** "plantfood_on" while its intro clip is still playing, then "plantfood_loop" for the
-     *  rest of the Plant Food window, then "plantfood_off" once Plant Food has ended. */
+    
     private String headbutterLettuceState(Plant plant) {
         if (plant.isPlantFoodActive()) {
             float onDuration = headbutterLettuceClipDuration(plant, "plantfood_on");
@@ -1552,15 +1496,7 @@ class PlantRenderer {
         }
     }
 
-    /**
-     * Split Pea shoots both forward (right, toward the zombies) and backward (left) in the
-     * same volley, but {@link model.collections.plant.actstrategy.ShootStrategy} only actually
-     * launches a projectile toward a side that has a valid target in range. Its
-     * PAM mirrors that with three clips: "attack" (right side only), "attack3" (left side
-     * only), "attack2" (both sides). This picks the matching clip by re-checking, purely for
-     * display, which side(s) have a target right now using the same same-row / in-range rule
-     * ShootStrategy.act() uses - it doesn't change what actually gets fired.
-     */
+    
     private String splitPeaAttackBaseState(Plant plant) {
         boolean rightHasTarget = splitPeaSideHasTarget(plant, 1.0);
         boolean leftHasTarget = splitPeaSideHasTarget(plant, -1.0);
@@ -1685,15 +1621,7 @@ class PlantRenderer {
         trackDyingShrooms(alivePlantsBeforeTick, stillAlive);
     }
 
-    /**
-     * Sea-shroom plays "death" however it dies (eaten by a zombie or washed away by the
-     * tide - both zero its HP, the latter via Flood.removeAquaticPlant). Puff-shroom plays
-     * "idle_stage4" only when its own 30s-per-stage countdown runs out without Plant Food
-     * (Plant.tick sets PlantState.DYING for that case specifically, without touching HP;
-     * a zombie kill also sets DYING but zeroes HP first, so the HP check tells them apart).
-     * Both plants are already gone from stillAlive by the time this runs, so the clip is
-     * queued as a position-only overlay - see DyingShroomEffect/drawDyingShroomEffects.
-     */
+    
     private void trackDyingShrooms(List<Plant> alivePlantsBeforeTick, List<Plant> stillAlive) {
         for (Plant plant : alivePlantsBeforeTick) {
             if (stillAlive.contains(plant) || plant.getPosition() == null) continue;

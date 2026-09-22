@@ -265,7 +265,7 @@ public class LeaderboardScreen extends UiScreen {
         };
     }
 
-    /** The metric currently chosen in the sort/scroll bar above the list. */
+    
     private long selectedMetricValue(LeaderboardRowDto row) {
         if (sort.meowChapter != null) return row.lotteryScoreOrZero(sort.meowChapter.key());
         return switch (sort.column) {
@@ -310,11 +310,7 @@ public class LeaderboardScreen extends UiScreen {
         };
     }
 
-    /**
-     * Builds one player card: avatar + username on the left, a glowing badge for the
-     * currently selected metric on the right, sitting on a card background with a
-     * looping diagonal shine sweep for a bit of "alive" polish.
-     */
+    
     private Stack buildRow(LeaderboardRowDto row, int rank) {
         boolean isYou = User.currentUser != null
                 && User.currentUser.username.equals(row.username);
@@ -322,8 +318,8 @@ public class LeaderboardScreen extends UiScreen {
         Stack cardStack = new Stack();
 
         Table card = new Table();
-        // Reuse the same rounded UI language as the leaderboard scroll area instead of
-        // a flat rectangle, so the rows feel like part of the same cartoon panel.
+        
+        
         card.setBackground(skin.getDrawable("card-background"));
         card.setColor(isYou ? new Color(0.82f, 0.90f, 1f, 1f) : Color.WHITE);
         card.pad(8, 18, 8, 18);
@@ -387,7 +383,7 @@ public class LeaderboardScreen extends UiScreen {
         return col;
     }
 
-    /** Icon + value badge for whichever metric is selected in the sort bar. */
+    
     private Table metricBadge(LeaderboardRowDto row) {
         long value = selectedMetricValue(row);
 
@@ -461,11 +457,7 @@ public class LeaderboardScreen extends UiScreen {
         return new TextureRegionDrawable(texture);
     }
 
-    /**
-     * A thin, diagonal, semi-transparent beam that loops across the card from left to
-     * right on a delay, clipped to the card's own bounds - a cheap "shiny card" effect
-     * with no extra art assets required.
-     */
+    
     private ShineOverlay shineOverlay(boolean brighter) {
         Pixmap pixmap = new Pixmap(24, 4, Pixmap.Format.RGBA8888);
         for (int x = 0; x < 24; x++) {
@@ -484,7 +476,7 @@ public class LeaderboardScreen extends UiScreen {
         return new ShineOverlay(ROW_WIDTH, ROW_HEIGHT, beam);
     }
 
-    /** Clips its child beam to the card bounds and loops it across on a delay. */
+    
     private static class ShineOverlay extends Group {
         ShineOverlay(float width, float height, Image beam) {
             setSize(width, height);

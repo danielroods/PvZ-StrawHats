@@ -8,10 +8,7 @@ import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 import view.screens.generals.GameScreen;
 
-/**
- * Big Wave Beach gameplay visuals. The tide is authoritative in GameSession;
- * this screen renders its animated waterline, rocks, huge wave, and boardwalk.
- */
+
 public class BigWaveBeachGameScreen extends GameScreen {
     private static final String WATER_UPPER_PAM =
             "768/FULL/BACKGROUNDS/WAVE_UPPERLAYER/WAVE_UPPERLAYER.PAM";
@@ -116,11 +113,7 @@ public class BigWaveBeachGameScreen extends GameScreen {
         visualTideColumns += (targetColumns - visualTideColumns) * alpha;
     }
 
-    /**
-     * The blue rectangle used by GameScreen is intentionally disabled for Beach.
-     * This PAM is the moving upper water edge and follows the interpolated tide
-     * boundary, so its center moves whenever the waterline moves.
-     */
+    
     private void drawWaterUpperLayer() {
         if (pamPlayer == null || visualTideColumns <= 0.01f) return;
 

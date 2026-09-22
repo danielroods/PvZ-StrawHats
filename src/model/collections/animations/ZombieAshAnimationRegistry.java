@@ -5,22 +5,7 @@ import model.collections.zombie.ZombieRace;
 
 import java.util.Set;
 
-/**
- * Resolves the "ash" death effect a zombie should play when it is killed by
- * fire (e.g. a Fire Peashooter shot) instead of its normal die/particles
- * animation.
- * <p>
- * Grouping mirrors the game's classic ash-death sets:
- * <ul>
- *     <li>Imps (any {@link ZombieRace#IMP}) -> ZOMBIE_IMP_ASH</li>
- *     <li>Gargantuars (any {@link ZombieRace#GARGANTUAR}) -> ZOMBIE_GARGANTUAR_ASH</li>
- *     <li>Lost City Jane -> ZOMBIE_LOSTCITY_JANE_ASH</li>
- *     <li>Arcade Zombie, Troglobite, Beach Octopus Zombie -> ZOMBIE_BIG_ASH</li>
- *     <li>Everyone else -> ZOMBIE_ASH</li>
- *     <li>King (ZombieDarkKing) and Piano Zombie (ZombiePiano) never get an
- *     ash death; their death animation is always the normal one.</li>
- * </ul>
- */
+
 public final class ZombieAshAnimationRegistry {
 
     private static final String IMP_ASH =
@@ -45,11 +30,7 @@ public final class ZombieAshAnimationRegistry {
     private ZombieAshAnimationRegistry() {
     }
 
-    /**
-     * @return the ash PAM path for this zombie, or {@code null} if this zombie
-     * should never play an ash death (its death animation is always the
-     * normal one, e.g. King and Piano Zombie).
-     */
+    
     public static String pathFor(Zombie zombie) {
         if (zombie == null) return DEFAULT_ASH;
 

@@ -7,23 +7,7 @@ import model.collections.animations.AnimationFactory;
 
 import java.util.Random;
 
-/**
- * Drives the "release the nuke" cheat's on-screen sequence for a GameScreen:
- *
- *  1. FALL     - the Egypt Zomboss missile PAM drops from the sky toward the
- *                center of the screen (reuses the same missile art already
- *                used by the real Egypt Zomboss fight).
- *  2. IMPACT   - the missile explosion PAM plays and every non-boss zombie is
- *                killed (via {@link NukeCheatController}) at that moment.
- *  3. SHAKE    - the whole screen (board + HUD alike, since both share the
- *                same stage/camera) shakes while a white flash smoothly fades
- *                in, holds, then smoothly fades back out.
- *
- * This is intentionally decoupled from the boss-fight's ZombossSkyStrike:
- * that class targets a specific lawn tile and destroys a plant there, which
- * is boss-fight-only behavior. The cheat instead always drops in the middle
- * of the screen and never touches plants, so it works on any level.
- */
+
 final class NukeEffect {
 
     private static final String MISSILE_PAM =

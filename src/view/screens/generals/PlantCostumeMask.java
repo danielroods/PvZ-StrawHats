@@ -14,12 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Builds PAM element visibility for plant costumes. Costume element names are matched by
- * name only; their position in the PAM hierarchy is irrelevant. When a requested element
- * lives below one or more hidden containers, all of its ancestors are automatically made
- * visible so the libPVZ renderer can reach the requested element.
- */
+
 public final class PlantCostumeMask {
     private static final Map<String, Map<String, Set<String>>> ANCESTORS_BY_PAM =
             new ConcurrentHashMap<>();
@@ -53,14 +48,7 @@ public final class PlantCostumeMask {
         return visibility;
     }
 
-    /**
-     * Expands every explicitly-visible element with all of its PAM hierarchy ancestors.
-     * This is intentionally name-based and contains no plant/container hardcoding.
-     *
-     * A PAM may place e.g. {@code custom_01} directly in the root, under {@code _custom},
-     * or several containers deep. libPVZ skips a hidden parent before it ever visits its
-     * children, so the ancestors must also be marked visible.
-     */
+    
     public static Map<String, Boolean> expandHierarchy(PamPlayer pamPlayer, String pamPath,
                                                        Map<String, Boolean> visibility) {
         if (visibility == null || visibility.isEmpty() || pamPlayer == null ||

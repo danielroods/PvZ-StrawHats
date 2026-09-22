@@ -4,16 +4,7 @@ import model.collections.zombie.Zombie;
 import model.match_mechanisms.vector.Position;
 import model.utils.GameSession;
 
-/**
- * Flight movement for the Pirate Seas pelican zombie.
- * <p>
- * Flies over water exactly like {@link SeagullFlyMove}, but can also glide
- * smoothly from its current row to a new one instead of snapping instantly,
- * which is the one behavioral difference the design calls out between the
- * two bird zombies. Call {@link #switchToRow(int, double)} to start a glide;
- * until it finishes, {@link #move} eases the row (y) toward the target while
- * the horizontal flight continues unaffected.
- */
+
 public class PelicanFlyMove implements MoveBehavior {
 
     private final double rowGlideSpeed;

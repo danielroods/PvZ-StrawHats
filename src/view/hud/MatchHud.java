@@ -347,8 +347,8 @@ public final class MatchHud extends Table implements Disposable {
         Image foodBankImage = new Image(new TextureRegionDrawable(new TextureRegion(foodBankTex)));
         foodBankImage.setTouchable(Touchable.disabled);
 
-        // Positioned manually (not centered by a Table cell) since the icon sits on the
-        // circle, which is off-center within the wider bank graphic.
+        
+        
         Group foodIconLayer = new Group();
         foodIconLayer.setTouchable(Touchable.childrenOnly);
         foodButton.setSize(FOOD_BUTTON_SIZE, FOOD_BUTTON_SIZE);
@@ -384,7 +384,7 @@ public final class MatchHud extends Table implements Disposable {
         foodStack.add(foodPipsGroup);
 
         float loadoutRowHeight = CARD_H + 4f;
-        float foodRowOffset = 5f + 7 * loadoutRowHeight; // aligns with the 7th loadout slot (index 6)
+        float foodRowOffset = 5f + 7 * loadoutRowHeight; 
 
         Table loadoutRowTable = new Table();
         loadoutRowTable.top();
@@ -815,13 +815,7 @@ public final class MatchHud extends Table implements Disposable {
         this.pamPlayer = pamPlayer;
     }
 
-    /**
-     * Overrides the top-of-screen sun readout with an explicit value instead of the raw
-     * session sun count. Used by modes (like couch I, Zombie) where the shared session's
-     * sun pool belongs to one side only, so showing it as "the" sun total is misleading -
-     * pass the value that's actually meaningful for the player looking at this HUD.
-     * Pass null to go back to showing the session's own sun count.
-     */
+    
     public void setSunOverride(Integer sun) {
         this.sunOverride = sun;
     }
@@ -872,11 +866,7 @@ public final class MatchHud extends Table implements Disposable {
         }
     }
 
-    /**
-     * Lightweight graphical conveyor. The belt is tiled from one small texture,
-     * while seed cards are regular Scene2D actors so they remain fully draggable.
-     * Cards are clipped to the metal frame and are ordered top -> bottom.
-     */
+    
     private final class ConveyorBeltWidget extends Group implements Disposable {
         private static final float FRAME_WIDTH = 127f;
         private static final float SIDE_WIDTH = 18f;

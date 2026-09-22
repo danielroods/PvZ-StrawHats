@@ -350,14 +350,7 @@ public class Projectile extends Item {
     private static final double BOUNCE_PEAK_HEIGHT = 0.6;
     private static final double GROUND_BOUNCE_DISTANCE = 2.5;
 
-    /**
-     * Called by a zombie's defense (e.g. the parasol zombie) when it absorbs a
-     * lobbed hit instead of taking damage from it: redirects this projectile onto
-     * the next un-hit zombie in the lane, or a short hop along the ground if
-     * nobody else is left, so the shot visibly bounces off instead of just being
-     * cancelled. Sets deflectedThisTick so the caller in resolveLobImpact knows
-     * not to kill the projectile after this returns.
-     */
+    
     public void bounceOverZombie(Zombie deflector, GameSession session) {
         if (deflector != null) hitZombies.add(deflector);
         Position from = (deflector != null && deflector.getPosition() != null)
@@ -369,13 +362,7 @@ public class Projectile extends Item {
         }
     }
 
-    /**
-     * Redirects this lobbed projectile toward the nearest zombie it hasn't already
-     * hit in the same row, so a shot that reaches the end of the lane (or lands
-     * somewhere empty) bounces onward instead of dealing no damage. Returns false
-     * (and leaves the projectile untouched) if there's nobody left in the row to
-     * bounce to.
-     */
+    
     private boolean bounceToNextZombie(GameSession session, Position from) {
         if (from == null || !(moveStrategy instanceof LobArcMove currentArc)) return false;
 
@@ -402,12 +389,7 @@ public class Projectile extends Item {
         return true;
     }
 
-    /**
-     * Fallback for when there's no zombie left anywhere in the lane to bounce to:
-     * hops the shot a couple of tiles further along the ground so it visibly lands
-     * somewhere instead of silently despawning. Only happens once per projectile
-     * (via groundBounced) so it can't bounce along the ground forever.
-     */
+    
     private boolean bounceAlongGround(GameSession session, Position from) {
         if (from == null || groundBounced || session.getEnvironment() == null
                 || !(moveStrategy instanceof LobArcMove currentArc)) return false;

@@ -36,20 +36,7 @@ import view.screens.generals.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * IZombieGameScreen mini-game gameplay entry point. The actual gameplay machinery
- * lives in GameScreen, exactly like the regular chapter stages; this class only
- * points it at the mini-game's own art folder (background and left/right border
- * textures all come from the same folder - see GameScreen.getSeasonGameplayFolder())
- * and wires up I-Zombie-specific interaction: clicking a lane right of the red line
- * places the currently selected roster zombie there, same as
- * "place zombie -t <alias> -l (x,y)" in the terminal engine.
- * The defending plants are real Plant entities the same as any other level, so
- * GameScreen already draws them; what this screen adds on top is the brain in each
- * lane, the red line, the placement highlight, and the zombie-packet tray, since
- * MatchHud's plant tray is loadout-based and has no concept of I Zombie's
- * purchasable zombie roster.
- */
+
 public class IZombieGameScreen extends GameScreen {
 
     private static final float BRAIN_WIDTH_FACTOR = 0.72f;

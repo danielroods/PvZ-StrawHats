@@ -1,11 +1,6 @@
 package model.collections.zombie.zombie_effect;
 
-/**
- * Art/clip constants for the Pirate Captain's parrot. The parrot rides the
- * captain (rendered as part of {@code ZOMBIE_PIRATE_CAPTAIN.PAM}, no extra
- * object) until it is released to go steal a plant, at which point it becomes
- * its own object using this PAM file.
- */
+
 public final class CaptainParrot {
     private CaptainParrot() {}
 
@@ -16,11 +11,7 @@ public final class CaptainParrot {
     public static final String CLIP_RELEASE = "parrot_releas";
     
     public static final String CLIP_FLY = "fly";
-    /**
-     * Played while carrying a snatched plant to the water. Authored moving to
-     * the right, so the renderer must horizontally flip it since the parrot
-     * always carries leftward toward the nearest un-bridged water tile.
-     */
+    
     public static final String CLIP_CARRY = "carry";
     
     public static final String CLIP_FLYBACK = "fly back";

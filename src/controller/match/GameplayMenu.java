@@ -337,30 +337,7 @@ public class GameplayMenu extends Menu {
         }
     }
 
-    /**
-     * Restarts the current level the same way a fresh match is normally started
-     * (see {@link MatchMenu}'s "start game" handling), instead of quietly mutating
-     * the session in place and staying inside this menu/screen. The old version
-     * built a new GameSession and called startWaves() itself while App.currentMenu
-     * stayed a GameplayMenu and the on-screen GameScreen instance never changed -
-     * so ScreenManager never re-resolved the screen (it only swaps screens when
-     * App.currentMenu's class changes), the same board/HUD/interaction wiring from
-     * the previous match kept running against the old session, and - because
-     * App.currentMenu never became a BeforeMenu - BeforeMenu.selectedPlants was
-     * never cleared/reselected for the new session, which is what broke planting
-     * from the loadout after a restart.
-     * <p>
-     * Going through App.currentMenu here instead lets the normal
-     * ScreenManager.syncWithCurrentMenu() polling (see GameScreen/UiScreen
-     * runCommand()) pick this up next frame and route through LoadingScreen into
-     * either BeforeMatchScreen (so the loadout is picked again against the new
-     * session) or straight back into gameplay for levels that have no loadout
-     * step, exactly like a normal "start game" would - including
-     * ScreenManager.resolveScreen()'s isDangerOrLotteryLevel() check, so a
-     * restarted lottery/danger node (Dark Ages included) lands back on
-     * LotteryGameScreen instead of whatever plain season screen happened to be on
-     * screen already.
-     */
+    
     private void restartMatch() {
         GameSession session = GameSession.getInstance();
         Level currentLevel = session.getLevel();

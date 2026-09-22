@@ -2,12 +2,7 @@ package model.resoures;
 
 import model.user_data.UserState;
 
-/**
- * Every currency that the "add currency" cheat popup can grant.
- * Adding a new currency later only means adding one more enum constant here -
- * every screen/menu that already uses {@code CurrencyType} (top bar widgets,
- * the cheat popup, the cheat controller) will pick it up automatically.
- */
+
 public enum CurrencyType {
 
     COIN("assets/images/ui/buttons_coin_buy_normal.png", "Coins") {

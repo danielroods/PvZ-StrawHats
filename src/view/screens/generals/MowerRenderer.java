@@ -4,11 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import service.resource_manager.AudioEnum;
 import service.resource_manager.AudioManager;
 
-/**
- * Draws the row of lawn mowers, picking the season's mower art and the idle/transition/
- * attack clip that matches each mower's current state, with a procedural mower as the
- * fallback when no PAM is available.
- */
+
 class MowerRenderer {
 
     private static final java.util.Map<String, String[]> SEASON_LAWN_MOWER_PAM_PATHS = new java.util.HashMap<>();

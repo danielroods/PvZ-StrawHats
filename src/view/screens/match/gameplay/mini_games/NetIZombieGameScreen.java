@@ -390,11 +390,7 @@ public class NetIZombieGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    /**
-     * Highlights the drop zone while a card is held. Only the zombie player needs it -
-     * the plant player's own columns are already tinted for the whole match below, and
-     * painting them twice just doubled the tint.
-     */
+    
     private void drawPlacementZone(float bh) {
         if (selectedKey == null || isPlantSide()) return;
         for (int col = IZombieMatch.REDLINE_COLUMN + 1; col < session.getCols(); col++) {

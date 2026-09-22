@@ -3,10 +3,7 @@ package model.match.boss.behavior;
 import model.match.boss.ZombossFight;
 import model.match.boss.ZombossSkyStrike;
 
-/**
- * Pirates Zomboss. Same action set as the Ancient Egypt Zomboss (walk, jump-crush, stomp,
- * portal, missile) but fires its own Pirate-themed missile explosion PAM instead of Egypt's.
- */
+
 public class PirateZombossBehavior extends EgyptZombossBehavior {
 
     private static final String MISSILE_PAM =

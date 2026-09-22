@@ -30,11 +30,7 @@ import view.screens.generals.BaseScreen;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * A self-contained 240x240 Pac-Man-style maze. The world is intentionally independent of
- * GameScreen because a large continuous board is a very different simulation from PvZ's
- * five-lane Match/GameSession model.
- */
+
 public class ZombiePackmanGameScreen extends BaseScreen {
     private static final String PLAYER_PAM =
             "768/FULL/ZOMBIE/FOODFIGHT_ZOMBIE/FOODFIGHT_ZOMBIE.PAM";
@@ -76,7 +72,7 @@ public class ZombiePackmanGameScreen extends BaseScreen {
     private static final float PLANT_SCALE = 0.50f;
     private static final float WALL_SCALE = 0.48f;
 
-    /** Classic Pac-Man ghost colors, one per personality (Blinky/Pinky/Inky/Clyde). */
+    
     private static final Color[] GHOST_COLORS = {
             new Color(0.92f, 0.24f, 0.24f, 1f),
             new Color(1f, 0.55f, 0.85f, 1f),

@@ -4,14 +4,7 @@ import model.match_mechanisms.vector.Position;
 
 import java.util.Random;
 
-/**
- * Movement used by the Bowling Bulb's projectile so it rolls the same way
- * the Bowling Wall-nut does in the Wall-nut Bowling mini-game
- * ({@link model.match.mini_games.wallnutbowlling.nut.BowlingWallnut}):
- * it travels in a straight line at a constant speed (no gravity, no
- * height/arc) and, each time it hits a zombie, its path deflects by a
- * fixed angle instead of slowing down or bouncing off a floor.
- */
+
 public class RollingBounceMove implements MoveStrategy {
     private static final double DEFLECT_ANGLE_DEGREES = 45.0;
     private static final Random RAND = new Random();

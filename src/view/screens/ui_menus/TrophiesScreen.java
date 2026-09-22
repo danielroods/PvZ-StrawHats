@@ -191,7 +191,7 @@ public class TrophiesScreen extends UiScreen {
 
                 boolean draw = true;
 
-                // Bottom left
+                
                 if (x < radius && y < radius) {
                     float dx = x - radius;
                     float dy = y - radius;
@@ -201,7 +201,7 @@ public class TrophiesScreen extends UiScreen {
                     }
                 }
 
-                // Bottom right
+                
                 if (x >= scaledWidth - radius && y < radius) {
                     float dx = x - (scaledWidth - radius - 1);
                     float dy = y - radius;
@@ -211,7 +211,7 @@ public class TrophiesScreen extends UiScreen {
                     }
                 }
 
-                // Top left
+                
                 if (x < radius && y >= scaledHeight - radius) {
                     float dx = x - radius;
                     float dy = y - (scaledHeight - radius - 1);
@@ -221,7 +221,7 @@ public class TrophiesScreen extends UiScreen {
                     }
                 }
 
-                // Top right
+                
                 if (x >= scaledWidth - radius && y >= scaledHeight - radius) {
                     float dx = x - (scaledWidth - radius - 1);
                     float dy = y - (scaledHeight - radius - 1);

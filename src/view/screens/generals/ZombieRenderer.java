@@ -779,12 +779,7 @@ class ZombieRenderer {
                         && dz.barrelDeathTime >= DEFAULT_BARREL_DEATH_DURATION));
     }
 
-    /**
-     * Several small purple/pink bubbles rising from a hypnotized zombie's feet to over its
-     * head, staggered so they don't all pop at once, each fading in, floating up with a
-     * slight side-to-side sway, then fading out and looping back to the bottom - same idea
-     * as the original game's hypnosis bubble trail.
-     */
+    
     private void drawHypnoBubbles(Zombie zombie, float t, float baseX, float baseY, float boardTileHeight) {
         float riseHeight = boardTileHeight * 0.85f;
         float fadeWindow = 0.15f;
@@ -943,14 +938,7 @@ class ZombieRenderer {
     
     private static final float PARROT_RAID_DISTANCE = 220f;
 
-    /**
-     * Draws the Pirate Captain's parrot whenever {@link model.collections.zombie.zombie_effect.ParrotCompanionEffect}
-     * has it off the captain's shoulder (see the {@code actionAnimationState} names it drives).
-     * While riding, the perched parrot is already baked into the captain's own idle/walk/eat
-     * PAM, so this deliberately draws nothing outside the raid states. "parrot_releas" and
-     * "parrot_land" are also skipped here - those play on the captain's own body PAM, not on
-     * {@link #CAPTAIN_PARROT_PAM}, so the standalone parrot object has nothing to draw during them.
-     */
+    
     private void drawZombieParrot(Zombie zombie, float t, float delta, float x, float zombieDrawY, boolean facingRight) {
         if (!ZOMBIE_PIRATE_CAPTAIN_ALIAS.equals(zombie.getAlias())) return;
 
@@ -994,12 +982,7 @@ class ZombieRenderer {
         screen.pam().drawPamExact(CAPTAIN_PARROT_PAM, state, parrotTime, parrotX, parrotY, PARROT_SCALE, drawFacingRight);
     }
 
-    /**
-     * Renders the Pirate Barrel Pusher's separate barrel after the pusher zombie
-     * has died, or its one-shot death animation after the barrel itself is destroyed.
-     * While both are alive, the combined pusher PAM already contains the barrel and
-     * this method deliberately draws nothing.
-     */
+    
     private void drawZombieBarrel(Zombie zombie, float delta, float boardTileWidth) {
         if (!ZOMBIE_BARREL_ROLLER_ALIAS.equals(zombie.getAlias())) return;
 
@@ -1269,8 +1252,7 @@ class ZombieRenderer {
         ScissorStack.popScissors();
     }
 
-    /** Generic version of pushWaterClip/popWaterClip for clipping to an arbitrary rectangle
-     *  (e.g. keeping the frozen imp fully inside the pushed ice block's own drawn bounds). */
+    
     private boolean pushRectClip(float x, float y, float width, float height) {
         screen.batch.flush();
         Rectangle clipBounds = new Rectangle(x, y, width, height);

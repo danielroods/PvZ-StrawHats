@@ -362,12 +362,7 @@ public class WallnutBowlingGameScreen extends GameScreen {
         return new CardView(kind, visual);
     }
 
-    /**
-     * Same conveyor belt mechanism used in the Egypt chapter (see
-     * view.hud.MatchHud.ConveyorBeltWidget): a metal-framed belt built from the
-     * Egypt conveyor textures, with cards clipped to the frame and slid into
-     * place at a constant speed every frame rather than via one-shot tweens.
-     */
+    
     private final class ConveyorBeltWidget extends Group implements Disposable {
         private static final float FRAME_WIDTH = 127f;
         private static final float SIDE_WIDTH = 18f;

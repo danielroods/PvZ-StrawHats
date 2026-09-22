@@ -101,10 +101,7 @@ public class DarkAge extends Season {
         return count;
     }
 
-    /**
-     * A grave only opens where nothing is standing yet, so a risen zombie never appears on top
-     * of one that is already walking through that spot.
-     */
+    
     private static boolean isSpotClear(GameSession session, int row, int col) {
         for (Zombie zombie : session.getZombies()) {
             if (zombie == null || !zombie.isAlive() || zombie.getPosition() == null) continue;

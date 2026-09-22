@@ -756,18 +756,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.cactusStretching = stretching;
     }
 
-    /**
-     * Cactus has two situational postures on top of its normal idle/attack:
-     * - it ducks underground (down -> down_idle/down_attack loop -> up) for as long as a
-     *   zombie is standing on its own tile, dealing reduced damage while hidden (see
-     *   getDamage()) instead of eating a melee hit;
-     * - lacking a Balloon Zombie to justify the pose, it instead pops up on its "stretch"
-     *   pose (up_stretch -> attack_stretch -> down_stretch) whenever it's shooting at a
-     *   Gargantuar, so that clip still gets used.
-     * Both transitions are one-shot clips driven through the existing
-     * visualAnimationState mechanism; the looping down/up-stretch clip choice itself is
-     * resolved by PlantRenderer from the booleans this method maintains.
-     */
+    
     private void tickCactusPosture(GameSession session) {
         if (!isCactus() || session == null || !isAlive()) return;
 
@@ -1038,8 +1027,7 @@ public abstract class Plant extends Item implements Pluck, Attack {
         this.visualAnimationElapsed = 0.0;
     }
 
-    /** Freeze the current visual clip on its final frame. Used by Squash so the
-     * landing frame is actually rendered before the plant is removed. */
+    
     public void holdVisualAnimationAtEnd() {
         this.visualAnimationElapsed += this.visualAnimationRemaining;
         this.visualAnimationRemaining = 0.0;

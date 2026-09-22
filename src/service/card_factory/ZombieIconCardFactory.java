@@ -8,17 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-/**
- * Builds {@link ZombieIconCard}s from assets/images/ui/zombies_ui, the zombie equivalent
- * of {@link SeedPacketCardFactory} (which does the same thing for assets/images/ui/plants_ui).
- * <p>
- * The pack has 48 icons but Zombie.json only defines 31 aliases, and several of those
- * (the base ZombieDefault/Armor1/2/4/Gargantuar/Imp) have no world tag of their own while
- * every matching icon here is world-specific - see the comments on {@link #ALIAS_ICON_OVERRIDES}
- * for the reasoning behind each guess. The remaining ~17 icons (dino_flag, summer_flag,
- * pirate_barrel, egypt_gargantuar, etc.) don't correspond to any alias currently in
- * Zombie.json and are simply unused.
- */
+
 public class ZombieIconCardFactory implements Disposable {
 
     
@@ -92,12 +82,7 @@ public class ZombieIconCardFactory implements Disposable {
     
     private Texture cardBackgroundTexture = new Texture("images/ui/zombies_ui/frame.png");
 
-    /**
-     * The shared "ZOMBIES" tombstone-frame panel every card is built on top of
-     * (see {@link #cardBackground()}). Exposed so callers building a card outside
-     * this factory (e.g. a fallback icon for an alias with no flat art) can still
-     * use the exact same frame instead of a bare panel.
-     */
+    
     public Texture getCardBackground() {
         return cardBackground();
     }
@@ -118,14 +103,7 @@ public class ZombieIconCardFactory implements Disposable {
         return buildCardForAlias(alias, CARD_WIDTH, CARD_HEIGHT);
     }
 
-    /**
-     * Same as {@link #buildCardForAlias(String)}, but builds the card (frame + icon
-     * together) at the given size instead of the default {@link #CARD_WIDTH}x
-     * {@link #CARD_HEIGHT}. Use this instead of calling {@code setSize(...)} on the
-     * returned card afterward - {@link ZombieIconCard}'s icon inset is fixed at
-     * construction time, so resizing it later leaves the icon at its original pixel
-     * size while the frame/clip shrink, cropping it.
-     */
+    
     public ZombieIconCard buildCardForAlias(String alias, float cardWidth, float cardHeight) {
         try {
             String iconFile = resolveIconFile(alias);

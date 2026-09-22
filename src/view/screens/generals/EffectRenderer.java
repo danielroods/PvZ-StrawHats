@@ -70,20 +70,10 @@ class EffectRenderer {
     private static final float GRAVE_BUSTER_DIRT_FALLBACK_DURATION = 0.5f;
     private static final float GRAVE_BUSTER_DIRT_SCALE = 0.65f;
 
-    /**
-     * One scale for a shot and for the splat it leaves behind. They used to differ by a
-     * factor of two, so every impact popped at half the size of the projectile that
-     * caused it.
-     */
+    
     static final float PROJECTILE_DRAW_SCALE = PROJECTILE_PAM_SCALE * 2.0f;
 
-    /**
-     * Where a shot sits inside its tile, as a fraction of tile width/height. The default
-     * is the whole-lawn calibration every projectile used to share; the per-plant entries
-     * lift a shot to the muzzle it actually leaves from instead of drawing it at the
-     * plant's base. The splat a shot leaves reuses the same offset, so the impact lands
-     * exactly where the projectile was drawn.
-     */
+    
     private static final float[] DEFAULT_MUZZLE_OFFSET = {0.41f, 0.42f};
     private static final float[] PEA_MUZZLE_OFFSET = {0.47f, 0.55f};
     private static final float[] PULT_MUZZLE_OFFSET = {0.45f, 0.50f};
@@ -274,12 +264,7 @@ class EffectRenderer {
         }
     }
 
-    /**
-     * A splat queued by the model when a shot actually connected. Unlike the old
-     * "the projectile vanished from the list, so draw a splat" guess, a shot that simply
-     * ran out of range or left the lawn queues nothing, and the position is the exact
-     * point of impact rather than wherever the shot happened to be a tick earlier.
-     */
+    
     private static final class ProjectileImpactEffect {
         final String path;
         final String state;
@@ -544,10 +529,7 @@ class EffectRenderer {
         }
     }
 
-    /**
-     * Renders the scorched-earth tile before plants are drawn.
-     * GameScreen calls this as part of the board background layer.
-     */
+    
     void drawScorchedTileEffects(float delta) {
         if (scorchedTileEffects.isEmpty()) return;
 
@@ -597,12 +579,7 @@ class EffectRenderer {
                 && e.phaseTime >= finalEndDuration);
     }
 
-    /**
-     * Renders the Hot Potato melting-ice puddle before plants are drawn, so it sits
-     * underneath the plant/ice block it's melting rather than on top of it.
-     * GameScreen calls this as part of the board background layer, alongside
-     * {@link #drawScorchedTileEffects}.
-     */
+    
     void drawHotPotatoMeltEffects(float delta) {
         if (hotPotatoMeltEffects.isEmpty()) return;
 
@@ -772,11 +749,7 @@ class EffectRenderer {
         screen.queueRowDraw(row, () -> screen.drawPam(entry.path(), entry.state(), finalTime, x, y, PROJECTILE_PAM_SCALE, false));
     }
 
-    /**
-     * Keeps each living Ice-shroom's 9-tile frost patch alive: "spawn" once when the tiles
-     * first appear, then loops "animation_loop" for as long as the plant stays alive, then
-     * plays "end" once and drops the zone after the plant is gone (eaten/removed).
-     */
+    
     private void updateIceShroomZones(float delta) {
         List<Plant> aliveIceShrooms = new ArrayList<>();
         for (Plant plant : screen.session.getPlants()) {
@@ -843,11 +816,7 @@ class EffectRenderer {
         iceShroomZones.removeIf(zone -> "end".equals(zone.phase) && zone.phaseTime >= endDuration);
     }
 
-    /**
-     * Detects an Ice-shroom's melee-attack cooldown reset (same idiom as
-     * {@link #drawMeleePlantProjectiles}) and plays the ice-swing effect on its own tile
-     * plus the freeze fx on every zombie caught in its 3x3 attack zone.
-     */
+    
     private void triggerIceShroomAttacks() {
         for (Plant plant : screen.session.getPlants()) {
             if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
@@ -883,11 +852,7 @@ class EffectRenderer {
         iceShroomLastCooldown.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
     }
 
-    /**
-     * On the frame Ice-shroom's Plant Food activates, drops one falling-icicle projectile
-     * onto every zombie inside its 3x3 zone (same edge-detection idiom as
-     * {@link #drawMeleePlantProjectiles}'s Kiwibeast/Phat Beet handling).
-     */
+    
     private void triggerIceShroomPlantFood() {
         for (Plant plant : screen.session.getPlants()) {
             if (plant == null || !plant.isAlive() || plant.getPosition() == null) continue;
@@ -1049,12 +1014,7 @@ class EffectRenderer {
         meleePlantFoodSeen.keySet().removeIf(p -> !screen.session.getPlants().contains(p));
     }
 
-    /**
-     * Headbutter Lettuce's HITFX has two clips registered under the same Kind/Variant -
-     * "animation" (front/right swing) and "animation2" (back/left swing) - so unlike
-     * Kiwibeast/Phat Beet (a single entry, always index 0) the right one has to be picked
-     * per-hit from the same facing flag MeleeStrategy set for this attack.
-     */
+    
     private ProjectileEffectAssets.AssetEntry pickMeleeFacingEntry(
             Plant plant, List<ProjectileEffectAssets.AssetEntry> entries) {
         if (plant.isMeleeFacingLeft()) {
@@ -1153,11 +1113,7 @@ class EffectRenderer {
         }
     }
 
-    /**
-     * Scratches the beam art from the zombie's own position straight across to
-     * the plant it's hitting, stretching the clip's width to match the actual
-     * distance instead of always drawing it at a fixed length.
-     */
+    
     private void drawCrystalSkullBeam(CrystalSkullBeamProjectile beam, Position sourcePosition, float age) {
         Position targetPosition = beam.getBeamTargetPosition();
         if (targetPosition == null) {

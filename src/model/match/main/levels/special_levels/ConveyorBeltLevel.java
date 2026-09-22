@@ -49,10 +49,7 @@ public class ConveyorBeltLevel extends Level {
         if (offered != null) activeConveyorPlants.add(offered);
     }
 
-    /**
-     * Compatibility accessor: the card at the top of the conveyor is the
-     * currently offered plant for older controller code.
-     */
+    
     public Plant getCurrentPlant() {
         return activeConveyorPlants.isEmpty() ? null : activeConveyorPlants.get(0);
     }

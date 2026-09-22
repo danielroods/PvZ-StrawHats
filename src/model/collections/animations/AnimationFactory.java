@@ -12,18 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/**
- * Resolves a plant display name (from Plants.json) or a zombie alias (from Zombie.json)
- * to its matching entry in animations.json.
- * <p>
- * animations.json has no single consistent naming rule: most compound names are just
- * concatenated with no separator ("Cherry Bomb" -> CHERRYBOMB), some keep an underscore
- * ("Primal Sunflower" -> PRIMAL_SUNFLOWER, "Primal Potato Mine" -> PRIMAL_POTATOMINE),
- * and a few are genuinely different words (e.g. "Rotobaga" -> ROTORUTABAGA). So resolution
- * works in two passes: (1) a curated override table for the exceptions found by manually
- * cross-referencing every plant/zombie against the animation list, checked first, then
- * (2) a combinatorial fallback that tries every '' / '_' join of the name's word tokens.
- */
+
 public class AnimationFactory {
 
     private static Map<String, AnimationJsonParser.AnimationConfig> library = new HashMap<>();
@@ -64,18 +53,7 @@ public class AnimationFactory {
         return library.get(rawName.toUpperCase());
     }
 
-    /**
-     * Picks the best clip name to actually use from a resolved config for a requested state,
-     * since some PAM files don't have a clip literally named "idle"/"walk"/etc. Tries, in order:
-     * (1) an exact match for {@code preferredState}, (2) an exact "idle" clip, (3) an exact
-     * "default" clip, (4) any clip whose name contains {@code preferredState} as a substring,
-     * (5) any clip whose name contains "idle", (6) whatever clip happens to be first.
-     * Returns null only if the config itself is null or has no clips at all.
-     * <p>
-     * This is the mechanism every resolver in this factory should route through - callers
-     * that used {@link #resolveByDisplayName} or {@link #resolveByZombieAlias} don't need to
-     * duplicate this fallback chain themselves.
-     */
+    
     public static String resolveClipName(AnimationJsonParser.AnimationConfig config, String preferredState) {
         if (config == null || config.clips == null || config.clips.isEmpty()) return null;
 
@@ -165,12 +143,7 @@ public class AnimationFactory {
     
     
 
-    /**
-     * Exceptions found by cross-checking all 69 Plants.json entries against animations.json.
-     * A null value means: verified there is genuinely no matching entry in animations.json
-     * (not just unresolved by the automatic algorithm) - callers should fall back to a
-     * placeholder icon rather than guess.
-     */
+    
     private static final Map<String, String> PLANT_NAME_OVERRIDES = new HashMap<>();
     static {
         PLANT_NAME_OVERRIDES.put("ROTOBAGA", "ROTORUTABAGA");
@@ -187,11 +160,7 @@ public class AnimationFactory {
         PLANT_NAME_OVERRIDES.put("CATTAIL_MINT", "CONCEALMINT");
     }
 
-    /**
-     * Best-effort lookup for a plant display name (e.g. "Sun-shroom", "Twin Sunflower").
-     * Checks {@link #PLANT_NAME_OVERRIDES} first, then falls back to combinatorial matching.
-     * Returns null if nothing matched (including for entries verified as genuinely absent).
-     */
+    
     public static AnimationJsonParser.AnimationConfig resolveByDisplayName(String displayName) {
         if (displayName == null || displayName.isBlank()) return null;
         autoInit();
@@ -239,13 +208,7 @@ public class AnimationFactory {
     
     
 
-    /**
-     * Exceptions found by cross-checking all 31 Zombie.json aliases against animations.json.
-     * A null value means the zombie's visuals are composited at runtime in the original game
-     * (a base body plus a separately-worn armor piece) and animations.json has no single
-     * matching entry for that combination - render the base zombie body and layer your own
-     * armor sprite/state on top instead of expecting one PAM clip to cover it.
-     */
+    
     private static final Map<String, String> ZOMBIE_ALIAS_OVERRIDES = new HashMap<>();
     static {
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_DEFAULT", "ZOMBIE_TUTORIAL");
@@ -268,13 +231,7 @@ public class AnimationFactory {
         ZOMBIE_ALIAS_OVERRIDES.put("ZOMBIE_DARK_ARMOR_3", null); 
     }
 
-    /**
-     * Best-effort lookup for a Zombie.json alias (e.g. "ZombieIceAgeTroglobite", "ZombiePeashooter").
-     * Checks {@link #ZOMBIE_ALIAS_OVERRIDES} first, then falls back to combinatorial matching
-     * both with and without the "Zombie" prefix (some entries carry it, some don't - e.g. the
-     * costume zombies "ZombiePeashooter"/"ZombieWallnut" reuse the bare plant animation).
-     * Returns null if nothing matched (including verified-absent armor overlays).
-     */
+    
     public static AnimationJsonParser.AnimationConfig resolveByZombieAlias(String alias) {
         if (alias == null || alias.isBlank()) return null;
         autoInit();
@@ -338,11 +295,7 @@ public class AnimationFactory {
         return String.join("_", tokens).toUpperCase();
     }
 
-    /**
-     * All '' / '_' join combinations of the given tokens, uppercased, plus (for exactly
-     * two tokens) both orders - covers cases like "Twin Sunflower" -> SUNFLOWER_TWIN.
-     * Capped at 5 tokens to keep the combinatorics small; no plant/zombie name needs more.
-     */
+    
     private static Set<String> joinVariants(String[] tokens) {
         Set<String> variants = new HashSet<>();
         if (tokens.length == 0) return variants;

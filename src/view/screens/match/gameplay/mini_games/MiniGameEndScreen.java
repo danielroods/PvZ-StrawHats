@@ -47,24 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-/**
- * End-of-mini-game screen. {@link MiniGameEndMenu} still owns the win/loss result and any
- * restart action; this class is presentation only.
- * <p>
- * On a loss, behaviour is unchanged from before this feature existed:
- * {@link #buildResultPanel()} is shown immediately.
- * <p>
- * On a win, a bonus reward pinata plays first ({@link #buildPinataStage()}) - exactly the
- * same mechanism used at the end of a normal match ({@code view.screens.match.after.
- * AfterMatchScreen}): it fades/scales in idle, the player clicks it to explode it, then taps
- * the resulting pile four times - once per {@link PinataReward} - each tap playing the
- * "tap_pile" clip once and popping a reward (two seed packets with a random 1-5 seed count
- * each, a coin stack worth 100/200/500/1000, and a diamond reward worth 1/2/5). Once all four
- * are collected the pinata fades out and an "outcome scroll" summarises everything collected;
- * only after the player continues past that scroll does the normal {@link #buildResultPanel()}
- * (title / game name / details / Play Again-Back buttons) appear, exactly as it did before
- * this feature existed. Each mini game uses its own pinata skin (see {@link #resolvePinataPamPath()}).
- */
+
 public class MiniGameEndScreen extends UiScreen {
 
     private static final String BACKGROUND = "assets/images/backg/mainmenu_background.png";
@@ -303,8 +286,7 @@ public class MiniGameEndScreen extends UiScreen {
         ));
     }
 
-    /** Seed packets render via the real {@link SeedPacketCard} class, at a small scale; coins
-     *  and diamonds render as their own looping "idle" PAM clip. */
+    
     private Actor buildRewardIcon(PinataReward reward, float seedPacketScale) {
         if (reward.kind == RewardKind.SEED_PACKET) {
             SeedPacketCard card = cardFactory.buildCardForDisplayName(reward.plantName);
@@ -331,8 +313,7 @@ public class MiniGameEndScreen extends UiScreen {
         };
     }
 
-    /** Rewards summary modal shown once the pinata is gone; "Continue" reveals the normal
-     *  win/lose result panel, unchanged from before this feature existed. */
+    
     private void showOutcomeScroll() {
         Table overlay = new Table();
         overlay.setFillParent(true);
@@ -387,9 +368,7 @@ public class MiniGameEndScreen extends UiScreen {
         overlay.addAction(Actions.fadeIn(0.3f));
     }
 
-    /** Picks the pinata skin for the mini game that just ended, keyed off {@link
-     *  MiniGameEndMenu#getGameName()}. Every mini game that can reach this screen gets its
-     *  own skin; anything unrecognised falls back to {@link #PINATA_DEFAULT}. */
+    
     private String resolvePinataPamPath() {
         String gameName = menu == null ? null : menu.getGameName();
         if (gameName == null) return PINATA_DEFAULT;

@@ -137,9 +137,7 @@ public class ReelingTackleStatus implements ZombieEffectStatus {
         return null;
     }
 
-    /** The visible plant in a cell can be riding on a Lily Pad / Pumpkin underneath it
-     *  ({@link Plant#getBottom()}). The whole chain is one physical thing sitting in that
-     *  tile, so it must always move (or die) together - not just the top-most plant. */
+    
     private static List<Plant> plantStack(Plant top) {
         List<Plant> stack = new ArrayList<>();
         for (Plant cursor = top; cursor != null; cursor = cursor.getBottom()) {

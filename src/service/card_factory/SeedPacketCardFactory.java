@@ -10,12 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Builds {@link SeedPacketCard}s by putting each plant's UI icon (from
- * assets/images/ui/plants_ui) on top of a seed packet background (from
- * assets/images/ui/seedpackets_ui), then hands back the whole group of
- * built cards.
- */
+
 public class SeedPacketCardFactory implements Disposable {
 
     private static final String PLANTS_UI_DIR = "assets/images/ui/plants_ui/";
@@ -144,11 +139,7 @@ public class SeedPacketCardFactory implements Disposable {
         return buildCardForDisplayName(displayName, null);
     }
 
-    /**
-     * Builds a card with an optional one-call packet background override.
-     * The override is intentionally not stored in packetSkinOverrides, so it
-     * cannot affect Collection/Shop cards or any other normal factory usage.
-     */
+    
     public SeedPacketCard buildCardForDisplayName(String displayName, String packetSkinOverride) {
         try {
             String iconFile = resolveIconFile(displayName);

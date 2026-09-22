@@ -9,11 +9,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Per-season entry hazards owned by a match: the Egypt sandstorm and the Big Wave Beach
- * huge wave. Holds their timers, their per-zombie entry animations, and the read-only
- * state {@link GameSession} exposes to the screens.
- */
+
 class SessionHazards {
 
     static final double BEACH_BIG_WAVE_ENTRY_TARGET_OFFSET = 0.20;
@@ -46,10 +42,7 @@ class SessionHazards {
         this.session = session;
     }
 
-    /**
-     * Where a hazard may actually set this zombie down. The spot it was promised at spawn time
-     * can have been taken since, because the zombies that landed first have already walked on.
-     */
+    
     private double landingSpotFor(Zombie zombie, int row, double targetX) {
         if (session == null) return targetX;
         return SpawnPlacement.clearSpot(session.getZombies(), zombie, row, targetX,
@@ -265,15 +258,7 @@ class SessionHazards {
                 || sliderRideEntries.containsKey(zombie);
     }
 
-    /**
-     * Starts (or restarts) a smooth row glide for a zombie, instead of the
-     * row snapping instantly. Originally built for Frostbite Caves tile
-     * sliders, this is now the shared row-change glide used by Garlic's
-     * redirect and Sweet Potato's pull as well. No-op if the zombie is
-     * already gliding to this exact target row (so a mover calling this
-     * every tick while still on the same tile doesn't reset the animation
-     * each frame).
-     */
+    
     void beginSliderRide(Zombie zombie, double currentX, int fromRow, int toRow) {
         if (zombie == null) return;
         SliderRideEntry existing = sliderRideEntries.get(zombie);

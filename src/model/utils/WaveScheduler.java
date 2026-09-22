@@ -182,15 +182,7 @@ class WaveScheduler {
         currentInterval = intervalBefore(nextWaveIndex);
     }
 
-    /**
-     * Purely cosmetic: spawns a single flag zombie at the start of a huge wave (the flag and
-     * final waves the progress meter plants a flag on) so the player sees the "wave incoming"
-     * banner-carrier at the same moment the meter reaches that flag. This zombie is NOT part of
-     * the level's authored wave data, is NOT counted in wave cost / difficulty
-     * calculations, and is NOT drawn from the level's zombie pool - it is added
-     * straight to the on-screen zombie list only, so it never touches
-     * registerWaveZombie/currentWaveZombies/currentWaveStartingHp or entryAliases().
-     */
+    
     private void spawnCosmeticFlagZombie() {
         try {
             int cols = session.getCols();
@@ -222,10 +214,7 @@ class WaveScheduler {
         }
     }
 
-    /**
-     * An endless schedule has no final wave for the beach to break on, so its flag waves
-     * are what the tide rushes in for instead.
-     */
+    
     private boolean isBigWave(Beach beach, ZombieWave wave, WaveType type) {
         return beach.isBigWave(wave) || (director != null && type.isHuge());
     }
@@ -289,12 +278,7 @@ class WaveScheduler {
         }
     }
 
-    /**
-     * In Pirate Seas, a ground zombie must enter through one of the rows that has a
-     * bridge. Flying zombies (seagull/pelican) are unrestricted and can spawn in any
-     * row, including the open-water rows. This is lane selection only; wave costs and
-     * authored spawn counts are untouched.
-     */
+    
     private List<Integer> pirateGroundSpawnLanes(String alias, List<Integer> laneOrder) {
         if (session.getLevel() == null || session.getLevel().getSeason() == null
                 || !(session.getLevel().getSeason() instanceof model.match.main.season.travellog.pirate.Pirate pirate)
@@ -357,19 +341,12 @@ class WaveScheduler {
         return WavePlanner.classify(waveIndex, waves.size());
     }
 
-    /**
-     * Whether wave {@code index} exists at all. An endless schedule always has one more,
-     * which is what keeps the match from ever reaching "every wave spawned".
-     */
+    
     private boolean hasWave(int index) {
         return director != null || index < waves.size();
     }
 
-    /**
-     * Wave {@code index}, generated on demand when the schedule is endless. Generated
-     * waves are cached only until the scheduler moves past them, so an endless run holds
-     * the current and next wave rather than growing a list without end.
-     */
+    
     private ZombieWave waveAt(int index) {
         if (director == null) return waves.get(index);
         return generatedWaves.computeIfAbsent(index, director::waveAt);
@@ -448,10 +425,7 @@ class WaveScheduler {
         waveProgress = WavePacing.clamp(Math.max(waveProgress, rawWaveProgress()), 0, 1);
     }
 
-    /**
-     * An endless meter cannot fill towards an end that is never reached, so it reports how
-     * far the run is through the wave it is on and starts over on each new wave.
-     */
+    
     private double endlessWaveProgress() {
         double span = predictedNextWaveStart() - lullStartedAt;
         if (span <= GameClock.TIME_EPSILON) return 1.0;

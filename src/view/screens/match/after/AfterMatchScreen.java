@@ -49,21 +49,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Dedicated graphical end-of-match screen. AfterMenu still owns rewards and progression
- * for coins / the "first" seed packet; this class is presentation only.
- * <p>
- * On a loss, behaviour is unchanged: {@link #buildResultPanel()} is shown immediately.
- * <p>
- * On a win, a bonus reward piñata plays first ({@link #buildPinataStage()}):
- * it fades/scales in idle, the player clicks it to explode it, then taps the resulting
- * pile four times - once per {@link PinataReward} - each tap playing the "tap_pile" clip
- * once and popping a reward (two seed packets with a random 1-5 seed count each, a coin
- * stack worth 100/200/500/1000, and a diamond reward worth 1/2/5). Once all four are
- * collected the piñata fades out and an "outcome scroll" summarises everything collected;
- * only after the player continues past that scroll does the normal {@link #buildResultPanel()}
- * (title / summary / Retry-Back buttons) appear, exactly as it did before this feature existed.
- */
+
 public class AfterMatchScreen extends UiScreen {
 
     private static final String BACKGROUND = "assets/images/backg/mainmenu_background.png";
@@ -304,8 +290,7 @@ public class AfterMatchScreen extends UiScreen {
         ));
     }
 
-    /** Seed packets render via the real {@link SeedPacketCard} class, at a small scale; coins
-     *  and diamonds render as their own looping "idle" PAM clip. */
+    
     private Actor buildRewardIcon(PinataReward reward, float seedPacketScale, float pamVisualScale) {
         if (reward.kind == RewardKind.SEED_PACKET) {
             SeedPacketCard card = cardFactory.buildCardForDisplayName(reward.plantName);
@@ -332,12 +317,9 @@ public class AfterMatchScreen extends UiScreen {
         };
     }
 
-    /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
-     *  win/lose result panel, unchanged from before this feature existed. */
-    /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
-     *  win/lose result panel, unchanged from before this feature existed. */
-    /** Rewards summary modal shown once the piñata is gone; "Continue" reveals the normal
-     *  win/lose result panel, unchanged from before this feature existed. */
+    
+    
+    
     private void showOutcomeScroll() {
         Table overlay = new Table();
         overlay.setFillParent(true);

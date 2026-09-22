@@ -96,11 +96,7 @@ public class ZombieFactory {
         return ((Number) data.getOrDefault("WavePointCost", DEFAULT_WAVE_POINT_COST)).intValue();
     }
 
-    /**
-     * True for zombies whose configured movement is airborne/flying. Pirate Seas uses
-     * this when choosing spawn lanes: flyers may enter any lane, while ground zombies
-     * must enter through a bridge lane so they never appear in the open-water section.
-     */
+    
     public static boolean isFlying(String alias) {
         init();
         Map<String, Object> data = blueprints.get(alias);
@@ -313,12 +309,7 @@ public class ZombieFactory {
         placeOnLawnIfPossible(zombie, structure);
     }
 
-    /**
-     * Called once a Troglobite's surrounding ice block melts away and frees it. Drops a
-     * fresh pushable ice block - with a frozen imp waiting inside - onto the cell just
-     * ahead of the zombie, the same spot an arcade cabinet would be placed for a
-     * ZombieArcade, and starts its "falls smoothly from the sky" animation.
-     */
+    
     public static void spawnFallingIceBlockOnRelease(Zombie zombie) {
         if (zombie == null || !"ZombieIceAgeTroglobite".equals(zombie.getAlias())) return;
         if (zombie.getPushedStructure() != null) return;

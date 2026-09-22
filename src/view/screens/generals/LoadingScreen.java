@@ -22,15 +22,7 @@ import pvz.libpvz.pam.ClipRef;
 import pvz.libpvz.pam.PamPlayer;
 import pvz.libpvz.textures.TextureBank;
 
-/**
- * Generic "please wait" screen shown between two real screens: stages -> before match,
- * end of match -> after match screen, and whenever a mini-game/co-op screen is entered.
- * <p>
- * Picks one of four background images at random, fills a green progress bar (with a
- * little rising-bubble effect) inside the box baked into those backgrounds, rides the
- * PAM LOAD_ICON_BACK/LOAD_ICON_FRONT "animation" clips along the bar as a spinner/cursor,
- * and then swaps itself out for the real destination screen once the bar finishes.
- */
+
 public class LoadingScreen extends BaseScreen {
 
     private static final String[] BACKGROUNDS = {
@@ -149,10 +141,7 @@ public class LoadingScreen extends BaseScreen {
         }
     }
 
-    /** Same "animation" state, but falls back to a few common alternates if the exact
-     *  clip name in the PAM doesn't match, so the icon degrades gracefully instead of
-     *  just not drawing at all. Looked up fresh each frame (cheap map lookups) rather
-     *  than cached once, since the clip may still be mid-load the first few frames. */
+    
     private ClipRef getSafeClip(String pamPath) {
         if (pamPlayer == null) return null;
         String[] candidates = {PAM_STATE, "idle", "default", "loop", "main", ""};

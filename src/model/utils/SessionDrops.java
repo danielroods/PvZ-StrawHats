@@ -15,10 +15,7 @@ import view.GeneralPrinter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * What a dying zombie leaves behind and what happens when the player picks a ground
- * item up, including the console announcements the text engine prints for each.
- */
+
 class SessionDrops {
 
     private final GameSession session;

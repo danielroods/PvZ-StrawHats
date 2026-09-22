@@ -12,11 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Lightweight standalone simulation for the Console's Zombie Packman game.
- * It deliberately does not use GameSession: the board is 240x240 and needs its own
- * continuous, camera-following movement model rather than the 5x9 PvZ lane model.
- */
+
 public final class ZombiePackmanGame {
     public static final int WIDTH = 240, HEIGHT = 240;
     public static final int MAX_LIVES = 9;
@@ -67,7 +63,7 @@ public final class ZombiePackmanGame {
         public boolean isWallNut() { return type.equalsIgnoreCase("Wall-nut"); }
     }
 
-    /** Personality index: 0 Blinky (direct chaser), 1 Pinky (ambusher), 2 Inky (erratic), 3 Clyde (shy). */
+    
     public static final class GhostState {
         public float x, y;
         public final float spawnX, spawnY;
@@ -388,22 +384,22 @@ public final class ZombiePackmanGame {
         return best;
     }
 
-    /** Where each ghost personality currently wants to head, in world (tile) coordinates. */
+    
     private float[] personalityTarget(GhostState g) {
         switch (g.personality) {
-            case 1: { // Pinky: ambush a few tiles ahead of the player's current heading
+            case 1: { 
                 float ax=x, ay=y;
                 if(direction==Direction.LEFT) ax-=4; else if(direction==Direction.RIGHT) ax+=4;
                 else if(direction==Direction.UP) ay+=4; else if(direction==Direction.DOWN) ay-=4;
                 return new float[]{ax, ay};
             }
-            case 2: // Inky: erratic - occasionally lunges at a random offset instead of the player directly
+            case 2: 
                 if (Math.random() < 0.35) return new float[]{x + (float)(Math.random()*10-5), y + (float)(Math.random()*10-5)};
                 return new float[]{x, y};
-            case 3: // Clyde: shy - chases from afar but retreats toward home once close
+            case 3: 
                 if (distance(g.x,g.y,x,y) < 5f) return new float[]{g.spawnX, g.spawnY};
                 return new float[]{x, y};
-            default: // Blinky: direct chase
+            default: 
                 return new float[]{x, y};
         }
     }

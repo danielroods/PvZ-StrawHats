@@ -8,13 +8,7 @@ import model.projectile.zombie_projectile.CrystalSkullBeamProjectile;
 import model.utils.GameSession;
 import service.GameClock;
 
-/**
- * Crystal Skull Zombie's laser: once a plant comes within range it winds up
- * through "power_up" -> "power" -> "power_down" -> "attack" (in that order),
- * then fires a beam that scratches from the zombie straight to the plant it
- * locked onto, damaging it. After the beam fires the zombie waits out its
- * cooldown before it can charge up again.
- */
+
 public class CrystalSkullBeamEffect implements ZombieEffectStatus {
 
     private enum Phase { IDLE, POWER_UP, POWER, POWER_DOWN, ATTACK, COOLDOWN }

@@ -9,15 +9,7 @@ import model.match.boss.ZombossSkyStrike;
 import model.match.main.season.travellog.cave.FrostbiteFreezing;
 import model.match.main.season.travellog.cave.IceWind;
 
-/**
- * Frostbite Caves Zomboss. It is bolted into a glacier at the back of the lawn and never
- * moves: instead it breathes a freezing wind straight down one row (the {@code wind_1..4}
- * clips cover rows 2 to 5) and slingshots blocks of ice onto whatever is out of reach.
- * <p>
- * The glacier it sits in walls off the last two columns for the whole match - see
- * {@link #getBlockedColumnStart()}, which {@code SessionBoard} consults before it lets a
- * plant go down.
- */
+
 public class IceAgeZombossBehavior extends ZombossBehavior {
 
     private static final String ICE_PAM =
@@ -71,10 +63,7 @@ public class IceAgeZombossBehavior extends ZombossBehavior {
         fight.queueRecovery(COOLDOWN_MIN + random().nextDouble() * COOLDOWN_SPREAD);
     }
 
-    /**
-     * {@code wind_1} through {@code wind_4} are authored for lawn rows 2 to 5, so row index 0
-     * has no matching clip and is never chosen.
-     */
+    
     private void startWind() {
         int rows = session().getRows();
         int maxRow = Math.min(4, rows - 1);

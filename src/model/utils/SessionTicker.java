@@ -18,10 +18,7 @@ import service.GameClock;
 
 import java.util.List;
 
-/**
- * Drives one fixed simulation tick of a match: entity updates, hazards, wave scheduling,
- * sky sun drops, corpse/grid cleanup, and the win/loss evaluation at the end of the tick.
- */
+
 class SessionTicker {
 
     private final GameSession session;
@@ -162,15 +159,7 @@ class SessionTicker {
         }
     }
 
-    /**
-     * Once a barrel-pushing zombie dies, its barrel is meant to survive it and keep
-     * rolling forward on its own (still able to crush plants) until something
-     * destroys it or it rolls off the lawn - see the comment in ZombieRenderer's
-     * DyingZombie handling. Nothing was actually advancing the barrel's model
-     * position for that phase, though, so it just sat frozen in place. This keeps
-     * moving any barrel whose owning zombie has died, using that zombie's last
-     * known speed, the same way PusherMove drives it while the zombie is alive.
-     */
+    
     private void tickOrphanedRollingBarrels(double deltaTimeSeconds) {
         Environment lawn = session.getLawn();
         if (lawn == null) return;

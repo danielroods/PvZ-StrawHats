@@ -302,12 +302,7 @@ public class BeforeMatchScreen extends GameScreen {
         return normalized.contains("zomboss");
     }
 
-    /**
-     * Middle rows only (rows 2/3/4 in 1-indexed terms), so the preview avoids the very
-     * top/bottom board rows. For the standard 5-row board that's indices {1, 2, 3}; for
-     * odd row counts other than 5 it takes the middle three (or fewer if the board is
-     * smaller), keeping the selection centered.
-     */
+    
     protected int[] middlePreviewRows(int totalRows) {
         if (totalRows <= 3) {
             int[] all = new int[totalRows];
@@ -952,11 +947,7 @@ public class BeforeMatchScreen extends GameScreen {
         return wrapWithCardFrame(stack, LOADOUT_CARD_W, LOADOUT_CARD_H);
     }
 
-    /**
-     * Wraps a card actor with a thin card-background "frame" behind it, so plant cards
-     * read as a bordered slot the same way zombie cards do (their frame.png border is
-     * baked into the icon texture itself). Returned actor keeps the requested outer size.
-     */
+    
     protected Actor wrapWithCardFrame(Actor content, float outerW, float outerH) {
         Stack framed = new Stack();
 

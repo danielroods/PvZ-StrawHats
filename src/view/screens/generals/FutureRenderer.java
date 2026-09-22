@@ -36,8 +36,8 @@ class FutureRenderer {
 
     private static final float DEATH_ANIM_FALLBACK_DURATION = 1.2f;
 
-    // PAM artwork uses its own pixel space. These tiles are 768-era assets, so
-    // board pixel sizes must never be passed directly as PAM scale values.
+    
+    
     private static final float LINK_TILE_SCALE = 0.65f;
     private static final float LINK_TILE_OFFSET_X = 0.45f;
     private static final float LINK_TILE_OFFSET_Y = 0.50f;
@@ -97,13 +97,7 @@ class FutureRenderer {
         linkTileDeathAnimTime.keySet().removeIf(cell -> cell.getTile() == null || !Future.isLinkTile(cell.getTile().type()));
     }
 
-    /**
-     * Picks which clip a link tile should play this frame: the idle loop by
-     * default, {@link #LINKTILE_DEATH_STATE} for a short beat right after a
-     * plant standing on the tile dies, and {@link #LINKTILE_PLANTFOOD_STATE}
-     * on both tiles of a pair while either plant in the pair has plant food
-     * active.
-     */
+    
     private String resolveLinkTileState(Cell cell, String pamPath, float delta) {
         boolean hasPlantNow = cell.hasPlant();
         Boolean hadPlant = linkTileHadPlant.put(cell, hasPlantNow);

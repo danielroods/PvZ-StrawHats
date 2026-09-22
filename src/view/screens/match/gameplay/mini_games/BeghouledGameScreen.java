@@ -237,8 +237,7 @@ public class BeghouledGameScreen extends GameScreen {
         batch.setColor(Color.WHITE);
     }
 
-    /** Brief pulsing highlight over plants about to be cleared, so removal reads as a "pop"
-     *  instead of an instant vanish once the model actually removes them. */
+    
     private void drawMatchHighlight(float delta) {
         if (whitePixel == null || !(App.currentMenu instanceof BeghouledController controller)) return;
         var positions = controller.getGame().getMatchHighlightPositions();
@@ -261,9 +260,7 @@ public class BeghouledGameScreen extends GameScreen {
     }
 
     private boolean boardSeeded = false;
-    /** Advances/draws the MOONFLOWER_EFFECT "spawn" -> "end" sequence on every tile
-     *  currently reported as part of a resolved match, keyed by "row,col" so it
-     *  survives the Position objects themselves changing identity between frames. */
+    
     private void drawMatchEffects(float delta) {
         if (!(App.currentMenu instanceof BeghouledController controller)) {
             matchEffects.clear();
@@ -393,8 +390,7 @@ public class BeghouledGameScreen extends GameScreen {
         addBeforeModal(hudTable);
     }
 
-    /** Builds one upgrade option as the same seed-packet card used on the loadout/match screens,
-     *  with a sun-cost badge and a dim overlay when the player can't currently afford it. */
+    
     private Actor buildUpgradeCard(String plantName, int upgradeCost) {
         Group stack = new Group();
         stack.setTouchable(Touchable.enabled);

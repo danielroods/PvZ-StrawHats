@@ -6,13 +6,7 @@ import model.match.boss.ZombossLawn;
 import model.match.boss.ZombossSkyStrike;
 import model.utils.GameSession;
 
-/**
- * Future Zomboss. Same action set as the Ancient Egypt Zomboss (walk, jump-crush, stomp,
- * portal, missile) but every lawn tile is one of three "linked tile" pairs. Before firing a
- * missile the boss picks one of those pairs (there is no generic "missile_start" clip - each
- * pair has its own starter clip, "linktile1_start" / "linktile2_start" / "linktile3_start")
- * and then fires a missile onto every tile that belongs to the chosen pair.
- */
+
 public class FutureZombossBehavior extends EgyptZombossBehavior {
 
     private static final String MISSILE_PAM =
@@ -55,10 +49,7 @@ public class FutureZombossBehavior extends EgyptZombossBehavior {
         }
     }
 
-    /**
-     * Splits the lawn's rows into {@link #LINK_PAIR_COUNT} linked-tile groups and returns
-     * the rows belonging to the given group index.
-     */
+    
     private int[] rowsForPair(GameSession session, int pairIndex) {
         int rows = session.getRows();
         java.util.List<Integer> result = new java.util.ArrayList<>();

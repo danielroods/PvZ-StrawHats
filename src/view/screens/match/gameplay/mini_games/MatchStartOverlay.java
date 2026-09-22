@@ -5,14 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import model.collections.animations.AnimationFactory;
 import view.screens.generals.GameScreen;
 
-/**
- * Full-screen "VS" splash played right as a networked match begins: darkens the board,
- * plays the VS_ICON PAM's "intro" clip once, then its "outro" clip once, then gets out
- * of the way so the match can proceed as normal. Mirrors
- * {@link view.screens.match.after.MatchEndSequence}'s shading + clip-sequencing style,
- * but is driven from {@link GameScreen#drawMatchStartOverlay()} instead of the board's
- * own match-end hook.
- */
+
 public class MatchStartOverlay {
 
     private enum Phase { IDLE, INTRO, OUTRO }

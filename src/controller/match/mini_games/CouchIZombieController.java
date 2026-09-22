@@ -29,16 +29,7 @@ public class CouchIZombieController extends Menu {
         this(null, null);
     }
 
-    /**
-     * @param plantLoadout  the plant player's chosen loadout from the before-match screen
-     *                      (see {@code BeforeMenu.selectedPlants}); null/empty falls back
-     *                      to the built-in seed bank.
-     * @param zombieLoadout the zombie player's chosen loadout from the before-match screen
-     *                      (see {@code BeforeMenu.selectedZombies}); null/empty falls back
-     *                      to the built-in default roster.
-     *                      Either way, the match's own pre-placed defending plants are
-     *                      untouched - the loadouts only decide what's offered to pick from.
-     */
+    
     public CouchIZombieController(java.util.List<String> plantLoadout, java.util.List<String> zombieLoadout) {
         this.plantLoadout = plantLoadout == null ? null : new java.util.ArrayList<>(plantLoadout);
         this.zombieLoadout = zombieLoadout == null ? null : new java.util.ArrayList<>(zombieLoadout);

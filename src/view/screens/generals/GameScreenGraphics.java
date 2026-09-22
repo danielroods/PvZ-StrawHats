@@ -40,11 +40,7 @@ final class GameScreenGraphics {
         return new TextureRegion(t);
     }
 
-    /**
-     * A small soft-edged circle (white, alpha-blended) used as a generic round particle -
-     * currently the rising bubbles drawn over a hypnotized zombie. Tinted via
-     * {@code batch.setColor(...)} at draw time, same idiom as {@link #makeWhitePixel()}.
-     */
+    
     static TextureRegion makeBubbleTexture() {
         int size = 32;
         Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);

@@ -143,11 +143,7 @@ public class LeaderboardMenu extends Menu {
         return String.valueOf(row.lotteryScoreOrZero(chapter.key()));
     }
 
-    /**
-     * Every value column is plain numeric - a chapter never played counts as 0 - so
-     * descending is simply the reversed comparator, with username breaking ties the same
-     * way whichever direction the list runs.
-     */
+    
     private void sortRows(List<LeaderboardRowDto> rows) {
         Comparator<LeaderboardRowDto> byColumn = columnComparator();
         Comparator<LeaderboardRowDto> ordered = ascending ? byColumn : byColumn.reversed();

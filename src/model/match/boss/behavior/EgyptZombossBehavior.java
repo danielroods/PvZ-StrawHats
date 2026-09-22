@@ -7,11 +7,7 @@ import model.match.boss.ZombossLawn;
 import model.match.boss.ZombossSkyStrike;
 import model.match_mechanisms.vector.Position;
 
-/**
- * Ancient Egypt Zomboss. The mobile one: it walks the back half of the lawn a tile at a time,
- * hops onto a plant to crush it and hops straight back, stomps whatever gets close, opens a
- * portal on its own tile to let minions through, and lobs a guided rocket at the back line.
- */
+
 public class EgyptZombossBehavior extends ZombossBehavior {
 
     private static final String MISSILE_PAM =

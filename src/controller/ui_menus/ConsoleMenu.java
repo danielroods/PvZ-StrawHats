@@ -19,7 +19,7 @@ public class ConsoleMenu extends Menu {
         }
     }
 
-    @Override public void exitMenu() { App.currentMenu = new MainMenu(); }
+    @Override public void exitMenu() { App.currentMenu = new GameMenu(); }
 
     @Override
     public String showMenu() {

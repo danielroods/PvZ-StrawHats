@@ -26,17 +26,12 @@ import view.screens.generals.BaseScreen;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * A self-contained 3-lane endless runner for the Console's Zombie Dash game. Like
- * ZombiePackmanGameScreen, it stays independent of GameScreen/GameSession: an
- * auto-scrolling runner with a fixed lane count is a different simulation from PvZ's
- * five-lane lawn-defense model, so it keeps its own tiny loop instead of reusing GameSession.
- */
+
 public class ZombieDashGameScreen extends BaseScreen {
     private static final String PLAYER_PAM =
             "768/FULL/ZOMBIE/FOODFIGHT_ZOMBIE/FOODFIGHT_ZOMBIE.PAM";
-    // Verified against assets/pvz-assets/animations.json - each path/clip pair below
-    // is confirmed to exist there (see the "id/name" -> "path" -> clips entries).
+    
+    
     private static final String PLANT_PAM = "768/FULL/PLANT/SPIKEWEED/SPIKEWEED.PAM";
     private static final String GRAVE_PAM = "768/INITIAL/GRAVESTONES/TUTORIAL_GRAVESTONE/TUTORIAL_GRAVESTONE.PAM";
     private static final String PEASHOOTER_PAM = "768/INITIAL/PLANT/PEASHOOTER/PEASHOOTER.PAM";
@@ -52,8 +47,8 @@ public class ZombieDashGameScreen extends BaseScreen {
     private static final float PLAYER_SCALE = 0.55f;
     private static final float OBSTACLE_SCALE = 0.50f;
     private static final float PEA_SCALE = 0.42f;
-    // Pickup PAM canvases vary a lot in native size (sun 200px, coin 45px, brain 390px),
-    // so each needs its own scale to end up looking like a consistently-sized icon on screen.
+    
+    
     private static final float SUN_SCALE = 0.35f;
     private static final float COIN_SCALE = 0.40f;
     private static final float BRAIN_SCALE = 0.18f;
@@ -61,8 +56,8 @@ public class ZombieDashGameScreen extends BaseScreen {
     private static final float PLAYER_SCREEN_X = 190f;
     private static final float PIXELS_PER_DISTANCE = 42f;
 
-    // Scrolling checkerboard lawn (classic PvZ two-tone grass), tied to the same
-    // distance/PIXELS_PER_DISTANCE math as the entities so it scrolls in lockstep with them.
+    
+    
     private static final float TILE_WORLD_WIDTH = 1.5f;
     private static final Color LANE_LIGHT = new Color(0.57f, 0.80f, 0.32f, 1f);
     private static final Color LANE_DARK = new Color(0.47f, 0.70f, 0.27f, 1f);
@@ -175,9 +170,7 @@ public class ZombieDashGameScreen extends BaseScreen {
         batch.end();
     }
 
-    /** Scrolling checkerboard lawn: tile positions use the exact same
-     *  (worldX - distanceTraveled) * PIXELS_PER_DISTANCE projection as drawEntities(), so the
-     *  ground visibly scrolls in lockstep with the obstacles/pickups instead of sitting still. */
+    
     private void drawLanes() {
         float playerWorldX = game.getDistanceTraveled();
         float tilePx = TILE_WORLD_WIDTH * PIXELS_PER_DISTANCE;
@@ -233,9 +226,7 @@ public class ZombieDashGameScreen extends BaseScreen {
         }
     }
 
-    /** Idle-loops on worldTime like everything else, but its "attack" clip plays a proper
-     *  windup-to-shot sequence timed from the moment it actually fired, instead of sampling
-     *  whatever random phase worldTime happens to be at. */
+    
     private void drawShooter(String path, SpawnEntity e, float screenX, float screenY) {
         if (e.fireFlashTimer > 0) {
             float sinceFired = ZombieDashGame.SHOOTER_FLASH_TIME - e.fireFlashTimer;
@@ -324,9 +315,9 @@ public class ZombieDashGameScreen extends BaseScreen {
             }
             if (clip == null) return false;
 
-            // Same convention the main GameScreen's PlantRenderer uses: PAM clips don't loop on
-            // their own, so a state meant to keep animating (idle, walk, attack...) has to have
-            // its play time wrapped by the clip's real duration, or it just freezes after one pass.
+            
+            
+            
             float clipDuration = AnimationFactory.clipDurationForPath(p, state);
             float playTime = clipDuration > 0f ? time % clipDuration : time;
 

@@ -17,11 +17,7 @@ import model.pitches.obstacles.Grave;
 import model.pitches.obstacles.Bridge;
 import model.utils.GameSettings;
 
-/**
- * The layers under the entities: the season background, water/grid tiles,
- * the per-level tints and markers (deadline, boss, night, Save Our Seeds), graves, and
- * the sandstorm haze over the lawn.
- */
+
 class SeasonOverlayRenderer {
 
     private static final Color GRID_LINE_COLOR = new Color(1f, 0.12f, 0.12f, 0.85f);
@@ -233,11 +229,7 @@ class SeasonOverlayRenderer {
         }
     }
 
-    /**
-     * Resolves the correct staged grave art (1-5) for a given grave,
-     * depending on the current season and, for the Dark Ages, the grave's
-     * reward type.
-     */
+    
     private String graveImagePath(Grave grave, boolean darkAge) {
         int stage = grave.getStage();
 
@@ -265,13 +257,7 @@ class SeasonOverlayRenderer {
         }
     }
 
-    /**
-     * Ice Age (Frostbite Caves) dead line: instead of a plain red bar, each
-     * tile in the dead-line column shows a STAR_OBJECTIVE_FLOWER effect.
-     * They idle normally, then latch to a one-shot "fail"/"win" beat
-     * followed by a held "fail_idle"/"win_idle" once the match resolves,
-     * and stay that way for the rest of the screen.
-     */
+    
     private void drawIceAgeDeadlineFlowers(float delta, DeadLineLevel deadline) {
         if (deadlineFlowerPhase == DeadlineFlowerPhase.IDLE) {
             if (screen.session.isGameOver()) {

@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 
-/** Persistent demo TA portal data. This is intentionally a game/demo system, not an academic grading system. */
+
 public final class TaPortalStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<Data>() { }.getType();
@@ -49,7 +49,7 @@ public final class TaPortalStore {
             try (Writer writer = new FileWriter(file)) {
                 GSON.toJson(data, writer);
             } catch (Exception ignored) {
-                // The server can continue serving the current in-memory data.
+                
             }
         }
     }
@@ -83,7 +83,7 @@ public final class TaPortalStore {
             return RewardResult.error("Added score must be at least 0.25.");
         }
         synchronized (lock) {
-            // User is not used as the source of truth for persistence; the server AccountStore resolves it.
+            
             double oldScore = data.groupScores.getOrDefault(groupId, 0.0);
             double newScore = oldScore + addedScore;
             int oldUnits = (int) Math.floor((oldScore + 1e-9) / 0.25);
