@@ -16,17 +16,41 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 public class LocalUserStore implements UserStore {
-    private static final File CLIENT_FILE = new File("client-data", "Data.json");
+    private static final File CLIENT_FILE = resolveClientFile();
+
     private static final File[] LEGACY_FILES = {
-        new File("server-data", "Data.json"),
-        new File("Data.json"),
+            new File("client-data", "Data.json"),
+            new File("server-data", "Data.json"),
+            new File("Data.json"),
     };
+
+    private static File resolveClientFile() {
+        String appData = System.getenv("APPDATA");
+
+        File root;
+        if (appData != null && !appData.isBlank()) {
+            root = new File(appData, "PvZ_StrawHats");
+        } else {
+            root = new File(System.getProperty("user.home"), ".pvz_strawhats");
+        }
+
+        return new File(new File(root, "client-data"), "Data.json");
+    }
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private File accountFile() {
         File parent = CLIENT_FILE.getParentFile();
-        if (!parent.exists()) parent.mkdirs();
-        if (!CLIENT_FILE.exists()) migrateLegacyFile();
+
+        if (!parent.exists() && !parent.mkdirs() && !parent.isDirectory()) {
+            throw new IllegalStateException(
+                    "Could not create user data directory: " + parent.getAbsolutePath()
+            );
+        }
+
+        if (!CLIENT_FILE.exists()) {
+            migrateLegacyFile();
+        }
+
         return CLIENT_FILE;
     }
 

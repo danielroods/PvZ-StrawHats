@@ -67,6 +67,17 @@ application {
     mainClass = 'DesktopLauncher'
 }
 
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'DesktopLauncher',
+                'Class-Path': configurations.runtimeClasspath.files
+                        .collect { it.name }
+                        .join(' ')
+        )
+    }
+}
+
 tasks.register('runServer', JavaExec) {
     group = 'application'
     description = 'Runs the Plants vs Zombies multiplayer server.'

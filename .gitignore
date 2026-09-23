@@ -1,3 +1,4 @@
+# IntelliJ
 .idea/
 .vscode/
 out/
@@ -6,6 +7,17 @@ out/
 *.xml
 .gradle/
 build/
+
+# Compiled output
+out/
+
+# Java
+*.class
+
+# Release artifacts
+*.jar
+*.exe
+*.msi
 Data.json
 *.zip
 project_tree/
@@ -16,3 +28,10 @@ client-data/
 /CLAUDE.md
 /phase2.md
 /pvz2_terminal_test_cases.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets / machine-specific config
+*.local
