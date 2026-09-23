@@ -35,3 +35,5 @@ Thumbs.db
 
 # Local secrets / machine-specific config
 *.local
+# Large local/demo video
+PVZ_Strawhats_trailer.mov
